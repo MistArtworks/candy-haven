@@ -61,7 +61,7 @@ Every cross-process call is declared once in
 [`src/shared/ipc/contract.ts`](src/shared/ipc/contract.ts). That single
 declaration drives three consumers:
 
-- the **main-process router**, which validates inputs *and* outputs at runtime
+- the **main-process router**, which validates inputs _and_ outputs at runtime
   and wraps every result in a success/failure envelope, so a renderer call can
   never crash the main process;
 - the **preload bridge**, which refuses any channel not in the contract;
@@ -94,17 +94,17 @@ The boot screen is not a timed animation. It mirrors a real state machine in
 [`src/main/app/boot-sequence.ts`](src/main/app/boot-sequence.ts), where each of
 the nine stages performs actual work:
 
-| Stage | Work performed |
-| --- | --- |
-| `runtime` | Resolve application paths, create directories |
-| `configuration` | Load and validate operator settings |
-| `archive-binary` | Locate `mongod` |
-| `archive-provision` | Download the MongoDB runtime *(only if missing)* |
-| `archive-daemon` | Claim a free loopback port, start `mongod` |
-| `archive-link` | Open the driver connection |
-| `archive-schema` | Reconcile collections and indexes |
-| `services` | Configure the updater, dispatch a background update check |
-| `harmonics` | Health-check the archive |
+| Stage               | Work performed                                            |
+| ------------------- | --------------------------------------------------------- |
+| `runtime`           | Resolve application paths, create directories             |
+| `configuration`     | Load and validate operator settings                       |
+| `archive-binary`    | Locate `mongod`                                           |
+| `archive-provision` | Download the MongoDB runtime _(only if missing)_          |
+| `archive-daemon`    | Claim a free loopback port, start `mongod`                |
+| `archive-link`      | Open the driver connection                                |
+| `archive-schema`    | Reconcile collections and indexes                         |
+| `services`          | Configure the updater, dispatch a background update check |
+| `harmonics`         | Health-check the archive                                  |
 
 Progress is weighted by stage, and skipped stages are removed from the
 denominator, so the meter reflects real remaining work. Failures halt the
@@ -160,10 +160,10 @@ Requires Node 20.19+ and Windows.
 
 ### Useful environment variables
 
-| Variable | Effect |
-| --- | --- |
-| `CANDY_HAVEN_MONGO_URL` | Override the MongoDB archive source |
-| `CANDY_HAVEN_MONGO_SHA256` | Expected digest for the above |
+| Variable                    | Effect                                                              |
+| --------------------------- | ------------------------------------------------------------------- |
+| `CANDY_HAVEN_MONGO_URL`     | Override the MongoDB archive source                                 |
+| `CANDY_HAVEN_MONGO_SHA256`  | Expected digest for the above                                       |
 | `FORCE_DEV_UPDATE_CONFIG=1` | Exercise the updater against `dev-app-update.yml` without packaging |
 
 ---

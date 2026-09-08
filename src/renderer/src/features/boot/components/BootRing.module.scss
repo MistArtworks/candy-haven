@@ -130,8 +130,7 @@
   opacity: 1;
   // Self-luminous: two warm glows and no dark shadow. Depth now comes from the
   // resonance web behind the mark rather than from a drop shadow under it.
-  filter:
-    drop-shadow(0 0 8px rgba(227, 194, 134, 0.6))
+  filter: drop-shadow(0 0 8px rgba(227, 194, 134, 0.6))
     drop-shadow(0 0 26px rgba(210, 169, 97, 0.4));
 
   @include motion-safe {

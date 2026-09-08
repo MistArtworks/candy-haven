@@ -35,15 +35,15 @@ specified but not implemented.
 The user chose each of these explicitly over alternatives that were offered.
 Don't propose reversing them unless asked.
 
-| Decision | Choice | Notes |
-|---|---|---|
-| Platform | **Windows only** | NSIS installer. No macOS/Linux code paths. |
-| Database | **MongoDB, downloaded by the installer at install time** | Not bundled. The official Windows archive is ~805 MB because it ships debug symbols. |
-| Styling | **All-custom SCSS**, no utility framework | CSS Modules + a Sass token layer. |
-| Animation | **GSAP + motion (ex-framer-motion) + anime.js** | Each used where it is genuinely best; see §7. |
-| three.js | **Wanted later, not now** | `src/renderer/src/three/` was removed; reintroduce when asked. |
-| Scaffolding | Official `npm create @quick-start/electron` | The user asked for this specifically. |
-| Auto-update | **electron-updater**, generic provider | User ships updates frequently. |
+| Decision    | Choice                                                   | Notes                                                                                |
+| ----------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Platform    | **Windows only**                                         | NSIS installer. No macOS/Linux code paths.                                           |
+| Database    | **MongoDB, downloaded by the installer at install time** | Not bundled. The official Windows archive is ~805 MB because it ships debug symbols. |
+| Styling     | **All-custom SCSS**, no utility framework                | CSS Modules + a Sass token layer.                                                    |
+| Animation   | **GSAP + motion (ex-framer-motion) + anime.js**          | Each used where it is genuinely best; see §7.                                        |
+| three.js    | **Wanted later, not now**                                | `src/renderer/src/three/` was removed; reintroduce when asked.                       |
+| Scaffolding | Official `npm create @quick-start/electron`              | The user asked for this specifically.                                                |
+| Auto-update | **electron-updater**, generic provider                   | User ships updates frequently.                                                       |
 
 ### Environment gotcha — this will waste your time if you don't know it
 
@@ -103,21 +103,21 @@ Dune, Warhammer 40k, Mass Effect character elongation.
 3. **Institutional typography** — uppercase, wide letter-spacing, numbered
    sections. It reads as a government department, not a consumer app.
 
-Review question for any new UI: *does this introduce a sixth colour, or a second
-focal object?* If yes, it's wrong.
+Review question for any new UI: _does this introduce a sixth colour, or a second
+focal object?_ If yes, it's wrong.
 
 ### In-world naming
 
 The UI uses lore names for real things. Keep this consistent:
 
-| UI term | Actually means |
-|---|---|
-| **The Archive** | The embedded MongoDB instance |
-| **Resonance / harmonics** | System health, sync, connection |
-| **Department** | A navigable section of the app |
-| **Operator** | The user |
-| **Sonoalchemy** | The in-world science; used in chrome and the boot screen |
-| **Reserved / commissioned** | Not-yet-built vs shipped feature |
+| UI term                     | Actually means                                           |
+| --------------------------- | -------------------------------------------------------- |
+| **The Archive**             | The embedded MongoDB instance                            |
+| **Resonance / harmonics**   | System health, sync, connection                          |
+| **Department**              | A navigable section of the app                           |
+| **Operator**                | The user                                                 |
+| **Sonoalchemy**             | The in-world science; used in chrome and the boot screen |
+| **Reserved / commissioned** | Not-yet-built vs shipped feature                         |
 
 ---
 
@@ -209,7 +209,7 @@ Path aliases (configured in `electron.vite.config.ts` **and** both tsconfigs):
 Every cross-process call is declared **once** in
 `src/shared/ipc/contract.ts`. That single declaration drives three consumers:
 
-- **`src/main/ipc/router.ts`** validates the input *and* the output against the
+- **`src/main/ipc/router.ts`** validates the input _and_ the output against the
   schema at runtime, and wraps every result in a success/failure envelope. A
   renderer call therefore can never crash the main process, and errors cross as
   structured data (`code`, `message`, `hint`, `recoverable`) rather than strings.
@@ -239,7 +239,7 @@ Files come in pairs:
 
 - **`<name>.ts`** — zod schemas and `z.infer` types. Imported by main/preload.
 - **`<name>.constants.ts`** — factory functions, lookup tables, thresholds, with
-  **no zod import**. Imported by the renderer as *values*.
+  **no zod import**. Imported by the renderer as _values_.
 
 The renderer imports constants as values and schemas **type-only** (`import type`,
 which is erased at compile time). This keeps zod entirely out of the renderer
@@ -275,7 +275,7 @@ persistence sink. `useApplySettings()` merges each patch into the store
 immediately, then persists in the background (optionally debounced per key).
 **Server responses are not applied at all.**
 
-This is deliberate. The original design applied the main process's *response* to
+This is deliberate. The original design applied the main process's _response_ to
 each write, which made the UI hostage to response ordering: adjusting one control
 while another write was still in flight applied a response that predated the
 newer change, visibly reverting it. Changing the accent and then dragging the
@@ -340,17 +340,17 @@ Tokens: `$titlebar-height: 40px`, `$rail-width: 232px`,
 
 ### 7.3 Primitives (`src/renderer/src/components/`)
 
-| Component | Use |
-|---|---|
-| `Panel` | The standard slab container. Props: `label`, `index`, `aside`, `focal`, `flush`, `animated`. |
-| `PageHeader` | Section masthead: numbered label, purpose line, rule, epigraph, actions. |
-| `Field` / `FieldGrid` | Labelled readout; grid supports 1–4 columns. |
-| `Button` | `variant: primary\|ghost\|danger`, `size: sm\|md`, `busy`. |
-| `Meter` | Linear progress with quarter ticks; `null` value = indeterminate sweep. |
-| `StatusDot` | Square state indicator; **always pass `label`** — never colour alone. |
-| `Sigil` | The four-point Sonoalchemy star (used in titlebar, Nexus hero). |
-| `Logomark` | The real brand mark — a galaxy vortex, from `assets/Logo.svg`. |
-| `ErrorBoundary` | Top-level render guard with a reload action. |
+| Component             | Use                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `Panel`               | The standard slab container. Props: `label`, `index`, `aside`, `focal`, `flush`, `animated`. |
+| `PageHeader`          | Section masthead: numbered label, purpose line, rule, epigraph, actions.                     |
+| `Field` / `FieldGrid` | Labelled readout; grid supports 1–4 columns.                                                 |
+| `Button`              | `variant: primary\|ghost\|danger`, `size: sm\|md`, `busy`.                                   |
+| `Meter`               | Linear progress with quarter ticks; `null` value = indeterminate sweep.                      |
+| `StatusDot`           | Square state indicator; **always pass `label`** — never colour alone.                        |
+| `Sigil`               | The four-point Sonoalchemy star (used in titlebar, Nexus hero).                              |
+| `Logomark`            | The real brand mark — a galaxy vortex, from `assets/Logo.svg`.                               |
+| `ErrorBoundary`       | Top-level render guard with a reload action.                                                 |
 
 `Logomark` inlines the SVG path rather than importing the file, so it can be
 driven by `currentColor`. **If the artwork changes, re-copy the `d` attribute
@@ -393,7 +393,7 @@ Governed by the `dataviz` skill's method. What was decided:
   (`NOMINAL` / `ELEVATED` / `CRITICAL`).
 - Sparklines are **zero-anchored**, never cropped to the data range.
 - Hover layer on every plot (crosshair + tooltip on lines, per-mark on bars);
-  the current value is *also* always rendered as text.
+  the current value is _also_ always rendered as text.
 - 2px lines via `vector-effect: non-scaling-stroke`, 2px surface gaps between
   adjacent bars, recessive grid.
 
@@ -410,17 +410,17 @@ status colour, check contrast.
 screen is not a timed animation** — every stage does actual work, and the
 renderer mirrors the state.
 
-| # | Stage | Work |
-|---|---|---|
-| 1 | `runtime` | Resolve paths, create directories |
-| 2 | `configuration` | Load + validate settings |
-| 3 | `archive-binary` | Locate `mongod` |
-| 4 | `archive-provision` | Download the MongoDB runtime *(conditional — only if missing)* |
-| 5 | `archive-daemon` | Claim a free loopback port, spawn `mongod` |
-| 6 | `archive-link` | Open the driver connection |
-| 7 | `archive-schema` | Reconcile collections + indexes |
-| 8 | `services` | Configure updater, dispatch a background update check |
-| 9 | `harmonics` | Health-check the archive |
+| #   | Stage               | Work                                                           |
+| --- | ------------------- | -------------------------------------------------------------- |
+| 1   | `runtime`           | Resolve paths, create directories                              |
+| 2   | `configuration`     | Load + validate settings                                       |
+| 3   | `archive-binary`    | Locate `mongod`                                                |
+| 4   | `archive-provision` | Download the MongoDB runtime _(conditional — only if missing)_ |
+| 5   | `archive-daemon`    | Claim a free loopback port, spawn `mongod`                     |
+| 6   | `archive-link`      | Open the driver connection                                     |
+| 7   | `archive-schema`    | Reconcile collections + indexes                                |
+| 8   | `services`          | Configure updater, dispatch a background update check          |
+| 9   | `harmonics`         | Health-check the archive                                       |
 
 Progress is **weighted** per stage, and skipped stages are removed from the
 denominator so the meter reflects real remaining work. The rolling log is
@@ -509,15 +509,15 @@ Registry: **`src/shared/domain/navigation.ts`** — the single source of truth f
 routes, labels, order, and shipped status. The rail, titlebar, page transitions
 and Nexus all read from it.
 
-| # | Id | Path | Status | Purpose |
-|---|---|---|---|---|
-| 1 | `nexus` | `/` | **shipped** | Operational overview and system state |
-| 2 | `archive` | `/archive` | reserved | Ableton project registry, versions, session recall |
-| 3 | `transmissions` | `/transmissions` | reserved | Release pipeline, deliverables, distribution |
-| 4 | `observatory` | `/observatory` | reserved | Stream overlays, scene control, broadcast telemetry |
-| 5 | `interface` | `/interface` | reserved | Natural-language command console |
-| 6 | `telemetry` | `/telemetry` | **shipped** | Host vitals: processor, memory, graphics, storage |
-| 7 | `regulation` | `/regulation` | **shipped** | Operator settings, archive control, update channel |
+| #   | Id              | Path             | Status      | Purpose                                             |
+| --- | --------------- | ---------------- | ----------- | --------------------------------------------------- |
+| 1   | `nexus`         | `/`              | **shipped** | Operational overview and system state               |
+| 2   | `archive`       | `/archive`       | reserved    | Ableton project registry, versions, session recall  |
+| 3   | `transmissions` | `/transmissions` | reserved    | Release pipeline, deliverables, distribution        |
+| 4   | `observatory`   | `/observatory`   | reserved    | Stream overlays, scene control, broadcast telemetry |
+| 5   | `interface`     | `/interface`     | reserved    | Natural-language command console                    |
+| 6   | `telemetry`     | `/telemetry`     | **shipped** | Host vitals: processor, memory, graphics, storage   |
+| 7   | `regulation`    | `/regulation`    | **shipped** | Operator settings, archive control, update channel  |
 
 Reserved sections render `ReservedPage` with a commissioning scope list (defined
 inline in `src/renderer/src/app/router.tsx`) — deliberately not an empty page, so
@@ -560,7 +560,7 @@ probes.
 ### GPU — two hard-won lessons
 
 **1. Enumerate from WMI, not Chromium.** `app.getGPUInfo()` reports the adapter
-Chromium is *rendering with*, so on a hybrid laptop it lists one GPU and hides
+Chromium is _rendering with_, so on a hybrid laptop it lists one GPU and hides
 the other. `Win32_VideoController` is authoritative. Chromium's info is used only
 to flag which adapter is active.
 
@@ -572,8 +572,8 @@ measured 35.7% when the busiest engine was 9.4%.
 Per-adapter utilisation has no generic source (counter LUIDs can't be mapped to
 adapter names), so vendor tooling is used where it exists — `nvidia-smi` for
 NVIDIA, giving real load, VRAM and temperature. Non-NVIDIA adapters show
-identity only, with the UI stating *"per-adapter load not reported by this
-vendor"* rather than a fabricated zero. A `usageSource` field travels with each
+identity only, with the UI stating _"per-adapter load not reported by this
+vendor"_ rather than a fabricated zero. A `usageSource` field travels with each
 reading.
 
 Also: **WMI `AdapterRAM` is a 32-bit field and caps near 4 GB** — an 8 GB card

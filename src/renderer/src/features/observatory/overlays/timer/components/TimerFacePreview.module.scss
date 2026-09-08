@@ -9,10 +9,7 @@
   // in for whatever scene it will be composited onto.
   background:
     linear-gradient(rgba(8, 8, 10, 0.55), rgba(8, 8, 10, 0.55)),
-    repeating-conic-gradient(
-      var(--ch-obsidian-700) 0% 25%,
-      var(--ch-obsidian-800) 0% 50%
-    );
+    repeating-conic-gradient(var(--ch-obsidian-700) 0% 25%, var(--ch-obsidian-800) 0% 50%);
   background-size:
     auto,
     18px 18px;
