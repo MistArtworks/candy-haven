@@ -23,11 +23,11 @@ code you copy, so nothing needs configuring on the Streamlabs side.
 
 To do it by hand, paste these files into the widget editor's tabs:
 
-| Tab | File | Required |
-|---|---|---|
-| HTML | `widget.html` | yes |
-| CSS | `widget.css` | yes |
-| JS | `widget.js` | yes |
+| Tab    | File          | Required |
+| ------ | ------------- | -------- |
+| HTML   | `widget.html` | yes      |
+| CSS    | `widget.css`  | yes      |
+| JS     | `widget.js`   | yes      |
 | Fields | `fields.json` | optional |
 
 Then in OBS: **Browser source → 640 × 900**, background transparent.
@@ -45,18 +45,18 @@ placeholders (`background_color`, `text_color`, `font_size`,
 
 ## Settings
 
-| Setting | Default | What it does |
-|---|---|---|
-| Preset | `obsidian` | OBSIDIAN (void), SANCTUM (crimson glass), CHAMBER (pale stone, for light captures) |
-| Live mark | `crimson` | Which material marks the newest entry. Gold, for scenes already carrying a lot of red |
-| Name column | `30%` | Width of the name side of the ledger |
-| Hold | `60s` | How long a message stays before it retires |
-| Entry numbers | on | The numbered-sections rule, applied to a live feed |
-| Roll numbers | on | Numerals settle like an odometer instead of appearing |
-| Masthead | on | Turning sigil and the register's name along the foot |
-| Ambient motion | on | The sigil, resonance line and arrival scan. Off leaves only messages moving |
-| Brass badges | on | Brings Twitch badges into the palette |
-| Stamp deletions | on | Deleted messages become `EXPUNGED` rather than vanishing |
+| Setting         | Default    | What it does                                                                          |
+| --------------- | ---------- | ------------------------------------------------------------------------------------- |
+| Preset          | `obsidian` | OBSIDIAN (void), SANCTUM (crimson glass), CHAMBER (pale stone, for light captures)    |
+| Live mark       | `crimson`  | Which material marks the newest entry. Gold, for scenes already carrying a lot of red |
+| Name column     | `30%`      | Width of the name side of the ledger                                                  |
+| Hold            | `60s`      | How long a message stays before it retires                                            |
+| Entry numbers   | on         | The numbered-sections rule, applied to a live feed                                    |
+| Roll numbers    | on         | Numerals settle like an odometer instead of appearing                                 |
+| Masthead        | on         | Turning sigil and the register's name along the foot                                  |
+| Ambient motion  | on         | The sigil, resonance line and arrival scan. Off leaves only messages moving           |
+| Brass badges    | on         | Brings Twitch badges into the palette                                                 |
+| Stamp deletions | on         | Deleted messages become `EXPUNGED` rather than vanishing                              |
 
 ---
 
@@ -65,12 +65,18 @@ placeholders (`background_color`, `text_color`, `font_size`,
 **Viewer name colours are remapped, not passed through.** Twitch colours are
 overwhelmingly blue, green and purple, and binding `{color}` straight into the
 template would put a sixth hue on screen on the first message. Instead the
-widget reads the *hue* of whatever the viewer chose and maps it onto one of
+widget reads the _hue_ of whatever the viewer chose and maps it onto one of
 seven in-palette tones; viewers who never set a colour are hashed by name. Both
 are deterministic, so a regular looks the same tonight as last week. The
 recognition survives; the hue does not.
 
-**Emotes are untouched.** No filter, full fidelity. Emotes are speech rather
+**Emotes are untouched, including 7TV/BTTV/FFZ.** No filter, full fidelity.
+Whether third-party emotes appear at all is a **Streamlabs Chat Box setting**,
+not something this widget controls — turn on the 7TV / BetterTTV / FrankerFaceZ
+toggles in the widget settings and Streamlabs injects them into the message. The
+CSS handles both markup shapes Streamlabs uses (a `span.emote` carrying a
+background image, and a bare `img.emote`), and leaves width on `auto` so the
+wide emotes those services are full of are not squashed. Emotes are speech rather
 than architecture — the reference boards are full of crimson-robed figures, and
 colour belonging to the crowd was never what the palette rule was guarding
 against. Badges are treated the other way, as issued insignia, and get plated in
@@ -79,7 +85,7 @@ brass. Turn that off with `brass_badges` if you disagree.
 **Only one thing is ever crimson.** The newest entry's numeral and tick. When a
 newer message lands the mark moves, decaying to gold over ~560ms rather than
 snapping, so it reads as travelling down the register. The arrival scan under
-each message is deliberately *gold*, not crimson: several overlap in fast chat,
+each message is deliberately _gold_, not crimson: several overlap in fast chat,
 and a second crimson object on screen would break the rule the whole design is
 built on.
 
