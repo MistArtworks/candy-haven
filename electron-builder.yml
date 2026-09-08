@@ -29,7 +29,10 @@ extraResources:
 
 win:
   executableName: candy-haven
-  icon: build/icon.ico
+  # A 512x512 PNG rather than a prebuilt .ico: electron-builder generates the
+  # multi-resolution icon from it, so the artwork has one source of truth
+  # instead of a PNG and a hand-made .ico that drift apart.
+  icon: build/icon.png
   target:
     - target: nsis
       arch:
