@@ -268,13 +268,28 @@ export class RiteWheel {
 
   resize(): void {
     const rect = this.canvas.getBoundingClientRect()
-    const css = Math.max(Math.min(rect.width, rect.height), 1)
     // Render at device resolution so hairlines and small caps stay crisp.
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
 
-    this.size = css
-    this.canvas.width = Math.round(css * dpr)
-    this.canvas.height = Math.round(css * dpr)
+    /*
+     * The canvas is not assumed square.
+     *
+     * The ring is, and still draws into `size` — the shorter axis — centred in
+     * whatever box it is given. The linear mechanisms want the whole box: a
+     * rail is wide and a docket is tall, and squaring the canvas would throw
+     * away most of the frame they have.
+     *
+     * Both dimensions have to be recorded here. They are what `paint` clears
+     * and what the ring's centring offset is derived from, so leaving them at
+     * zero clears nothing — every frame accumulates on the last — and offsets
+     * the ring by half its own size into the corner.
+     */
+    this.width = Math.max(rect.width, 1)
+    this.height = Math.max(rect.height, 1)
+    this.size = Math.max(Math.min(this.width, this.height), 1)
+
+    this.canvas.width = Math.round(this.width * dpr)
+    this.canvas.height = Math.round(this.height * dpr)
     this.context.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     if (!this.running) this.paint(performance.now())
@@ -312,8 +327,18 @@ export class RiteWheel {
     const delta = Math.min((now - this.lastFrameAt) / 1000, 0.05)
     this.lastFrameAt = now
 
+    /*
+     * All three dimensions are checked, not just `size`.
+     *
+     * They are assigned together in `resize`, so any one of them being zero
+     * means the canvas box was never recorded — and drawing anyway is worse
+     * than drawing nothing: `clearRect(0, 0, 0, 0)` clears nothing, so every
+     * frame accumulates on the last and the ring is offset by half its own
+     * size into the corner. A blank canvas is at least diagnosable.
+     */
+    if (this.width <= 0 || this.height <= 0 || size <= 0) return
+
     ctx.clearRect(0, 0, this.width, this.height)
-    if (size <= 0) return
 
     const centre = size / 2
     const radius = size * 0.38
@@ -348,6 +373,25 @@ export class RiteWheel {
     this.fieldRotation += delta * fieldSpeed
     this.markRotation += (delta * TAU) / MARK_PERIOD_SECONDS
 
+    /*
+     * The mechanism is a presentation choice over one draw.
+     *
+     * Every branch renders the same predetermined result from the same spin
+     * command, so switching between them changes only how the selection is
+     * watched — never what is selected.
+     *
+     * Decided before anything is drawn, and before the empty-roster branch.
+     * Both of those are ring-specific: the resonance field belongs to the ring
+     * and has no business behind a docket, and returning early on an empty
+     * roster meant the mechanism could not be previewed until a petition had
+     * been filed — which is exactly when an operator wants to look at it.
+     */
+    const mechanism = this.state.mechanism ?? 'ring'
+    if (mechanism !== 'ring') {
+      this.drawLinear(mechanism, now, settled, velocity, progress, spinning)
+      return
+    }
+
     if (this.state.showField !== false) {
       ctx.save()
       ctx.translate((this.width - size) / 2, (this.height - size) / 2)
@@ -364,19 +408,6 @@ export class RiteWheel {
       this.drawPointer(centre, radius, 0)
       this.drawEmptyLegend(centre, centre + radius * 0.52)
       ctx.restore()
-      return
-    }
-
-    /*
-     * The mechanism is a presentation choice over one draw.
-     *
-     * Every branch below renders the same predetermined result from the same
-     * spin command, so switching between them mid-roster changes only how the
-     * selection is watched — never what is selected.
-     */
-    const mechanism = this.state.mechanism ?? 'ring'
-    if (mechanism !== 'ring') {
-      this.drawLinear(mechanism, now, settled, velocity, progress, spinning)
       return
     }
 
