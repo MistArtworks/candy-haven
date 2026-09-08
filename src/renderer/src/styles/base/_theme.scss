@@ -1,0 +1,126 @@
+// Runtime theme.
+//
+// The palette is locked to the five materials named in the world brief —
+// obsidian, concrete, aged brass / brushed gold, crimson glass, alabaster —
+// sampled from the reference boards. Each material is expanded into a small
+// scale so surfaces can be layered without introducing a new hue.
+//
+// Rule enforced by convention: no blues, greens or bright primaries anywhere.
+// The only saturated colour is crimson, and it is reserved for the focal point.
+
+:root {
+  // ------------------------------------------------------------- obsidian
+  // Base voids. Warm-shifted rather than neutral black so the palette never
+  // reads as cold or blue.
+  --ch-obsidian-900: #08080a;
+  --ch-obsidian-800: #0c0c0c;
+  --ch-obsidian-700: #111011;
+  --ch-obsidian-600: #171517;
+
+  // ------------------------------------------------------------- surfaces
+  --ch-surface: #131113;
+  --ch-surface-raised: #1a171a;
+  --ch-surface-sunken: #0a090b;
+  --ch-surface-overlay: rgba(10, 9, 11, 0.88);
+
+  // ------------------------------------------------------------- concrete
+  // The structural stone. Warm grey, used for secondary text and dividers.
+  --ch-concrete-700: #3b372f;
+  --ch-concrete-600: #554e42;
+  --ch-concrete-500: #6f6656;
+  --ch-concrete-400: #8a8071;
+
+  // ------------------------------------------------------------ alabaster
+  // Soft cream stone. Carries primary text.
+  --ch-alabaster-600: #8f7d63;
+  --ch-alabaster-500: #b69e7c;
+  --ch-alabaster-400: #cdb994;
+  --ch-alabaster-300: #ddcfb2;
+
+  // ----------------------------------------------------------------- gold
+  // Brushed gold and aged brass: structural ribbing, filigree, active states.
+  --ch-brass-700: #45351f;
+  --ch-brass-600: #5e472c;
+  --ch-gold-500: #976b30;
+  --ch-gold-400: #b98b47;
+  --ch-gold-300: #d2a961;
+  --ch-gold-200: #e3c286;
+
+  // -------------------------------------------------------------- crimson
+  // Crimson glass. The single saturated colour, reserved for focal objects,
+  // live state and destructive actions.
+  --ch-crimson-900: #24090a;
+  --ch-crimson-800: #43120f;
+  --ch-crimson-700: #5e1a16;
+  --ch-crimson-600: #7a1e1a;
+  --ch-crimson-500: #a32b23;
+  --ch-crimson-400: #c4453a;
+
+  // ------------------------------------------------------------------ text
+  --ch-text-primary: #ddcfb2;
+  --ch-text-secondary: #8a8071;
+  --ch-text-muted: #5a544a;
+  --ch-text-faint: #3d3931;
+  --ch-text-inverse: #0a090b;
+
+  // ------------------------------------------------------------------ line
+  --ch-line: rgba(182, 158, 124, 0.12);
+  --ch-line-strong: rgba(182, 158, 124, 0.26);
+  --ch-line-gold: rgba(210, 169, 97, 0.34);
+
+  // -------------------------------------------------------------- semantic
+  // `--ch-accent` is re-pointed by the Regulation accent setting; everything
+  // interactive references the alias rather than a literal material.
+  --ch-accent: var(--ch-crimson-500);
+  --ch-accent-bright: var(--ch-crimson-400);
+  --ch-accent-dim: var(--ch-crimson-800);
+  --ch-accent-glow: rgba(196, 69, 58, 0.32);
+
+  --ch-status-online: var(--ch-gold-300);
+  --ch-status-pending: var(--ch-concrete-400);
+  --ch-status-warn: var(--ch-gold-400);
+  --ch-status-error: var(--ch-crimson-400);
+  --ch-status-offline: var(--ch-concrete-600);
+
+  // ------------------------------------------------------------ typography
+  // Windows 11 system faces. Bahnschrift is a condensed grotesque that carries
+  // the institutional signage register without shipping a webfont; the stacks
+  // degrade cleanly if a face is unavailable.
+  --ch-font-display: 'Bahnschrift', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --ch-font-body: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --ch-font-mono: 'Cascadia Mono', 'Consolas', ui-monospace, monospace;
+
+  // ---------------------------------------------------------------- effects
+  --ch-grain-opacity: 0.5;
+  --ch-vignette: radial-gradient(
+    ellipse 120% 90% at 50% 42%,
+    transparent 0%,
+    transparent 46%,
+    rgba(4, 4, 5, 0.55) 100%
+  );
+  --ch-shadow-panel: 0 1px 0 rgba(182, 158, 124, 0.04), 0 18px 48px rgba(0, 0, 0, 0.55);
+  --ch-shadow-focal: 0 0 60px 0 var(--ch-accent-glow);
+}
+
+// Gold accent variant. Selected in Regulation; shifts every interactive
+// affordance from crimson to brushed gold while leaving the focal crimson of
+// the boot orb intact.
+:root[data-accent='gold'] {
+  --ch-accent: var(--ch-gold-500);
+  --ch-accent-bright: var(--ch-gold-300);
+  --ch-accent-dim: var(--ch-brass-700);
+  --ch-accent-glow: rgba(210, 169, 97, 0.28);
+}
+
+// Reduced-motion variants. `off` disables transitions wholesale; `reduced`
+// keeps state changes legible but removes ambient and decorative movement.
+:root[data-motion='off'],
+:root[data-motion='off'] * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+:root[data-motion='reduced'] {
+  --ch-grain-opacity: 0;
+}

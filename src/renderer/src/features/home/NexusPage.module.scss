@@ -1,0 +1,117 @@
+@use 'abstracts' as *;
+
+/*
+ * Two movements: a full-height landing, then the diagnostic overview.
+ *
+ * The page itself carries no padding — the landing is edge to edge by design,
+ * and the overview supplies its own gutters. Scrolling is owned by the console
+ * shell's page element, which this simply overflows.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
+.overview {
+  padding: space(12) space(10);
+  max-width: 1560px;
+  margin: 0 auto;
+  width: 100%;
+  // A hairline seam where the overview meets the landing above it: the two
+  // movements are separate plates, and the boards always show their edges.
+  @include hairline(top, 0.1);
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(94, 71, 44, 0.06), transparent 70%),
+    var(--ch-obsidian-900);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  // Stretch: every panel fills the full height of its row, so a row reads as
+  // one continuous band of slabs rather than a ragged edge.
+  align-items: stretch;
+}
+
+.departments {
+  grid-column: span 6;
+}
+
+.sectionList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.sectionLink {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: space(4);
+  padding: space(4) space(5);
+  @include hairline(top, 0.07);
+  transition: background-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.04);
+
+    .sectionLabel {
+      color: var(--ch-text-primary);
+    }
+  }
+}
+
+.sectionIndex {
+  @include readout(10px);
+  color: var(--ch-gold-500);
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sectionLabel {
+  @include label(10px, 0.2em);
+  color: var(--ch-text-secondary);
+  transition: color $duration-fast linear;
+}
+
+.sectionPurpose {
+  font-size: rem(10px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+// Column spans are declared per panel rather than by position. Positional
+// nth-child rules were fragile here: their specificity fought the responsive
+// overrides, and reordering a panel silently changed the layout.
+.span2 {
+  grid-column: span 2;
+}
+
+.span3 {
+  grid-column: span 3;
+}
+
+@include below('lg') {
+  // Three-up no longer fits comfortably; fall back to two-up.
+  .span2 {
+    grid-column: span 3;
+  }
+}
+
+@include below('md') {
+  .overview {
+    padding: space(9) space(6) space(10);
+  }
+
+  .span2,
+  .span3 {
+    grid-column: span 6;
+  }
+
+}
+

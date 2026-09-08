@@ -1,0 +1,158 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+.headerFigure {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  white-space: nowrap;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+.span3 {
+  grid-column: span 3;
+}
+
+.span6 {
+  grid-column: span 6;
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  .span3 {
+    grid-column: span 6;
+  }
+}
+
+.panelAside {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+}
+
+// The register manages its own padding so the ledger's sticky header can sit
+// flush against the panel edge; the Panel is passed `flush` for the same reason.
+.register {
+  padding: space(4) space(5) space(5);
+  min-height: rem(280px);
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.7;
+  max-width: rem(560px);
+  padding: space(6) 0;
+}
+
+.hint {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  height: 100%;
+}
+
+// -------------------------------------------------------------------- notice
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  padding: space(3) space(4);
+  background: rgba(163, 43, 35, 0.1);
+  border-left: 2px solid var(--ch-crimson-500);
+  @include hairline(all, 0.1);
+}
+
+.noticeText {
+  font-size: rem(12px);
+  color: var(--ch-text-primary);
+  line-height: 1.5;
+}
+
+.noticeClose {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+}
+
+// ------------------------------------------------------------------ unlinked
+
+// Bounded *and* flexible, which needs both declarations.
+//
+// `flex: 1` lets the list fill whatever height the row gives this panel, so it
+// leaves no blank strip when the INDEXING panel beside it is the taller of the
+// two. `max-height` stops the reverse: a scanned root with dozens of loose
+// files would otherwise grow the list to fit all of them and drag the whole
+// row — and the panel next to it — to several times this height.
+.unlinkedList {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1;
+  min-height: rem(140px);
+  max-height: rem(420px);
+}
+
+.unlinked {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) 0;
+  min-width: 0;
+
+  & + & {
+    @include hairline(top, 0.05);
+  }
+}
+
+.unlinkedName {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+}
+
+.unlinkedMeta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}

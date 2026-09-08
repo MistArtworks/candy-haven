@@ -1,0 +1,187 @@
+@use 'abstracts' as *;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(rem(230px), 1fr));
+  gap: space(4);
+  max-height: 62vh;
+  overflow-y: auto;
+  padding: space(1);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  transition:
+    border-color $duration-fast linear,
+    transform $duration-base $ease-out-expo;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+
+    @include motion-safe {
+      transform: translateY(-2px);
+    }
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-accent);
+    box-shadow: 0 0 0 1px var(--ch-accent-dim);
+  }
+
+  &[data-missing] {
+    opacity: 0.5;
+  }
+}
+
+.cover {
+  width: 100%;
+  border: 0;
+  @include hairline(bottom, 0.1);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(3);
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: space(2);
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  font-family: var(--ch-font-display);
+  font-size: rem(13px);
+  letter-spacing: 0.04em;
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.pin {
+  color: var(--ch-gold-300);
+  font-size: rem(8px);
+  flex-shrink: 0;
+}
+
+.artist {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+  @include truncate;
+}
+
+// Figures on a fixed four-column grid so they line up card to card down the
+// page rather than shifting with each project's name length.
+.figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: space(2);
+  margin-top: space(1);
+
+  dt {
+    @include label(7px, 0.18em);
+    color: var(--ch-text-faint);
+  }
+
+  dd {
+    @include readout(11px);
+    color: var(--ch-text-primary);
+    @include truncate;
+  }
+}
+
+.package {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  margin-top: space(1);
+}
+
+.packageLabel {
+  @include label(7px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.ticks {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+
+.tick {
+  flex: 1;
+  height: 3px;
+  background: var(--ch-concrete-700);
+
+  &[data-met] {
+    background: var(--ch-gold-400);
+  }
+}
+
+.packageCount {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(2);
+  @include hairline(top, 0.05);
+  padding-top: space(2);
+  margin-top: space(1);
+  min-width: 0;
+}
+
+.release {
+  @include label(8px, 0.14em);
+  color: var(--ch-gold-300);
+}
+
+.touched {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+}
+
+.warning {
+  @include label(7px, 0.14em);
+  color: var(--ch-crimson-400);
+  text-align: right;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+}
+
+.tag {
+  @include label(7px, 0.12em);
+  color: var(--ch-alabaster-600);
+  @include hairline(all, 0.12);
+  padding: 1px space(1);
+}
+
+.tagMore {
+  @include label(7px, 0.12em);
+  color: var(--ch-text-faint);
+  padding: 1px space(1);
+}

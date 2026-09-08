@@ -1,0 +1,11 @@
+@use 'abstracts' as *;
+
+.field {
+  display: block;
+  width: 100%;
+  height: 100%;
+  // The scene composites additively over the shell's own gradient, so it must
+  // not introduce a background of its own.
+  background: none;
+  pointer-events: none;
+}

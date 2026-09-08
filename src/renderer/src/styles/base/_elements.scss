@@ -1,0 +1,130 @@
+@use 'abstracts' as *;
+
+// Shared element-level styling: scrollbars, typographic defaults and the
+// ambient film-grain / vignette treatment that sits over the whole shell.
+
+// ------------------------------------------------------------------ scrollbars
+// Thin, recessed, brass-keyed. Scrollbars read as part of the instrument
+// housing rather than as operating-system furniture.
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ch-concrete-700) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ch-concrete-700);
+  border: 3px solid transparent;
+  background-clip: content-box;
+
+  &:hover {
+    background: var(--ch-concrete-600);
+    background-clip: content-box;
+  }
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+// ------------------------------------------------------------------ headings
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--ch-font-display);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+h1 {
+  font-size: rem(28px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-size: rem(18px);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+h3 {
+  font-size: rem(13px);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ch-text-secondary);
+}
+
+// ------------------------------------------------------------------- ambience
+// A single fixed overlay carrying grain and vignette. Sits above content but
+// ignores pointer events, so it tints the whole shell without affecting layout
+// or interaction.
+.ch-ambience {
+  position: fixed;
+  inset: 0;
+  z-index: z('overlay');
+  pointer-events: none;
+
+  &__vignette {
+    position: absolute;
+    inset: 0;
+    background: var(--ch-vignette);
+  }
+
+  // Procedural grain: a tiny repeating fractal-noise tile, scaled up. Cheaper
+  // and sharper than shipping a noise bitmap.
+  &__grain {
+    position: absolute;
+    inset: -50%;
+    // The setting is a 0..1 operator preference, but noise at full strength is
+    // too aggressive over near-black surfaces. Scaling it here keeps the whole
+    // slider range usable instead of only its bottom third, and takes effect on
+    // existing settings files without a migration. Paired with soft-light
+    // rather than overlay, which lifts texture without crushing contrast.
+    opacity: calc(var(--ch-grain-opacity) * 0.7);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.36'/%3E%3C/svg%3E");
+    mix-blend-mode: soft-light;
+
+    @include motion-safe {
+      animation: ch-grain-drift 800ms steps(2, end) infinite;
+    }
+  }
+
+  // Faint horizontal scan structure — the interface as a monitored surface.
+  &__scan {
+    position: absolute;
+    inset: 0;
+    opacity: 0.21;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0.13) 3px,
+      rgba(0, 0, 0, 0) 4px
+    );
+  }
+}
+
+// Sub-pixel jitter. Two steps only, so the grain shimmers without crawling.
+@keyframes ch-grain-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-1.5%, 1%, 0);
+  }
+  100% {
+    transform: translate3d(1%, -1.5%, 0);
+  }
+}

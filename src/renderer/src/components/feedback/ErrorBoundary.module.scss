@@ -1,0 +1,56 @@
+@use 'abstracts' as *;
+
+.fallback {
+  position: fixed;
+  inset: 0;
+  z-index: z('modal');
+  display: grid;
+  place-items: center;
+  padding: space(10);
+  background: var(--ch-obsidian-900);
+  @include window-drag;
+}
+
+.panel {
+  max-width: 560px;
+  padding: space(8);
+  text-align: center;
+  border: $hairline solid rgba(196, 69, 58, 0.34);
+  background: linear-gradient(180deg, rgba(67, 18, 15, 0.28), transparent);
+  @include window-no-drag;
+}
+
+.label {
+  @include label(12px, 0.3em);
+  color: var(--ch-crimson-400);
+  text-indent: 0.3em;
+  margin-bottom: space(4);
+}
+
+.message {
+  @include readout(12px);
+  color: var(--ch-text-primary);
+  line-height: 1.6;
+  margin-bottom: space(4);
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  margin-bottom: space(6);
+}
+
+.action {
+  @include label(10px, 0.16em);
+  color: var(--ch-text-primary);
+  padding: space(3) space(6);
+  border: $hairline solid var(--ch-accent);
+  background: rgba(163, 43, 35, 0.16);
+  transition: background-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(196, 69, 58, 0.28);
+  }
+}

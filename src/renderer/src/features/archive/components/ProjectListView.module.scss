@@ -1,0 +1,133 @@
+@use 'abstracts' as *;
+
+.wrapper {
+  overflow: auto;
+  max-height: 62vh;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: z('raised');
+    background: var(--ch-surface);
+    @include label(8px, 0.18em);
+    color: var(--ch-text-muted);
+    text-align: left;
+    padding: space(2) space(3);
+    @include hairline(bottom, 0.16);
+    white-space: nowrap;
+  }
+}
+
+.row {
+  cursor: pointer;
+  transition: background-color $duration-fast linear;
+
+  td {
+    padding: space(2) space(3);
+    @include hairline(bottom, 0.05);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.035);
+  }
+
+  &:focus-visible {
+    outline: none;
+    background: rgba(182, 158, 124, 0.05);
+
+    td:first-child {
+      box-shadow: inset 2px 0 0 var(--ch-accent);
+    }
+  }
+
+  // Selection is carried by an accent edge plus a lifted background, so it
+  // survives the accent switch and does not rely on hue alone.
+  &[data-selected] {
+    background: rgba(182, 158, 124, 0.06);
+
+    td:first-child {
+      box-shadow: inset 2px 0 0 var(--ch-accent);
+    }
+  }
+
+  &[data-missing] {
+    opacity: 0.55;
+
+    .name {
+      text-decoration: line-through;
+      text-decoration-color: var(--ch-crimson-600);
+    }
+  }
+}
+
+.index {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.numeric {
+  @include readout(11px);
+  text-align: right;
+  color: var(--ch-text-secondary);
+}
+
+.mono {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+}
+
+.nameCell {
+  min-width: rem(220px);
+  max-width: rem(420px);
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.pin {
+  color: var(--ch-gold-300);
+  font-size: rem(8px);
+  flex-shrink: 0;
+}
+
+.sub {
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+  margin-top: 1px;
+  min-width: 0;
+}
+
+.artist {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+}
+
+.note {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  font-style: italic;
+  @include truncate;
+  max-width: rem(260px);
+}
+
+.readiness {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+}

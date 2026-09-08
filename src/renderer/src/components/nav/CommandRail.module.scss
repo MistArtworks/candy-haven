@@ -1,0 +1,289 @@
+@use 'abstracts' as *;
+
+.rail {
+  position: relative;
+  z-index: z('rail');
+  width: $rail-width;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--ch-obsidian-800);
+  @include hairline(right, 0.1);
+  padding: space(5) 0 space(4);
+  overflow-y: auto;
+  // The active marker's wash is a full-width absolutely positioned pseudo
+  // element, which would otherwise push a horizontal scrollbar into the rail.
+  overflow-x: hidden;
+}
+
+// ------------------------------------------------------------------ masthead
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: 0 space(5) space(3);
+}
+
+.mastheadLabel {
+  @include label(9px, 0.24em);
+  color: var(--ch-gold-500);
+  flex-shrink: 0;
+}
+
+.mastheadRule {
+  flex: 1;
+  height: 1px;
+  background: var(--ch-line);
+  min-width: space(2);
+}
+
+.mastheadCount {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+// ---------------------------------------------------------------------- list
+
+.list {
+  display: flex;
+  flex-direction: column;
+  @include hairline(top, 0.07);
+}
+
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: space(3);
+  padding: space(3) space(5);
+  color: var(--ch-text-muted);
+  transition: color $duration-base $ease-out-expo;
+  // Every row closes with a rule, so the list reads as a ruled register.
+  @include hairline(bottom, 0.05);
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &:hover .purpose {
+    opacity: 1;
+  }
+}
+
+.active {
+  color: var(--ch-text-primary);
+
+  .label {
+    color: var(--ch-text-primary);
+  }
+
+  .index {
+    color: var(--ch-accent-bright);
+  }
+
+  .purpose {
+    opacity: 1;
+  }
+}
+
+// Vertical accent bar on the active section, plus a faint wash across the row.
+.marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ch-accent);
+  box-shadow: 0 0 14px var(--ch-accent-glow);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: $rail-width;
+    background: linear-gradient(to right, rgba(163, 43, 35, 0.12), transparent 70%);
+    pointer-events: none;
+  }
+}
+
+// The index sits in its own gutter, separated by a hairline — the detail that
+// makes the list read as a numbered register rather than a nav menu.
+.index {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  padding-right: space(3);
+  @include hairline(right, 0.07);
+  transition: color $duration-base $ease-out-expo;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.label {
+  @include label(11px, 0.2em);
+  color: inherit;
+}
+
+// The purpose line is the plain-language counterpart to the institutional
+// label. Dimmed until hover or selection so the rail stays scannable.
+.purpose {
+  font-size: rem(10px);
+  line-height: 1.3;
+  color: var(--ch-text-faint);
+  opacity: 0.55;
+  transition: opacity $duration-base $ease-out-expo;
+  @include truncate;
+}
+
+// Commissioning state as a cut-stone marker rather than a text badge: gold for
+// in service, hollow for reserved. The title/aria-label carry the meaning.
+.state {
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  background: var(--ch-gold-400);
+  box-shadow: 0 0 8px rgba(210, 169, 97, 0.35);
+
+  &[data-reserved] {
+    background: transparent;
+    border: 1px solid var(--ch-concrete-700);
+    box-shadow: none;
+  }
+}
+
+// -------------------------------------------------------------------- footer
+
+.footer {
+  padding: space(4) space(5) 0;
+  @include hairline(top, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.updateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  @include label(9px, 0.16em);
+  color: var(--ch-gold-300);
+  padding: space(2) space(3);
+  border: $hairline solid var(--ch-line-gold);
+  transition: background-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(210, 169, 97, 0.08);
+  }
+}
+
+.updateDot {
+  width: 5px;
+  height: 5px;
+  background: var(--ch-gold-300);
+  box-shadow: 0 0 8px rgba(210, 169, 97, 0.6);
+
+  @include motion-safe {
+    animation: rail-update-pulse 2200ms $ease-in-out infinite;
+  }
+}
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+}
+
+.readoutRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(2);
+
+  dt {
+    @include label(8px, 0.18em);
+    color: var(--ch-text-faint);
+  }
+
+  dd {
+    @include readout(9px);
+    color: var(--ch-text-secondary);
+  }
+
+  // Fault states are the one thing in the rail allowed to draw the eye.
+  dd[data-state='online'] {
+    color: var(--ch-gold-300);
+  }
+
+  dd[data-state='error'],
+  dd[data-state='degraded'] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.subtitle {
+  @include label(8px, 0.24em);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  padding-top: space(2);
+  @include hairline(top, 0.06);
+}
+
+@keyframes rail-update-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+// Narrow layout: drop the descriptive text, keep the numbered labels.
+@include below('md') {
+  .rail {
+    width: $rail-width-collapsed;
+  }
+
+  .masthead {
+    padding: 0 space(3) space(3);
+  }
+
+  .mastheadLabel,
+  .mastheadCount {
+    display: none;
+  }
+
+  .item {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: space(1);
+    padding: space(3) space(2);
+    text-align: center;
+  }
+
+  .index {
+    padding-right: 0;
+    border-right: none;
+  }
+
+  .purpose,
+  .state,
+  .readout,
+  .subtitle {
+    display: none;
+  }
+
+  .marker::after {
+    width: $rail-width-collapsed;
+  }
+}

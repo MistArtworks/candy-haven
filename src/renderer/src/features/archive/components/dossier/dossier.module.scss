@@ -1,0 +1,597 @@
+@use 'abstracts' as *;
+
+// Styles shared by every dossier tab.
+//
+// One stylesheet rather than five near-identical ones: the tabs are variations
+// on the same record layout, and duplicating the grid, the file rows and the
+// section rules across five modules would guarantee they drifted apart.
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+.grid > * {
+  height: 100%;
+}
+
+.span2 {
+  grid-column: span 2;
+}
+
+.span3 {
+  grid-column: span 3;
+}
+
+.span4 {
+  grid-column: span 4;
+}
+
+.span6 {
+  grid-column: span 6;
+}
+
+@include below('lg') {
+  .span2 {
+    grid-column: span 3;
+  }
+}
+
+@include below('md') {
+  .span2,
+  .span3,
+  .span4 {
+    grid-column: span 6;
+  }
+}
+
+// ------------------------------------------------------------------- stacks
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.stackTight {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+.actions {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+  margin-top: space(2);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space(4);
+}
+
+.formGridWide {
+  grid-column: 1 / -1;
+}
+
+@include below('md') {
+  .formGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sectionLabel {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-muted);
+  @include hairline(bottom, 0.08);
+  padding-bottom: space(2);
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+.hint {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+.warn {
+  @include readout(11px);
+  color: var(--ch-crimson-400);
+  line-height: 1.6;
+}
+
+.dirty {
+  @include label(8px, 0.14em);
+  color: var(--ch-gold-300);
+}
+
+// ---------------------------------------------------------------- file rows
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  max-height: rem(280px);
+  overflow-y: auto;
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) 0;
+  min-width: 0;
+
+  & + & {
+    @include hairline(top, 0.05);
+  }
+}
+
+.fileName {
+  flex: 1;
+  min-width: 0;
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  text-align: left;
+  @include truncate;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+}
+
+.fileMeta {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.filePrimary {
+  @include label(7px, 0.14em);
+  color: var(--ch-gold-300);
+  border: $hairline solid var(--ch-line-gold);
+  padding: 1px 3px;
+  flex-shrink: 0;
+}
+
+.filePromote {
+  @include label(7px, 0.14em);
+  color: var(--ch-text-muted);
+  @include hairline(all, 0.12);
+  padding: 1px space(2);
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+}
+
+// ------------------------------------------------------------------- chips
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+}
+
+.token {
+  @include label(8px, 0.12em);
+  color: var(--ch-alabaster-600);
+  @include hairline(all, 0.12);
+  padding: 2px space(2);
+}
+
+.tokenMore {
+  @include label(8px, 0.12em);
+  color: var(--ch-text-faint);
+  padding: 2px space(2);
+}
+
+// ------------------------------------------------------------- checklist
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: space(3);
+  padding: space(2) 0;
+
+  & + & {
+    @include hairline(top, 0.05);
+  }
+}
+
+// A filled square for met, a hollow one for outstanding. The state is in the
+// shape as well as the colour.
+.checkMark {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 3px;
+  @include hairline(all, 0.2);
+
+  &[data-met] {
+    background: var(--ch-gold-400);
+    border-color: var(--ch-gold-400);
+  }
+}
+
+.checkBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.checkLabel {
+  @include label(9px, 0.14em);
+  color: var(--ch-text-muted);
+
+  .check[data-met] & {
+    color: var(--ch-text-primary);
+  }
+}
+
+.checkHint {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+}
+
+// -------------------------------------------------------------------- notes
+
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+
+  &[data-pinned] {
+    border-left: 2px solid var(--ch-gold-400);
+  }
+}
+
+.noteBody {
+  font-size: rem(12px);
+  color: var(--ch-text-primary);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.noteFoot {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  @include label(7px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.noteAction {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-muted);
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-danger]:hover {
+    color: var(--ch-accent-bright);
+  }
+}
+
+// ------------------------------------------------------------------ history
+
+.history {
+  display: flex;
+  flex-direction: column;
+}
+
+.event {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  padding: space(2) 0;
+
+  & + & {
+    @include hairline(top, 0.05);
+  }
+}
+
+.eventStamp {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+  width: rem(128px);
+}
+
+.eventNote {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  font-style: italic;
+  min-width: 0;
+}
+
+// -------------------------------------------------------------- deliverables
+
+.deliverables {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: space(5);
+}
+
+@include below('md') {
+  .deliverables {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deliverable {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+}
+
+.deliverableHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(2);
+}
+
+.deliverableLabel {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-muted);
+}
+
+.deliverableState {
+  @include label(7px, 0.14em);
+  color: var(--ch-text-faint);
+
+  &[data-selected] {
+    color: var(--ch-gold-300);
+  }
+}
+
+.deliverableChoice {
+  display: flex;
+  flex-direction: column;
+  max-height: rem(160px);
+  overflow-y: auto;
+  @include hairline(all, 0.08);
+  background: var(--ch-surface-sunken);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(2);
+  padding: space(2) space(3);
+  text-align: left;
+  min-width: 0;
+  transition: background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(top, 0.05);
+  }
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.05);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+
+  &[data-selected] {
+    background: rgba(210, 169, 97, 0.08);
+    box-shadow: inset 2px 0 0 var(--ch-gold-400);
+  }
+}
+
+.choiceName {
+  @include readout(10px);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.choiceMeta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+// ---------------------------------------------------------------- marketing
+
+.assetGroup {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.assetGroupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+  @include hairline(bottom, 0.08);
+  padding-bottom: space(2);
+}
+
+.assetGroupLabel {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-secondary);
+}
+
+.assetGroupCount {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+
+  &[data-short] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.asset {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding: space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+
+  &[data-settled] {
+    border-left: 2px solid var(--ch-gold-400);
+  }
+
+  &[data-overdue] {
+    border-left: 2px solid var(--ch-crimson-500);
+  }
+}
+
+.assetHead {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+.assetTitle {
+  flex: 1 1 rem(180px);
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: var(--ch-font-display);
+  font-size: rem(12px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+
+  &:focus-visible {
+    outline: none;
+    color: var(--ch-accent-bright);
+  }
+}
+
+.assetCountdown {
+  @include label(8px, 0.16em);
+  color: var(--ch-gold-300);
+  flex-shrink: 0;
+
+  &[data-overdue] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.assetControls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space(3);
+  align-items: start;
+}
+
+@include below('md') {
+  .assetControls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.assetFile {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  min-width: 0;
+}
+
+.assetFilePath {
+  flex: 1;
+  min-width: 0;
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  text-align: left;
+  @include truncate;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+}
+
+// ---------------------------------------------------------------- platforms
+
+.platformGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(rem(150px), 1fr));
+  gap: space(2) space(4);
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) 0;
+  min-width: 0;
+
+  & + & {
+    @include hairline(top, 0.05);
+  }
+}
+
+.linkPlatform {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  width: rem(112px);
+  flex-shrink: 0;
+}
+
+.linkUrl {
+  flex: 1;
+  min-width: 0;
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  text-align: left;
+  @include truncate;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.linkForm {
+  display: grid;
+  grid-template-columns: rem(180px) minmax(0, 1fr) auto;
+  gap: space(3);
+  align-items: end;
+}
+
+@include below('md') {
+  .linkForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,178 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  // Stretch: every panel fills the full height of its row, so a row reads as
+  // one continuous band of slabs rather than a ragged edge.
+  align-items: stretch;
+}
+
+.grid > * {
+  grid-column: span 3;
+}
+
+.wide {
+  grid-column: span 6 !important;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: space(6);
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  align-items: flex-start;
+}
+
+.controlLabel {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-muted);
+}
+
+.controlHint {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+}
+
+// ---------------------------------------------------------------- segmented
+// A row of hard-edged switches. Selection is carried by the accent underline
+// plus text colour, never by colour alone.
+.segmented {
+  display: inline-flex;
+  @include hairline(all, 0.14);
+}
+
+.segment {
+  position: relative;
+  padding: space(2) space(4);
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover {
+    color: var(--ch-text-secondary);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
+}
+
+// ------------------------------------------------------------------- toggle
+
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  @include hairline(all, 0.16);
+  background: var(--ch-surface-sunken);
+  transition: border-color $duration-fast linear;
+
+  &[data-on] {
+    border-color: var(--ch-accent);
+  }
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  background: var(--ch-concrete-500);
+  transition:
+    transform $duration-base $ease-out-expo,
+    background-color $duration-base linear;
+
+  .toggle[data-on] & {
+    transform: translateX(20px);
+    background: var(--ch-accent-bright);
+    box-shadow: 0 0 10px var(--ch-accent-glow);
+  }
+}
+
+// -------------------------------------------------------------------- range
+
+.range {
+  width: 200px;
+  height: 2px;
+  appearance: none;
+  background: var(--ch-concrete-700);
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 10px;
+    height: 16px;
+    background: var(--ch-alabaster-500);
+    cursor: grab;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  }
+
+  &::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    background: var(--ch-accent-bright);
+  }
+}
+
+// ------------------------------------------------------------------ shared
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+  margin-top: space(5);
+}
+
+.provision {
+  margin-top: space(5);
+}
+
+.message {
+  margin-top: space(4);
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  line-height: 1.5;
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  .grid > * {
+    grid-column: span 6;
+  }
+}

@@ -1,0 +1,124 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+// Explicit spans per panel, never positional nth-child rules.
+.span2 {
+  grid-column: span 2;
+}
+
+.span3 {
+  grid-column: span 3;
+}
+
+.span6 {
+  grid-column: span 6;
+}
+
+@include below('lg') {
+  .span2 {
+    grid-column: span 3;
+  }
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  .span2,
+  .span3 {
+    grid-column: span 6;
+  }
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+}
+
+// ------------------------------------------------------------------ adapters
+
+.adapters {
+  display: flex;
+  flex-direction: column;
+}
+
+.adapter {
+  padding: space(3) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+}
+
+.adapterHead {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+}
+
+.adapterName {
+  @include readout(12px);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.adapterBadge {
+  @include label(8px, 0.14em);
+  color: var(--ch-gold-300);
+  border: $hairline solid var(--ch-line-gold);
+  padding: 1px 4px;
+  flex-shrink: 0;
+}
+
+.adapterMeta {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+}
+
+// Per-adapter readings. Laid out on a shared grid so figures line up down the
+// list rather than shifting with adapter name length.
+.adapterStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: space(3);
+  margin: space(2) 0 space(1);
+}
+
+.adapterStat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  @include readout(11px);
+  color: var(--ch-text-primary);
+}
+
+.adapterStatLabel {
+  @include label(7px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+// ------------------------------------------------------------------- volumes
+
+.volumes {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}

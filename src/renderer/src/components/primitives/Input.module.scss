@@ -1,0 +1,301 @@
+@use 'abstracts' as *;
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+}
+
+.label {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-muted);
+}
+
+.aside {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.hint {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+}
+
+// --------------------------------------------------------------- text entry
+
+// A recessed slot. The field is darker than the panel it sits in so entry areas
+// read as cut into the surface rather than raised off it.
+%entry {
+  width: 100%;
+  min-width: 0;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+  border-radius: $radius-control;
+  padding: space(2) space(3);
+  color: var(--ch-text-primary);
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  line-height: 1.5;
+  transition:
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--ch-accent);
+    background: var(--ch-obsidian-800);
+  }
+
+  &:disabled {
+    color: var(--ch-text-muted);
+    cursor: not-allowed;
+  }
+}
+
+.input {
+  @extend %entry;
+}
+
+.textarea {
+  @extend %entry;
+  resize: vertical;
+  min-height: rem(72px);
+}
+
+.mono {
+  @include readout(12px);
+}
+
+.date {
+  // Chromium draws the picker glyph from the colour scheme; declaring dark
+  // keeps it from rendering as a bright white square on the obsidian field.
+  color-scheme: dark;
+  max-width: rem(180px);
+}
+
+// ------------------------------------------------------------------- select
+
+.selectWrap {
+  position: relative;
+  display: flex;
+}
+
+.select {
+  @extend %entry;
+  appearance: none;
+  padding-right: space(8);
+  @include label(10px, 0.12em);
+  cursor: pointer;
+
+  // The dropdown list itself is drawn by the OS, so its own colours have to be
+  // set on the options directly.
+  option {
+    background: var(--ch-obsidian-800);
+    color: var(--ch-text-primary);
+    font-family: var(--ch-font-body);
+    letter-spacing: normal;
+  }
+}
+
+.selectArrow {
+  position: absolute;
+  right: space(3);
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: $hairline solid var(--ch-concrete-400);
+  border-bottom: $hairline solid var(--ch-concrete-400);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+// ----------------------------------------------------------------- checkbox
+
+.checkboxRow {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  min-width: 0;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: space(3);
+  text-align: left;
+
+  &:focus-visible {
+    @include focus-ring();
+  }
+}
+
+.checkboxMark {
+  position: relative;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.18);
+  transition: border-color $duration-fast linear;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: transparent;
+    transition: background-color $duration-fast linear;
+  }
+
+  .checkbox[data-checked] & {
+    border-color: var(--ch-accent);
+
+    &::after {
+      background: var(--ch-accent-bright);
+    }
+  }
+}
+
+.checkboxLabel {
+  @include label(9px, 0.14em);
+  color: var(--ch-text-secondary);
+
+  .checkbox[data-checked] & {
+    color: var(--ch-text-primary);
+  }
+}
+
+// --------------------------------------------------------------------- chips
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: space(1);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+  border-radius: $radius-control;
+  padding: space(1) space(2);
+  min-height: rem(34px);
+
+  &:focus-within {
+    border-color: var(--ch-accent);
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: space(1);
+  @include label(9px, 0.12em);
+  color: var(--ch-alabaster-400);
+  background: rgba(182, 158, 124, 0.07);
+  @include hairline(all, 0.16);
+  padding: 2px space(2);
+}
+
+.chipRemove {
+  @include readout(12px);
+  line-height: 1;
+  color: var(--ch-text-muted);
+
+  &:hover {
+    color: var(--ch-accent-bright);
+  }
+}
+
+.chipInput {
+  flex: 1 1 rem(80px);
+  min-width: rem(80px);
+  background: none;
+  border: 0;
+  padding: space(1);
+  color: var(--ch-text-primary);
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+// -------------------------------------------------------------------- search
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 rem(240px);
+  min-width: rem(180px);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+
+  &:focus-within {
+    border-color: var(--ch-accent);
+  }
+}
+
+// A drawn magnifier rather than an icon font: two borders, no dependency.
+.searchGlyph {
+  position: absolute;
+  left: space(3);
+  width: 9px;
+  height: 9px;
+  border: $hairline solid var(--ch-concrete-400);
+  border-radius: 50%;
+  pointer-events: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 7px;
+    width: 5px;
+    height: $hairline;
+    background: var(--ch-concrete-400);
+    transform: rotate(45deg);
+    transform-origin: left center;
+  }
+}
+
+.searchInput {
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: space(2) space(3) space(2) space(9);
+  color: var(--ch-text-primary);
+  @include readout(12px);
+
+  &::placeholder {
+    @include label(9px, 0.14em);
+    color: var(--ch-text-faint);
+  }
+
+  &::-webkit-search-cancel-button {
+    appearance: none;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}

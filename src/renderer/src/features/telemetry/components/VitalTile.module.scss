@@ -1,0 +1,93 @@
+@use 'abstracts' as *;
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  height: 100%;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+}
+
+.label {
+  @include label(9px, 0.2em);
+  color: var(--ch-text-secondary);
+}
+
+// Status is a colour *and* a word. The word is what carries the meaning.
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+}
+
+.statusDot {
+  width: 5px;
+  height: 5px;
+  background: currentColor;
+}
+
+.status[data-level='nominal'] {
+  color: var(--ch-gold-300);
+}
+
+.status[data-level='elevated'] {
+  color: var(--ch-gold-200);
+}
+
+.status[data-level='critical'] {
+  color: var(--ch-crimson-400);
+}
+
+.readingRow {
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+}
+
+// Hero number. Tabular figures so it does not jitter as digits change.
+.reading {
+  font-family: var(--ch-font-display);
+  font-size: rem(38px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ch-text-primary);
+}
+
+.reading[data-level='critical'] {
+  color: var(--ch-crimson-400);
+}
+
+.unit {
+  font-size: rem(16px);
+  color: var(--ch-text-muted);
+  margin-left: 2px;
+}
+
+.detail {
+  @include readout(10px);
+  color: var(--ch-text-muted);
+}
+
+.chart {
+  margin-top: auto;
+  padding-top: space(3);
+  min-height: 60px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.unavailable {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+}

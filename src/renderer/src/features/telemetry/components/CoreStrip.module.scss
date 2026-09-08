@@ -1,0 +1,103 @@
+@use 'abstracts' as *;
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  width: 100%;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  // A 2px surface gap between adjacent bars, so neighbouring marks never fuse
+  // into one block at high core counts.
+  gap: 2px;
+  height: 92px;
+  width: 100%;
+}
+
+.column {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  // Hit target spans the full column height, not just the drawn bar.
+  cursor: default;
+}
+
+.track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: var(--ch-surface-sunken);
+}
+
+.bar {
+  width: 100%;
+  // Rounded data-end anchored to the baseline.
+  border-radius: 2px 2px 0 0;
+  transition: height $duration-fast $ease-instrument;
+}
+
+// Sequential ramp: one hue, light→dark, monotonic in OKLab lightness.
+// Verified with the palette validator; crimson is deliberately absent because
+// it sits mid-ramp and is reserved for status, which always carries a label.
+.step1 {
+  background: var(--ch-brass-600);
+}
+
+.step2 {
+  background: var(--ch-gold-500);
+}
+
+.step3 {
+  background: var(--ch-gold-400);
+}
+
+.step4 {
+  background: var(--ch-gold-300);
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + #{space(2)});
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: space(1) space(2);
+  background: var(--ch-obsidian-900);
+  @include hairline(all, 0.2);
+  white-space: nowrap;
+  z-index: z('raised');
+}
+
+.tooltipValue {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+}
+
+.tooltipMeta {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+}

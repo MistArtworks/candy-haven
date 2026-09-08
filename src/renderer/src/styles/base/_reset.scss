@@ -1,0 +1,106 @@
+@use 'abstracts' as *;
+
+// Reset tuned for an application shell rather than a document: the page never
+// scrolls as a whole, text is not selectable by default, and no element
+// carries a browser default that has to be undone later.
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  line-height: 1.55;
+  color: var(--ch-text-primary);
+  background: var(--ch-obsidian-900);
+
+  // The window is a fixed frame; individual regions scroll, the shell does not.
+  overflow: hidden;
+  overscroll-behavior: none;
+
+  // Chrome-like affordances that do not belong in a desktop app.
+  user-select: none;
+  cursor: default;
+}
+
+// Opt text back in where reading and copying is the point.
+input,
+textarea,
+[data-selectable] {
+  user-select: text;
+  cursor: auto;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+svg {
+  fill: currentColor;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+}
+
+button {
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+// Remove default focus rings, then reinstate a deliberate one for keyboard use.
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  @include focus-ring;
+}
+
+::selection {
+  background: var(--ch-accent-dim);
+  color: var(--ch-text-primary);
+}

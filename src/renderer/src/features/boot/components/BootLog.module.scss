@@ -1,0 +1,48 @@
+@use 'abstracts' as *;
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  max-width: 620px;
+  height: calc(7 * 1.55em);
+  overflow: hidden;
+  // Fades into the background at the top edge instead of ending on a hard rule.
+  mask-image: linear-gradient(to bottom, transparent, black 42%);
+}
+
+.line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: space(3);
+  @include readout(10px);
+  line-height: 1.55;
+  color: var(--ch-text-muted);
+  @include truncate;
+}
+
+.time {
+  color: var(--ch-text-faint);
+  letter-spacing: 0;
+}
+
+.message {
+  @include truncate;
+}
+
+.trace {
+  color: var(--ch-text-faint);
+}
+
+.info {
+  color: var(--ch-text-muted);
+}
+
+.warn {
+  color: var(--ch-gold-400);
+}
+
+.error {
+  color: var(--ch-crimson-400);
+}

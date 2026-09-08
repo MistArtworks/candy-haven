@@ -1,0 +1,124 @@
+@use 'abstracts' as *;
+
+.titlebar {
+  position: relative;
+  z-index: z('titlebar');
+  display: grid;
+  // Equal flexible gutters either side of an auto-width centre, so the
+  // telemetry sits at the true midpoint of the window regardless of how long
+  // the current section's name is. `auto 1fr auto` let the left column's width
+  // drive the centre, which shifted on every navigation.
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: space(4);
+  height: $titlebar-height;
+  padding-left: space(4);
+  background: var(--ch-obsidian-800);
+  @include hairline(bottom, 0.1);
+  @include window-drag;
+
+  // Unfocused windows recede rather than disappear — the console is still
+  // running, it simply is not the operator's current attention.
+  opacity: 0.72;
+  transition: opacity $duration-base $ease-out-expo;
+
+  &[data-focused] {
+    opacity: 1;
+  }
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mark {
+  color: var(--ch-gold-400);
+  flex-shrink: 0;
+}
+
+.name {
+  @include label(10px, 0.22em);
+  color: var(--ch-text-primary);
+}
+
+.separator {
+  width: 1px;
+  height: 10px;
+  background: var(--ch-line-strong);
+  margin: 0 space(1);
+}
+
+.section {
+  @include label(9px, 0.2em);
+  color: var(--ch-gold-500);
+}
+
+.telemetry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: space(2);
+  min-width: 0;
+  @include truncate;
+}
+
+.port {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.controls {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  justify-self: end;
+  // Hairline separates the controls from the telemetry field, so the group
+  // reads as a bank of switches set into the housing.
+  @include hairline(left, 0.08);
+}
+
+.control {
+  position: relative;
+  width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ch-text-muted);
+  transition:
+    background-color $duration-fast linear,
+    color $duration-fast linear;
+  @include window-no-drag;
+
+  // Divider between adjacent switches.
+  & + & {
+    @include hairline(left, 0.06);
+  }
+
+  &:hover {
+    background: rgba(210, 169, 97, 0.07);
+    color: var(--ch-gold-300);
+  }
+
+  &:active {
+    background: rgba(210, 169, 97, 0.12);
+  }
+}
+
+.close:hover {
+  background: var(--ch-crimson-700);
+  color: var(--ch-alabaster-300);
+}
+
+.close:active {
+  background: var(--ch-crimson-600);
+}
+
+@include below('sm') {
+  .telemetry {
+    display: none;
+  }
+}

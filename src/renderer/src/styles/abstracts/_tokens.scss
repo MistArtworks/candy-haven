@@ -1,0 +1,64 @@
+// Sass-time tokens.
+//
+// Values that must be available to the *compiler* (breakpoints in media
+// queries, easing curves used inside mixins, z-index ordering) live here.
+// Anything the runtime needs to re-theme — colours above all — lives as a CSS
+// custom property in styles/base/_theme.scss instead.
+
+// ---------------------------------------------------------------- dimensions
+
+$titlebar-height: 40px;
+$rail-width: 232px;
+$rail-width-collapsed: 72px;
+
+// 4px base unit. Spacing is referenced through the `space()` function.
+$space-unit: 4px;
+
+// ---------------------------------------------------------------- breakpoints
+
+$breakpoints: (
+  'sm': 960px,
+  'md': 1180px,
+  'lg': 1440px,
+  'xl': 1760px
+);
+
+// -------------------------------------------------------------------- motion
+
+// Expo-out: fast departure, long settle. The house curve for entrances.
+$ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+// Sharp acceleration for exits, so departing elements clear quickly.
+$ease-in-expo: cubic-bezier(0.7, 0, 0.84, 0);
+$ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+// Mechanical, near-linear. Used for meters and telemetry that should read as
+// instrument output rather than choreography.
+$ease-instrument: cubic-bezier(0.33, 0, 0.67, 1);
+
+$duration-instant: 90ms;
+$duration-fast: 160ms;
+$duration-base: 280ms;
+$duration-slow: 520ms;
+$duration-cinematic: 1200ms;
+
+// ------------------------------------------------------------------- z-index
+
+$z: (
+  'base': 0,
+  'raised': 10,
+  'rail': 20,
+  'titlebar': 30,
+  'overlay': 40,
+  'transition': 50,
+  'boot': 60,
+  'modal': 70,
+  'toast': 80
+);
+
+// -------------------------------------------------------------------- shapes
+
+// Brutalism: corners are square by default. A 2px radius is the maximum used
+// anywhere, reserved for interactive controls so they read as touchable.
+$radius-none: 0;
+$radius-control: 2px;
+
+$hairline: 1px;

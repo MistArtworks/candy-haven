@@ -1,0 +1,9 @@
+// Single entry point for the Sass toolkit.
+//
+// Every stylesheet in the app begins with `@use 'abstracts' as *;`, which is
+// resolved through the `loadPaths` entry configured in electron.vite.config.ts.
+// This file must never import anything that imports it back.
+
+@forward 'tokens';
+@forward 'functions';
+@forward 'mixins';

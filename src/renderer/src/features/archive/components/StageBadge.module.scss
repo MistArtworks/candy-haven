@@ -1,0 +1,42 @@
+@use 'abstracts' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  @include hairline(all, 0.16);
+  white-space: nowrap;
+}
+
+.sm {
+  @include label(8px, 0.14em);
+  padding: 2px space(2);
+}
+
+.md {
+  @include label(9px, 0.16em);
+  padding: space(1) space(3);
+}
+
+.neutral {
+  color: var(--ch-text-secondary);
+  background: rgba(182, 158, 124, 0.04);
+}
+
+.approaching {
+  color: var(--ch-gold-300);
+  border-color: var(--ch-line-gold);
+  background: rgba(210, 169, 97, 0.06);
+}
+
+.live {
+  color: var(--ch-crimson-400);
+  border-color: rgba(196, 69, 58, 0.4);
+  background: rgba(196, 69, 58, 0.07);
+}
+
+.dormant {
+  color: var(--ch-text-muted);
+  border-color: rgba(182, 158, 124, 0.08);
+  background: none;
+}

@@ -1,0 +1,11 @@
+node_modules
+dist
+out
+.DS_Store
+.eslintcache
+*.log*
+
+# Candy Haven
+release/
+*.log
+.env.local

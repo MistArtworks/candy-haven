@@ -1,0 +1,8 @@
+// Global stylesheet entry. Imported once, from src/renderer/src/main.tsx.
+//
+// Order matters: theme first so custom properties exist before anything reads
+// them, then the reset, then shared element styling.
+
+@use 'base/theme';
+@use 'base/reset';
+@use 'base/elements';

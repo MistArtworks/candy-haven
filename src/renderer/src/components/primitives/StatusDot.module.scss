@@ -1,0 +1,64 @@
+@use 'abstracts' as *;
+
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  // Square, not round: the interface's indicators are cut stone, not LEDs.
+  background: var(--tone, var(--ch-status-offline));
+  box-shadow: 0 0 8px var(--tone-glow, transparent);
+}
+
+.label {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+  white-space: nowrap;
+}
+
+.online {
+  --tone: var(--ch-status-online);
+  --tone-glow: rgba(210, 169, 97, 0.45);
+}
+
+.pending {
+  --tone: var(--ch-status-pending);
+  --tone-glow: transparent;
+}
+
+.warn {
+  --tone: var(--ch-status-warn);
+  --tone-glow: rgba(185, 139, 71, 0.4);
+}
+
+.error {
+  --tone: var(--ch-status-error);
+  --tone-glow: rgba(196, 69, 58, 0.5);
+}
+
+.offline {
+  --tone: var(--ch-status-offline);
+  --tone-glow: transparent;
+}
+
+.pulse {
+  @include motion-safe {
+    animation: status-pulse 1800ms $ease-in-out infinite;
+  }
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}

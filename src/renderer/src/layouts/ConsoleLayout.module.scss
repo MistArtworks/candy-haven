@@ -1,0 +1,36 @@
+@use 'abstracts' as *;
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--ch-obsidian-900);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  // A faint warm wash from the top-left, echoing the single directional key
+  // light of the reference interiors.
+  background:
+    radial-gradient(ellipse 90% 70% at 12% 0%, rgba(94, 71, 44, 0.09), transparent 62%),
+    var(--ch-obsidian-900);
+}
+
+.page {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  // Promoted to its own layer: the exit animation blurs and scales the whole
+  // page, which is far cheaper composited than repainted.
+  will-change: transform, opacity, filter;
+}

@@ -1,0 +1,474 @@
+@use 'abstracts' as *;
+
+/*
+ * The landing.
+ *
+ * A collapsing cloud around an event horizon, with a flat golden mandala laid
+ * over it and the institutional chrome laid over that — three concentric
+ * registers of the same centre.
+ *
+ * The focal object is deliberately dark. The brief asks for one ritual object
+ * in a vast symmetrical field; here it is an absence, and the disc, the arms
+ * and the rings all exist to describe the shape of it.
+ */
+.landing {
+  position: relative;
+  /*
+   * Measured against the viewport minus the title bar rather than as `100%`.
+   * The scroll container is an ancestor two levels up, and a percentage height
+   * only resolves against a parent with a *definite* height — which the
+   * intermediate page wrapper does not have, so `100%` would collapse.
+   * The rail sits beside this, not above it, so it costs no height.
+   */
+  min-height: calc(100dvh - #{$titlebar-height});
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+
+  // Warm key light from high centre against cold stone — the lighting model
+  // every reference interior uses. Kept weak: the field should read as vast and
+  // underlit, not as a lit stage.
+  background:
+    radial-gradient(ellipse 44% 34% at 50% 26%, rgba(94, 71, 44, 0.13), transparent 70%),
+    radial-gradient(ellipse 90% 55% at 50% 108%, rgba(6, 6, 8, 0.95), transparent 72%),
+    var(--ch-obsidian-900);
+}
+
+// ------------------------------------------------------------------- layers
+
+.fieldLayer,
+.floorWash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fieldLayer {
+  z-index: 0;
+}
+
+/*
+ * The mandala's anchor.
+ *
+ * Pinned to `--ch-focus-y`, which the component publishes from the same
+ * constant the canvas uses for its horizon — so the flat armature and the
+ * volumetric disc behind it are concentric by construction rather than by two
+ * separate approximations agreeing.
+ *
+ * This element never animates. The transforms live on `.coreLayer` inside it,
+ * because a motion-driven `transform` would otherwise overwrite the centring
+ * translate and throw the array off the centre it was just aligned to.
+ */
+.coreAnchor {
+  position: absolute;
+  left: 50%;
+  top: var(--ch-focus-y, 44%);
+  z-index: 2;
+  width: min(70vh, 56vw);
+  height: min(70vh, 56vw);
+  transform: translate(-50%, -50%);
+  // Gives the pointer tilt somewhere to happen. Long, so the lean reads as a
+  // heavy object shifting rather than as a card flipping.
+  perspective: 1600px;
+  pointer-events: none;
+}
+
+.coreLayer {
+  width: 100%;
+  height: 100%;
+  transform-origin: center;
+  transform-style: preserve-3d;
+}
+
+.mandala {
+  width: 100%;
+  height: 100%;
+}
+
+// A cold floor haze separating the type from the receding grid behind it.
+// Only deep enough to seat the type band; the disc above it is the subject and
+// must not be washed out.
+.floorWash {
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    transparent 58%,
+    rgba(8, 8, 10, 0.62) 82%,
+    rgba(8, 8, 10, 0.94) 100%
+  );
+}
+
+// ----------------------------------------------------------------- monoliths
+
+/*
+ * Twin slabs framing the centre.
+ *
+ * Silhouettes, so they are *darker* than the field, not lighter — an earlier
+ * pass made them a lighter grey and they read as panels stuck to the glass
+ * rather than as stone blocking the light. Only the inner edge catches brass.
+ */
+%monolith {
+  position: absolute;
+  top: -4%;
+  bottom: -4%;
+  width: clamp(rem(48px), 11vw, rem(180px));
+  background: linear-gradient(
+    to bottom,
+    rgba(4, 4, 5, 0.2) 0%,
+    rgba(4, 4, 5, 0.78) 34%,
+    rgba(3, 3, 4, 0.94) 100%
+  );
+}
+
+.monoliths {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.monolithLeft {
+  @extend %monolith;
+  left: 0;
+  border-right: 1px solid rgba(94, 71, 44, 0.16);
+}
+
+.monolithRight {
+  @extend %monolith;
+  right: 0;
+  border-left: 1px solid rgba(94, 71, 44, 0.16);
+}
+
+@include below('md') {
+  .monolithLeft,
+  .monolithRight {
+    display: none;
+  }
+}
+
+// -------------------------------------------------------------------- chrome
+
+/*
+ * One explicit column.
+ *
+ * Without `grid-template-columns`, two children both asking for `grid-row: 1`
+ * caused auto-placement to invent a second column — and every centred row below
+ * then centred within the first of two columns rather than within the page.
+ * Stating the single column makes that impossible.
+ */
+.chrome {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  // corners · the focal region · masthead · band · descend
+  grid-template-rows: auto 1fr auto auto auto;
+  padding: space(7) space(9) space(5);
+  min-height: 0;
+}
+
+.corners {
+  grid-row: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: space(6);
+}
+
+// Corner labels, as the boards title their plates: a number, a name, and two
+// lines of descriptors in the smallest legible type.
+.corner {
+  display: flex;
+  align-items: flex-start;
+  gap: space(3);
+}
+
+.cornerIndex {
+  @include readout(18px);
+  color: var(--ch-text-faint);
+  line-height: 1;
+}
+
+.cornerRight {
+  text-align: right;
+}
+
+.cornerLabel {
+  @include label(10px, 0.26em);
+  color: var(--ch-alabaster-400);
+}
+
+.cornerMeta {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  line-height: 1.9;
+  margin-top: space(1);
+}
+
+// ------------------------------------------------------------------ masthead
+
+/*
+ * The masthead sits over the mandala's lower bands on purpose — type across a
+ * portal is the composition the reference boards use, not a collision to avoid.
+ * It does need its own ground, though: a soft radial scrim, wide enough that no
+ * edge is visible, so the wordmark never has a gold hairline running through a
+ * letterform.
+ */
+.masthead {
+  grid-row: 3;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(2);
+  text-align: center;
+  padding-bottom: space(7);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -12% -18%;
+    z-index: -1;
+    background: radial-gradient(
+      ellipse 60% 62% at 50% 46%,
+      rgba(8, 8, 10, 0.88),
+      rgba(8, 8, 10, 0.55) 52%,
+      transparent 78%
+    );
+    pointer-events: none;
+  }
+}
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  font-family: var(--ch-font-display);
+  font-size: clamp(rem(28px), 4.6vw, rem(58px));
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ch-alabaster-300);
+  line-height: 1;
+  // Wide tracking is the house voice. It adds trailing space on the right, so
+  // the mark is split into two runs with an explicit gap and a matching indent
+  // rather than relying on `text-align` to re-centre it.
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  margin: 0;
+}
+
+.wordmarkGap {
+  width: 0.46em;
+}
+
+.statement {
+  @include label(9px, 0.3em);
+  color: var(--ch-gold-300);
+  margin-top: space(3);
+}
+
+// Live readouts, on a rule so they read as an instrument strip rather than as
+// a row of loose figures.
+.readouts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: space(3) space(8);
+  margin-top: space(5);
+  padding-top: space(4);
+  @include hairline(top, 0.07);
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+  }
+
+  dt {
+    @include label(7px, 0.22em);
+    color: var(--ch-text-faint);
+  }
+
+  dd {
+    @include readout(12px);
+    color: var(--ch-text-secondary);
+
+    // Crimson is reserved for live and failing state; an unhealthy archive is
+    // exactly that, so it is permitted here and nowhere else on this page.
+    &[data-unstable] {
+      color: var(--ch-crimson-400);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------- band
+
+// The reference boards all close the same way: caption bottom-left, a row of
+// resonance glyphs centred, and the palette with the build stamp at the right.
+.band {
+  grid-row: 4;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: space(6);
+  padding-top: space(4);
+  @include hairline(top, 0.07);
+}
+
+.caption {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+  line-height: 2.1;
+}
+
+.glyphs {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  justify-self: center;
+}
+
+.glyph {
+  width: 22px;
+  height: 22px;
+  stroke: var(--ch-gold-400);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  opacity: 0.34;
+  transition: opacity $duration-base linear;
+  vector-effect: non-scaling-stroke;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.glyphRing {
+  opacity: 0.5;
+}
+
+/*
+ * Palette and build stamp share the right column, stacked.
+ *
+ * They were previously both assigned column three of the band, which collided
+ * and pushed the palette to the wrong side of the page entirely.
+ */
+.rightCluster {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: space(2);
+  justify-self: end;
+}
+
+.palette {
+  display: flex;
+  @include hairline(all, 0.1);
+}
+
+.swatch {
+  width: rem(26px);
+  height: rem(9px);
+  display: block;
+}
+
+.stamp {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+  text-align: right;
+  line-height: 1.8;
+}
+
+// ------------------------------------------------------------------- descend
+
+.descend {
+  grid-row: 5;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(2);
+  padding: space(4) space(6) 0;
+  color: var(--ch-text-muted);
+  transition: color $duration-base linear;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.descendRule {
+  width: 1px;
+  height: rem(24px);
+  background: linear-gradient(to bottom, transparent, var(--ch-line-gold));
+
+  @include motion-safe {
+    animation: descend-pulse 3.2s $ease-in-out infinite;
+  }
+}
+
+.descendLabel {
+  @include label(8px, 0.3em);
+}
+
+// A chevron drawn from two borders — no icon font, no extra asset.
+.descendChevron {
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.65;
+}
+
+@keyframes descend-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scaleY(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+// -------------------------------------------------------------------- narrow
+
+@include below('md') {
+  .chrome {
+    padding: space(6) space(5) space(5);
+  }
+
+  .coreLayer {
+    inset: 2% 0 52% 0;
+  }
+
+  .band {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: space(4);
+  }
+
+  .caption {
+    text-align: center;
+  }
+
+  .rightCluster {
+    align-items: center;
+    justify-self: center;
+  }
+
+  .cornerRight {
+    display: none;
+  }
+}

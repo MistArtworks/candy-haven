@@ -1,0 +1,162 @@
+@use 'abstracts' as *;
+
+.board {
+  display: flex;
+  gap: space(3);
+  overflow-x: auto;
+  padding-bottom: space(3);
+  align-items: stretch;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 rem(196px);
+  min-height: rem(360px);
+  max-height: 62vh;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+  transition:
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  // The drop target is the whole column, and it says so — a dashed accent edge
+  // rather than a thin insertion line, which is unfindable at this width.
+  &[data-hovered] {
+    border-color: var(--ch-accent);
+    background: rgba(163, 43, 35, 0.05);
+  }
+
+  // Parked work is present but should not read as part of the flow.
+  &[data-off-pipeline] {
+    background: none;
+    border-style: dashed;
+    border-color: rgba(182, 158, 124, 0.08);
+    margin-left: space(4);
+  }
+}
+
+.columnHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(2);
+  padding: space(3);
+  @include hairline(bottom, 0.1);
+  position: sticky;
+  top: 0;
+  background: var(--ch-obsidian-800);
+  z-index: z('raised');
+}
+
+.columnLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-secondary);
+  line-height: 1.3;
+}
+
+.columnCount {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+}
+
+.columnBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(2);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  padding: space(2) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: grab;
+  text-align: left;
+  transition:
+    border-color $duration-fast linear,
+    opacity $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-accent);
+  }
+
+  &[data-dragging] {
+    opacity: 0.35;
+    cursor: grabbing;
+  }
+}
+
+.cardName {
+  display: flex;
+  align-items: center;
+  gap: space(1);
+  font-family: var(--ch-font-display);
+  font-size: rem(11px);
+  letter-spacing: 0.04em;
+  color: var(--ch-text-primary);
+  line-height: 1.35;
+}
+
+.pin {
+  color: var(--ch-gold-300);
+  font-size: rem(7px);
+  flex-shrink: 0;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+  @include readout(9px);
+  color: var(--ch-text-muted);
+}
+
+.tempo {
+  color: var(--ch-text-secondary);
+}
+
+.key {
+  color: var(--ch-text-secondary);
+}
+
+.touched {
+  margin-left: auto;
+  color: var(--ch-text-faint);
+}
+
+.countdown {
+  @include label(7px, 0.16em);
+  color: var(--ch-gold-300);
+}
+
+.plan {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-muted);
+}
+
+.warning {
+  @include label(7px, 0.14em);
+  color: var(--ch-crimson-400);
+}
+
+.empty {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-faint);
+  padding: space(3) space(2);
+  text-align: center;
+  line-height: 1.6;
+}

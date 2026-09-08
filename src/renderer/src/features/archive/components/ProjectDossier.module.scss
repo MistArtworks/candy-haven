@@ -1,0 +1,346 @@
+@use 'abstracts' as *;
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: z('modal');
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: space(6);
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--ch-surface-overlay);
+  backdrop-filter: blur(3px);
+  cursor: default;
+}
+
+.sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(1240px, 100%);
+  max-height: 100%;
+  background: var(--ch-obsidian-700);
+  @include hairline(all, 0.18);
+  box-shadow: var(--ch-shadow-panel);
+  overflow: hidden;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: space(4);
+  padding: space(10);
+}
+
+// -------------------------------------------------------------------- header
+
+// The sheet is a flex column, so every child is shrinkable by default. A tall
+// tab — RELEASE, with the whole distribution form — would otherwise compress
+// the masthead, the stage stepper and the tab strip to make room. Only .body
+// should absorb that; the chrome keeps its intrinsic height.
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: space(5);
+  padding: space(5) space(6) space(4);
+  flex-shrink: 0;
+  @include hairline(bottom, 0.12);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-family: var(--ch-font-display);
+  font-size: rem(22px);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+  line-height: 1.1;
+}
+
+.missing {
+  @include label(8px, 0.16em);
+  color: var(--ch-crimson-400);
+  border: $hairline solid rgba(196, 69, 58, 0.4);
+  padding: 2px space(2);
+}
+
+.metaRow {
+  display: flex;
+  align-items: baseline;
+  gap: space(4);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.path {
+  @include readout(10px);
+  color: var(--ch-text-muted);
+  text-align: left;
+  max-width: rem(520px);
+  @include truncate;
+
+  &:hover {
+    color: var(--ch-gold-300);
+    text-decoration: underline;
+  }
+}
+
+.metaFigure {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+}
+
+.favourite {
+  width: 28px;
+  height: 28px;
+  @include hairline(all, 0.14);
+  color: var(--ch-text-faint);
+  font-size: rem(9px);
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-gold-400);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// ------------------------------------------------------------------- stepper
+
+.stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  padding: space(4) space(6);
+  flex-shrink: 0;
+  @include hairline(bottom, 0.08);
+  overflow-x: auto;
+}
+
+.step {
+  position: relative;
+  flex: 1 1 0;
+  min-width: rem(86px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: space(2) space(3);
+  background: var(--ch-surface-sunken);
+  text-align: left;
+  transition:
+    background-color $duration-fast linear,
+    color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    background: rgba(182, 158, 124, 0.05);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &:disabled {
+    cursor: progress;
+  }
+
+  // Stages already passed carry a gold underline; the current stage carries the
+  // accent and a lifted fill. Position is therefore legible without colour.
+  &[data-passed]::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 2px;
+    background: var(--ch-brass-600);
+  }
+
+  &[data-current] {
+    background: rgba(182, 158, 124, 0.08);
+
+    .stepLabel {
+      color: var(--ch-text-primary);
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
+}
+
+.stepIndex {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+}
+
+.stepLabel {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  line-height: 1.3;
+}
+
+.shelve {
+  flex: 0 0 rem(96px);
+  margin-left: space(4);
+  background: none;
+  @include hairline(all, 0.08);
+  border-style: dashed;
+  justify-content: center;
+}
+
+// -------------------------------------------------------------------- notice
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  padding: space(3) space(6);
+  flex-shrink: 0;
+  background: rgba(163, 43, 35, 0.1);
+  @include hairline(bottom, 0.12);
+  border-left: 2px solid var(--ch-crimson-500);
+}
+
+.noticeText {
+  font-size: rem(12px);
+  color: var(--ch-text-primary);
+  line-height: 1.5;
+}
+
+.noticeClose {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+}
+
+// ---------------------------------------------------------------------- tabs
+
+.tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 space(6);
+  flex-shrink: 0;
+  @include hairline(bottom, 0.12);
+  overflow-x: auto;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(3) space(4);
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  white-space: nowrap;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      // Sits *on* the strip's hairline rather than 1px past it. At -1px this
+      // overflowed .tabs vertically, and because `overflow-x: auto` makes
+      // `overflow-y` compute to `auto` as well, that single pixel was enough
+      // to raise a full vertical scrollbar beside the tab row.
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
+}
+
+.tabBadge {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  @include hairline(all, 0.12);
+  padding: 0 3px;
+
+  &[data-complete] {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+}
+
+// ---------------------------------------------------------------------- body
+
+.body {
+  padding: space(6);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+@include below('md') {
+  .layer {
+    padding: space(3);
+  }
+
+  .header,
+  .stepper,
+  .tabs,
+  .body {
+    padding-left: space(4);
+    padding-right: space(4);
+  }
+}

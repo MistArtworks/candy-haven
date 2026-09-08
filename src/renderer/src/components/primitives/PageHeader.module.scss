@@ -1,0 +1,61 @@
+@use 'abstracts' as *;
+
+.header {
+  margin-bottom: space(8);
+}
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: space(6);
+}
+
+.identity {
+  display: flex;
+  align-items: baseline;
+  gap: space(4);
+  min-width: 0;
+}
+
+.index {
+  @include readout(11px);
+  color: var(--ch-gold-500);
+  letter-spacing: 0.14em;
+  flex-shrink: 0;
+}
+
+.label {
+  @include label(22px, 0.3em);
+  color: var(--ch-text-primary);
+  margin-bottom: space(2);
+}
+
+.purpose {
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  max-width: 62ch;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+}
+
+.rule {
+  display: block;
+  height: 1px;
+  margin: space(5) 0 space(3);
+  background: linear-gradient(to right, var(--ch-line-gold), var(--ch-line) 35%, transparent 80%);
+}
+
+.epigraph {
+  @include label(9px, 0.2em);
+  color: var(--ch-text-faint);
+  font-style: normal;
+  line-height: 1.7;
+  max-width: 70ch;
+}

@@ -1,0 +1,233 @@
+@use 'abstracts' as *;
+
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: z('boot');
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: center;
+  align-items: center;
+  gap: space(6);
+  padding: space(14) space(10) space(10);
+  background: var(--ch-obsidian-900);
+  overflow: hidden;
+  // Sits above the frameless titlebar, so the whole surface must be draggable.
+  @include window-drag;
+}
+
+// ----------------------------------------------------------- structural field
+// Two monolithic slabs and a floor plane. Pure CSS gradients — this is
+// architecture as lighting, not imagery.
+.monolith {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.slab {
+  position: absolute;
+  top: -10%;
+  bottom: 22%;
+  width: 26vw;
+  min-width: 220px;
+  background: linear-gradient(
+    180deg,
+    rgba(111, 102, 86, 0.09) 0%,
+    rgba(111, 102, 86, 0.05) 45%,
+    transparent 100%
+  );
+  @include hairline(all, 0.05);
+
+  &[data-side='left'] {
+    left: 4vw;
+    transform: perspective(1400px) rotateY(9deg);
+  }
+
+  &[data-side='right'] {
+    right: 4vw;
+    transform: perspective(1400px) rotateY(-9deg);
+  }
+}
+
+// A reflective plane beneath the focal object — the polished floor of the
+// reference interiors.
+.floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34%;
+  background: linear-gradient(180deg, transparent, rgba(67, 18, 15, 0.13) 70%, rgba(8, 8, 10, 0.9));
+}
+
+// -------------------------------------------------------------------- corners
+
+.corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  &[data-corner='tl'] {
+    top: space(6);
+    left: space(8);
+  }
+
+  &[data-corner='tr'] {
+    top: space(6);
+    right: space(8);
+    align-items: flex-end;
+  }
+
+  &[data-corner='bl'] {
+    bottom: space(6);
+    left: space(8);
+  }
+}
+
+.cornerLabel {
+  @include label(8px, 0.28em);
+  color: var(--ch-gold-500);
+}
+
+.cornerValue {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+// ------------------------------------------------------------------- masthead
+
+.masthead {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  align-self: end;
+}
+
+.wordmark {
+  @include label(30px, 0.44em);
+  color: var(--ch-text-primary);
+  // Wide tracking pushes the mark right; a matching indent recentres it.
+  text-indent: 0.44em;
+  margin-bottom: space(3);
+}
+
+.subtitle {
+  @include label(9px, 0.34em);
+  color: var(--ch-gold-500);
+  text-indent: 0.34em;
+}
+
+// ----------------------------------------------------------------- focal ring
+
+.ringHolder {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+}
+
+// -------------------------------------------------------------------- readout
+
+.readouts {
+  position: relative;
+  z-index: 2;
+  width: min(620px, 76vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(4);
+  align-self: start;
+  @include window-no-drag;
+}
+
+.stageLine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(1);
+  text-align: center;
+  min-height: space(11);
+}
+
+.stageLabel {
+  @include label(11px, 0.3em);
+  color: var(--ch-text-primary);
+  text-indent: 0.3em;
+}
+
+.stageDetail {
+  @include readout(11px);
+  color: var(--ch-text-muted);
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  margin-top: space(2);
+}
+
+.hint {
+  @include label(8px, 0.2em);
+  color: var(--ch-text-faint);
+}
+
+// -------------------------------------------------------------------- failure
+
+.failure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(2);
+  text-align: center;
+  padding: space(6);
+  max-width: 560px;
+  border: $hairline solid rgba(196, 69, 58, 0.34);
+  background: linear-gradient(180deg, rgba(67, 18, 15, 0.3), transparent);
+}
+
+.failureLabel {
+  @include label(11px, 0.3em);
+  color: var(--ch-crimson-400);
+  text-indent: 0.3em;
+}
+
+.failureMessage {
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  line-height: 1.5;
+}
+
+.failureHint {
+  @include readout(11px);
+  color: var(--ch-text-muted);
+  line-height: 1.5;
+}
+
+// ------------------------------------------------------------ responsive trim
+
+@include below('sm') {
+  .screen {
+    padding: space(10) space(6) space(6);
+  }
+
+  .slab {
+    display: none;
+  }
+
+  .wordmark {
+    @include label(22px, 0.36em);
+    text-indent: 0.36em;
+  }
+
+  .corner[data-corner='tl'],
+  .corner[data-corner='tr'] {
+    display: none;
+  }
+}

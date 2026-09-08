@@ -1,0 +1,113 @@
+@use 'abstracts' as *;
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  // Fill the assigned grid cell. Panels used to shrink-wrap their content,
+  // which left ragged bottoms wherever a row mixed short and tall panels.
+  height: 100%;
+  background: var(--ch-surface);
+  @include hairline(all, 0.1);
+  box-shadow: var(--ch-shadow-panel);
+
+  // A brass hairline along the top edge — the "ribbing" of the reference
+  // architecture, reduced to a single structural line.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--ch-line-gold) 18%,
+      var(--ch-line-gold) 82%,
+      transparent
+    );
+    opacity: 0.5;
+  }
+}
+
+// The single focal panel: crimson edge and a low outward glow.
+.focal {
+  background: linear-gradient(180deg, rgba(67, 18, 15, 0.22), var(--ch-surface) 62%);
+  border-color: rgba(163, 43, 35, 0.3);
+
+  &::before {
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--ch-accent) 20%,
+      var(--ch-accent) 80%,
+      transparent
+    );
+    opacity: 0.7;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+    box-shadow: inset 0 0 40px rgba(163, 43, 35, 0.1);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(3) space(5) 0;
+  min-height: space(9);
+}
+
+.headerLabel {
+  @include label(10px, 0.2em);
+  display: inline-flex;
+  align-items: baseline;
+  gap: space(2);
+  color: var(--ch-text-secondary);
+  flex-shrink: 0;
+}
+
+.index {
+  @include readout(9px);
+  color: var(--ch-gold-500);
+  letter-spacing: 0.1em;
+}
+
+// The header rule fills the gap between label and aside, so every panel header
+// reads as a continuous measured line regardless of label length.
+.rule {
+  flex: 1;
+  height: 1px;
+  background: var(--ch-line);
+  min-width: space(4);
+}
+
+.aside {
+  @include readout(10px);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.body {
+  padding: space(4) space(5) space(5);
+  flex: 1;
+  min-height: 0;
+}
+
+.flush .body {
+  padding: 0;
+}
+
+.flush .header {
+  padding-bottom: space(3);
+}

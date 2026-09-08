@@ -1,0 +1,57 @@
+appId: app.candyhaven.desktop
+productName: Candy Haven
+copyright: Copyright © 2026 Candy Haven
+
+directories:
+  buildResources: build
+  output: release
+
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!info/*'
+  - '!release/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+
+asarUnpack:
+  - resources/**
+
+# Installer-time scripts must exist on disk as real files, outside the asar,
+# so NSIS can invoke them. They land in $INSTDIR\resources\scripts.
+extraResources:
+  - from: build/scripts
+    to: scripts
+    filter:
+      - '**/*.ps1'
+
+win:
+  executableName: candy-haven
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: CandyHaven-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Candy Haven
+  uninstallDisplayName: Candy Haven
+  artifactName: CandyHaven-Setup-${version}.${ext}
+  include: build/installer.nsh
+  deleteAppDataOnUninstall: false
+
+npmRebuild: false
+
+publish:
+  provider: generic
+  url: https://updates.candyhaven.app/desktop
+  channel: latest

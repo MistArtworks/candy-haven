@@ -1,0 +1,94 @@
+@use 'abstracts' as *;
+
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: space(2);
+  border-radius: $radius-control;
+  @include label(10px, 0.16em);
+  color: var(--ch-text-secondary);
+  transition:
+    color $duration-fast $ease-out-expo,
+    border-color $duration-fast $ease-out-expo,
+    background-color $duration-fast $ease-out-expo;
+  @include window-no-drag;
+
+  &:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+}
+
+.md {
+  height: space(9);
+  padding: 0 space(4);
+}
+
+.sm {
+  height: space(7);
+  padding: 0 space(3);
+  @include label(9px, 0.14em);
+}
+
+// Ghost: the default. A hairline slab that fills on hover.
+.ghost {
+  @include hairline(all, 0.16);
+  background: transparent;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+    background: rgba(182, 158, 124, 0.05);
+  }
+
+  &:active:not(:disabled) {
+    background: rgba(182, 158, 124, 0.09);
+  }
+}
+
+// Primary: carries the accent. One per view.
+.primary {
+  border: $hairline solid var(--ch-accent);
+  background: linear-gradient(180deg, rgba(163, 43, 35, 0.22), rgba(163, 43, 35, 0.08));
+  color: var(--ch-text-primary);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgba(196, 69, 58, 0.34), rgba(163, 43, 35, 0.16));
+    box-shadow: 0 0 22px var(--ch-accent-glow);
+  }
+}
+
+.danger {
+  border: $hairline solid rgba(196, 69, 58, 0.5);
+  background: transparent;
+  color: var(--ch-crimson-400);
+
+  &:hover:not(:disabled) {
+    background: rgba(196, 69, 58, 0.12);
+    border-color: var(--ch-crimson-400);
+  }
+}
+
+.label {
+  white-space: nowrap;
+}
+
+// A rotating quarter-arc: mechanical rather than a bouncing dot loader.
+.spinner {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-top-color: currentColor;
+  border-right-color: currentColor;
+  border-radius: 50%;
+  animation: button-spin 700ms linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

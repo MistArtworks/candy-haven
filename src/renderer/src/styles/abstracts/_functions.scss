@@ -1,0 +1,29 @@
+@use 'sass:map';
+@use 'sass:math';
+@use 'tokens' as *;
+
+/// Spacing on the 4px grid. `space(4)` -> 16px.
+@function space($steps) {
+  @return $space-unit * $steps;
+}
+
+/// Named z-index. Fails loudly rather than silently returning null.
+@function z($name) {
+  @if not map.has-key($z, $name) {
+    @error 'Unknown z-index layer: #{$name}.';
+  }
+  @return map.get($z, $name);
+}
+
+/// Named breakpoint in px.
+@function breakpoint($name) {
+  @if not map.has-key($breakpoints, $name) {
+    @error 'Unknown breakpoint: #{$name}.';
+  }
+  @return map.get($breakpoints, $name);
+}
+
+/// Converts px to rem against a 16px root.
+@function rem($px) {
+  @return math.div($px, 16px) * 1rem;
+}

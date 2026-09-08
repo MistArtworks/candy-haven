@@ -1,0 +1,184 @@
+@use 'abstracts' as *;
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-bottom: space(3);
+  @include hairline(bottom, 0.1);
+}
+
+.primary {
+  display: flex;
+  align-items: stretch;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.secondary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  flex-wrap: wrap;
+}
+
+// ---------------------------------------------------------------- inline select
+
+.selectInline {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  @include hairline(all, 0.12);
+  padding: 0 space(2);
+  background: var(--ch-surface-sunken);
+}
+
+.inlineLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.select {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: space(2) space(1);
+  @include label(9px, 0.14em);
+  color: var(--ch-text-primary);
+  cursor: pointer;
+
+  option {
+    background: var(--ch-obsidian-800);
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    outline: none;
+    color: var(--ch-accent-bright);
+  }
+}
+
+// -------------------------------------------------------------------- segmented
+
+.segmented {
+  display: inline-flex;
+  @include hairline(all, 0.14);
+  flex-shrink: 0;
+}
+
+.segment {
+  position: relative;
+  padding: space(2) space(4);
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover {
+    color: var(--ch-text-secondary);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
+}
+
+// ------------------------------------------------------------------ filter chips
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+  min-width: 0;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  @include hairline(all, 0.1);
+  padding: space(1) space(2);
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  // Selection is border plus fill plus text weight — three signals, so it
+  // survives the accent switch and reduced-colour viewing.
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-gold);
+    background: rgba(210, 169, 97, 0.08);
+  }
+}
+
+.tagChip {
+  text-transform: none;
+  letter-spacing: 0.06em;
+}
+
+.chipCount {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+
+  .filterChip[data-selected] & {
+    color: var(--ch-gold-300);
+  }
+}
+
+.toggles {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
+.clear {
+  @include label(8px, 0.14em);
+  color: var(--ch-accent-bright);
+  padding: space(1) space(2);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.count {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+}

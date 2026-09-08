@@ -1,0 +1,9 @@
+@use 'abstracts' as *;
+
+.web {
+  display: block;
+  pointer-events: none;
+  // Additive: the web is light, so it should accumulate against the dark field
+  // and brighten where strands overlap rather than flatly occluding the orb.
+  mix-blend-mode: screen;
+}

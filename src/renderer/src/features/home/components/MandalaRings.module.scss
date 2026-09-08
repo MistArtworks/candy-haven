@@ -1,0 +1,283 @@
+@use 'abstracts' as *;
+
+/*
+ * Layout: six absolutely-stacked bands sharing one centre.
+ *
+ * Each band is a separate SVG in its own div — see MandalaRings.tsx for why
+ * that structure is required rather than convenient. `preserve-3d` on the
+ * container is what lets the children occupy a shared 3D space instead of each
+ * being flattened into the parent's plane.
+ */
+.rings {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.band {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  // Both faces are drawn: a ring is an open figure, so hiding its far side
+  // would make half of every revolution disappear.
+  backface-visibility: visible;
+}
+
+.plate {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+// ---------------------------------------------------------------- precession
+
+/*
+ * Each band holds a fixed tilt and sweeps its rotation about the vertical.
+ *
+ * That combination is what makes the ellipse open and close. Spinning a ring
+ * about its own normal instead would be equally three-dimensional and yet look
+ * perfectly static, because a circle rotated within its own plane is
+ * unchanged — which is the trap this motif invites.
+ *
+ * The tilts are deliberately varied and the directions alternate, so the set
+ * reads as an armillary sphere rather than as one nested object. Two of them
+ * sit near the accretion disc's own plane, which ties the flat armature to the
+ * volumetric field behind it.
+ */
+@mixin precess($tilt, $duration, $direction: normal, $roll: 0deg) {
+  @include motion-safe {
+    animation: precess-#{$tilt} $duration linear infinite $direction;
+  }
+
+  // Static fallback under reduced motion: the tilt still applies, so the
+  // composition keeps its depth without anything moving.
+  transform: rotateZ($roll) rotateX($tilt) rotateY(0deg);
+}
+
+@each $tilt in (64deg, 26deg, 72deg, 38deg, 12deg) {
+  @keyframes precess-#{$tilt} {
+    from {
+      transform: rotateX($tilt) rotateY(0deg);
+    }
+    to {
+      transform: rotateX($tilt) rotateY(360deg);
+    }
+  }
+}
+
+// Near the disc plane: the outer dial reads as an orbital ring.
+.bandDial {
+  @include precess(64deg, 74s);
+}
+
+// Shallow and quick — the band that most clearly announces the motion is 3D.
+.bandArcs {
+  @include precess(26deg, 41s, reverse);
+}
+
+// Steep, so the inscription wraps away and returns.
+.bandSigils {
+  @include precess(72deg, 96s, reverse);
+}
+
+.bandRegister {
+  @include precess(38deg, 58s);
+}
+
+// Almost face-on: the innermost band stays legible as a circle throughout.
+.bandInner {
+  @include precess(12deg, 120s, reverse);
+}
+
+// ------------------------------------------------------------ in-plane spin
+
+/*
+ * A second, slower rotation *within* each band's own plane, so graduations
+ * travel around a ring that is itself turning. Applied to the SVG group rather
+ * than the wrapper, which keeps it composed with the 3D transform above instead
+ * of overwriting it.
+ *
+ * `view-box` pins the reference box to the SVG viewport rather than to the
+ * group's own bounding box — without it, a band containing only broken arcs
+ * would spin about the centre of those arcs rather than the centre of the array.
+ */
+%spin {
+  transform-origin: center;
+  transform-box: view-box;
+}
+
+.spinSlow {
+  @extend %spin;
+
+  @include motion-safe {
+    animation: mandala-spin 300s linear infinite;
+  }
+}
+
+.spinSlowReverse {
+  @extend %spin;
+
+  @include motion-safe {
+    animation: mandala-spin 210s linear infinite reverse;
+  }
+}
+
+.spinMedium {
+  @extend %spin;
+
+  @include motion-safe {
+    animation: mandala-spin 150s linear infinite;
+  }
+}
+
+.spinMediumReverse {
+  @extend %spin;
+
+  @include motion-safe {
+    animation: mandala-spin 118s linear infinite reverse;
+  }
+}
+
+.spinFastReverse {
+  @extend %spin;
+
+  @include motion-safe {
+    animation: mandala-spin 88s linear infinite reverse;
+  }
+}
+
+@keyframes mandala-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// --------------------------------------------------------------------- rings
+
+.ringHair,
+.ringFaint,
+.ringDashed {
+  fill: none;
+  stroke: var(--ch-gold-300);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.ringHair {
+  opacity: 0.2;
+}
+
+.ringFaint {
+  opacity: 0.1;
+}
+
+.ringDashed {
+  opacity: 0.16;
+  stroke-dasharray: 1.5 6;
+}
+
+// ---------------------------------------------------------------------- ticks
+
+.ticks {
+  stroke: var(--ch-gold-300);
+  vector-effect: non-scaling-stroke;
+}
+
+.tick {
+  vector-effect: non-scaling-stroke;
+}
+
+// ----------------------------------------------------------------------- arcs
+
+// The heavy band. Brass rather than gold, so it reads as structure holding the
+// finer gold linework rather than competing with it.
+.arcHeavy {
+  fill: none;
+  stroke: var(--ch-gold-500);
+  stroke-width: 2;
+  stroke-linecap: butt;
+  opacity: 0.42;
+  vector-effect: non-scaling-stroke;
+}
+
+.arcCap {
+  stroke: var(--ch-gold-300);
+  stroke-width: 1;
+  opacity: 0.4;
+  vector-effect: non-scaling-stroke;
+}
+
+// --------------------------------------------------------------------- sigils
+
+.sigil {
+  fill: none;
+  stroke: var(--ch-gold-200);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+// -------------------------------------------------------------------- markers
+
+// One per department. Gold once commissioned, recessive while reserved — the
+// band is a register, not a pattern.
+.marker {
+  .markerSpoke {
+    stroke: var(--ch-concrete-600);
+    stroke-width: 1;
+    opacity: 0.35;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .markerRing {
+    fill: none;
+    stroke: var(--ch-concrete-600);
+    stroke-width: 1;
+    opacity: 0.45;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .markerCore {
+    fill: var(--ch-concrete-500);
+    opacity: 0.4;
+  }
+
+  &[data-live] {
+    .markerSpoke {
+      stroke: var(--ch-gold-500);
+      opacity: 0.6;
+    }
+
+    .markerRing {
+      stroke: var(--ch-gold-300);
+      opacity: 0.8;
+    }
+
+    .markerCore {
+      fill: var(--ch-gold-200);
+      opacity: 1;
+    }
+  }
+}
+
+// -------------------------------------------------------------------- figures
+
+.figure {
+  fill: none;
+  stroke: var(--ch-gold-400);
+  stroke-width: 1;
+  opacity: 0.09;
+  vector-effect: non-scaling-stroke;
+}
+
+.axes {
+  stroke: var(--ch-gold-300);
+  stroke-width: 1;
+  opacity: 0.12;
+  vector-effect: non-scaling-stroke;
+}

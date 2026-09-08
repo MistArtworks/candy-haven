@@ -1,0 +1,108 @@
+@use 'sass:map';
+@use 'tokens' as *;
+@use 'functions' as *;
+
+/// Media query above a named breakpoint.
+@mixin above($name) {
+  @media (min-width: breakpoint($name)) {
+    @content;
+  }
+}
+
+/// Media query below a named breakpoint.
+@mixin below($name) {
+  @media (max-width: (breakpoint($name) - 1px)) {
+    @content;
+  }
+}
+
+/// Institutional label: uppercase, wide tracking, small. The typographic
+/// signature of the interface — used for every section, field and status label.
+@mixin label($size: 10px, $tracking: 0.18em) {
+  font-family: var(--ch-font-display);
+  font-size: $size;
+  font-weight: 600;
+  letter-spacing: $tracking;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+/// Monospace telemetry readout: numbers that should not shift width as they change.
+@mixin readout($size: 12px) {
+  font-family: var(--ch-font-mono);
+  font-size: $size;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/// Hairline border in the alabaster key, at a given opacity.
+@mixin hairline($sides: all, $opacity: 0.14) {
+  $color: rgba(182, 158, 124, $opacity);
+
+  @if $sides == all {
+    border: $hairline solid $color;
+  } @else if $sides == top {
+    border-top: $hairline solid $color;
+  } @else if $sides == bottom {
+    border-bottom: $hairline solid $color;
+  } @else if $sides == left {
+    border-left: $hairline solid $color;
+  } @else if $sides == right {
+    border-right: $hairline solid $color;
+  }
+}
+
+/// A panel surface: the standard container in the console.
+@mixin panel($padding: space(5)) {
+  position: relative;
+  background: var(--ch-surface);
+  @include hairline(all, 0.1);
+  padding: $padding;
+}
+
+/// Focus ring. Applied via :focus-visible so pointer users never see it.
+@mixin focus-ring($offset: 2px) {
+  outline: 1px solid var(--ch-accent);
+  outline-offset: $offset;
+}
+
+/// Respects the operator's motion preference. Wrap any non-essential animation.
+/// Honours both the OS setting and the in-app Regulation control, which sets
+/// `data-motion` on the root element.
+@mixin motion-safe {
+  @media (prefers-reduced-motion: no-preference) {
+    :root[data-motion='full'] & {
+      @content;
+    }
+  }
+}
+
+/// Truncates to a single line.
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/// Visually hidden but available to assistive technology.
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/// Marks a region as draggable window chrome (frameless window).
+@mixin window-drag {
+  -webkit-app-region: drag;
+}
+
+/// Restores normal pointer interaction inside a draggable region.
+@mixin window-no-drag {
+  -webkit-app-region: no-drag;
+}
