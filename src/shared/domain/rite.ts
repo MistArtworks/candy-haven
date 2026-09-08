@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   DEFAULT_SPIN_DURATION_MS,
+  RITE_MECHANISMS,
   MAX_EDGE_RESERVE,
   MAX_PETITIONS,
   MAX_PETITION_LABEL,
@@ -25,6 +26,8 @@ import {
  * a field without a default turns a restored state into a hard failure of every
  * rite channel at once.
  */
+
+export type { RiteMechanism } from './rite.constants'
 
 export const RitePhaseSchema = z.enum(['idle', 'spinning', 'resolved'])
 export type RitePhase = z.infer<typeof RitePhaseSchema>
@@ -94,6 +97,14 @@ export const RiteResultSchema = z.object({
 export type RiteResult = z.infer<typeof RiteResultSchema>
 
 export const RiteConfigSchema = z.object({
+  /**
+   * How the selection is presented.
+   *
+   * A presentation choice only. The winner is drawn once in the main process
+   * and travels in the spin command, so every mechanism renders the same
+   * result and none of them can disagree with the console.
+   */
+  mechanism: z.enum(RITE_MECHANISMS).default('ring'),
   /** Masthead on the overlay. */
   title: z.string().max(64).default('RESONANCE SELECTION'),
   /** The question being put to the field, e.g. `WHICH TRACK DO WE REMIX`. */

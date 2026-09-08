@@ -336,12 +336,16 @@ html[data-guides='true'] .guide {
 }
 
 .ring {
-  // Square, bounded by whichever axis is shorter, so the ring never crops.
-  // `height` plus `aspect-ratio` derives the width; `max-width` then clamps it
-  // on a narrow source and the aspect ratio pulls the height down to match.
+  /*
+   * Fills the stage rather than being squared off.
+   *
+   * The ring is square and centres itself in whatever box it is given, so this
+   * costs it nothing — but the linear mechanisms need the whole frame: a
+   * procession rail is wide and a docket is tall, and squaring the canvas would
+   * throw away most of the room they have.
+   */
+  width: 100%;
   height: 100%;
-  aspect-ratio: 1;
-  max-width: 100%;
   display: block;
 }
 

@@ -264,6 +264,7 @@ export function petitionOdds(petitions: readonly Petition[]): number[] {
 
 export function createDefaultRiteConfig(): RiteConfig {
   return {
+    mechanism: 'ring',
     title: 'RESONANCE SELECTION',
     prompt: 'THE FIELD WILL CHOOSE',
     durationMs: DEFAULT_SPIN_DURATION_MS,
@@ -311,4 +312,182 @@ export function normalisePetitionLabel(label: string): string {
 
 export function petitionKey(label: string): string {
   return normalisePetitionLabel(label).toLowerCase()
+}
+
+// -------------------------------------------------------------- mechanisms
+
+/**
+ * The four ways a selection can be presented.
+ *
+ * All four render the *same* draw. The winner is decided once in the main
+ * process and travels in the spin command, so a mechanism is a presentation
+ * choice and never a different result — which is what makes adding one of these
+ * cheap and makes none of them able to disagree with the console.
+ *
+ * They differ in shape and in what carries the tension:
+ *   - `ring`       a rotating ring read against a fixed bezel
+ *   - `procession` plates streaming past a fixed marker
+ *   - `tribunal`   a selection bar stepping down a fixed docket
+ *   - `attrition`  records struck out until one survives
+ */
+export const RITE_MECHANISMS = ['ring', 'procession', 'tribunal', 'attrition'] as const
+export type RiteMechanism = (typeof RITE_MECHANISMS)[number]
+
+export const RITE_MECHANISM_LABEL: Record<RiteMechanism, string> = {
+  ring: 'RESONANCE RING — the ring turns beneath a fixed pointer',
+  procession: 'THE PROCESSION — petitions stream past the mark and one is held',
+  tribunal: 'THE TRIBUNAL — the docket is scanned and one file is sanctioned',
+  attrition: 'RITE OF ATTRITION — records are redacted until one survives'
+}
+
+/** How many petitions a docket shows before it has to scroll. */
+export const DOCKET_VISIBLE_ROWS = 9
+
+// ---------------------------------------------------------------- the reel
+
+export interface ReelFrame {
+  /**
+   * Plates travelled, in plate units.
+   *
+   * Fractional: the strip sits between plates for most of a spin. At rest this
+   * is exactly `revolutions * count + targetIndex`, so the plate whose reel
+   * index has that value sits on the mark — and since `revolutions * count` is
+   * a whole number of passes, its petition index is the target.
+   */
+  plates: number
+  velocity: number
+  progress: number
+  settled: boolean
+}
+
+/**
+ * The linear equivalent of `spinFrameAt`, for the presentations that move a
+ * strip rather than turn a ring.
+ *
+ * Shares the ring's easing and overshoot deliberately: a spin should feel the
+ * same whichever way it is drawn, and the console and the broadcast derive both
+ * from the one command.
+ */
+export function reelFrameAt(spin: SpinCommand, now: number): ReelFrame {
+  const target = spin.revolutions * spin.segmentCount + spin.targetIndex
+  // A fraction of a plate, so the mark visibly passes the winner and creeps
+  // back onto it — the same near-miss the ring gets from its angular overshoot.
+  const overshoot = 0.55
+  const elapsed = now - spin.startedAt
+  const total = totalSpinDurationMs(spin)
+
+  if (elapsed <= 0) return { plates: 0, velocity: 0, progress: 0, settled: false }
+
+  if (elapsed < spin.durationMs) {
+    const u = elapsed / spin.durationMs
+    return {
+      plates: spinEase(u) * (target + overshoot),
+      velocity: spinVelocity(u),
+      progress: elapsed / total,
+      settled: false
+    }
+  }
+
+  if (elapsed < total) {
+    const u = (elapsed - spin.durationMs) / spin.settleMs
+    return {
+      plates: target + overshoot * (1 - settleEase(u)),
+      velocity: 0,
+      progress: elapsed / total,
+      settled: false
+    }
+  }
+
+  return { plates: target, velocity: 0, progress: 1, settled: true }
+}
+
+/** Which petition a reel index shows. */
+export function reelPetitionIndex(reelIndex: number, count: number): number {
+  if (count <= 0) return 0
+  return ((reelIndex % count) + count) % count
+}
+
+// ------------------------------------------------------------- the docket
+
+/**
+ * Which row the selection bar rests on at `now`, for the TRIBUNAL.
+ *
+ * Steps between whole rows rather than gliding: a bar that slides continuously
+ * reads as a scrollbar, whereas one that jumps reads as a machine considering
+ * each file in turn. The step rate follows the same easing as everything else,
+ * so it slows to a crawl before it settles.
+ */
+export function docketRowAt(spin: SpinCommand, now: number): number {
+  const frame = reelFrameAt(spin, now)
+  if (frame.settled) return spin.targetIndex
+  return reelPetitionIndex(Math.round(frame.plates), spin.segmentCount)
+}
+
+// ----------------------------------------------------------- the attrition
+
+/**
+ * FNV-1a over the spin id.
+ *
+ * The elimination order has to be identical on every surface, and the only
+ * thing they share is the command — so the order is derived from its id rather
+ * than rolled locally. Any stable hash would do; this one is short and has no
+ * dependencies.
+ */
+function seedFrom(value: string): number {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash >>> 0
+}
+
+/** xorshift32. Small, deterministic, and adequate for shuffling a list. */
+function nextSeed(seed: number): number {
+  let next = seed
+  next ^= next << 13
+  next ^= next >>> 17
+  next ^= next << 5
+  return next >>> 0
+}
+
+/**
+ * The order in which petitions are struck out, ending with the winner surviving.
+ *
+ * Every index except the target, shuffled deterministically from the spin id.
+ * Computed identically by the console and the broadcast, so both strike the
+ * same record at the same moment.
+ */
+export function attritionOrder(spin: SpinCommand): number[] {
+  const victims: number[] = []
+  for (let index = 0; index < spin.segmentCount; index += 1) {
+    if (index !== spin.targetIndex) victims.push(index)
+  }
+
+  // Fisher-Yates, seeded.
+  let seed = seedFrom(spin.id)
+  for (let index = victims.length - 1; index > 0; index -= 1) {
+    seed = nextSeed(seed)
+    const swap = seed % (index + 1)
+    ;[victims[index], victims[swap]] = [victims[swap], victims[index]]
+  }
+
+  return victims
+}
+
+/**
+ * How many records have been struck out at `now`.
+ *
+ * Reuses the decelerating curve rather than accelerating into the end. The last
+ * elimination is the one that decides it, so it gets the longest beat — an
+ * accelerating tempo would rush precisely the moment worth watching.
+ */
+export function attritionStruckAt(spin: SpinCommand, now: number): number {
+  const elapsed = now - spin.startedAt
+  if (elapsed <= 0) return 0
+
+  const doomed = Math.max(spin.segmentCount - 1, 0)
+  if (elapsed >= spin.durationMs) return doomed
+
+  return Math.min(Math.floor(spinEase(elapsed / spin.durationMs) * doomed), doomed)
 }

@@ -4,6 +4,8 @@ import { motion } from 'motion/react'
 import { getOverlay, overlaySourceUrl } from '@shared/domain/overlays'
 import {
   MAX_EDGE_RESERVE,
+  RITE_MECHANISMS,
+  RITE_MECHANISM_LABEL,
   OVERLAY_REFERENCE_WIDTH,
   OVERLAY_THEME_LABEL,
   OVERLAY_THEMES,
@@ -256,6 +258,24 @@ export function SelectionPage(): ReactNode {
         */}
         <Panel label="Presentation" index="05" className={styles.span2}>
           <div className={styles.config}>
+            {/*
+              A presentation choice over one draw: the winner is decided in the
+              main process and travels in the spin command, so switching
+              mechanism changes how the selection is watched and never what is
+              selected.
+            */}
+            <SelectInput
+              label="Mechanism"
+              value={state.config.mechanism}
+              options={RITE_MECHANISMS.map((mechanism) => ({
+                value: mechanism,
+                label: RITE_MECHANISM_LABEL[mechanism]
+              }))}
+              onChange={(mechanism) => void actions.configure({ mechanism })}
+              disabled={spinning}
+              hint="Four ways to present the same draw. Locked while a selection is running."
+            />
+
             <SelectInput
               label="Preset"
               value={state.config.theme}

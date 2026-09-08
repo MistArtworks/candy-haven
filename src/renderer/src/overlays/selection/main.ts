@@ -184,7 +184,8 @@ function apply(next: RiteState): void {
     spin: next.spin,
     winnerIndex: next.winner?.index ?? null,
     winnerLabel: next.winner?.label ?? null,
-    showField: next.config.showField
+    showField: next.config.showField,
+    mechanism: next.config.mechanism
   })
 
   document.documentElement.dataset.phase = next.phase

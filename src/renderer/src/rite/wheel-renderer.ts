@@ -1,8 +1,14 @@
-import type { RitePhase, SpinCommand } from '@shared/domain/rite'
+import type { RiteMechanism, RitePhase, SpinCommand } from '@shared/domain/rite'
 import { LOGOMARK_PATH, LOGOMARK_VIEWBOX } from '@renderer/components/sigil/logomark.path'
 import {
+  DOCKET_VISIBLE_ROWS,
   POINTER_ANGLE,
   TAU,
+  attritionOrder,
+  attritionStruckAt,
+  docketRowAt,
+  reelFrameAt,
+  reelPetitionIndex,
   segmentAngle,
   spinFrameAt,
   tickIndexAt,
@@ -41,6 +47,8 @@ export interface WheelState {
   spin: SpinCommand | null
   winnerIndex: number | null
   winnerLabel: string | null
+  /** Which presentation to draw. Defaults to the ring. */
+  mechanism?: RiteMechanism
   /** The rotating resonance field behind the ring. */
   showField?: boolean
 }
@@ -207,6 +215,9 @@ export class RiteWheel {
     showField: true
   }
 
+  private width = 0
+  private height = 0
+  /** The square the ring is drawn into: the shorter axis of the canvas. */
   private size = 0
   private frame = 0
   private running = false
@@ -301,7 +312,7 @@ export class RiteWheel {
     const delta = Math.min((now - this.lastFrameAt) / 1000, 0.05)
     this.lastFrameAt = now
 
-    ctx.clearRect(0, 0, size, size)
+    ctx.clearRect(0, 0, this.width, this.height)
     if (size <= 0) return
 
     const centre = size / 2
@@ -338,17 +349,41 @@ export class RiteWheel {
     this.markRotation += (delta * TAU) / MARK_PERIOD_SECONDS
 
     if (this.state.showField !== false) {
+      ctx.save()
+      ctx.translate((this.width - size) / 2, (this.height - size) / 2)
       this.drawField(centre, size * 0.465, velocity, now)
+      ctx.restore()
     }
 
     if (count === 0) {
+      ctx.save()
+      ctx.translate((this.width - size) / 2, (this.height - size) / 2)
       this.drawEmptyRing(centre, radius)
       this.drawBezel(centre, radius, 0)
       this.drawOrb(centre, radius, 0, now, false)
       this.drawPointer(centre, radius, 0)
-      this.drawEmptyLegend(centre, radius)
+      this.drawEmptyLegend(centre, centre + radius * 0.52)
+      ctx.restore()
       return
     }
+
+    /*
+     * The mechanism is a presentation choice over one draw.
+     *
+     * Every branch below renders the same predetermined result from the same
+     * spin command, so switching between them mid-roster changes only how the
+     * selection is watched — never what is selected.
+     */
+    const mechanism = this.state.mechanism ?? 'ring'
+    if (mechanism !== 'ring') {
+      this.drawLinear(mechanism, now, settled, velocity, progress, spinning)
+      return
+    }
+
+    ctx.save()
+    // Centres the ring's square in a rectangular canvas; everything below is
+    // written against `size` and needs no knowledge of the frame's shape.
+    ctx.translate((this.width - size) / 2, (this.height - size) / 2)
 
     this.drawSegments(centre, radius, rotation, count)
     this.drawRim(centre, radius, rotation, count, velocity)
@@ -382,6 +417,8 @@ export class RiteWheel {
     if (resolved && revealLabel) {
       this.drawStamp(centre, radius, revealLabel)
     }
+
+    ctx.restore()
   }
 
   /**
@@ -660,14 +697,15 @@ export class RiteWheel {
     ctx.stroke()
   }
 
-  private drawEmptyLegend(centre: number, radius: number): void {
+  private drawEmptyLegend(x: number, y: number): void {
     const { context: ctx, palette } = this
-    const size = Math.max(8, radius * 0.062)
+    const size = Math.max(8, Math.min(this.width, this.height) * 0.028)
     ctx.font = `${size}px ${palette.display}`
     ctx.fillStyle = palette.labelDim
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText('NO PETITIONS FILED', centre, centre + radius * 0.52)
+    ctx.fillText('NO PETITIONS FILED', x, y)
+    ctx.textAlign = 'left'
   }
 
   /**
@@ -961,5 +999,508 @@ export class RiteWheel {
     ctx.fillText(this.fitText(label.toUpperCase(), width - 24), 0, height * 0.16)
 
     ctx.restore()
+  }
+
+  // ==========================================================================
+  // Linear presentations
+  //
+  // The ring turns; these three move a strip, step a bar, or strike records
+  // out. All derive from the same spin command, so the winner, the timing and
+  // the settle are shared and only the shape differs.
+  // ==========================================================================
+
+  private drawLinear(
+    mechanism: Exclude<RiteMechanism, 'ring'>,
+    now: number,
+    settled: boolean,
+    velocity: number,
+    progress: number,
+    spinning: boolean
+  ): void {
+    const spin = this.state.spin
+    const count = this.state.petitions.length
+
+    // Reveal off the command rather than the broadcast, as the ring does, so
+    // the result lands on the exact frame the motion stops.
+    const revealIndex = this.state.winnerIndex ?? (settled && spin ? spin.targetIndex : null)
+    const resolved = revealIndex !== null && (this.state.phase === 'resolved' || settled)
+
+    if (count === 0) {
+      this.drawEmptyLegend(this.width / 2, this.height / 2 - this.height * 0.06)
+      return
+    }
+
+    switch (mechanism) {
+      case 'procession':
+        this.drawProcession(now, spin, count, velocity, progress, spinning, revealIndex, resolved)
+        break
+      case 'tribunal':
+        this.drawTribunal(now, spin, count, progress, spinning, revealIndex, resolved)
+        break
+      case 'attrition':
+        this.drawAttrition(now, spin, count, progress, spinning, revealIndex, resolved)
+        break
+    }
+  }
+
+  // ------------------------------------------------------------- procession
+
+  /**
+   * THE PROCESSION — petitions stream past a fixed mark and one is held.
+   *
+   * The case-opening arrangement rebuilt in the house materials: engraved slabs
+   * on a rail rather than coloured cards, a gold mark rather than a ticker, and
+   * the winner igniting crimson rather than flashing. It shares the ring's
+   * easing exactly, so the long readable crawl into the result and the
+   * overshoot-and-creep-back are the same beat.
+   *
+   * The strip is drawn from a window around the current position rather than
+   * built as a list, so a roster of four reads as endless as a roster of forty
+   * and nothing is duplicated to fill the rail.
+   */
+  private drawProcession(
+    now: number,
+    spin: SpinCommand | null,
+    count: number,
+    velocity: number,
+    progress: number,
+    spinning: boolean,
+    revealIndex: number | null,
+    resolved: boolean
+  ): void {
+    const { context: ctx, palette, width, height } = this
+    const centreX = width / 2
+    const plateWidth = Math.min(width * 0.19, height * 0.34)
+    const plateHeight = plateWidth * 1.18
+    const step = plateWidth * 1.08
+    const railY = height * 0.5 - plateHeight / 2
+
+    const plates = spin ? reelFrameAt(spin, Date.now()).plates : 0
+
+    // Rail: a recessed channel the slabs run in.
+    ctx.fillStyle = withAlpha(palette.wedgeA, 0.85)
+    ctx.fillRect(0, railY - plateHeight * 0.1, width, plateHeight * 1.2)
+    ctx.strokeStyle = palette.wedgeEdge
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(0, railY - plateHeight * 0.1)
+    ctx.lineTo(width, railY - plateHeight * 0.1)
+    ctx.moveTo(0, railY + plateHeight * 1.1)
+    ctx.lineTo(width, railY + plateHeight * 1.1)
+    ctx.stroke()
+
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(0, railY - plateHeight * 0.1, width, plateHeight * 1.2)
+    ctx.clip()
+
+    // Only the plates that can be on screen are drawn.
+    const span = Math.ceil(width / step / 2) + 2
+    const anchor = Math.round(plates)
+
+    for (let offset = -span; offset <= span; offset += 1) {
+      const reelIndex = anchor + offset
+      if (reelIndex < 0) continue
+
+      const index = reelPetitionIndex(reelIndex, count)
+      const x = centreX + (reelIndex - plates) * step - plateWidth / 2
+      const isWinner = resolved && index === revealIndex && Math.abs(reelIndex - plates) < 0.5
+
+      this.drawProcessionPlate(x, railY, plateWidth, plateHeight, index, isWinner)
+    }
+    ctx.restore()
+
+    // The mark: a fixed gold blade through the rail, with a chevron at each end.
+    const markTop = railY - plateHeight * 0.22
+    const markBottom = railY + plateHeight * 1.22
+    const pulse = this.tickPulse(plates * segmentAngle(count), count, now, spinning)
+
+    ctx.strokeStyle = pulse > 0.02 ? palette.goldBright : palette.gold
+    ctx.lineWidth = pulse > 0.02 ? 2.2 : 1.6
+    ctx.beginPath()
+    ctx.moveTo(centreX, markTop)
+    ctx.lineTo(centreX, markBottom)
+    ctx.stroke()
+
+    const chevron = plateWidth * 0.09
+    ctx.fillStyle = pulse > 0.02 ? palette.goldBright : palette.gold
+    for (const [y, direction] of [
+      [markTop, 1],
+      [markBottom, -1]
+    ] as const) {
+      ctx.beginPath()
+      ctx.moveTo(centreX, y + chevron * direction)
+      ctx.lineTo(centreX - chevron * 0.8, y)
+      ctx.lineTo(centreX + chevron * 0.8, y)
+      ctx.closePath()
+      ctx.fill()
+    }
+
+    if (spinning) this.drawProgressRule(height - height * 0.1, progress)
+    if (resolved && revealIndex !== null) {
+      const label = this.state.winnerLabel ?? this.state.petitions[revealIndex]?.label
+      if (label) this.drawStampAt(centreX, height * 0.86, width * 0.7, label)
+    }
+
+    void velocity
+  }
+
+  /** One slab on the rail. Engraved, numbered, and lit only if it wins. */
+  private drawProcessionPlate(
+    x: number,
+    y: number,
+    plateWidth: number,
+    plateHeight: number,
+    index: number,
+    isWinner: boolean
+  ): void {
+    const { context: ctx, palette } = this
+    const petition = this.state.petitions[index]
+    if (!petition) return
+
+    if (isWinner) {
+      const gradient = ctx.createLinearGradient(x, y, x, y + plateHeight)
+      gradient.addColorStop(0, withAlpha(palette.crimson, 0.62))
+      gradient.addColorStop(1, withAlpha(palette.crimsonDeep, 0.94))
+      ctx.fillStyle = gradient
+    } else {
+      ctx.fillStyle = index % 2 === 0 ? palette.wedgeA : palette.wedgeB
+    }
+    ctx.fillRect(x, y, plateWidth, plateHeight)
+
+    ctx.strokeStyle = isWinner ? withAlpha(palette.crimsonBright, 0.9) : palette.wedgeEdge
+    ctx.lineWidth = isWinner ? 1.6 : 1
+    ctx.strokeRect(x + 0.5, y + 0.5, plateWidth - 1, plateHeight - 1)
+
+    // Filed number: the anchor between the rail, the roster and the result.
+    const numberSize = Math.max(7, plateWidth * 0.11)
+    ctx.font = `${numberSize}px ${palette.mono}`
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    ctx.fillStyle = withAlpha(isWinner ? palette.goldBright : palette.gold, 0.75)
+    ctx.fillText(String(index + 1).padStart(2, '0'), x + plateWidth * 0.09, y + plateHeight * 0.09)
+
+    // The label runs down the slab, which is the only direction it fits.
+    const labelSize = Math.max(8, plateWidth * 0.13)
+    ctx.save()
+    ctx.translate(x + plateWidth * 0.62, y + plateHeight * 0.9)
+    ctx.rotate(-Math.PI / 2)
+    ctx.font = `${labelSize}px ${palette.display}`
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = palette.label
+    ctx.fillText(this.fitText(petition.label.toUpperCase(), plateHeight * 0.8), 0, 0)
+    ctx.restore()
+  }
+
+  // --------------------------------------------------------------- tribunal
+
+  /**
+   * THE TRIBUNAL — the docket is scanned and one file is sanctioned.
+   *
+   * The bar steps between whole rows rather than gliding: a bar that slides
+   * continuously reads as a scrollbar, whereas one that jumps reads as a
+   * machine considering each file in turn. It slows to a crawl on the same
+   * curve as everything else, then the file is stamped.
+   *
+   * The docket scrolls only when the roster outruns the frame, and it keeps the
+   * scanned row in view rather than paging, so the eye never loses the bar.
+   */
+  private drawTribunal(
+    now: number,
+    spin: SpinCommand | null,
+    count: number,
+    progress: number,
+    spinning: boolean,
+    revealIndex: number | null,
+    resolved: boolean
+  ): void {
+    const { context: ctx, palette, width, height } = this
+    const pad = width * 0.06
+    const headerHeight = height * 0.1
+    const footerHeight = resolved ? height * 0.16 : height * 0.06
+    const listTop = headerHeight
+    const listHeight = height - headerHeight - footerHeight
+
+    const visible = Math.min(count, DOCKET_VISIBLE_ROWS)
+    const rowHeight = listHeight / visible
+    const active = spin ? docketRowAt(spin, Date.now()) : (revealIndex ?? 0)
+
+    // Keep the scanned row on screen without paging: the window follows it,
+    // clamped so the list never scrolls past its own ends.
+    const firstRow = Math.min(
+      Math.max(active - Math.floor(visible / 2), 0),
+      Math.max(count - visible, 0)
+    )
+
+    ctx.font = `${Math.max(8, height * 0.028)}px ${palette.display}`
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = withAlpha(palette.gold, 0.7)
+    ctx.fillText('DOCKET', pad, headerHeight * 0.5)
+    ctx.textAlign = 'right'
+    ctx.fillStyle = palette.labelDim
+    ctx.fillText(`${count} FILED`, width - pad, headerHeight * 0.5)
+    ctx.textAlign = 'left'
+
+    ctx.strokeStyle = palette.wedgeEdge
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(pad, headerHeight)
+    ctx.lineTo(width - pad, headerHeight)
+    ctx.stroke()
+
+    for (let row = 0; row < visible; row += 1) {
+      const index = firstRow + row
+      if (index >= count) break
+
+      const petition = this.state.petitions[index]
+      if (!petition) continue
+
+      const y = listTop + row * rowHeight
+      const isActive = index === active
+      const isWinner = resolved && index === revealIndex
+
+      if (isWinner) {
+        ctx.fillStyle = withAlpha(palette.crimson, 0.34)
+        ctx.fillRect(pad, y, width - pad * 2, rowHeight)
+        ctx.fillStyle = palette.crimsonBright
+        ctx.fillRect(pad, y, 3, rowHeight)
+      } else if (isActive && spinning) {
+        // The scanning bar: a lit course, not a highlight.
+        ctx.fillStyle = withAlpha(palette.gold, 0.14)
+        ctx.fillRect(pad, y, width - pad * 2, rowHeight)
+        ctx.fillStyle = palette.goldBright
+        ctx.fillRect(pad, y, 3, rowHeight)
+      }
+
+      const numberSize = Math.max(7, rowHeight * 0.3)
+      ctx.font = `${numberSize}px ${palette.mono}`
+      ctx.fillStyle = isWinner
+        ? palette.crimsonBright
+        : withAlpha(palette.gold, isActive ? 0.9 : 0.55)
+      ctx.textBaseline = 'middle'
+      ctx.fillText(String(index + 1).padStart(2, '0'), pad + rowHeight * 0.34, y + rowHeight / 2)
+
+      const labelSize = Math.max(9, rowHeight * 0.4)
+      ctx.font = `${labelSize}px ${palette.display}`
+      ctx.fillStyle = isWinner ? palette.label : isActive ? palette.label : palette.labelDim
+      ctx.fillText(
+        this.fitText(petition.label.toUpperCase(), width - pad * 2 - rowHeight * 1.6),
+        pad + rowHeight * 1.1,
+        y + rowHeight / 2
+      )
+
+      if (row > 0) {
+        ctx.strokeStyle = withAlpha(palette.goldDim, 0.12)
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(pad, y)
+        ctx.lineTo(width - pad, y)
+        ctx.stroke()
+      }
+    }
+
+    if (spinning) this.drawProgressRule(height - footerHeight * 0.4, progress)
+    if (resolved && revealIndex !== null) {
+      const label = this.state.winnerLabel ?? this.state.petitions[revealIndex]?.label
+      if (label) this.drawStampAt(width / 2, height - footerHeight * 0.5, width * 0.74, label)
+    }
+
+    void now
+  }
+
+  // -------------------------------------------------------------- attrition
+
+  /**
+   * RITE OF ATTRITION — records are redacted until one survives.
+   *
+   * The inverse of the others: it does not choose a winner, it forgets the
+   * losers. Records are struck through and blacked out one at a time until a
+   * single file is left standing, which is the selection.
+   *
+   * The order is derived from the spin id rather than rolled locally, so the
+   * console and the broadcast strike the same record at the same moment. The
+   * curve decelerates rather than accelerating: the last elimination is the one
+   * that decides it, so it gets the longest beat.
+   */
+  private drawAttrition(
+    now: number,
+    spin: SpinCommand | null,
+    count: number,
+    progress: number,
+    spinning: boolean,
+    revealIndex: number | null,
+    resolved: boolean
+  ): void {
+    const { context: ctx, palette, width, height } = this
+    const pad = width * 0.06
+    const headerHeight = height * 0.1
+    const footerHeight = resolved ? height * 0.16 : height * 0.06
+    const listHeight = height - headerHeight - footerHeight
+
+    const visible = Math.min(count, DOCKET_VISIBLE_ROWS)
+    const rowHeight = listHeight / visible
+
+    const order = spin ? attritionOrder(spin) : []
+    const struck = spin ? attritionStruckAt(spin, Date.now()) : 0
+    const redacted = new Set(order.slice(0, struck))
+
+    ctx.font = `${Math.max(8, height * 0.028)}px ${palette.display}`
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = withAlpha(palette.gold, 0.7)
+    ctx.fillText('ATTRITION', pad, headerHeight * 0.5)
+    ctx.textAlign = 'right'
+    ctx.fillStyle = redacted.size > 0 ? palette.crimsonBright : palette.labelDim
+    ctx.fillText(`${count - redacted.size} REMAIN`, width - pad, headerHeight * 0.5)
+    ctx.textAlign = 'left'
+
+    ctx.strokeStyle = palette.wedgeEdge
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(pad, headerHeight)
+    ctx.lineTo(width - pad, headerHeight)
+    ctx.stroke()
+
+    // Survivors are kept in place rather than closing the gap, so the eye can
+    // follow one record down the list instead of re-reading a shifting one.
+    for (let index = 0; index < visible; index += 1) {
+      const petition = this.state.petitions[index]
+      if (!petition) continue
+
+      const y = headerHeight + index * rowHeight
+      const isRedacted = redacted.has(index)
+      const isWinner = resolved && index === revealIndex
+
+      const numberSize = Math.max(7, rowHeight * 0.3)
+      const labelSize = Math.max(9, rowHeight * 0.4)
+      const labelX = pad + rowHeight * 1.1
+      const labelText = this.fitText(
+        petition.label.toUpperCase(),
+        width - pad * 2 - rowHeight * 1.6
+      )
+
+      if (isWinner) {
+        ctx.fillStyle = withAlpha(palette.crimson, 0.32)
+        ctx.fillRect(pad, y, width - pad * 2, rowHeight)
+        ctx.fillStyle = palette.crimsonBright
+        ctx.fillRect(pad, y, 3, rowHeight)
+      }
+
+      ctx.font = `${numberSize}px ${palette.mono}`
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = isRedacted
+        ? withAlpha(palette.labelDim, 0.3)
+        : withAlpha(palette.gold, isWinner ? 0.95 : 0.6)
+      ctx.fillText(String(index + 1).padStart(2, '0'), pad + rowHeight * 0.34, y + rowHeight / 2)
+
+      ctx.font = `${labelSize}px ${palette.display}`
+      ctx.fillStyle = isRedacted
+        ? withAlpha(palette.labelDim, 0.34)
+        : isWinner
+          ? palette.label
+          : palette.labelDim
+      ctx.fillText(labelText, labelX, y + rowHeight / 2)
+
+      if (isRedacted) {
+        const textWidth = ctx.measureText(labelText).width
+        // Struck through, then blacked over: the record is not removed, it is
+        // made unreadable, which is the whole point of the mechanism.
+        ctx.strokeStyle = withAlpha(palette.crimsonBright, 0.7)
+        ctx.lineWidth = 1.4
+        ctx.beginPath()
+        ctx.moveTo(labelX, y + rowHeight / 2)
+        ctx.lineTo(labelX + textWidth, y + rowHeight / 2)
+        ctx.stroke()
+
+        ctx.fillStyle = withAlpha(palette.wedgeA, 0.72)
+        ctx.fillRect(labelX, y + rowHeight * 0.24, textWidth, rowHeight * 0.52)
+      }
+
+      if (index > 0) {
+        ctx.strokeStyle = withAlpha(palette.goldDim, 0.12)
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(pad, y)
+        ctx.lineTo(width - pad, y)
+        ctx.stroke()
+      }
+    }
+
+    if (spinning) this.drawProgressRule(height - footerHeight * 0.4, progress)
+    if (resolved && revealIndex !== null) {
+      const label = this.state.winnerLabel ?? this.state.petitions[revealIndex]?.label
+      if (label) this.drawStampAt(width / 2, height - footerHeight * 0.5, width * 0.74, label)
+    }
+
+    void now
+  }
+
+  // ----------------------------------------------------------------- shared
+
+  /** Elapsed rule, for the presentations with no arc to carry progress. */
+  private drawProgressRule(y: number, progress: number): void {
+    const { context: ctx, palette, width } = this
+    const w = width * 0.6
+    const x = (width - w) / 2
+
+    ctx.fillStyle = withAlpha(palette.brass, 0.6)
+    ctx.fillRect(x, y, w, 1)
+    ctx.fillStyle = palette.gold
+    ctx.fillRect(x, y, w * Math.min(Math.max(progress, 0), 1), 1)
+  }
+
+  /**
+   * `SANCTIONED`, positioned by the caller.
+   *
+   * The ring stamps beneath itself; the linear presentations stamp inside their
+   * own footers, so the placement is a parameter rather than derived from a
+   * radius.
+   */
+  private drawStampAt(centreX: number, centreY: number, maxWidth: number, label: string): void {
+    const { context: ctx, palette } = this
+
+    const age =
+      this.motion && this.state.spin
+        ? Math.max(
+            Date.now() - (this.state.spin.startedAt + totalSpinDurationMs(this.state.spin)),
+            0
+          )
+        : STAMP_MS
+    const u = Math.min(age / STAMP_MS, 1)
+    const scale = u >= 1 ? 1 : 1.18 - 0.18 * (1 - (1 - u) * (1 - u) * (1 - u))
+    const alpha = Math.min(u * 1.6, 1)
+
+    const width = maxWidth
+    const height = Math.max(this.height * 0.09, 26)
+
+    ctx.save()
+    ctx.translate(centreX, centreY)
+    ctx.scale(scale, scale)
+    ctx.rotate(-0.014)
+    ctx.globalAlpha = alpha
+
+    ctx.fillStyle = withAlpha(palette.crimsonDeep, 0.88)
+    ctx.fillRect(-width / 2, -height / 2, width, height)
+    ctx.strokeStyle = withAlpha(palette.crimsonBright, 0.9)
+    ctx.lineWidth = 2
+    ctx.strokeRect(-width / 2, -height / 2, width, height)
+
+    const titleSize = Math.max(8, height * 0.26)
+    const labelSize = Math.max(9, height * 0.34)
+
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = withAlpha(palette.gold, 0.9)
+    ctx.font = `${titleSize}px ${palette.display}`
+    ctx.fillText('SANCTIONED', 0, -height * 0.24)
+
+    ctx.fillStyle = palette.label
+    ctx.font = `${labelSize}px ${palette.display}`
+    ctx.fillText(this.fitText(label.toUpperCase(), width - 24), 0, height * 0.16)
+
+    ctx.restore()
+    ctx.textAlign = 'left'
   }
 }

@@ -3,9 +3,10 @@
 .stage {
   position: relative;
   width: 100%;
-  // Square: the ring is drawn into the smaller of the two dimensions, so any
-  // other ratio would just be dead margin.
-  aspect-ratio: 1;
+  // Matches the recommended source, so the preview frames the mechanism the
+  // way OBS will. The ring centres its square inside this; the linear
+  // mechanisms use the whole box.
+  aspect-ratio: 16 / 9;
   display: flex;
   align-items: center;
   justify-content: center;
