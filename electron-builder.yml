@@ -58,12 +58,19 @@ npmRebuild: false
 # and failed. GitHub costs nothing, needs no server, and is already where the
 # source lives.
 #
-# `releaseType: draft` is deliberate: a publish uploads the installer to a draft
-# release rather than announcing it. Nothing is offered to an installed client
-# until the release is published by hand, so a build can be uploaded, checked,
-# and abandoned without anyone downloading it.
+# `releaseType: release` publishes live rather than to a draft.
+#
+# This started as `draft`, on the reasoning that a build should be checked before
+# anyone can download it. In practice the operator ships updates continuously and
+# wants the installed app to pick them up unattended, and a draft is invisible to
+# electron-updater — so every release needed a manual visit to GitHub to press
+# Publish, which is precisely the step that gets forgotten.
+#
+# The safety it traded away is real but small: a bad release is replaced by
+# publishing the next one, and `autoDownload` means clients take it without being
+# asked. Cut releases from a tree that builds.
 publish:
   provider: github
   owner: MistArtworks
   repo: candy-haven
-  releaseType: draft
+  releaseType: release

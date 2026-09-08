@@ -83,7 +83,19 @@ export type ArchiveSettings = z.infer<typeof ArchiveSettingsSchema>
 export const UpdateSettingsSchema = z.object({
   channel: UpdateChannelSchema.default('latest'),
   autoCheck: z.boolean().default(true),
-  autoDownload: z.boolean().default(false)
+  /**
+   * Fetch an available update without asking.
+   *
+   * On by default, which is the unusual choice and a deliberate one: this ships
+   * continuously from GitHub Releases and is expected to keep itself current
+   * unattended. Left off, the app notices a new version and then waits at a
+   * prompt nobody is looking at, which is the same as not updating.
+   *
+   * The cost is a ~110 MB download the operator did not initiate. Acceptable
+   * here because updates are frequent and the machine is the operator's own;
+   * it would not be acceptable in something distributed widely.
+   */
+  autoDownload: z.boolean().default(true)
 })
 export type UpdateSettings = z.infer<typeof UpdateSettingsSchema>
 
