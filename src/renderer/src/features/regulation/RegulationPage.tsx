@@ -9,7 +9,6 @@ import { useSettingsDraft } from '@renderer/hooks/useSettings'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Slider } from '@renderer/components/primitives/Slider'
-import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
 import { TextInput } from '@renderer/components/primitives/Input'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Button } from '@renderer/components/primitives/Button'
@@ -39,15 +38,22 @@ export function RegulationPage(): ReactNode {
   const integrations = settings?.integrations
 
   /*
-   * Claims the rail's navigation guard while anything is unsaved, and
-   * releases it on unmount so a page left in a clean state cannot strand the
-   * guard set and lock the console.
+   * Publishes this page's unsaved-changes controller for the console chrome to
+   * render, and withdraws it on unmount — a stranded controller would leave the
+   * rail refusing to navigate with no page left to save.
    */
-  const setUnsavedGuard = useSystemStore((state) => state.setUnsavedGuard)
+  const setUnsaved = useSystemStore((state) => state.setUnsaved)
   useEffect(() => {
-    setUnsavedGuard(draft.dirty)
-    return () => setUnsavedGuard(false)
-  }, [draft.dirty, setUnsavedGuard])
+    setUnsaved({
+      dirty: draft.dirty,
+      saving: draft.saving,
+      error: draft.error,
+      subject: 'operator settings',
+      save: draft.save,
+      discard: draft.discard
+    })
+    return () => setUnsaved(null)
+  }, [draft.dirty, draft.saving, draft.error, draft.save, draft.discard, setUnsaved])
 
   const resetSettings = useMutation({
     mutationFn: () => window.candy.settings.reset(),
@@ -325,15 +331,6 @@ export function RegulationPage(): ReactNode {
           </div>
         </Panel>
       </motion.div>
-
-      <UnsavedBar
-        dirty={draft.dirty}
-        saving={draft.saving}
-        error={draft.error}
-        subject="operator settings"
-        onSave={draft.save}
-        onDiscard={draft.discard}
-      />
     </div>
   )
 }

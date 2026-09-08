@@ -1,26 +1,30 @@
 @use 'abstracts' as *;
 
 /*
- * Anchored to the viewport rather than to the page, so it stays put while the
- * operator scrolls a long settings column. Sits above the content but below the
- * titlebar, so window controls are never covered.
+ * Anchored to the content area, not to the page.
+ *
+ * `absolute` against `.main` rather than `fixed`, deliberately: the page
+ * wrapper inside `.main` carries a transform and `will-change`, and either
+ * makes an element the containing block for fixed positioning — so a `fixed`
+ * bar rendered anywhere inside the page lands relative to the page instead of
+ * the window. Positioning against `.main` is deterministic regardless of what
+ * the page transition is doing, and it is already clear of the command rail, so
+ * there is no rail width to keep in step here.
+ *
+ * It sits above the scrolling page and does not scroll with it.
  */
 .wrapper {
-  position: fixed;
-  left: $rail-width;
+  position: absolute;
+  left: 0;
   right: 0;
   bottom: space(6);
   z-index: z('overlay');
   display: flex;
   justify-content: center;
   padding: 0 space(8);
-  // The bar itself is the only interactive part; the wrapper must not swallow
-  // clicks aimed at the page behind it.
+  // Only the bar is interactive; the wrapper must not swallow clicks aimed at
+  // the page behind it.
   pointer-events: none;
-
-  @include below('md') {
-    left: 0;
-  }
 }
 
 .bar {
@@ -29,13 +33,13 @@
   align-items: center;
   gap: space(5);
   width: 100%;
-  max-width: 720px;
+  max-width: 680px;
   padding: space(4) space(5);
   background: var(--ch-surface-raised);
   border: $hairline solid var(--ch-line-gold);
   box-shadow:
     0 1px 0 rgba(182, 158, 124, 0.04),
-    0 18px 48px rgba(0, 0, 0, 0.7);
+    0 20px 52px rgba(0, 0, 0, 0.72);
 }
 
 // A crimson slab on the leading edge: the palette's mark for something

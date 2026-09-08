@@ -17,6 +17,17 @@ import { createInitialBootSnapshot } from '@shared/domain/boot.constants'
  */
 export type ShellPhase = 'booting' | 'entering' | 'ready'
 
+/** A page's unsaved-changes controller, surfaced by the console chrome. */
+export interface UnsavedChanges {
+  dirty: boolean
+  saving: boolean
+  error: string | null
+  /** What is unsaved, e.g. `operator settings`. */
+  subject: string
+  save: () => void
+  discard: () => void
+}
+
 interface SystemState {
   boot: BootSnapshot
   archive: ArchiveStatus
@@ -53,13 +64,19 @@ interface SystemState {
   nudgeUnsaved: () => void
   unsavedNudge: number
   /**
-   * Set by a page that has unsaved changes.
+   * Registered by whichever page currently holds unsaved changes.
    *
-   * The rail consults it before navigating. A single flag rather than a set,
-   * because only one page is mounted at a time.
+   * The bar is rendered by the console layout rather than by the page, so it
+   * cannot live inside the page's animated wrapper — that element carries a
+   * transform and `will-change`, which make it the containing block for fixed
+   * positioning and put the bar wherever the page happens to be rather than at
+   * the bottom of the app. Holding the controller here is what lets the chrome
+   * render it while the page still owns the behaviour.
+   *
+   * A single slot rather than a set, because one page is mounted at a time.
    */
-  unsavedGuard: boolean
-  setUnsavedGuard: (guarded: boolean) => void
+  unsaved: UnsavedChanges | null
+  setUnsaved: (unsaved: UnsavedChanges | null) => void
   setWindow: (state: WindowState) => void
   setShellPhase: (phase: ShellPhase) => void
 }
@@ -71,7 +88,7 @@ export const useSystemStore = create<SystemState>()((set) => ({
   settings: null,
   settingsBaseline: null,
   unsavedNudge: 0,
-  unsavedGuard: false,
+  unsaved: null,
   window: { isMaximized: false, isFullScreen: false, isFocused: true },
   shellPhase: 'booting',
 
@@ -81,7 +98,7 @@ export const useSystemStore = create<SystemState>()((set) => ({
   setSettings: (settings) => set({ settings }),
   setSettingsBaseline: (settings) => set({ settingsBaseline: settings }),
   nudgeUnsaved: () => set((state) => ({ unsavedNudge: state.unsavedNudge + 1 })),
-  setUnsavedGuard: (unsavedGuard) => set({ unsavedGuard }),
+  setUnsaved: (unsaved) => set({ unsaved }),
   setWindow: (window) => set({ window }),
   setShellPhase: (shellPhase) => set({ shellPhase })
 }))
@@ -99,3 +116,5 @@ export const selectShellPhase = (state: SystemState): ShellPhase => state.shellP
 
 export const selectSettingsBaseline = (state: SystemState): Settings | null =>
   state.settingsBaseline
+
+export const selectUnsaved = (state: SystemState): UnsavedChanges | null => state.unsaved

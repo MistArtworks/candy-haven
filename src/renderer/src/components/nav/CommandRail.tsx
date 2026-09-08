@@ -29,11 +29,11 @@ export function CommandRail(): ReactNode {
    * blocker — and because the rail is the only way out of a page, so guarding
    * it is complete rather than partial.
    */
-  const unsavedGuard = useSystemStore((state) => state.unsavedGuard)
+  const dirty = useSystemStore((state) => state.unsaved?.dirty ?? false)
   const nudgeUnsaved = useSystemStore((state) => state.nudgeUnsaved)
 
   const guard = (event: ReactMouseEvent<HTMLAnchorElement>): void => {
-    if (!unsavedGuard) return
+    if (!dirty) return
     event.preventDefault()
     nudgeUnsaved()
   }

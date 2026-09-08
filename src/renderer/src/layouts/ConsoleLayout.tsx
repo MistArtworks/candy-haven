@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { getSectionByPath } from '@shared/domain/navigation'
 import { TimerCues } from '@renderer/app/providers/TimerCues'
+import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
 import { CommandRail } from '@renderer/components/nav/CommandRail'
 import { consoleEnterVariants, pageVariants } from '@renderer/motion/transitions'
@@ -74,6 +75,16 @@ export function ConsoleLayout(): ReactNode {
               <Outlet />
             </motion.div>
           </AnimatePresence>
+
+          {/*
+            Outside the animated page wrapper on purpose. That element carries a
+            transform and `will-change`, either of which makes it the containing
+            block for fixed positioning — so a bar rendered inside it lands
+            relative to the page instead of at the bottom of the app. As a
+            sibling of the page inside the content area it is also automatically
+            clear of the rail, with no width to keep in step.
+          */}
+          <UnsavedBar />
         </main>
       </div>
     </motion.div>
