@@ -70,12 +70,25 @@ export const UpdateSettingsSchema = z.object({
 })
 export type UpdateSettings = z.infer<typeof UpdateSettingsSchema>
 
+/**
+ * Third-party credentials the operator supplies.
+ *
+ * Only the client id lives here. A PKCE public client id is designed to be
+ * visible, whereas the refresh token it earns is a real credential and is kept
+ * encrypted outside this file entirely — see services/overlay/spotify.tokens.ts.
+ */
+export const IntegrationSettingsSchema = z.object({
+  spotifyClientId: z.string().max(128).default('')
+})
+export type IntegrationSettings = z.infer<typeof IntegrationSettingsSchema>
+
 export const SettingsSchema = z.object({
   version: z.number().int().default(1),
   appearance: AppearanceSettingsSchema.prefault({}),
   workspace: WorkspaceSettingsSchema.prefault({}),
   archive: ArchiveSettingsSchema.prefault({}),
-  updates: UpdateSettingsSchema.prefault({})
+  updates: UpdateSettingsSchema.prefault({}),
+  integrations: IntegrationSettingsSchema.prefault({})
 })
 export type Settings = z.infer<typeof SettingsSchema>
 
@@ -84,7 +97,8 @@ export const SettingsPatchSchema = z.object({
   appearance: AppearanceSettingsSchema.partial().optional(),
   workspace: WorkspaceSettingsSchema.partial().optional(),
   archive: ArchiveSettingsSchema.partial().optional(),
-  updates: UpdateSettingsSchema.partial().optional()
+  updates: UpdateSettingsSchema.partial().optional(),
+  integrations: IntegrationSettingsSchema.partial().optional()
 })
 export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
 

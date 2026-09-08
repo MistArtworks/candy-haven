@@ -91,6 +91,11 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
 
   router.handle('settings:update', async (patch) => {
     const next = await settings.update(patch)
+    // A changed client id invalidates any existing link, so the service has to
+    // hear about it now rather than at next launch.
+    if (patch.integrations?.spotifyClientId !== undefined) {
+      await services.nowPlaying.setClientId(next.integrations.spotifyClientId)
+    }
     // Update preferences take effect immediately rather than at next launch.
     if (patch.updates) {
       updates.configure({ channel: next.updates.channel, autoDownload: next.updates.autoDownload })
@@ -182,6 +187,18 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('timer:extend', ({ id, deltaMs }) => services.timers.extend(id, deltaMs))
   router.handle('timer:config', ({ id, patch }) => services.timers.configure(id, patch))
 
+  // -------------------------------------------------------------- now playing
+
+  router.handle('nowplaying:subscribe', () => services.nowPlaying.subscribe())
+  router.handle('nowplaying:unsubscribe', () => {
+    services.nowPlaying.unsubscribe()
+  })
+  router.handle('nowplaying:state', () => services.nowPlaying.current)
+  router.handle('nowplaying:config', (patch) => services.nowPlaying.configure(patch))
+  router.handle('nowplaying:link', () => services.nowPlaying.link())
+  router.handle('nowplaying:unlink', () => services.nowPlaying.unlink())
+  router.handle('nowplaying:setup', () => services.nowPlaying.setup)
+
   router.handle('overlay:info', () => services.overlayServer.info)
   // The port comes from settings rather than the renderer, for the same reason
   // the scan roots do: a compromised renderer should not choose what we bind.
@@ -267,6 +284,7 @@ export function registerEventBridges(deps: {
   services.projects.on('scan', (state) => router.broadcast('projects:scan', state))
   services.rite.on('state', (state) => router.broadcast('rite:state', state))
   services.timers.on('state', (state) => router.broadcast('timer:state', state))
+  services.nowPlaying.on('state', (state) => router.broadcast('nowplaying:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

@@ -153,6 +153,16 @@ const api: CandyHavenApi = {
     configure: (id, patch) => invoke('timer:config', { id, patch }),
     onState: (listener) => subscribe('timer:state', listener)
   },
+  nowPlaying: {
+    subscribe: () => invoke('nowplaying:subscribe'),
+    unsubscribe: () => invoke('nowplaying:unsubscribe'),
+    state: () => invoke('nowplaying:state'),
+    configure: (patch) => invoke('nowplaying:config', patch),
+    link: () => invoke('nowplaying:link'),
+    unlink: () => invoke('nowplaying:unlink'),
+    setup: () => invoke('nowplaying:setup'),
+    onState: (listener) => subscribe('nowplaying:state', listener)
+  },
   overlay: {
     info: () => invoke('overlay:info'),
     restart: () => invoke('overlay:restart'),

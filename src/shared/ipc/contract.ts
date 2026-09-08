@@ -6,6 +6,11 @@ import { RuntimeInfoSchema, WindowStateSchema } from '../domain/system'
 import { UpdateStatusSchema } from '../domain/update'
 import { TelemetryStateSchema } from '../domain/telemetry'
 import {
+  NowPlayingConfigPatchSchema,
+  NowPlayingStateSchema,
+  SpotifySetupSchema
+} from '../domain/nowplaying'
+import {
   TimerConfigPatchSchema,
   TimerIdSchema,
   TimerSetSchema,
@@ -161,6 +166,20 @@ export const IPC_INVOKE = {
     output: TimerStateSchema
   },
 
+  /**
+   * NOW TRANSMITTING. Reference-counted like telemetry: Spotify is polled only
+   * while something is watching, so an idle app spends no rate limit.
+   */
+  'nowplaying:subscribe': { input: z.void(), output: NowPlayingStateSchema },
+  'nowplaying:unsubscribe': { input: z.void(), output: z.void() },
+  'nowplaying:state': { input: z.void(), output: NowPlayingStateSchema },
+  'nowplaying:config': { input: NowPlayingConfigPatchSchema, output: NowPlayingStateSchema },
+  /** Opens the authorisation page in the operator's own browser. */
+  'nowplaying:link': { input: z.void(), output: NowPlayingStateSchema },
+  'nowplaying:unlink': { input: z.void(), output: NowPlayingStateSchema },
+  /** Redirect URI to register, plus whether a client id has been saved. */
+  'nowplaying:setup': { input: z.void(), output: SpotifySetupSchema },
+
   'overlay:info': { input: z.void(), output: OverlayServerInfoSchema },
   /** Rebinds the server, picking up a changed port from settings. */
   'overlay:restart': { input: z.void(), output: OverlayServerInfoSchema },
@@ -198,6 +217,7 @@ export const IPC_EVENT = {
   'projects:scan': ScanStateSchema,
   'rite:state': RiteStateSchema,
   'timer:state': TimerStateSchema,
+  'nowplaying:state': NowPlayingStateSchema,
   'overlay:info': OverlayServerInfoSchema,
   'window:state': WindowStateSchema
 } satisfies Record<string, z.ZodType>

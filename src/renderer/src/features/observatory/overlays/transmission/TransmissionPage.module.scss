@@ -1,0 +1,237 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+// Explicit spans, never positional nth-child rules.
+.facePanel {
+  grid-column: span 4;
+}
+
+.span2 {
+  grid-column: span 2;
+}
+
+@include below('lg') {
+  .facePanel {
+    grid-column: span 6;
+  }
+
+  .span2 {
+    grid-column: span 3;
+  }
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  .span2 {
+    grid-column: span 6;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+.back {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-secondary);
+  text-decoration: none;
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+
+  &:hover {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// ---------------------------------------------------------------------- face
+
+.stage {
+  position: relative;
+  width: 100%;
+  // The overlay is transparent, so the preview sits on a chequered plate to
+  // stand in for whatever scene it will be composited onto.
+  background:
+    linear-gradient(rgba(8, 8, 10, 0.5), rgba(8, 8, 10, 0.5)),
+    repeating-conic-gradient(
+      var(--ch-obsidian-700) 0% 25%,
+      var(--ch-obsidian-800) 0% 50%
+    );
+  background-size:
+    auto,
+    18px 18px;
+  border: $hairline solid var(--ch-line);
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.nowLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-gold-300);
+}
+
+.idleLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+// --------------------------------------------------------------------- setup
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+
+  li {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: space(3);
+    @include readout(11px);
+    color: var(--ch-text-secondary);
+    line-height: 1.7;
+  }
+}
+
+.stepIndex {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+}
+
+.setupActions {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
+.ok {
+  color: var(--ch-gold-300);
+}
+
+.warn {
+  color: var(--ch-crimson-400);
+}
+
+// -------------------------------------------------------------------- shared
+
+.config {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.toggles {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-top: space(2);
+  @include hairline(top, 0.08);
+}
+
+.broadcast {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  align-items: flex-start;
+}
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+
+  strong {
+    color: var(--ch-gold-300);
+    font-weight: 400;
+  }
+}
+
+.inline {
+  font-family: var(--ch-font-mono);
+  color: var(--ch-gold-300);
+}
+
+.url {
+  @include readout(11px);
+  display: block;
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-gold);
+  padding: space(2) space(3);
+  margin: space(2) 0;
+  width: 100%;
+  user-select: all;
+  word-break: break-all;
+}
+
+.broadcastActions {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
+// -------------------------------------------------------------------- notice
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin-bottom: space(5);
+  padding: space(3) space(4);
+  border: $hairline solid var(--ch-crimson-600);
+  background: var(--ch-crimson-900);
+  @include readout(11px);
+  color: var(--ch-text-primary);
+}
+
+.dismiss {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}

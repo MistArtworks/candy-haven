@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSection } from '@shared/domain/navigation'
@@ -13,6 +14,7 @@ import { useApplySettings } from '@renderer/hooks/useSettings'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Slider } from '@renderer/components/primitives/Slider'
+import { TextInput } from '@renderer/components/primitives/Input'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Button } from '@renderer/components/primitives/Button'
 import { Meter } from '@renderer/components/primitives/Meter'
@@ -37,6 +39,7 @@ export function RegulationPage(): ReactNode {
   const queryClient = useQueryClient()
 
   const applySettings = useApplySettings()
+  const integrations = settings?.integrations
 
   const resetSettings = useMutation({
     mutationFn: () => window.candy.settings.reset(),
@@ -253,7 +256,36 @@ export function RegulationPage(): ReactNode {
           </div>
         </Panel>
 
-        <Panel label="Diagnostics" index="04" className={styles.wide}>
+        {/*
+          Integrations sit in Regulation rather than on the overlay's own page
+          because a credential is an operator setting, not a broadcast one — and
+          because the same id will serve any future integration that needs it.
+        */}
+        <Panel label="Integrations" index="04">
+          <div className={styles.control}>
+            <TextInput
+              label="Spotify client id"
+              value={integrations?.spotifyClientId ?? ''}
+              mono
+              onChange={(spotifyClientId) =>
+                applySettings(
+                  { integrations: { spotifyClientId } },
+                  { debounceMs: 400, key: 'spotifyClientId' }
+                )
+              }
+              hint="From an app created at developer.spotify.com. Public by design — the refresh token it earns is stored encrypted, separately."
+            />
+            <p className={styles.controlHint}>
+              Register the redirect URI and authorise the account from{' '}
+              <Link to="/observatory/transmission" className={styles.inlineLink}>
+                NOW TRANSMITTING
+              </Link>
+              , which shows the exact URI to paste into the Spotify dashboard.
+            </p>
+          </div>
+        </Panel>
+
+        <Panel label="Diagnostics" index="05" className={styles.wide}>
           <FieldGrid columns={2}>
             <Field
               label="User data"

@@ -94,7 +94,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     purpose: 'Live Spotify playback: track, artist, cover plate and timeline',
     epigraph: 'Sound is not heard. It is structured. It is shaped.',
     order: 1,
-    implemented: false,
+    implemented: true,
     scope: [
       'Reads the operator’s current Spotify playback over the Web API',
       'Four presentations: plate, monolith, strip and disc',

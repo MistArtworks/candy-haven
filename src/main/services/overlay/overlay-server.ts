@@ -102,6 +102,16 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
    */
   private readonly snapshots = new Map<string, () => unknown>()
 
+  /**
+   * Extra routes, registered by services that need one.
+   *
+   * Kept generic so the server has no idea what OAuth is: the Spotify link
+   * needs a loopback redirect target and this server is already listening on
+   * loopback, which is cheaper and tidier than standing up a second listener
+   * for the length of one authorisation.
+   */
+  private readonly routes = new Map<string, (url: URL, res: ServerResponse) => void>()
+
   get info(): OverlayServerInfo {
     return {
       running: this.server !== null && this.port !== null,
@@ -115,6 +125,11 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
   /** Registers the current-state supplier for a channel. */
   registerSnapshot(channel: string, supplier: () => unknown): void {
     this.snapshots.set(channel, supplier)
+  }
+
+  /** Registers a handler for an exact pathname. */
+  registerRoute(pathname: string, handler: (url: URL, res: ServerResponse) => void): void {
+    this.routes.set(pathname, handler)
   }
 
   /**
@@ -251,6 +266,12 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405, { Allow: 'GET, HEAD' })
       res.end()
+      return
+    }
+
+    const route = this.routes.get(url.pathname)
+    if (route) {
+      route(url, res)
       return
     }
 

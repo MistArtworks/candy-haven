@@ -6,6 +6,7 @@ import { ProjectsService } from './projects/projects.service'
 import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
 import { TimerService } from './overlay/timer.service'
+import { SpotifyService } from './overlay/spotify.service'
 import { getLogger } from '@main/core/logger'
 
 const logger = getLogger('container')
@@ -27,6 +28,7 @@ export interface ServiceContainer {
   readonly overlayServer: OverlayServer
   readonly rite: RiteService
   readonly timers: TimerService
+  readonly nowPlaying: SpotifyService
 }
 
 export function createServiceContainer(): ServiceContainer {
@@ -45,7 +47,8 @@ export function createServiceContainer(): ServiceContainer {
     projects: new ProjectsService(archive),
     overlayServer,
     rite: new RiteService(archive, overlayServer),
-    timers: new TimerService(archive, overlayServer)
+    timers: new TimerService(archive, overlayServer),
+    nowPlaying: new SpotifyService(archive, overlayServer)
   }
 }
 
@@ -68,6 +71,7 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
 
   container.rite.dispose()
   container.timers.dispose()
+  container.nowPlaying.dispose()
 
   try {
     await container.archive.shutdown()

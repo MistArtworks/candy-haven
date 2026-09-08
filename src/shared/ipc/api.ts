@@ -6,6 +6,7 @@ import type { UpdateStatus } from '../domain/update'
 import type { TelemetryState } from '../domain/telemetry'
 import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } from '../domain/rite'
 import type { TimerConfigPatch, TimerId, TimerSet, TimerState } from '../domain/timer'
+import type { NowPlayingConfigPatch, NowPlayingState, SpotifySetup } from '../domain/nowplaying'
 import type {
   MarketingAsset,
   MarketingAssetKind,
@@ -123,6 +124,21 @@ export interface CandyHavenApi {
     extend(id: TimerId, deltaMs: number): Promise<TimerState>
     configure(id: TimerId, patch: TimerConfigPatch): Promise<TimerState>
     onState(listener: (state: TimerState) => void): Unsubscribe
+  }
+  /**
+   * Live Spotify playback. Subscription is reference-counted, so nothing is
+   * polled while nobody is looking.
+   */
+  readonly nowPlaying: {
+    subscribe(): Promise<NowPlayingState>
+    unsubscribe(): Promise<void>
+    state(): Promise<NowPlayingState>
+    configure(patch: NowPlayingConfigPatch): Promise<NowPlayingState>
+    /** Opens the Spotify authorisation page in the operator's browser. */
+    link(): Promise<NowPlayingState>
+    unlink(): Promise<NowPlayingState>
+    setup(): Promise<SpotifySetup>
+    onState(listener: (state: NowPlayingState) => void): Unsubscribe
   }
   readonly overlay: {
     info(): Promise<OverlayServerInfo>
