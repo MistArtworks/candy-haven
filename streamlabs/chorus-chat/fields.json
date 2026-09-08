@@ -1,0 +1,59 @@
+{
+  "preset": {
+    "label": "Preset",
+    "type": "dropdown",
+    "value": "obsidian",
+    "options": {
+      "obsidian": "OBSIDIAN — the void",
+      "sanctum": "SANCTUM — crimson glass",
+      "chamber": "CHAMBER — pale stone"
+    }
+  },
+  "accent": {
+    "label": "Live mark",
+    "type": "dropdown",
+    "value": "crimson",
+    "options": {
+      "crimson": "Crimson glass",
+      "gold": "Brushed gold"
+    }
+  },
+  "name_width": {
+    "label": "Name column width (%)",
+    "type": "slider",
+    "value": 30,
+    "min": 18,
+    "max": 48,
+    "steps": 1
+  },
+  "show_index": {
+    "label": "Show entry numbers",
+    "type": "checkbox",
+    "value": true
+  },
+  "show_masthead": {
+    "label": "Show masthead",
+    "type": "checkbox",
+    "value": true
+  },
+  "brass_badges": {
+    "label": "Brass-plate badges",
+    "type": "checkbox",
+    "value": true
+  },
+  "expunge_records": {
+    "label": "Stamp deleted messages EXPUNGED",
+    "type": "checkbox",
+    "value": true
+  },
+  "numeral_roll": {
+    "label": "Roll entry numbers into place",
+    "type": "checkbox",
+    "value": true
+  },
+  "ambient_motion": {
+    "label": "Ambient motion (turning sigil, resonance line, scan)",
+    "type": "checkbox",
+    "value": true
+  }
+}

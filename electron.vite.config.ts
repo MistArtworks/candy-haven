@@ -6,7 +6,18 @@ import { liveOverlayDocuments } from './src/shared/domain/overlays'
 const alias = {
   '@shared': resolve('src/shared'),
   '@main': resolve('src/main'),
-  '@renderer': resolve('src/renderer/src')
+  '@renderer': resolve('src/renderer/src'),
+  /*
+   * The Streamlabs chat widget, which lives outside `src/` because it is not
+   * built — it is pasted into someone else's editor.
+   *
+   * Aliased rather than reached with a relative path so the console can import
+   * the three files verbatim with `?raw` and hand the operator exactly what is
+   * on disk. The alternative was keeping a second copy inside the renderer to
+   * generate from, which is the one arrangement guaranteed to ship a widget
+   * that differs from the one in the repository.
+   */
+  '@widget': resolve('streamlabs/chorus-chat')
 }
 
 export default defineConfig({

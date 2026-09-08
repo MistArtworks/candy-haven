@@ -1,0 +1,668 @@
+/* =========================================================================
+   THE CHORUS — Streamlabs chat widget · Candy Haven / Sonoalchemy
+   Paste into the widget editor's CSS tab.
+
+   Style: "Esoteric Retrofuturist Brutalism". Chat is rendered as a docket in
+   an institutional register — numbered entries, a continuous measured line,
+   and exactly one crimson mark on the page at any moment.
+
+   THE PALETTE IS LOCKED. Five materials: obsidian, concrete, brushed gold /
+   aged brass, crimson glass, alabaster. Crimson is the only saturated colour
+   and it is reserved for the focal point and live state. No blues, greens or
+   bright primaries — the review question for any edit here is "does this
+   introduce a sixth colour, or a second focal object?"
+
+   Values are ported verbatim from the app's styles/base/_theme.scss and the
+   presets from overlays/selection/selection.scss, so a scene that mixes this
+   widget with the in-app overlays reads as one system rather than two.
+
+   ---------------------------------------------------------------------------
+   ON THE DOUBLED DECLARATIONS
+
+   Several properties are declared twice, the second carrying a Streamlabs
+   placeholder — shown here as <placeholder> so this comment is not itself
+   rewritten when one is filled in:
+
+       background: var(--ch-backdrop);
+       background: <placeholder>;
+
+   This is deliberate. Streamlabs substitutes it and the second wins.
+   Anywhere else — preview.html, a browser, a diff — the token is not valid CSS,
+   so that one declaration is discarded and the first stands. It means this file
+   is the single source of truth for both the live widget and the local preview
+   instead of the two drifting apart.
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Share+Tech+Mono&display=swap');
+
+/* ---------------------------------------------------------------- materials */
+
+:root {
+  /* obsidian — warm-shifted rather than neutral, so the void never reads cold */
+  --ch-obsidian-900: #08080a;
+  --ch-obsidian-800: #0c0c0c;
+  --ch-obsidian-600: #171517;
+
+  /* concrete — structural stone */
+  --ch-concrete-700: #3b372f;
+  --ch-concrete-600: #554e42;
+  --ch-concrete-500: #6f6656;
+  --ch-concrete-400: #8a8071;
+
+  /* alabaster — soft cream stone, carries primary text */
+  --ch-alabaster-600: #8f7d63;
+  --ch-alabaster-500: #b69e7c;
+  --ch-alabaster-400: #cdb994;
+  --ch-alabaster-300: #ddcfb2;
+
+  /* brushed gold and aged brass — ribbing, filigree, the sequence numbers */
+  --ch-brass-700: #45351f;
+  --ch-brass-600: #5e472c;
+  --ch-gold-500: #976b30;
+  --ch-gold-400: #b98b47;
+  --ch-gold-300: #d2a961;
+  --ch-gold-200: #e3c286;
+
+  /* crimson glass — the one saturated colour */
+  --ch-crimson-800: #43120f;
+  --ch-crimson-500: #a32b23;
+  --ch-crimson-400: #c4453a;
+
+  /* type — Windows system faces first; the imports above are the fallback for
+     browser previews, since OBS on the streaming box already has Bahnschrift */
+  --ch-font-display: 'Bahnschrift', 'Oswald', 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+  --ch-font-body: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --ch-font-mono: 'Cascadia Mono', 'Share Tech Mono', 'Consolas', ui-monospace, monospace;
+
+  /* motion — the house curves. Expo-out: fast departure, long settle. */
+  --ch-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ch-ease-exit: cubic-bezier(0.7, 0, 0.84, 0);
+
+  --ch-name-width: 30%;
+}
+
+/* ------------------------------------------------------------------ accent */
+
+:root,
+html[data-accent='crimson'] {
+  --ch-accent: var(--ch-crimson-500);
+  --ch-accent-bright: var(--ch-crimson-400);
+}
+
+/* Mirrors the app's Regulation accent setting: shifts the live mark from
+   crimson to brushed gold, for scenes already carrying a lot of red. */
+html[data-accent='gold'] {
+  --ch-accent: var(--ch-gold-500);
+  --ch-accent-bright: var(--ch-gold-300);
+}
+
+/* ----------------------------------------------------------------- presets
+
+   The same three arrangements the in-app overlays offer. Each is a different
+   assembly of the five materials — not a colour picker, which is how the
+   palette stays locked while still giving the scene somewhere to go.
+
+   `--ch-name-1..7` are the tone slots viewer names are mapped onto. Seven
+   in-palette tones, assigned by hue in widget.js, so regulars stay distinct
+   from one another without any of them landing outside the five materials. */
+
+/* OBSIDIAN — the default void. */
+html,
+html[data-theme='obsidian'] {
+  --ch-backdrop: transparent;
+  --ch-line: rgba(182, 158, 124, 0.14);
+  --ch-line-strong: rgba(182, 158, 124, 0.26);
+  --ch-index: var(--ch-gold-500);
+  --ch-mast: var(--ch-alabaster-600);
+  --ch-mast-dim: var(--ch-concrete-600);
+  --ch-shadow-text: 0 1px 2px rgba(0, 0, 0, 0.92), 0 0 7px rgba(0, 0, 0, 0.55);
+
+  --ch-name-1: #ddcfb2;
+  --ch-name-2: #e3c286;
+  --ch-name-3: #cdb994;
+  --ch-name-4: #d2a961;
+  --ch-name-5: #b69e7c;
+  --ch-name-6: #b98b47;
+  --ch-name-7: #8a8071;
+}
+
+/* SANCTUM — crimson glass as the void. Ritual rather than institutional. */
+html[data-theme='sanctum'] {
+  --ch-backdrop: rgba(20, 5, 6, 0.82);
+  --ch-line: rgba(210, 169, 97, 0.16);
+  --ch-line-strong: rgba(210, 169, 97, 0.3);
+  --ch-index: var(--ch-gold-400);
+  --ch-mast: var(--ch-alabaster-500);
+  --ch-mast-dim: var(--ch-brass-600);
+  --ch-shadow-text: 0 1px 2px rgba(12, 3, 4, 0.95), 0 0 7px rgba(20, 5, 6, 0.7);
+}
+
+/* CHAMBER — pale stone. The bright marble halls, and the one preset that reads
+   over a light capture. Text and shadow invert; the name tones go to stone. */
+html[data-theme='chamber'] {
+  --ch-backdrop: rgba(221, 207, 178, 0.9);
+  --ch-line: rgba(59, 55, 47, 0.24);
+  --ch-line-strong: rgba(59, 55, 47, 0.4);
+  --ch-index: var(--ch-brass-600);
+  --ch-msg: var(--ch-obsidian-600);
+  --ch-mast: var(--ch-concrete-600);
+  --ch-mast-dim: var(--ch-concrete-500);
+  --ch-shadow-text: 0 1px 1px rgba(221, 207, 178, 0.9), 0 0 5px rgba(221, 207, 178, 0.65);
+
+  --ch-name-1: #171517;
+  --ch-name-2: #3b372f;
+  --ch-name-3: #45351f;
+  --ch-name-4: #554e42;
+  --ch-name-5: #5e472c;
+  --ch-name-6: #6f6656;
+  --ch-name-7: #976b30;
+}
+
+/* --------------------------------------------------------------- structure */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+}
+
+body {
+  background: var(--ch-backdrop);
+  background: {background_color};
+
+  font-family: var(--ch-font-body);
+  font-size: 20px;
+  font-size: {font_size};
+
+  color: var(--ch-alabaster-300);
+  color: {text_color};
+
+  font-weight: 400;
+  line-height: 1.42;
+  text-shadow: var(--ch-shadow-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* No grain and no vignette, on purpose.
+
+   The console wears both, and the in-app overlays deliberately drop them —
+   selection.scss settles the reasoning: a film-grain layer on top of a live
+   stream is noise on top of noise, and the scene is composited by OBS anyway. */
+
+/* ---------------------------------------------------------------- masthead */
+
+#masthead {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 0.95em 0.6em;
+  font-family: var(--ch-font-display);
+  font-size: 0.46rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ch-mast);
+  border-top: 1px solid var(--ch-line);
+}
+
+html[data-masthead='off'] #masthead {
+  display: none;
+}
+
+/* Turns at the app's at-rest logomark speed. Slow enough to read as a mechanism
+   left running rather than as an animation playing. */
+#masthead .sigil {
+  width: 1.5em;
+  height: 1.5em;
+  flex-shrink: 0;
+  color: var(--ch-gold-500);
+  animation: ch-sigil 26s linear infinite;
+}
+
+/* A resonance signal travelling the rule — the one piece of ambient motion in
+   the widget, so the register reads as powered while chat is quiet. */
+#masthead .mast-rule {
+  flex: 1;
+  height: 1px;
+  min-width: 0.75em;
+  background: linear-gradient(90deg, transparent, var(--ch-line-strong) 22%, transparent 55%);
+  background-size: 240% 100%;
+  animation: ch-resonance 9s linear infinite;
+}
+
+#masthead .mast-note {
+  color: var(--ch-mast-dim);
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------- the ledger
+
+   `display: table` is kept from the stock widget. It is the right tool: a
+   right-aligned name column beside a message column that wraps independently
+   is precisely what a table does, and grid cannot replace it here — rows would
+   need `display: contents`, which generates no box, and a row with no box
+   cannot be faded in or out. The whole widget depends on per-row opacity. */
+
+#log {
+  display: table;
+  table-layout: fixed;
+  border-spacing: 0;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  padding: 0 0.7em 0.6em;
+}
+
+/* Clear the masthead when it is shown. */
+html:not([data-masthead='off']) #log {
+  bottom: 2.1em;
+}
+
+#log > div {
+  display: table-row;
+}
+
+#log .index,
+#log .meta,
+#log .message {
+  display: table-cell;
+  vertical-align: top;
+  padding-bottom: 0.34em;
+}
+
+/* ------------------------------------------------------------- the numeral
+
+   Numbered entries are the typographic signature of the interface — the same
+   rule that gives every Panel in the console an index. Tabular figures so the
+   column does not shift width as the count climbs. */
+
+#log .index {
+  position: relative;
+  /* Sized in the numeral's own em, which is 0.56 of the body size — so this is
+     a narrow column, and the padding is what keeps the mark clear of the first
+     digit rather than sitting on top of it. */
+  width: 5.4em;
+  padding-left: 1.5em;
+  padding-right: 0.6em;
+  text-align: right;
+  font-family: var(--ch-font-mono);
+  font-size: 0.56em;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ch-index);
+  opacity: 0.75;
+  /* Slow settle: as a newer message arrives this decays from crimson back to
+     gold rather than snapping, so the live mark reads as travelling down the
+     log instead of blinking. */
+  transition: color 560ms var(--ch-ease), opacity 560ms var(--ch-ease);
+}
+
+html[data-index='off'] #log .index {
+  display: none;
+}
+
+/* The crimson tick. One per log, on the newest entry only — this is the single
+   focal object, and it is what keeps rule 1 alive in something that is a list
+   rather than a composition. */
+#log .index::before {
+  content: '';
+  position: absolute;
+  left: 0.2em;
+  top: 0.42em;
+  width: 3px;
+  height: 0.85em;
+  background: transparent;
+  transform-origin: center top;
+  transition: background 560ms var(--ch-ease);
+}
+
+#log > div.is-live .index {
+  color: var(--ch-accent-bright);
+  opacity: 1;
+}
+
+/* The mark strikes down rather than fading in — a stamp being pressed, not a
+   notification appearing. It only ever animates on the newest row, so the
+   motion marks arrival exactly once. */
+#log > div.is-live .index::before {
+  background: var(--ch-accent-bright);
+  animation: ch-strike 460ms var(--ch-ease) backwards;
+}
+
+/* ------------------------------------------------------- name and the line
+
+   The border on `.meta` is what draws the continuous vertical hairline down
+   the whole log: adjacent cells touch, so their borders join into one unbroken
+   measured line. Same idiom as the rule in a Panel header. */
+
+#log .meta {
+  width: var(--ch-name-width);
+  padding-right: 0.62em;
+  text-align: right;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  border-right: 1px solid var(--ch-line);
+}
+
+#log .name {
+  display: inline-block;
+  font-family: var(--ch-font-display);
+  font-size: 0.74em;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  margin-left: 0.2em;
+  color: var(--ch-alabaster-300);
+  /* Seats a beat after the row, so the entry arrives and is then attributed
+     rather than everything landing flat at once. */
+  animation: ch-attribute 520ms var(--ch-ease) 70ms backwards;
+}
+
+/* Tone slots. widget.js assigns the number; the colour is resolved here so the
+   tones invert correctly under CHAMBER instead of being frozen into the JS. */
+#log > div[data-tone='1'] .name { color: var(--ch-name-1); }
+#log > div[data-tone='2'] .name { color: var(--ch-name-2); }
+#log > div[data-tone='3'] .name { color: var(--ch-name-3); }
+#log > div[data-tone='4'] .name { color: var(--ch-name-4); }
+#log > div[data-tone='5'] .name { color: var(--ch-name-5); }
+#log > div[data-tone='6'] .name { color: var(--ch-name-6); }
+#log > div[data-tone='7'] .name { color: var(--ch-name-7); }
+
+/* ----------------------------------------------------------------- message
+
+   The institution speaks in capitals; the people speak normally. Names carry
+   the uppercase institutional treatment, message bodies do not — a whole chat
+   set in tracked caps is unreadable and reads as shouting rather than record. */
+
+#log .message {
+  position: relative;
+  width: auto;
+  padding-left: 0.62em;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  color: var(--ch-msg, inherit);
+}
+
+/* The scan. A gold hairline draws under each arriving entry and then clears —
+   the register acknowledging receipt.
+
+   Gold rather than crimson, deliberately. In fast chat several of these overlap,
+   and crimson on more than one row at a time would put a second focal object on
+   screen. Gold is the structural accent and can repeat; crimson cannot. */
+#log .message::after {
+  content: '';
+  position: absolute;
+  left: 0.62em;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(to right, var(--ch-gold-400), transparent 72%);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: ch-scan 900ms var(--ch-ease) forwards;
+}
+
+.colon {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ badges
+
+   Brought into the palette. Badges are chrome — rank insignia issued by the
+   institution — so they get a brass duotone and read as stamped metal. Set
+   `brass_badges` off to restore native Twitch colour. */
+
+#log .badge,
+.badge {
+  display: inline-block;
+  margin-right: 0.2em;
+  position: relative;
+  height: 0.8em;
+  vertical-align: middle;
+  top: -0.06em;
+}
+
+html[data-badges='brass'] .badge {
+  filter: grayscale(1) sepia(1) saturate(2.4) hue-rotate(347deg) brightness(0.95) contrast(1.05);
+}
+
+/* ------------------------------------------------------------------ emotes
+
+   Left at full fidelity, by explicit decision. Emotes are speech, not
+   architecture — the reference boards are full of crimson-robed figures, and
+   colour that belongs to the crowd was never the thing the palette rule was
+   protecting against. */
+
+#log .emote {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  padding: 0.4em 0.2em;
+  position: relative;
+}
+
+/* The stock Twitch shape: the span carries the image as a background and the
+   <img> inside is an invisible spacer that gives the span its size. `width` is
+   left auto deliberately — 7TV and BetterTTV emotes are frequently wider than
+   they are tall, and pinning a width would squash them. */
+#log .emote img {
+  display: inline-block;
+  height: 1em;
+  width: auto;
+  opacity: 0;
+}
+
+/*
+ * Third-party emotes — 7TV, BetterTTV, FrankerFaceZ.
+ *
+ * Whether these appear at all is a Streamlabs Chat Box setting rather than
+ * anything this stylesheet controls; it injects them into {message} only if the
+ * corresponding toggle is on. What this rule handles is the *other* markup
+ * shape they sometimes arrive in — the <img> itself carrying the class, with no
+ * wrapping span and so no background image to show. Without it that emote is
+ * hidden by the rule above and lands as a blank gap of padding.
+ *
+ * Scoped to a direct child of the message cell so it cannot fight the stock
+ * shape, where the img is nested inside span.emote and must stay invisible.
+ */
+#log .message > img.emote,
+#log .message > img.bttv-emote,
+#log .message > img.seventv-emote {
+  display: inline-block;
+  height: 1.4em;
+  width: auto;
+  padding: 0;
+  opacity: 1;
+  background: none;
+  vertical-align: middle;
+}
+
+/* --------------------------------------------------------------- expunged
+
+   "Records rewritten, realities curated." A deleted message collapses to a
+   stamp rather than vanishing, leaving the numeral in place so the register
+   shows that something was struck rather than silently closing the gap.
+
+   Content is removed two ways — children dropped, text collapsed to zero — so
+   nothing a moderator deleted can survive in any form. Set `expunge_records`
+   off to fall back to hiding the row outright. */
+
+#log > div.deleted {
+  visibility: hidden;
+}
+
+html[data-expunge='stamp'] #log > div.deleted {
+  visibility: visible;
+}
+
+html[data-expunge='stamp'] #log > div.deleted .name {
+  color: var(--ch-concrete-400);
+}
+
+html[data-expunge='stamp'] #log > div.deleted .index {
+  opacity: 0.4;
+}
+
+html[data-expunge='stamp'] #log > div.deleted .message {
+  font-size: 0;
+}
+
+html[data-expunge='stamp'] #log > div.deleted .message > * {
+  display: none;
+}
+
+html[data-expunge='stamp'] #log > div.deleted .message::before {
+  content: 'Expunged';
+  font-family: var(--ch-font-display);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ch-concrete-500);
+}
+
+/* ------------------------------------------------------------------ motion
+
+   Opacity-led, with a small seat downward. Nothing bounces: this is an
+   institution taking a record, not a notification popping.
+
+   Declared twice for the reason given at the top of the file — the second rule
+   carries the hide-delay placeholder and is dropped outside Streamlabs, which
+   leaves the entrance intact in the local preview. */
+
+/* The row itself: opacity-led with a small seat downward. */
+@keyframes ch-seat {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ch-retire {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* The name, a beat behind the row. Right-aligned, so it arrives from the right. */
+@keyframes ch-attribute {
+  from {
+    opacity: 0;
+    transform: translateX(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* The crimson mark, pressed downward. */
+@keyframes ch-strike {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* The gold acknowledgement line: draws, holds, clears. */
+@keyframes ch-scan {
+  0% {
+    transform: scaleX(0);
+    opacity: 0.85;
+  }
+  55% {
+    transform: scaleX(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+@keyframes ch-sigil {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ch-resonance {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+#log > div {
+  animation: ch-seat 520ms var(--ch-ease) forwards;
+}
+
+#log > div {
+  animation:
+    ch-seat 520ms var(--ch-ease) forwards,
+    ch-retire 600ms var(--ch-ease-exit) {message_hide_delay} forwards;
+}
+
+/*
+ * Reduced motion.
+ *
+ * Entrance and exit survive — without them messages would appear and vanish
+ * instantly, which is less comfortable rather than more. What goes is the
+ * decorative layer: the ambient sigil and resonance line, the scan, the
+ * staggered attribution. Same distinction the app's `motion-safe` mixin draws.
+ */
+@media (prefers-reduced-motion: reduce) {
+  #masthead .sigil,
+  #masthead .mast-rule,
+  #log .message::after,
+  #log .name,
+  #log > div.is-live .index::before {
+    animation: none;
+  }
+
+  #log .message::after {
+    opacity: 0;
+  }
+
+  #log .name {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The same, on demand: the console's generator writes this attribute when the
+   operator turns ambient motion off, for scenes where nothing should move
+   unless chat does. */
+html[data-motion='still'] #masthead .sigil,
+html[data-motion='still'] #masthead .mast-rule,
+html[data-motion='still'] #log .message::after {
+  animation: none;
+}
+
+html[data-motion='still'] #log .message::after {
+  opacity: 0;
+}

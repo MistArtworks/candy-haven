@@ -4,3 +4,9 @@ pnpm-lock.yaml
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
+
+# The Streamlabs widget stylesheet is a template, not a stylesheet. It carries
+# {background_color} and friends where a value belongs — placeholders the
+# Streamlabs editor substitutes — so no CSS parser can read it, Prettier's
+# included. The formatting is maintained by hand.
+streamlabs/chorus-chat/widget.css

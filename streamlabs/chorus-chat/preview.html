@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en" data-theme="obsidian">
+  <head>
+    <meta charset="UTF-8" />
+    <title>THE CHORUS — local preview</title>
+
+    <!--
+      Local harness for the widget. Open this file directly in a browser; no
+      server and no Streamlabs account needed.
+
+      It links the real widget.css and the real widget.js rather than copies, so
+      what you see here is the thing that gets pasted. The {tokens} Streamlabs
+      would substitute are not valid CSS, so the browser discards exactly those
+      declarations and the var()-based fallbacks beneath them stand in — which is
+      why the stylesheet is written with each token declared second.
+
+      The one behaviour that cannot survive that trick is the hide delay, since
+      the whole animation shorthand carrying it is dropped. The harness trims the
+      log by length instead, below.
+    -->
+    <link rel="stylesheet" href="widget.css" />
+
+    <style>
+      /* Harness chrome only — none of this ships to Streamlabs. */
+      body {
+        background: #08080a;
+      }
+      html[data-theme='sanctum'] body {
+        background: #140506;
+      }
+      html[data-theme='chamber'] body {
+        background: #ddcfb2;
+      }
+
+      #harness {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 8px 10px;
+        font-family: 'Bahnschrift', 'Oswald', sans-serif;
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        z-index: 10;
+      }
+      #harness button {
+        background: rgba(23, 21, 23, 0.9);
+        color: #b69e7c;
+        border: 1px solid rgba(182, 158, 124, 0.24);
+        border-radius: 2px;
+        padding: 5px 9px;
+        font: inherit;
+        cursor: pointer;
+      }
+      #harness button:hover {
+        border-color: rgba(210, 169, 97, 0.5);
+        color: #ddcfb2;
+      }
+      #harness .spacer {
+        flex: 1;
+      }
+      #harness .hint {
+        color: #5a544a;
+        letter-spacing: 0.1em;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="harness">
+      <button data-preset="obsidian">Obsidian</button>
+      <button data-preset="sanctum">Sanctum</button>
+      <button data-preset="chamber">Chamber</button>
+      <span class="spacer"></span>
+      <button id="accent">Accent: crimson</button>
+      <button id="expunge">Expunge one</button>
+      <span class="hint">simulating chat…</span>
+    </div>
+
+    <!-- ===== everything below mirrors widget.html exactly ===== -->
+
+    <div id="masthead" aria-hidden="true">
+      <svg class="sigil" viewBox="0 0 24 24" focusable="false">
+        <circle
+          cx="12"
+          cy="12"
+          r="9.2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="0.9"
+          opacity="0.5"
+        />
+        <line
+          x1="12"
+          y1="0.6"
+          x2="12"
+          y2="23.4"
+          stroke="currentColor"
+          stroke-width="0.7"
+          opacity="0.35"
+        />
+        <path
+          d="M12 1.4 Q13 10.6 22.6 12 Q13 13.4 12 22.6 Q11 13.4 1.4 12 Q11 10.6 12 1.4 Z"
+          fill="currentColor"
+        />
+      </svg>
+      <span class="mast-title">The Chorus</span>
+      <span class="mast-rule"></span>
+      <span class="mast-note">Resonance Register</span>
+    </div>
+
+    <div id="log" class="sl__chat__layout"></div>
+
+    <script type="text/template" id="chatlist_item">
+      <div data-from="{from}" data-id="{messageId}" data-color="{color}">
+          <span class="index"></span>
+
+          <span class="meta">
+              <span class="badges"></span>
+              <span class="name">{from}</span>
+          </span>
+
+          <span class="message">{message}</span>
+      </div>
+    </script>
+
+    <!-- ===== end mirror ===== -->
+
+    <script src="widget.js"></script>
+    <script>
+      // Stand-in assets, inlined so the preview works with no network. The badge
+      // is deliberately a saturated Twitch green — it is the clearest way to see
+      // whether the brass plating is doing anything.
+      const BADGE =
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Crect width='18' height='18' rx='2' fill='%2300ad03'/%3E%3Cpath d='M4 8h10v2H4z' fill='white'/%3E%3C/svg%3E"
+      const EMOTE =
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='13' fill='%23ffd23f'/%3E%3Ccircle cx='9.5' cy='11' r='2' fill='%23222'/%3E%3Ccircle cx='18.5' cy='11' r='2' fill='%23222'/%3E%3Cpath d='M8 17c2.5 3 9.5 3 12 0' stroke='%23222' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"
+
+      // Mirrors how Streamlabs actually renders an emote: the image is painted as
+      // the span's background and the <img> is kept at opacity 0 purely to size
+      // it. Supplying only the img — as this harness first did — renders nothing,
+      // because widget.css hides it exactly as the stock widget does.
+      //
+      // The background is assigned in `push()` rather than as an inline style
+      // attribute: the SVG data URI contains single quotes around its own XML
+      // attributes, which close a CSS url('…') early and silently yield no
+      // image at all.
+      const emote = `<span class="emote"><img src="${EMOTE}" alt="Kappa"></span>`
+
+      // A spread of viewer colours chosen to be hostile to the palette rule:
+      // Twitch blue, green, purple, hot pink, plus two with no colour at all.
+      const TRAFFIC = [
+        {
+          from: 'velvetiris',
+          color: '#1E90FF',
+          message: 'harmony is maintained, operator',
+          mod: true
+        },
+        { from: 'korvan_9', color: '#00FF7F', message: 'that ring looks unreal on stream' },
+        { from: 'nyxori_dev', color: '#9146FF', message: `what preset is that ${emote}` },
+        { from: 'sil_taa__', color: '', message: 'the numbers going up is doing something to me' },
+        {
+          from: 'aevum_drifts',
+          color: '#FF69B4',
+          message:
+            'ok the crimson tick following the newest message is genuinely such a nice touch, i keep watching it instead of the stream'
+        },
+        {
+          from: 'miren_spore',
+          color: '#FF4500',
+          message: 'we do not question the shape of the universe',
+          mod: true
+        },
+        { from: 'elarin', color: '#00CED1', message: `${emote} ${emote} ${emote}` },
+        {
+          from: 'concrete_nexus',
+          color: '',
+          message: 'is this the same thing as the poll overlay'
+        },
+        { from: 'vayr_structural', color: '#DAA520', message: 'curiosity is deviance' },
+        { from: 'omega_core_', color: '#8A2BE2', message: 'the archive remembers' }
+      ]
+
+      const template = document.getElementById('chatlist_item').innerHTML
+      const log = document.getElementById('log')
+      let n = 0
+
+      function push(entry) {
+        const html = template
+          .replace(/\{from\}/g, entry.from)
+          .replace(/\{messageId\}/g, 'preview-' + ++n)
+          .replace(/\{color\}/g, entry.color || '')
+          .replace(/\{message\}/g, entry.message)
+
+        const frame = document.createElement('div')
+        frame.innerHTML = html.trim()
+        const row = frame.firstElementChild
+
+        if (entry.mod) {
+          row.querySelector('.badges').innerHTML = `<img class="badge" src="${BADGE}" alt="mod">`
+        }
+
+        // Double quotes here, because the data URI itself uses single ones.
+        row.querySelectorAll('.emote').forEach((span) => {
+          span.style.backgroundImage = 'url("' + EMOTE + '")'
+        })
+
+        // Appending is what the real widget does, so the MutationObserver in
+        // widget.js numbers and tones this row exactly as it would live.
+        log.appendChild(row)
+
+        // Stands in for {message_hide_delay}, which cannot survive the preview.
+        while (log.children.length > 14) log.removeChild(log.firstElementChild)
+      }
+
+      let cursor = 0
+      TRAFFIC.slice(0, 5).forEach(push)
+      setInterval(() => push(TRAFFIC[cursor++ % TRAFFIC.length]), 1900)
+
+      document.querySelectorAll('#harness [data-preset]').forEach((button) => {
+        button.addEventListener('click', () => {
+          document.documentElement.setAttribute('data-theme', button.dataset.preset)
+        })
+      })
+
+      const accent = document.getElementById('accent')
+      accent.addEventListener('click', () => {
+        const next =
+          document.documentElement.getAttribute('data-accent') === 'gold' ? 'crimson' : 'gold'
+        document.documentElement.setAttribute('data-accent', next)
+        accent.textContent = 'Accent: ' + next
+      })
+
+      document.getElementById('expunge').addEventListener('click', () => {
+        const rows = log.children
+        const target = rows[Math.max(0, rows.length - 4)]
+        if (target) target.classList.add('deleted')
+      })
+    </script>
+  </body>
+</html>

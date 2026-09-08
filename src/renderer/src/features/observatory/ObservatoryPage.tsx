@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { getSection } from '@shared/domain/navigation'
 import type { OverlayId } from '@shared/domain/overlays'
@@ -28,6 +29,7 @@ import styles from './ObservatoryPage.module.scss'
 export function ObservatoryPage(): ReactNode {
   const section = getSection('observatory')
   const server = useOverlayInfo()
+  const navigate = useNavigate()
 
   // The one live overlay's own readout, so the catalogue reports real state
   // rather than a generic "commissioned". When a second overlay ships this
@@ -118,6 +120,32 @@ export function ObservatoryPage(): ReactNode {
             className={styles.span2}
           />
         ))}
+
+        {/*
+          THE CHORUS is catalogued but not registered, and the distinction is
+          real rather than bookkeeping: every card above is a browser source
+          this server answers for, and this one is code the operator pastes into
+          Streamlabs. It appears here because from their side it is the same
+          broadcast kit — but it has no address, so it cannot be an OverlayCard.
+        */}
+        <Panel
+          label="THE CHORUS"
+          index="06"
+          className={styles.span2}
+          aside={<StatusDot tone="pending" label="Pasted, not served" />}
+        >
+          <div className={styles.server}>
+            <p className={styles.hint}>
+              Chat as an institutional register — numbered entries, one crimson mark on the newest.
+              Streamlabs hosts its own chat widget, so the console configures this one and hands
+              over the code rather than serving it.
+            </p>
+
+            <Button size="sm" variant="ghost" onClick={() => navigate('/observatory/chorus')}>
+              Configure and copy
+            </Button>
+          </div>
+        </Panel>
       </motion.div>
     </div>
   )
