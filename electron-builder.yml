@@ -51,7 +51,19 @@ nsis:
 
 npmRebuild: false
 
+# Updates are served by this repository's GitHub Releases.
+#
+# Previously a generic provider pointed at https://updates.candyhaven.app, which
+# has never existed — every update check the shipped app made resolved NXDOMAIN
+# and failed. GitHub costs nothing, needs no server, and is already where the
+# source lives.
+#
+# `releaseType: draft` is deliberate: a publish uploads the installer to a draft
+# release rather than announcing it. Nothing is offered to an installed client
+# until the release is published by hand, so a build can be uploaded, checked,
+# and abandoned without anyone downloading it.
 publish:
-  provider: generic
-  url: https://updates.candyhaven.app/desktop
-  channel: latest
+  provider: github
+  owner: MistArtworks
+  repo: candy-haven
+  releaseType: draft

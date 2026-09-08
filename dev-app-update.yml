@@ -1,4 +1,6 @@
-provider: generic
-url: https://updates.candyhaven.app/desktop
-channel: latest
+# Mirrors electron-builder.yml's publish block so `FORCE_DEV_UPDATE_CONFIG=1`
+# exercises the updater against the same feed a packaged build would use.
+provider: github
+owner: MistArtworks
+repo: candy-haven
 updaterCacheDirName: candy-haven-updater
