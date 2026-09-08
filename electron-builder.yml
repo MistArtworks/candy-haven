@@ -58,19 +58,20 @@ npmRebuild: false
 # and failed. GitHub costs nothing, needs no server, and is already where the
 # source lives.
 #
-# `releaseType: release` publishes live rather than to a draft.
+# `releaseType: draft` is the review gate, and it pairs with `autoDownload`.
 #
-# This started as `draft`, on the reasoning that a build should be checked before
-# anyone can download it. In practice the operator ships updates continuously and
-# wants the installed app to pick them up unattended, and a draft is invisible to
-# electron-updater — so every release needed a manual visit to GitHub to press
-# Publish, which is precisely the step that gets forgotten.
+# A draft is invisible to electron-updater, so a publish uploads the installer
+# without offering it to anyone. Clients have `autoDownload` on and take a new
+# version unattended — which means the moment a release goes live it propagates
+# with nobody watching. Pressing Publish is therefore the *only* point a human
+# looks at a build before it reaches machines, and that is exactly why it should
+# stay a deliberate act rather than a side effect of running a build command.
 #
-# The safety it traded away is real but small: a bad release is replaced by
-# publishing the next one, and `autoDownload` means clients take it without being
-# asked. Cut releases from a tree that builds.
+# It also makes electron-builder's occasional double-publish — it has raced
+# itself and created two releases with the assets split between them — a
+# recoverable annoyance rather than two live releases to retract.
 publish:
   provider: github
   owner: MistArtworks
   repo: candy-haven
-  releaseType: release
+  releaseType: draft
