@@ -398,7 +398,8 @@ export class NowPlayingFace {
     x: number,
     y: number,
     width: number,
-    showTimes: boolean
+    showTimes: boolean,
+    timeSize?: number
   ): void {
     const { context: ctx, palette } = this
     if (!this.state?.config.showTimeline) return
@@ -406,7 +407,9 @@ export class NowPlayingFace {
     const now = Date.now()
     const ratio = trackProgressRatio(track, now)
     const elapsed = trackProgressAt(track, now)
-    const size = this.compact ? 9 : 10
+    // Callers laying type out proportionally pass their own size; the plate and
+    // strip keep the fixed one they were tuned with.
+    const size = timeSize ?? (this.compact ? 9 : 10)
 
     ctx.fillStyle = withAlpha(palette.brass, 0.7)
     ctx.fillRect(x, y, width, 2)
@@ -435,16 +438,22 @@ export class NowPlayingFace {
     ctx.textAlign = 'left'
   }
 
-  private drawLabel(x: number, y: number, align: 'left' | 'centre'): number {
+  /**
+   * The institutional label above the record.
+   *
+   * `size` is passed by the styles that lay type out proportionally; the
+   * default is the fixed size the plate and strip were tuned with.
+   */
+  private drawLabel(x: number, y: number, align: 'left' | 'centre', size?: number): number {
     const { context: ctx, palette } = this
     if (!this.state?.config.showLabel) return 0
 
-    const size = this.compact ? 8 : 9
-    ctx.font = `${size}px ${palette.display}`
+    const resolved = size ?? (this.compact ? 8 : 9)
+    ctx.font = `${resolved}px ${palette.display}`
     ctx.textBaseline = 'top'
     ctx.fillStyle = this.accent
-    this.tracked(this.state.config.label.toUpperCase(), x, y, size * 0.3, align)
-    return size * 2.1
+    this.tracked(this.state.config.label.toUpperCase(), x, y, resolved * 0.3, align)
+    return resolved * 2.1
   }
 
   private drawExplicit(x: number, y: number, size: number): void {
@@ -530,11 +539,26 @@ export class NowPlayingFace {
 
   // ---------------------------------------------------------- 2. monolith
 
-  /** Portrait column: cover above the record. For a sidebar. */
+  /**
+   * Portrait column: cover above the record. For a sidebar.
+   *
+   * Type is proportional to the canvas with no pixel ceiling. The sizes here
+   * were capped — `min(width * 0.1, 24)` and friends — which was tuned against
+   * the small console preview and left 24px of title on a 420px-wide browser
+   * source. The preview shares the source's aspect ratio, so proportional
+   * sizing reads the same at both scales and the cap only ever hurt.
+   *
+   * The cover is bounded by both a share of the frame *and* whatever the text
+   * has left over. It used to take a flat 52% of the height with the timeline
+   * pinned to the bottom edge, so any slack showed up as dead space between the
+   * art, the record and the timeline. Sizing it from the remainder and centring
+   * the whole column removes those gaps by construction.
+   */
   private drawMonolith(track: NowPlayingTrack, now: number): void {
     const { context: ctx, palette, width, height } = this
     const config = this.state!.config
-    const pad = Math.min(width * 0.08, 22)
+    const pad = width * 0.07
+    const gap = width * 0.05
 
     ctx.fillStyle = palette.panel
     ctx.fillRect(0, 0, width, height)
@@ -542,18 +566,46 @@ export class NowPlayingFace {
     ctx.lineWidth = 1
     ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
 
-    let y = pad
-    y += this.drawLabel(width / 2, y, 'centre')
+    const labelSize = width * 0.034
+    const titleSize = width * 0.115
+    const metaSize = width * 0.062
+    const albumSize = width * 0.046
 
-    if (config.showCover) {
-      const coverSize = Math.min(width - pad * 2, height * 0.52)
+    const labelBlock = config.showLabel ? labelSize * 2.1 : 0
+    const titleBlock = titleSize * 1.24
+    const artistBlock = metaSize * 1.45
+    const albumBlock = config.showAlbum && track.album ? albumSize * 1.5 : 0
+    const timelineBlock = config.showTimeline ? metaSize * 2.2 : 0
+    const textBlock =
+      titleBlock + artistBlock + albumBlock + (timelineBlock > 0 ? gap * 0.7 + timelineBlock : 0)
+
+    const coverSize = config.showCover
+      ? Math.max(
+          Math.min(
+            width - pad * 2,
+            // A share of the frame, so a tall source does not turn into a
+            // poster with a caption.
+            height * 0.42,
+            height - pad * 2 - labelBlock - gap - textBlock
+          ),
+          0
+        )
+      : 0
+
+    // Centred as one column, so leftover height is split above and below rather
+    // than pooling in one gap.
+    const contentHeight = labelBlock + coverSize + (coverSize > 0 ? gap : 0) + textBlock
+    let y = Math.max((height - contentHeight) / 2, pad)
+
+    if (config.showLabel) y += this.drawLabel(width / 2, y, 'centre', labelSize)
+
+    if (coverSize > 0) {
       this.drawCover((width - coverSize) / 2, y, coverSize)
-      y += coverSize + pad
+      y += coverSize + gap
     }
 
     const shift = this.changeOffset(now)
     const textWidth = width - pad * 2
-    const titleSize = Math.min(width * 0.1, 24)
 
     ctx.font = `${titleSize}px ${palette.display}`
     ctx.textBaseline = 'top'
@@ -561,22 +613,24 @@ export class NowPlayingFace {
     ctx.fillStyle = palette.text
     // Centred text cannot marquee cleanly, so it truncates here instead.
     this.centredFit(track.title.toUpperCase(), width / 2 + shift, y, textWidth)
-    y += titleSize * 1.4
+    y += titleBlock
 
-    const metaSize = Math.min(width * 0.055, 14)
     ctx.font = `${metaSize}px ${palette.display}`
     ctx.fillStyle = palette.textDim
     this.centredFit(formatArtists(track.artists), width / 2 + shift, y, textWidth)
-    y += metaSize * 1.6
+    y += artistBlock
 
-    if (config.showAlbum && track.album) {
-      ctx.font = `${metaSize * 0.82}px ${palette.mono}`
+    if (albumBlock > 0) {
+      ctx.font = `${albumSize}px ${palette.mono}`
       ctx.fillStyle = palette.textFaint
       this.centredFit(track.album, width / 2, y, textWidth)
+      y += albumBlock
     }
 
     ctx.textAlign = 'left'
-    this.drawTimeline(track, pad, height - pad - 12, textWidth, true)
+    // Flows after the text rather than being pinned to the bottom edge.
+    if (timelineBlock > 0)
+      this.drawTimeline(track, pad, y + gap * 0.7, textWidth, true, metaSize * 0.7)
   }
 
   private centredFit(text: string, x: number, y: number, maxWidth: number): void {
@@ -661,6 +715,12 @@ export class NowPlayingFace {
    * the arc countdown already established, so the broadcast kit reads as one
    * rack of instruments. The record only turns while playback is running, which
    * makes pausing legible without any text.
+   *
+   * The record is deliberately smaller than the frame allows, and the type is
+   * proportional rather than capped. Sized off the available height alone, the
+   * disc grew to fill the canvas and squeezed the record beneath it into
+   * unreadable 22px type — which does not survive being scaled down inside an
+   * OBS scene.
    */
   private drawDisc(track: NowPlayingTrack, now: number): void {
     const { context: ctx, palette, width, height } = this
@@ -668,18 +728,34 @@ export class NowPlayingFace {
     const centreX = width / 2
     const TAU = Math.PI * 2
 
-    const labelHeight = config.showLabel ? (this.compact ? 18 : 22) : 0
-    const textBlock = Math.min(height * 0.26, 92)
-    const available = height - labelHeight - textBlock
-    const radius = Math.min(width * 0.42, available * 0.46)
-    const centreY = labelHeight + available / 2
+    const pad = width * 0.06
+    const gap = width * 0.045
+    const labelSize = width * 0.032
+    const titleSize = width * 0.078
+    const metaSize = width * 0.05
+    const timeSize = width * 0.038
+
+    const labelBlock = config.showLabel ? labelSize * 2.1 : 0
+    const titleBlock = titleSize * 1.26
+    const artistBlock = metaSize * 1.45
+    const timeBlock = config.showTimeline ? timeSize * 1.7 : 0
+    const textBlock = titleBlock + artistBlock + timeBlock
+
+    const available = height - pad * 2 - labelBlock - textBlock - gap
+    // Bounded by a share of the width as well as by the space left, so the
+    // record stays an object in a field rather than filling the frame.
+    const radius = Math.max(Math.min(width * 0.33, available * 0.5), 1)
+
+    const contentHeight = labelBlock + radius * 2 + gap + textBlock
+    let y = Math.max((height - contentHeight) / 2, pad)
 
     if (config.showLabel) {
       ctx.textAlign = 'left'
-      this.drawLabel(centreX, this.compact ? 4 : 8, 'centre')
+      y += this.drawLabel(centreX, y, 'centre', labelSize)
     }
 
-    // Record.
+    const centreY = y + radius
+
     if (config.showCover) {
       ctx.save()
       ctx.translate(centreX, centreY)
@@ -729,28 +805,32 @@ export class NowPlayingFace {
 
     // Record beneath.
     const shift = this.changeOffset(now)
-    let y = labelHeight + available + 2
-    const titleSize = Math.min(width * 0.075, 22)
-    const textWidth = width * 0.9
+    y = centreY + radius + gap
+    const textWidth = width - pad * 2
 
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
     ctx.font = `${titleSize}px ${palette.display}`
     ctx.fillStyle = palette.text
     this.centredFit(track.title.toUpperCase(), centreX + shift, y, textWidth)
-    y += titleSize * 1.36
+    y += titleBlock
 
-    const metaSize = Math.min(width * 0.045, 13)
     ctx.font = `${metaSize}px ${palette.display}`
     ctx.fillStyle = palette.textDim
     this.centredFit(formatArtists(track.artists), centreX + shift, y, textWidth)
-    y += metaSize * 1.5
+    y += artistBlock
 
     if (config.showTimeline) {
       const elapsed = trackProgressAt(track, Date.now())
-      ctx.font = `${metaSize * 0.86}px ${palette.mono}`
+      ctx.font = `${timeSize}px ${palette.mono}`
       ctx.fillStyle = palette.textFaint
-      ctx.fillText(`${formatTrackTime(elapsed)} / ${formatTrackTime(track.durationMs)}`, centreX, y)
+      ctx.fillText(
+        config.showRemaining
+          ? `${formatTrackTime(elapsed)}  \u2212${formatTrackTime(track.durationMs - elapsed)}`
+          : `${formatTrackTime(elapsed)} / ${formatTrackTime(track.durationMs)}`,
+        centreX,
+        y
+      )
     }
 
     ctx.textAlign = 'left'

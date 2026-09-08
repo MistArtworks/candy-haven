@@ -313,14 +313,14 @@ export function TransmissionPage(): ReactNode {
             </div>
 
             <Slider
-              label="Poll interval"
+              label="Check Spotify every"
               min={POLL_MIN_SECONDS}
               max={POLL_MAX_SECONDS}
               step={1}
               value={state.config.pollSeconds}
               readout={`${state.config.pollSeconds}s`}
               onChange={(pollSeconds) => void actions.configure({ pollSeconds })}
-              hint="The timeline is interpolated between polls, so a slower interval still moves smoothly. Polling stops entirely when nothing is watching."
+              hint="How often the app asks Spotify what is playing — so it sets how fast a track change or a pause shows up, not how smoothly the timeline moves. The playhead is worked out locally between checks, so it glides either way. Nothing is asked at all while neither this page nor a browser source is open."
             />
           </div>
         </Panel>
