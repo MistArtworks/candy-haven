@@ -11,6 +11,7 @@ import {
   TITLEBAR_HEIGHT
 } from '@shared/constants'
 import type { WindowState } from '@shared/domain/system'
+import { registerEditing } from './editing'
 import { getLogger } from '@main/core/logger'
 import { getPaths } from '@main/core/paths'
 
@@ -114,6 +115,10 @@ export class WindowManager {
     })
 
     this.window = window
+
+    // The window is frameless, so it has no menu bar to carry the clipboard
+    // accelerators. Without this, no text field in the app can be pasted into.
+    registerEditing(window.webContents)
 
     if (persisted.isMaximized) window.maximize()
 
