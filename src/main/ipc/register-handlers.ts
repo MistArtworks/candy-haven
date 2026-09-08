@@ -171,12 +171,24 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('rite:reset', () => services.rite.reset())
   router.handle('rite:history-clear', () => services.rite.clearHistory())
 
-  router.handle('overlay:info', () => services.rite.serverInfo)
+  // -------------------------------------------------------------------- timers
+
+  router.handle('timer:all', () => services.timers.all)
+  router.handle('timer:start', ({ id }) => services.timers.start(id))
+  router.handle('timer:pause', ({ id }) => services.timers.pause(id))
+  router.handle('timer:toggle', ({ id }) => services.timers.toggle(id))
+  router.handle('timer:reset', ({ id }) => services.timers.reset(id))
+  router.handle('timer:restart', ({ id }) => services.timers.restart(id))
+  router.handle('timer:extend', ({ id, deltaMs }) => services.timers.extend(id, deltaMs))
+  router.handle('timer:config', ({ id, patch }) => services.timers.configure(id, patch))
+
+  router.handle('overlay:info', () => services.overlayServer.info)
   // The port comes from settings rather than the renderer, for the same reason
   // the scan roots do: a compromised renderer should not choose what we bind.
-  router.handle('overlay:restart', () =>
-    services.rite.restartServer(settings.snapshot.workspace.overlayPort)
-  )
+  router.handle('overlay:restart', async () => {
+    await services.overlayServer.stop()
+    return services.overlayServer.start(settings.snapshot.workspace.overlayPort)
+  })
 
   // -------------------------------------------------------------------- shell
 
@@ -254,6 +266,7 @@ export function registerEventBridges(deps: {
   services.telemetry.on('sample', (state) => router.broadcast('telemetry:sample', state))
   services.projects.on('scan', (state) => router.broadcast('projects:scan', state))
   services.rite.on('state', (state) => router.broadcast('rite:state', state))
-  services.rite.on('server', (info) => router.broadcast('overlay:info', info))
+  services.timers.on('state', (state) => router.broadcast('timer:state', state))
+  services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

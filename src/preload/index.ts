@@ -142,6 +142,17 @@ const api: CandyHavenApi = {
     clearHistory: () => invoke('rite:history-clear'),
     onState: (listener) => subscribe('rite:state', listener)
   },
+  timers: {
+    all: () => invoke('timer:all'),
+    start: (id) => invoke('timer:start', { id }),
+    pause: (id) => invoke('timer:pause', { id }),
+    toggle: (id) => invoke('timer:toggle', { id }),
+    reset: (id) => invoke('timer:reset', { id }),
+    restart: (id) => invoke('timer:restart', { id }),
+    extend: (id, deltaMs) => invoke('timer:extend', { id, deltaMs }),
+    configure: (id, patch) => invoke('timer:config', { id, patch }),
+    onState: (listener) => subscribe('timer:state', listener)
+  },
   overlay: {
     info: () => invoke('overlay:info'),
     restart: () => invoke('overlay:restart'),

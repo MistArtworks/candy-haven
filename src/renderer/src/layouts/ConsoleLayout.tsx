@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { getSectionByPath } from '@shared/domain/navigation'
+import { TimerCues } from '@renderer/app/providers/TimerCues'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
 import { CommandRail } from '@renderer/components/nav/CommandRail'
 import { consoleEnterVariants, pageVariants } from '@renderer/motion/transitions'
@@ -43,6 +44,12 @@ export function ConsoleLayout(): ReactNode {
       initial="initial"
       animate="animate"
     >
+      {/*
+        Mounted here rather than on the timer's own page: a cue exists to reach
+        the operator while they are looking at something else. Renders nothing.
+      */}
+      <TimerCues />
+
       <TitleBar />
 
       <div className={styles.body}>

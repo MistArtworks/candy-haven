@@ -1,6 +1,5 @@
 import { randomInt, randomUUID } from 'node:crypto'
 import type {
-  OverlayServerInfo,
   Petition,
   PetitionDraft,
   RiteConfigPatch,
@@ -24,14 +23,13 @@ import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import { TypedEmitter } from '@main/core/emitter'
 import type { ArchiveService } from '../archive/archive.service'
-import { OverlayServer } from './overlay-server'
+import type { OverlayServer } from './overlay-server'
 import { RiteRepository } from './rite.repository'
 
 const logger = getLogger('rite')
 
 interface RiteEvents {
   state: RiteState
-  server: OverlayServerInfo
 }
 
 /**
@@ -55,37 +53,31 @@ interface RiteEvents {
  */
 export class RiteService extends TypedEmitter<RiteEvents> {
   private state: RiteState = createEmptyRiteState()
-  private readonly server = new OverlayServer()
   private readonly repository: RiteRepository
   /** Fires when the ring comes to rest, flipping the rite to `resolved`. */
   private resolveTimer: NodeJS.Timeout | null = null
 
-  constructor(archive: ArchiveService) {
+  constructor(
+    archive: ArchiveService,
+    /** Shared with the timers: one server serves every overlay. */
+    private readonly server: OverlayServer
+  ) {
     super()
     this.repository = new RiteRepository(archive)
-
-    this.server.onSnapshotRequested(() => this.state)
-    this.server.on('info', (info) => this.emit('server', info))
+    this.server.registerSnapshot('rite', () => this.state)
   }
 
   get current(): RiteState {
     return this.state
   }
 
-  get serverInfo(): OverlayServerInfo {
-    return this.server.info
-  }
-
   // ------------------------------------------------------------------ lifecycle
 
   /**
-   * Brings the department online: restores any stored rite, then starts serving.
-   *
-   * Neither step is allowed to fail the caller. This runs during boot, and an
-   * overlay server that cannot claim a port is a reason to show a degraded
-   * OBSERVATORY panel — not a reason to refuse to start the application.
+   * Restores any stored rite. The server itself is started by the container,
+   * since every overlay shares it.
    */
-  async initialize(options: { port: number; autoStart: boolean }): Promise<void> {
+  async initialize(): Promise<void> {
     const restored = await this.repository.load()
     if (restored) {
       // Never restore mid-spin: the stored `startedAt` is in the past, so the
@@ -97,31 +89,11 @@ export class RiteService extends TypedEmitter<RiteEvents> {
           : restored
       logger.info(`Restored rite with ${this.state.petitions.length} petitions`)
     }
-
-    if (!options.autoStart) return
-
-    try {
-      await this.server.start(options.port)
-    } catch (cause) {
-      logger.error('Overlay server did not start', cause)
-    }
   }
 
-  async startServer(port: number): Promise<OverlayServerInfo> {
-    await this.server.start(port)
-    return this.server.info
-  }
-
-  async restartServer(port: number): Promise<OverlayServerInfo> {
-    await this.server.stop()
-    await this.server.start(port)
-    return this.server.info
-  }
-
-  async dispose(): Promise<void> {
+  dispose(): void {
     if (this.resolveTimer) clearTimeout(this.resolveTimer)
     this.resolveTimer = null
-    await this.server.stop()
     this.clear()
   }
 
@@ -330,7 +302,7 @@ export class RiteService extends TypedEmitter<RiteEvents> {
     this.state = { ...this.state, ...partial, revision: this.state.revision + 1 }
 
     this.emit('state', this.state)
-    this.server.broadcast(this.state)
+    this.server.broadcast('rite', this.state)
 
     // Persistence is best-effort by design: the archive may not be connected,
     // and a stream is not the moment to fail an action because a write to Mongo

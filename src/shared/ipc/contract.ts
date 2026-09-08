@@ -6,6 +6,12 @@ import { RuntimeInfoSchema, WindowStateSchema } from '../domain/system'
 import { UpdateStatusSchema } from '../domain/update'
 import { TelemetryStateSchema } from '../domain/telemetry'
 import {
+  TimerConfigPatchSchema,
+  TimerIdSchema,
+  TimerSetSchema,
+  TimerStateSchema
+} from '../domain/timer'
+import {
   OverlayServerInfoSchema,
   PetitionDraftSchema,
   RiteConfigPatchSchema,
@@ -135,6 +141,26 @@ export const IPC_INVOKE = {
   'rite:reset': { input: z.void(), output: RiteStateSchema },
   'rite:history-clear': { input: z.void(), output: RiteStateSchema },
 
+  /**
+   * Countdown overlays. Every action is keyed by timer id — two timers share
+   * the implementation but keep separate state, so nothing here is global.
+   */
+  'timer:all': { input: z.void(), output: TimerSetSchema },
+  'timer:start': { input: z.object({ id: TimerIdSchema }), output: TimerStateSchema },
+  'timer:pause': { input: z.object({ id: TimerIdSchema }), output: TimerStateSchema },
+  'timer:toggle': { input: z.object({ id: TimerIdSchema }), output: TimerStateSchema },
+  'timer:reset': { input: z.object({ id: TimerIdSchema }), output: TimerStateSchema },
+  'timer:restart': { input: z.object({ id: TimerIdSchema }), output: TimerStateSchema },
+  /** Adds or removes time without disturbing a run in progress. */
+  'timer:extend': {
+    input: z.object({ id: TimerIdSchema, deltaMs: z.number().int() }),
+    output: TimerStateSchema
+  },
+  'timer:config': {
+    input: z.object({ id: TimerIdSchema, patch: TimerConfigPatchSchema }),
+    output: TimerStateSchema
+  },
+
   'overlay:info': { input: z.void(), output: OverlayServerInfoSchema },
   /** Rebinds the server, picking up a changed port from settings. */
   'overlay:restart': { input: z.void(), output: OverlayServerInfoSchema },
@@ -171,6 +197,7 @@ export const IPC_EVENT = {
   'telemetry:sample': TelemetryStateSchema,
   'projects:scan': ScanStateSchema,
   'rite:state': RiteStateSchema,
+  'timer:state': TimerStateSchema,
   'overlay:info': OverlayServerInfoSchema,
   'window:state': WindowStateSchema
 } satisfies Record<string, z.ZodType>

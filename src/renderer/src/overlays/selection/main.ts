@@ -195,7 +195,7 @@ function setStatus(tone: 'online' | 'pending' | 'error', text: string): void {
   statusTextEl.textContent = text
 }
 
-const stream = new EventSource('/rite/stream')
+const stream = new EventSource('/events')
 
 stream.addEventListener('open', () => {
   setStatus('online', 'Attached')
@@ -203,7 +203,13 @@ stream.addEventListener('open', () => {
 
 stream.addEventListener('message', (event) => {
   try {
-    apply(JSON.parse((event as MessageEvent<string>).data) as RiteState)
+    // One stream feeds every overlay; keep only the frames this page renders.
+    const frame = JSON.parse((event as MessageEvent<string>).data) as {
+      channel: string
+      payload: unknown
+    }
+    if (frame.channel !== 'rite') return
+    apply(frame.payload as RiteState)
     setStatus('online', 'Attached')
   } catch {
     // A malformed frame must not take the overlay down mid-broadcast; the next

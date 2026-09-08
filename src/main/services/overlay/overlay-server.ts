@@ -10,7 +10,7 @@ import { stat } from 'node:fs/promises'
 import { extname, join, normalize, sep } from 'node:path'
 import { is } from '@electron-toolkit/utils'
 import type { OverlayServerInfo } from '@shared/domain/rite'
-import { LIVE_OVERLAYS, getOverlayBySlug } from '@shared/domain/overlays'
+import { LIVE_OVERLAYS, getOverlayBySlug, overlayDocument } from '@shared/domain/overlays'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import { getPaths } from '@main/core/paths'
@@ -91,13 +91,16 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
   private heartbeat: NodeJS.Timeout | null = null
 
   /**
-   * Snapshot supplier for newly connected clients.
+   * Snapshot suppliers, keyed by channel.
    *
-   * A browser source that attaches mid-spin must receive the current state
-   * immediately rather than waiting for the next change, or it shows an empty
-   * ring until the operator touches something.
+   * A browser source that attaches mid-spin — or to a running countdown — must
+   * receive the current state immediately rather than waiting for the next
+   * change, or it renders an idle overlay until the operator touches something.
+   *
+   * Keyed by channel because one server feeds every overlay: each page
+   * subscribes to the same stream and keeps the frames it recognises.
    */
-  private snapshot: (() => unknown) | null = null
+  private readonly snapshots = new Map<string, () => unknown>()
 
   get info(): OverlayServerInfo {
     return {
@@ -109,8 +112,9 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
     }
   }
 
-  onSnapshotRequested(supplier: () => unknown): void {
-    this.snapshot = supplier
+  /** Registers the current-state supplier for a channel. */
+  registerSnapshot(channel: string, supplier: () => unknown): void {
+    this.snapshots.set(channel, supplier)
   }
 
   /**
@@ -190,10 +194,18 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
     })
   }
 
-  /** Pushes a payload to every attached browser source. */
-  broadcast(payload: unknown): void {
+  /**
+   * Pushes a payload to every attached browser source.
+   *
+   * Frames are tagged with their channel so a page can ignore traffic for
+   * overlays it is not rendering — the countdown source should not be doing
+   * work every time a petition is filed.
+   */
+  broadcast(channel: string, payload: unknown): void {
     if (this.clients.size === 0) return
-    const frame = `data: ${JSON.stringify(payload)}\n\n`
+    const frame = `data: ${JSON.stringify({ channel, payload })}
+
+`
     for (const client of this.clients) {
       client.write(frame)
     }
@@ -242,13 +254,15 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
       return
     }
 
-    if (url.pathname === '/rite/stream') {
+    if (url.pathname === '/events') {
       this.attachStream(req, res)
       return
     }
 
-    if (url.pathname === '/rite/state') {
-      const body = JSON.stringify(this.snapshot?.() ?? null)
+    if (url.pathname === '/state') {
+      const body = JSON.stringify(
+        Object.fromEntries([...this.snapshots].map(([channel, supplier]) => [channel, supplier()]))
+      )
       res.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-store'
@@ -301,7 +315,7 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
 
     if (!slug.includes('/') && !slug.includes('.')) {
       const overlay = getOverlayBySlug(slug)
-      return overlay?.implemented ? `/${OVERLAY_DIR}/${overlay.slug}.html` : null
+      return overlay?.implemented ? `/${OVERLAY_DIR}/${overlayDocument(overlay)}.html` : null
     }
 
     return pathname
@@ -354,9 +368,12 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
     })
     res.write('retry: 2000\n\n')
 
-    const initial = this.snapshot?.()
-    if (initial !== undefined) {
-      res.write(`data: ${JSON.stringify(initial)}\n\n`)
+    // One frame per channel, so a page attaching mid-anything is current
+    // before it paints.
+    for (const [channel, supplier] of this.snapshots) {
+      res.write(`data: ${JSON.stringify({ channel, payload: supplier() })}
+
+`)
     }
 
     this.clients.add(res)

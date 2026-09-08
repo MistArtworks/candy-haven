@@ -5,6 +5,7 @@ import type { RuntimeInfo, WindowState } from '../domain/system'
 import type { UpdateStatus } from '../domain/update'
 import type { TelemetryState } from '../domain/telemetry'
 import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } from '../domain/rite'
+import type { TimerConfigPatch, TimerId, TimerSet, TimerState } from '../domain/timer'
 import type {
   MarketingAsset,
   MarketingAssetKind,
@@ -106,6 +107,22 @@ export interface CandyHavenApi {
     reset(): Promise<RiteState>
     clearHistory(): Promise<RiteState>
     onState(listener: (state: RiteState) => void): Unsubscribe
+  }
+  /**
+   * Countdown overlays. Nothing ticks across this boundary — the state carries
+   * a start instant and the durations, and each surface derives the clock.
+   */
+  readonly timers: {
+    all(): Promise<TimerSet>
+    start(id: TimerId): Promise<TimerState>
+    pause(id: TimerId): Promise<TimerState>
+    /** Start if stopped, pause if running — for a single console control. */
+    toggle(id: TimerId): Promise<TimerState>
+    reset(id: TimerId): Promise<TimerState>
+    restart(id: TimerId): Promise<TimerState>
+    extend(id: TimerId, deltaMs: number): Promise<TimerState>
+    configure(id: TimerId, patch: TimerConfigPatch): Promise<TimerState>
+    onState(listener: (state: TimerState) => void): Unsubscribe
   }
   readonly overlay: {
     info(): Promise<OverlayServerInfo>

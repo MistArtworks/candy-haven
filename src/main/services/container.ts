@@ -3,7 +3,9 @@ import { ArchiveService } from './archive/archive.service'
 import { UpdateService } from './update/update.service'
 import { TelemetryService } from './telemetry/telemetry.service'
 import { ProjectsService } from './projects/projects.service'
+import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
+import { TimerService } from './overlay/timer.service'
 import { getLogger } from '@main/core/logger'
 
 const logger = getLogger('container')
@@ -21,13 +23,19 @@ export interface ServiceContainer {
   readonly updates: UpdateService
   readonly telemetry: TelemetryService
   readonly projects: ProjectsService
+  /** Shared by every overlay: one HTTP server, many pages. */
+  readonly overlayServer: OverlayServer
   readonly rite: RiteService
+  readonly timers: TimerService
 }
 
 export function createServiceContainer(): ServiceContainer {
   // Projects and the rite both read through the archive connection, so they are
   // the services here that take a collaborator rather than standing alone.
   const archive = new ArchiveService()
+  // Hoisted out of the rite: the countdowns broadcast through the same stream,
+  // so the server is department infrastructure rather than one feature's.
+  const overlayServer = new OverlayServer()
 
   return {
     settings: new SettingsService(),
@@ -35,7 +43,9 @@ export function createServiceContainer(): ServiceContainer {
     updates: new UpdateService(),
     telemetry: new TelemetryService(),
     projects: new ProjectsService(archive),
-    rite: new RiteService(archive)
+    overlayServer,
+    rite: new RiteService(archive, overlayServer),
+    timers: new TimerService(archive, overlayServer)
   }
 }
 
@@ -47,14 +57,17 @@ export function createServiceContainer(): ServiceContainer {
 export async function disposeServiceContainer(container: ServiceContainer): Promise<void> {
   logger.info('Disposing services')
 
-  // Before the archive: the rite mirrors its state to Mongo on the way down,
-  // and its server holds event-stream sockets that must be released or quit
-  // waits on them.
+  // Before the archive: the overlay services mirror state to Mongo on the way
+  // down, and the server holds event-stream sockets that must be released or
+  // quit waits on them.
   try {
-    await container.rite.dispose()
+    await container.overlayServer.stop()
   } catch (error) {
-    logger.error('Rite shutdown failed', error)
+    logger.error('Overlay server shutdown failed', error)
   }
+
+  container.rite.dispose()
+  container.timers.dispose()
 
   try {
     await container.archive.shutdown()

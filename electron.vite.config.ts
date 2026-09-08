@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
-import { LIVE_OVERLAYS } from './src/shared/domain/overlays'
+import { liveOverlayDocuments } from './src/shared/domain/overlays'
 
 const alias = {
   '@shared': resolve('src/shared'),
@@ -59,9 +59,9 @@ export default defineConfig({
         input: {
           index: resolve('src/renderer/index.html'),
           ...Object.fromEntries(
-            LIVE_OVERLAYS.map((overlay) => [
-              overlay.slug,
-              resolve(`src/renderer/overlays/${overlay.slug}.html`)
+            liveOverlayDocuments().map((document) => [
+              document,
+              resolve(`src/renderer/overlays/${document}.html`)
             ])
           )
         },

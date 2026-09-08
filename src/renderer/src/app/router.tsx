@@ -6,6 +6,7 @@ import { ArchivePage } from '@renderer/features/archive/ArchivePage'
 import { ObservatoryPage } from '@renderer/features/observatory/ObservatoryPage'
 import { SelectionPage } from '@renderer/features/observatory/overlays/selection/SelectionPage'
 import { ReservedOverlayPage } from '@renderer/features/observatory/overlays/ReservedOverlayPage'
+import { TimerPage } from '@renderer/features/observatory/overlays/timer/TimerPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
 import { ReservedPage } from '@renderer/features/reserved/ReservedPage'
@@ -63,6 +64,9 @@ export function AppRouter(): ReactNode {
               element={
                 overlay.id === 'selection' ? (
                   <SelectionPage />
+                ) : overlay.id === 'interval' || overlay.id === 'convene' ? (
+                  // Both countdowns share a page; the id selects the timer.
+                  <TimerPage timerId={overlay.id} />
                 ) : (
                   <ReservedOverlayPage overlayId={overlay.id} />
                 )
