@@ -1,19 +1,15 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSection } from '@shared/domain/navigation'
-import {
-  useSystemStore,
-  selectArchive,
-  selectSettings,
-  selectUpdate
-} from '@renderer/app/store/system.store'
+import { useSystemStore, selectArchive, selectUpdate } from '@renderer/app/store/system.store'
 import { useRuntimeInfo } from '@renderer/hooks/useRuntimeInfo'
-import { useApplySettings } from '@renderer/hooks/useSettings'
+import { useSettingsDraft } from '@renderer/hooks/useSettings'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Slider } from '@renderer/components/primitives/Slider'
+import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
 import { TextInput } from '@renderer/components/primitives/Input'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Button } from '@renderer/components/primitives/Button'
@@ -31,15 +27,27 @@ import styles from './RegulationPage.module.scss'
  */
 export function RegulationPage(): ReactNode {
   const section = getSection('regulation')
-  const settings = useSystemStore(selectSettings)
   const archive = useSystemStore(selectArchive)
   const update = useSystemStore(selectUpdate)
   const setSettings = useSystemStore((state) => state.setSettings)
   const { data: runtime } = useRuntimeInfo()
   const queryClient = useQueryClient()
 
-  const applySettings = useApplySettings()
+  const draft = useSettingsDraft()
+  const settings = draft.settings
+  const applySettings = draft.apply
   const integrations = settings?.integrations
+
+  /*
+   * Claims the rail's navigation guard while anything is unsaved, and
+   * releases it on unmount so a page left in a clean state cannot strand the
+   * guard set and lock the console.
+   */
+  const setUnsavedGuard = useSystemStore((state) => state.setUnsavedGuard)
+  useEffect(() => {
+    setUnsavedGuard(draft.dirty)
+    return () => setUnsavedGuard(false)
+  }, [draft.dirty, setUnsavedGuard])
 
   const resetSettings = useMutation({
     mutationFn: () => window.candy.settings.reset(),
@@ -317,6 +325,15 @@ export function RegulationPage(): ReactNode {
           </div>
         </Panel>
       </motion.div>
+
+      <UnsavedBar
+        dirty={draft.dirty}
+        saving={draft.saving}
+        error={draft.error}
+        subject="operator settings"
+        onSave={draft.save}
+        onDiscard={draft.discard}
+      />
     </div>
   )
 }

@@ -1,0 +1,74 @@
+@use 'abstracts' as *;
+
+/*
+ * Anchored to the viewport rather than to the page, so it stays put while the
+ * operator scrolls a long settings column. Sits above the content but below the
+ * titlebar, so window controls are never covered.
+ */
+.wrapper {
+  position: fixed;
+  left: $rail-width;
+  right: 0;
+  bottom: space(6);
+  z-index: z('overlay');
+  display: flex;
+  justify-content: center;
+  padding: 0 space(8);
+  // The bar itself is the only interactive part; the wrapper must not swallow
+  // clicks aimed at the page behind it.
+  pointer-events: none;
+
+  @include below('md') {
+    left: 0;
+  }
+}
+
+.bar {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: space(5);
+  width: 100%;
+  max-width: 720px;
+  padding: space(4) space(5);
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line-gold);
+  box-shadow:
+    0 1px 0 rgba(182, 158, 124, 0.04),
+    0 18px 48px rgba(0, 0, 0, 0.7);
+}
+
+// A crimson slab on the leading edge: the palette's mark for something
+// outstanding, and it reads before any of the words do.
+.mark {
+  width: 3px;
+  align-self: stretch;
+  background: var(--ch-crimson-500);
+  flex-shrink: 0;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  @include label(9px, 0.2em);
+  color: var(--ch-text-primary);
+}
+
+.detail {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+}

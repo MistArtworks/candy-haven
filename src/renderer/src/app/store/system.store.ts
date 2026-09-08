@@ -22,6 +22,14 @@ interface SystemState {
   archive: ArchiveStatus
   update: UpdateStatus | null
   settings: Settings | null
+  /**
+   * Last state known to be persisted.
+   *
+   * `settings` is edited live so the operator sees an accent or grain change
+   * as they make it; this is what those edits are measured against to decide
+   * whether anything is unsaved, and what Discard restores.
+   */
+  settingsBaseline: Settings | null
   window: WindowState
 
   /**
@@ -34,6 +42,24 @@ interface SystemState {
   setArchive: (status: ArchiveStatus) => void
   setUpdate: (status: UpdateStatus) => void
   setSettings: (settings: Settings) => void
+  /** Marks the current settings as persisted. */
+  setSettingsBaseline: (settings: Settings) => void
+  /**
+   * Bumped to ask the unsaved-changes bar to draw attention to itself.
+   *
+   * A counter rather than a boolean so a second attempt re-triggers the
+   * animation; a flag would already be set and nothing would move.
+   */
+  nudgeUnsaved: () => void
+  unsavedNudge: number
+  /**
+   * Set by a page that has unsaved changes.
+   *
+   * The rail consults it before navigating. A single flag rather than a set,
+   * because only one page is mounted at a time.
+   */
+  unsavedGuard: boolean
+  setUnsavedGuard: (guarded: boolean) => void
   setWindow: (state: WindowState) => void
   setShellPhase: (phase: ShellPhase) => void
 }
@@ -43,6 +69,9 @@ export const useSystemStore = create<SystemState>()((set) => ({
   archive: createInitialArchiveStatus(),
   update: null,
   settings: null,
+  settingsBaseline: null,
+  unsavedNudge: 0,
+  unsavedGuard: false,
   window: { isMaximized: false, isFullScreen: false, isFocused: true },
   shellPhase: 'booting',
 
@@ -50,6 +79,9 @@ export const useSystemStore = create<SystemState>()((set) => ({
   setArchive: (archive) => set({ archive }),
   setUpdate: (update) => set({ update }),
   setSettings: (settings) => set({ settings }),
+  setSettingsBaseline: (settings) => set({ settingsBaseline: settings }),
+  nudgeUnsaved: () => set((state) => ({ unsavedNudge: state.unsavedNudge + 1 })),
+  setUnsavedGuard: (unsavedGuard) => set({ unsavedGuard }),
   setWindow: (window) => set({ window }),
   setShellPhase: (shellPhase) => set({ shellPhase })
 }))
@@ -64,3 +96,6 @@ export const selectUpdate = (state: SystemState): UpdateStatus | null => state.u
 export const selectSettings = (state: SystemState): Settings | null => state.settings
 export const selectWindow = (state: SystemState): WindowState => state.window
 export const selectShellPhase = (state: SystemState): ShellPhase => state.shellPhase
+
+export const selectSettingsBaseline = (state: SystemState): Settings | null =>
+  state.settingsBaseline

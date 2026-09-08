@@ -1,7 +1,11 @@
 @use 'abstracts' as *;
 
+/*
+ * Extra bottom padding reserves room for the fixed unsaved-changes bar, so
+ * the last control in the column is never sitting underneath it.
+ */
 .page {
-  padding: space(10) space(10) space(12);
+  padding: space(10) space(10) space(24);
   max-width: 1560px;
   margin: 0 auto;
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { MouseEvent as ReactMouseEvent } from 'react'
 import { NavLink } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { SECTIONS } from '@shared/domain/navigation'
@@ -18,6 +19,24 @@ import styles from './CommandRail.module.scss'
  */
 export function CommandRail(): ReactNode {
   const update = useSystemStore(selectUpdate)
+
+  /*
+   * Navigation guard.
+   *
+   * A page holding unsaved changes claims the guard, and clicking a rail entry
+   * nudges its bar instead of leaving. Implemented here rather than with a
+   * route blocker because the app uses a plain `<Routes>` tree, which has no
+   * blocker — and because the rail is the only way out of a page, so guarding
+   * it is complete rather than partial.
+   */
+  const unsavedGuard = useSystemStore((state) => state.unsavedGuard)
+  const nudgeUnsaved = useSystemStore((state) => state.nudgeUnsaved)
+
+  const guard = (event: ReactMouseEvent<HTMLAnchorElement>): void => {
+    if (!unsavedGuard) return
+    event.preventDefault()
+    nudgeUnsaved()
+  }
   const archive = useSystemStore(selectArchive)
   const updateReady = update?.state === 'downloaded' || update?.state === 'available'
   const commissioned = SECTIONS.filter((section) => section.implemented).length
@@ -40,6 +59,7 @@ export function CommandRail(): ReactNode {
             <li key={section.id}>
               <NavLink
                 to={section.path}
+                onClick={guard}
                 end={section.path === '/'}
                 className={({ isActive }) =>
                   [styles.item, isActive ? styles.active : ''].filter(Boolean).join(' ')

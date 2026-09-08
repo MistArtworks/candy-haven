@@ -18,7 +18,8 @@ type Channel = 'boot' | 'archive' | 'update' | 'window'
  */
 export function SystemBridge({ children }: { children: ReactNode }): ReactNode {
   useEffect(() => {
-    const { setBoot, setArchive, setUpdate, setSettings, setWindow } = useSystemStore.getState()
+    const { setBoot, setArchive, setUpdate, setSettings, setSettingsBaseline, setWindow } =
+      useSystemStore.getState()
 
     const live = new Set<Channel>()
     const claim =
@@ -54,6 +55,9 @@ export function SystemBridge({ children }: { children: ReactNode }): ReactNode {
       if (!live.has('window')) setWindow(windowState)
       // Settings have no push channel; the fetched value is always authoritative.
       setSettings(settings)
+      // Whatever the main process hands back is by definition persisted, so
+      // it is also the baseline unsaved changes are measured against.
+      setSettingsBaseline(settings)
     })()
 
     return () => {
