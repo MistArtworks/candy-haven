@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { getSectionByPath } from '@shared/domain/navigation'
 import { TimerCues } from '@renderer/app/providers/TimerCues'
+import { ConcordCues } from '@renderer/app/providers/ConcordCues'
 import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
 import { CommandRail } from '@renderer/components/nav/CommandRail'
@@ -50,6 +51,7 @@ export function ConsoleLayout(): ReactNode {
         the operator while they are looking at something else. Renders nothing.
       */}
       <TimerCues />
+      <ConcordCues />
 
       <TitleBar />
 

@@ -1,0 +1,37 @@
+@use 'abstracts' as *;
+// Theme only — the palette and the type stacks, which the canvas reads back out
+// of the document as custom properties. No reset beyond the essentials and no
+// chrome: this overlay is a single canvas.
+@use 'base/theme';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /*
+   * The document is always transparent; the *canvas* decides.
+   *
+   * THE CONCORD can occupy a scene or composite over one, and that is a config
+   * option rather than a property of the page — so the backdrop is painted by
+   * the renderer when `transparent` is off, and simply not painted when it is
+   * on. Setting a background here instead would make the choice unavailable to
+   * the console and impossible to change without editing a stylesheet.
+   */
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+#face {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

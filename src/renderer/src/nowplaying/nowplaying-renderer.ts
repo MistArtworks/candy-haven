@@ -6,6 +6,7 @@ import {
   trackProgressAt,
   trackProgressRatio
 } from '@shared/domain/nowplaying.constants'
+import { withAlpha } from '@renderer/overlays/colour'
 
 /**
  * The NOW TRANSMITTING face.
@@ -69,15 +70,6 @@ function readPalette(root: HTMLElement): typeof FALLBACK {
     display: read('--ch-font-display', FALLBACK.display),
     mono: read('--ch-font-mono', FALLBACK.mono)
   }
-}
-
-function withAlpha(colour: string, alpha: number): string {
-  const hex = colour.trim()
-  if (!hex.startsWith('#') || hex.length !== 7) return hex
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`
 }
 
 const easeOutExpo = (t: number): number => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t))

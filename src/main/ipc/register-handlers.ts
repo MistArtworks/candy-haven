@@ -176,6 +176,36 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('rite:reset', () => services.rite.reset())
   router.handle('rite:history-clear', () => services.rite.clearHistory())
 
+  // ----------------------------------------------------------------- concord
+
+  router.handle('concord:state', () => services.concord.current)
+  router.handle('concord:option-add', (draft) => services.concord.addOption(draft))
+  router.handle('concord:option-remove', ({ id }) => services.concord.removeOption(id))
+  router.handle('concord:ballot', ({ labels }) => services.concord.setBallot(labels))
+  router.handle('concord:ballot-clear', () => services.concord.clearBallot())
+  router.handle('concord:config', (patch) => services.concord.updateConfig(patch))
+  router.handle('concord:open', () => services.concord.open())
+  router.handle('concord:close', () => services.concord.close())
+  router.handle('concord:reset', () => services.concord.reset())
+  router.handle('concord:history-clear', () => services.concord.clearHistory())
+
+  /*
+   * Synthetic votes. The service refuses unless test mode is on.
+   *
+   * Declared in the contract like every other channel rather than omitted from
+   * packaged builds, so a rejection arrives as a structured error the console can
+   * explain instead of an unknown-channel failure that would look like a bug in
+   * the bridge.
+   */
+  router.handle('concord:simulate', ({ count, changeVotes }) =>
+    services.concord.simulate(count, { changeVotes })
+  )
+
+  // -------------------------------------------------------------------- chat
+
+  router.handle('chat:status', () => services.chat.status)
+  router.handle('chat:reconnect', () => services.chat.reconnect())
+
   // -------------------------------------------------------------------- timers
 
   router.handle('timer:all', () => services.timers.all)
@@ -283,6 +313,8 @@ export function registerEventBridges(deps: {
   services.telemetry.on('sample', (state) => router.broadcast('telemetry:sample', state))
   services.projects.on('scan', (state) => router.broadcast('projects:scan', state))
   services.rite.on('state', (state) => router.broadcast('rite:state', state))
+  services.concord.on('state', (state) => router.broadcast('concord:state', state))
+  services.chat.on('status', (status) => router.broadcast('chat:status', status))
   services.timers.on('state', (state) => router.broadcast('timer:state', state))
   services.nowPlaying.on('state', (state) => router.broadcast('nowplaying:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))

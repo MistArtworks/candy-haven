@@ -1,12 +1,11 @@
 import type { RiteMechanism, RitePhase, SpinCommand } from '@shared/domain/rite'
 import { LOGOMARK_PATH, LOGOMARK_VIEWBOX } from '@renderer/components/sigil/logomark.path'
 import {
-  DOCKET_VISIBLE_ROWS,
   POINTER_ANGLE,
+  PROCESSION_EASING,
+  REEL_OVERSHOOT_PLATES,
   TAU,
-  attritionOrder,
-  attritionStruckAt,
-  docketRowAt,
+  clamp01,
   reelFrameAt,
   reelPetitionIndex,
   segmentAngle,
@@ -14,6 +13,18 @@ import {
   tickIndexAt,
   totalSpinDurationMs
 } from '@shared/domain/rite.constants'
+import type { DescentPlan } from '@shared/domain/rite.descent'
+import {
+  DESCENT_COURSE,
+  MOTE_RADIUS,
+  descentFrameAt,
+  descentPlan,
+  motePosition,
+  shaftRadius,
+  vaneAngle
+} from '@shared/domain/rite.descent'
+import { readCustomProperty, withAlpha } from '@renderer/overlays/colour'
+import { createField, paintResonanceField } from '@renderer/overlays/resonance-field'
 
 /**
  * The Resonance Selection ring.
@@ -63,17 +74,8 @@ export interface WheelOptions {
   compact?: boolean
 }
 
-interface FieldNode {
-  x: number
-  y: number
-  z: number
-  jitter: number
-  drift: number
-}
-
 /** Nodes in the resonance field surrounding the ring. */
 const FIELD_NODES = 74
-const FIELD_LINK_DISTANCE = 0.66
 
 /** How long a pointer tick stays lit. Short enough to read as a strike. */
 const TICK_PULSE_MS = 150
@@ -99,6 +101,71 @@ const MARK_PERIOD_SECONDS = 48
  * an object.
  */
 const MARK_FILL = 0.6
+
+/*
+ * THE DESCENT's camera.
+ *
+ * Fixed, and shallow on purpose. Enough pitch that the shaft's rings read as
+ * ellipses and a mote's depth is legible, not so much that the drop stops
+ * reading as a drop. `FOCAL` matching `CAM_DIST` puts unit scale at the look
+ * point, which makes `shaftSpan` mean exactly "pixels per shaft radius at the
+ * middle of the fall" and keeps the layout arithmetic honest.
+ */
+const DESCENT_PITCH = 0.42
+const DESCENT_SIN = Math.sin(DESCENT_PITCH)
+const DESCENT_COS = Math.cos(DESCENT_PITCH)
+const DESCENT_CAM_DIST = 3.1
+const DESCENT_FOCAL = 3.1
+const DESCENT_LOOK_Y = 0.45
+
+/** Rings down the shaft wall, and ribs around it. */
+const DESCENT_WALL_RINGS = 22
+const DESCENT_RIBS = 12
+const DESCENT_ELLIPSE_STEPS = 40
+
+/** Depth-sorted item kinds. Plain numbers: this is a hot switch. */
+const DESCENT_PEG = 0
+const DESCENT_PILLAR = 1
+const DESCENT_VANE = 2
+const DESCENT_MOTE = 3
+
+interface DescentItem {
+  kind: number
+  depth: number
+  x: number
+  y: number
+  x2: number
+  y2: number
+  radius: number
+  mote: number
+}
+
+const DESCENT_ITEM = (): DescentItem => ({
+  kind: 0,
+  depth: 0,
+  x: 0,
+  y: 0,
+  x2: 0,
+  y2: 0,
+  radius: 0,
+  mote: -1
+})
+
+/**
+ * The named zones, for the gauge down the left edge.
+ *
+ * Depths mirror the course laid out in `rite.descent.ts`. Kept here rather than
+ * there because they are captions — the simulation has no opinion about what
+ * its obstacles are called.
+ */
+const DESCENT_ZONES: readonly { y: number; label: string; focal?: boolean }[] = [
+  { y: -0.04, label: 'RELEASE' },
+  { y: 0.2, label: 'THE LATTICE' },
+  { y: 0.44, label: 'THE VANES' },
+  { y: 0.63, label: 'THE COLONNADE' },
+  { y: 0.87, label: 'THE THROAT' },
+  { y: 1, label: 'NAYARA', focal: true }
+]
 
 const FALLBACK = {
   wedgeA: '#0c0c0c',
@@ -136,13 +203,8 @@ const FALLBACK = {
  */
 function readPalette(root: HTMLElement): typeof FALLBACK {
   const styles = getComputedStyle(root)
-  const read = (names: readonly string[], fallback: string): string => {
-    for (const name of names) {
-      const value = styles.getPropertyValue(name).trim()
-      if (value.length > 0 && !value.includes('var(')) return value
-    }
-    return fallback
-  }
+  const read = (names: readonly string[], fallback: string): string =>
+    readCustomProperty(styles, names, fallback)
 
   return {
     wedgeA: read(['--ch-ring-wedge-a', '--ch-obsidian-800'], FALLBACK.wedgeA),
@@ -162,39 +224,6 @@ function readPalette(root: HTMLElement): typeof FALLBACK {
     display: read(['--ch-font-display'], FALLBACK.display),
     mono: read(['--ch-font-mono'], FALLBACK.mono)
   }
-}
-
-/** `#rrggbb` -> `rgba(r, g, b, a)`. */
-function withAlpha(colour: string, alpha: number): string {
-  const hex = colour.trim()
-  if (!hex.startsWith('#') || (hex.length !== 7 && hex.length !== 4)) {
-    // Already a functional colour (the line tokens are rgba literals); the
-    // caller's alpha cannot be applied, so return it untouched rather than
-    // producing an invalid style that silently paints nothing.
-    return hex
-  }
-  const full = hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex
-  const r = parseInt(full.slice(1, 3), 16)
-  const g = parseInt(full.slice(3, 5), 16)
-  const b = parseInt(full.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`
-}
-
-/** Even distribution over a sphere; random placement clumps badly at this count. */
-function createField(count: number): FieldNode[] {
-  const golden = Math.PI * (3 - Math.sqrt(5))
-  return Array.from({ length: count }, (_, i) => {
-    const y = 1 - (i / (count - 1)) * 2
-    const radius = Math.sqrt(Math.max(1 - y * y, 0))
-    const theta = golden * i
-    return {
-      x: Math.cos(theta) * radius,
-      y,
-      z: Math.sin(theta) * radius,
-      jitter: 0.88 + Math.random() * 0.24,
-      drift: Math.random() * TAU
-    }
-  })
 }
 
 export class RiteWheel {
@@ -228,6 +257,40 @@ export class RiteWheel {
   /** Tick tracking, so the pointer strikes once per boundary crossing. */
   private lastTickIndex: number | null = null
   private tickAt = 0
+
+  /** Memo for `fitText`, keyed by text, measure width and font. */
+  private readonly fitted = new Map<string, string>()
+
+  /*
+   * THE DESCENT's working state.
+   *
+   * Scratch rather than locals because `project` is called several hundred
+   * times a frame and the item pool is rebuilt every frame; both would
+   * otherwise allocate continuously for a mechanism that is on screen for
+   * minutes at a time.
+   */
+  private shaftSpan = 0
+  private shaftX = 0
+  private shaftY = 0
+  private pX = 0
+  private pY = 0
+  private pUnit = 0
+  private pDepth = 0
+  private readonly descentItems: DescentItem[] = []
+  private readonly descentOrder: number[] = []
+  /**
+   * This frame's absorption and approach, shared by the passes below.
+   *
+   * Set once at the top of `drawDescent` rather than by whichever pass computes
+   * them first: the aperture is drawn before the motes, so having the mote pass
+   * assign these left Nayara glowing one frame behind the thing it was
+   * swallowing.
+   */
+  private descentAbsorbed = 0
+  private descentApproach = 0
+  private readonly plexusX: number[] = []
+  private readonly plexusY: number[] = []
+  private readonly plexusFog: number[] = []
 
   constructor(canvas: HTMLCanvasElement, options: WheelOptions = {}) {
     const context = canvas.getContext('2d')
@@ -276,7 +339,7 @@ export class RiteWheel {
      *
      * The ring is, and still draws into `size` — the shorter axis — centred in
      * whatever box it is given. The linear mechanisms want the whole box: a
-     * rail is wide and a docket is tall, and squaring the canvas would throw
+     * rail is wide and a shaft is tall, and squaring the canvas would throw
      * away most of the frame they have.
      *
      * Both dimensions have to be recorded here. They are what `paint` clears
@@ -322,6 +385,23 @@ export class RiteWheel {
 
   // --------------------------------------------------------------- painting
 
+  /**
+   * The instant a spin command should be evaluated at.
+   *
+   * The wall clock while motion is on: both surfaces read the same one, which
+   * is what lets an overlay that connects halfway through a spin pick the
+   * animation up at the correct offset instead of starting over.
+   *
+   * With motion off there is no frame loop, so the command is evaluated at its
+   * end instead and every presentation paints one resting frame on the winner.
+   * Reading the live clock in that mode meant the single paint froze the strip
+   * wherever the spin happened to be at that instant — mark on one slab, stamp
+   * naming another — because nothing would ever repaint to move it.
+   */
+  private spinClock(spin: SpinCommand): number {
+    return this.motion ? Date.now() : spin.startedAt + totalSpinDurationMs(spin)
+  }
+
   private paint(now: number): void {
     const { context: ctx, size } = this
     const delta = Math.min((now - this.lastFrameAt) / 1000, 0.05)
@@ -345,19 +425,13 @@ export class RiteWheel {
     const count = this.state.petitions.length
 
     // Where is the ring, and how hard is it working?
-    const wallNow = Date.now()
     let rotation = 0
     let velocity = 0
     let progress = 0
     let settled = true
 
     if (this.state.spin && this.state.phase !== 'idle') {
-      const frame = this.motion
-        ? spinFrameAt(this.state.spin, wallNow)
-        : spinFrameAt(
-            this.state.spin,
-            this.state.spin.startedAt + totalSpinDurationMs(this.state.spin)
-          )
+      const frame = spinFrameAt(this.state.spin, this.spinClock(this.state.spin))
       rotation = frame.rotation
       velocity = frame.velocity
       progress = frame.progress
@@ -382,13 +456,13 @@ export class RiteWheel {
      *
      * Decided before anything is drawn, and before the empty-roster branch.
      * Both of those are ring-specific: the resonance field belongs to the ring
-     * and has no business behind a docket, and returning early on an empty
+     * and has no business behind a rail, and returning early on an empty
      * roster meant the mechanism could not be previewed until a petition had
      * been filed — which is exactly when an operator wants to look at it.
      */
     const mechanism = this.state.mechanism ?? 'ring'
     if (mechanism !== 'ring') {
-      this.drawLinear(mechanism, now, settled, velocity, progress, spinning)
+      this.drawLinear(mechanism, now, settled, progress, spinning)
       return
     }
 
@@ -461,63 +535,19 @@ export class RiteWheel {
    * the segments, so what reads on screen is a halo.
    */
   private drawField(centre: number, radius: number, velocity: number, now: number): void {
-    const { context: ctx, palette } = this
-    const tint = palette.gold
-    const agitation = 1 + velocity * 0.42
-    const cos = Math.cos(this.fieldRotation)
-    const sin = Math.sin(this.fieldRotation)
-    const tiltCos = Math.cos(0.42)
-    const tiltSin = Math.sin(0.42)
-
-    const projected = this.field.map((node) => {
-      const breath = 1 + Math.sin(now / 1400 + node.drift) * 0.05 * agitation
-      const r = radius * node.jitter * breath
-      const x1 = node.x * cos - node.z * sin
-      const z1 = node.x * sin + node.z * cos
-      const y1 = node.y * tiltCos - z1 * tiltSin
-      const z2 = node.y * tiltSin + z1 * tiltCos
-      const perspective = 1.6 / (1.6 - z2 * 0.55)
-      return {
-        sx: centre + x1 * r * perspective,
-        sy: centre + y1 * r * perspective,
-        ux: x1,
-        uy: node.y,
-        uz: z1,
-        depth: (z2 + 1) / 2
-      }
-    })
-
-    const intensity = 0.7 + velocity * 0.4
-
-    for (let i = 0; i < projected.length; i += 1) {
-      const a = projected[i]
-      for (let j = i + 1; j < projected.length; j += 1) {
-        const b = projected[j]
-        const dx = a.ux - b.ux
-        const dy = a.uy - b.uy
-        const dz = a.uz - b.uz
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz)
-        if (distance > FIELD_LINK_DISTANCE) continue
-
-        const closeness = 1 - distance / FIELD_LINK_DISTANCE
-        const depth = (a.depth + b.depth) / 2
-        const alpha = closeness * closeness * (0.06 + depth * 0.2) * intensity
-
-        ctx.strokeStyle = withAlpha(tint, alpha)
-        ctx.lineWidth = 0.5 + depth * 0.5
-        ctx.beginPath()
-        ctx.moveTo(a.sx, a.sy)
-        ctx.lineTo(b.sx, b.sy)
-        ctx.stroke()
-      }
-    }
-
-    for (const point of projected) {
-      ctx.fillStyle = withAlpha(palette.goldBright, (0.1 + point.depth * 0.34) * intensity)
-      ctx.beginPath()
-      ctx.arc(point.sx, point.sy, 0.4 + point.depth * 1.2, 0, TAU)
-      ctx.fill()
-    }
+    paintResonanceField(
+      this.context,
+      this.field,
+      {
+        centreX: centre,
+        centreY: centre,
+        radius,
+        rotation: this.fieldRotation,
+        energy: velocity,
+        now
+      },
+      { line: this.palette.gold, node: this.palette.goldBright }
+    )
   }
 
   private drawSegments(centre: number, radius: number, rotation: number, count: number): void {
@@ -609,15 +639,35 @@ export class RiteWheel {
     ctx.restore()
   }
 
+  /**
+   * Truncates to fit, memoised on the answer rather than the question.
+   *
+   * The uncached path is a `measureText` per character shaved off, and the rail
+   * runs it for every slab on screen on every frame — the same handful of
+   * labels, at the same size, sixty times a second. The answer only changes
+   * when the roster, the layout or the font does, so it is cached against all
+   * three and the loop becomes a map lookup.
+   */
   private fitText(text: string, maxWidth: number): string {
     const ctx = this.context
-    if (ctx.measureText(text).width <= maxWidth) return text
+    const key = `${ctx.font}|${Math.round(maxWidth)}|${text}`
+    const cached = this.fitted.get(key)
+    if (cached !== undefined) return cached
 
-    let trimmed = text
-    while (trimmed.length > 1 && ctx.measureText(`${trimmed}…`).width > maxWidth) {
-      trimmed = trimmed.slice(0, -1)
+    let result = text
+    if (ctx.measureText(text).width > maxWidth) {
+      let trimmed = text
+      while (trimmed.length > 1 && ctx.measureText(`${trimmed}…`).width > maxWidth) {
+        trimmed = trimmed.slice(0, -1)
+      }
+      result = `${trimmed}…`
     }
-    return `${trimmed}…`
+
+    // Bounded, because the font size and the width both scale with the canvas
+    // box: a window dragged to resize would otherwise add an entry per frame.
+    if (this.fitted.size > 512) this.fitted.clear()
+    this.fitted.set(key, result)
+    return result
   }
 
   /** Outer rim plus one tick per petition — the ring's institutional edge. */
@@ -1033,18 +1083,19 @@ export class RiteWheel {
   }
 
   // ==========================================================================
-  // Linear presentations
+  // The presentations that are not a ring
   //
-  // The ring turns; these three move a strip, step a bar, or strike records
-  // out. All derive from the same spin command, so the winner, the timing and
-  // the settle are shared and only the shape differs.
+  // The ring turns; the procession carries a strip past a mark; the descent
+  // drops the whole roster down a shaft. All three answer to the same spin
+  // command, so the winner, the timing and the settle are shared and only the
+  // shape differs — and the descent needs a whole simulation to get there, so
+  // it is the one that proves the point rather than assuming it.
   // ==========================================================================
 
   private drawLinear(
     mechanism: Exclude<RiteMechanism, 'ring'>,
     now: number,
     settled: boolean,
-    velocity: number,
     progress: number,
     spinning: boolean
   ): void {
@@ -1063,13 +1114,10 @@ export class RiteWheel {
 
     switch (mechanism) {
       case 'procession':
-        this.drawProcession(now, spin, count, velocity, progress, spinning, revealIndex, resolved)
+        this.drawProcession(now, spin, count, progress, spinning, revealIndex, resolved)
         break
-      case 'tribunal':
-        this.drawTribunal(now, spin, count, progress, spinning, revealIndex, resolved)
-        break
-      case 'attrition':
-        this.drawAttrition(now, spin, count, progress, spinning, revealIndex, resolved)
+      case 'descent':
+        this.drawDescent(now, spin, count, progress, spinning, revealIndex, resolved)
         break
     }
   }
@@ -1079,21 +1127,23 @@ export class RiteWheel {
   /**
    * THE PROCESSION — petitions stream past a fixed mark and one is held.
    *
-   * The case-opening arrangement rebuilt in the house materials: engraved slabs
-   * on a rail rather than coloured cards, a gold mark rather than a ticker, and
-   * the winner igniting crimson rather than flashing. It shares the ring's
-   * easing exactly, so the long readable crawl into the result and the
-   * overshoot-and-creep-back are the same beat.
+   * A colonnade rather than a carousel. Numbered stone slabs are carried
+   * through a recessed channel between a lintel and a plinth, past one fixed
+   * gold mark with a crimson core. The mark is the composition's single focal
+   * object and the only saturated thing on screen until a slab is held, which
+   * is the brief's rule rather than a preference: one focal point, one accent.
+   * Slabs are told apart by engraving and by their filed number, never by hue.
    *
    * The strip is drawn from a window around the current position rather than
-   * built as a list, so a roster of four reads as endless as a roster of forty
-   * and nothing is duplicated to fill the rail.
+   * built as a list, so a roster of two reads as endless as a roster of forty
+   * and nothing has to be duplicated to fill the rail. Slabs dim toward the
+   * edges of the frame, so the procession recedes into the dark rather than
+   * being cropped by it — and the mark stays the brightest thing on screen.
    */
   private drawProcession(
     now: number,
     spin: SpinCommand | null,
     count: number,
-    velocity: number,
     progress: number,
     spinning: boolean,
     revealIndex: number | null,
@@ -1101,371 +1151,1027 @@ export class RiteWheel {
   ): void {
     const { context: ctx, palette, width, height } = this
     const centreX = width / 2
-    const plateWidth = Math.min(width * 0.19, height * 0.34)
-    const plateHeight = plateWidth * 1.18
-    const step = plateWidth * 1.08
-    const railY = height * 0.5 - plateHeight / 2
 
-    const plates = spin ? reelFrameAt(spin, Date.now()).plates : 0
+    /*
+     * A stale command is worse than no command.
+     *
+     * `removeOnSelect` rewrites the roster the instant a result is recorded,
+     * while the command that positions the strip still carries the roster size
+     * it was armed with. The reel wraps modulo the roster, so one plate of
+     * arithmetic later the mark is over a different petition than the one the
+     * stamp names — precisely the mismatch this presentation exists to make
+     * legible. Fall back to the resting strip and let the stamp carry the
+     * result on its own.
+     */
+    const command = spin && spin.segmentCount === count ? spin : null
+    const at = command ? this.spinClock(command) : 0
+    const frame = command ? reelFrameAt(command, at, PROCESSION_EASING) : null
+    const plates = frame?.plates ?? 0
 
-    // Rail: a recessed channel the slabs run in.
-    ctx.fillStyle = withAlpha(palette.wedgeA, 0.85)
-    ctx.fillRect(0, railY - plateHeight * 0.1, width, plateHeight * 1.2)
-    ctx.strokeStyle = palette.wedgeEdge
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.moveTo(0, railY - plateHeight * 0.1)
-    ctx.lineTo(width, railY - plateHeight * 0.1)
-    ctx.moveTo(0, railY + plateHeight * 1.1)
-    ctx.lineTo(width, railY + plateHeight * 1.1)
-    ctx.stroke()
+    /*
+     * How fast the strip is running, in slabs per second.
+     *
+     * `velocity` is a multiple of the curve's average rate, so scaling it by the
+     * average turns it into something the composition can actually reason
+     * about. The procession's curve peaks near nine times its average, and a
+     * slab that crosses the mark in a couple of frames cannot be read at any
+     * size — so past that the engraving is dropped rather than smeared. That
+     * costs nothing to look at and saves the most expensive pass in the loop at
+     * exactly the moment the frame budget is tightest.
+     */
+    const pace =
+      command && frame
+        ? (frame.velocity *
+            (command.revolutions * count + command.targetIndex + REEL_OVERSHOOT_PLATES)) /
+          (command.durationMs / 1000)
+        : 0
+    const crisp = 1 - clamp01((pace - 3) / 6)
+
+    // Layout. Sized off both axes so the rail fills the frame it is given
+    // rather than a square inside it, and seated a little above centre to leave
+    // the stamp a footer of its own.
+    const plateWidth = Math.min(width * 0.17, height * 0.3)
+    const plateHeight = plateWidth * 1.5
+    const step = plateWidth * 1.1
+    const inset = plateHeight * 0.11
+    const channelTop = height * 0.46 - plateHeight / 2 - inset
+    const channelHeight = plateHeight + inset * 2
+    const railY = channelTop + inset
+
+    /*
+     * Which slab the mark is over, and how far off its centre the mark sits.
+     *
+     * Every ignition and every tick below is derived from these two numbers, so
+     * what lights up and what the mark is pointing at cannot disagree — which
+     * they previously could, because the highlight was gated on the spin having
+     * finished while the mark was still mid-overshoot.
+     */
+    const markIndex = Math.round(plates)
+    // Whether the mark is over a slab's face or the gap beside it. Slabs take
+    // up `plateWidth / step` of their pitch, so past half of that from a centre
+    // the mark is over the channel floor rather than over stone.
+    const onSlab = Math.abs(markIndex - plates) < plateWidth / step / 2
+
+    /*
+     * Ignition tracks the mark, not the clock.
+     *
+     * The mark reaches the winner when the strip begins its settle, and then
+     * creeps the last fraction of a slab home across the settle's full length.
+     * Lighting the slab only once the motion had stopped left it dark for that
+     * whole beat and then lit it after the movement had visibly ended, which
+     * reads as the mark having come to rest and the result being substituted
+     * afterwards.
+     *
+     * Gated on the settle having started, or the winner's slab would flash
+     * every time it passed under the mark during the spin.
+     */
+    const arriving = command !== null && at - command.startedAt >= command.durationMs
+    const holdIndex = revealIndex ?? (arriving && command ? command.targetIndex : null)
+    const held =
+      command !== null &&
+      holdIndex !== null &&
+      (arriving || resolved) &&
+      onSlab &&
+      reelPetitionIndex(markIndex, count) === holdIndex
+
+    this.drawProcessionCourse(centreX, channelTop, channelHeight, step)
 
     ctx.save()
     ctx.beginPath()
-    ctx.rect(0, railY - plateHeight * 0.1, width, plateHeight * 1.2)
+    ctx.rect(0, channelTop, width, channelHeight)
     ctx.clip()
 
-    // Only the plates that can be on screen are drawn.
-    const span = Math.ceil(width / step / 2) + 2
-    const anchor = Math.round(plates)
+    /*
+     * Only the slabs that can actually land inside the channel are drawn.
+     *
+     * A symmetric span around the mark kept drawing a couple past each edge,
+     * and every one of those costs a rotated text pass for nothing. Negative
+     * reel indices are drawn rather than skipped: `reelPetitionIndex` wraps
+     * them correctly, and skipping them left the whole left half of the rail
+     * empty until the strip had travelled far enough to fill it.
+     */
+    const half = plateWidth / 2
+    const first = Math.floor(plates - (centreX + half) / step)
+    const last = Math.ceil(plates + (width - centreX + half) / step)
+    const reach = Math.max(centreX, width - centreX) + half
 
-    for (let offset = -span; offset <= span; offset += 1) {
-      const reelIndex = anchor + offset
-      if (reelIndex < 0) continue
-
-      const index = reelPetitionIndex(reelIndex, count)
-      const x = centreX + (reelIndex - plates) * step - plateWidth / 2
-      const isWinner = resolved && index === revealIndex && Math.abs(reelIndex - plates) < 0.5
-
-      this.drawProcessionPlate(x, railY, plateWidth, plateHeight, index, isWinner)
+    const slabs: { index: number; x: number; alpha: number; lit: boolean }[] = []
+    for (let reelIndex = first; reelIndex <= last; reelIndex += 1) {
+      const centre = centreX + (reelIndex - plates) * step
+      const fade = Math.min(Math.abs(centre - centreX) / reach, 1)
+      slabs.push({
+        index: reelPetitionIndex(reelIndex, count),
+        x: centre - half,
+        alpha: 1 - fade * fade * 0.72,
+        lit: held && reelIndex === markIndex
+      })
     }
+
+    /*
+     * Three passes rather than everything per slab.
+     *
+     * The bodies, then every filed number with the font set once, then every
+     * label with it set once again. Canvas state changes — font in particular —
+     * are what this loop actually costs, not the fills.
+     */
+    for (const slab of slabs) {
+      this.drawSlab(slab.x, railY, plateWidth, plateHeight, slab, crisp, now)
+    }
+
+    if (crisp > 0.02) {
+      const numberSize = Math.max(8, plateWidth * 0.115)
+      ctx.font = `${numberSize}px ${palette.mono}`
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'top'
+      for (const slab of slabs) {
+        ctx.fillStyle = withAlpha(
+          slab.lit ? palette.goldBright : palette.gold,
+          slab.alpha * crisp * 0.8
+        )
+        ctx.fillText(
+          String(slab.index + 1).padStart(2, '0'),
+          slab.x + plateWidth * 0.11,
+          railY + plateHeight * 0.075
+        )
+      }
+
+      const labelSize = Math.max(9, plateWidth * 0.145)
+      const labelMax = plateHeight * 0.72
+      ctx.font = `${labelSize}px ${palette.display}`
+      ctx.textBaseline = 'middle'
+      for (const slab of slabs) {
+        const petition = this.state.petitions[slab.index]
+        if (!petition) continue
+        const text = this.fitText(petition.label.toUpperCase(), labelMax)
+
+        ctx.save()
+        ctx.translate(slab.x + plateWidth * 0.61, railY + plateHeight * 0.88)
+        ctx.rotate(-Math.PI / 2)
+        // Engraved rather than printed: the incision's shadow first, then the
+        // lit face a hair above it. Two fills, and the label stops reading as
+        // ink on a surface and starts reading as cut into one.
+        ctx.fillStyle = withAlpha(palette.wedgeA, slab.alpha * crisp * 0.85)
+        ctx.fillText(text, 0, 1)
+        ctx.fillStyle = withAlpha(palette.label, slab.alpha * crisp)
+        ctx.fillText(text, 0, 0)
+        ctx.restore()
+      }
+    }
+
     ctx.restore()
 
-    // The mark: a fixed gold blade through the rail, with a chevron at each end.
-    const markTop = railY - plateHeight * 0.22
-    const markBottom = railY + plateHeight * 1.22
-    const pulse = this.tickPulse(plates * segmentAngle(count), count, now, spinning)
+    this.drawProcessionMark(
+      centreX,
+      channelTop,
+      channelHeight,
+      plateWidth,
+      this.plateTick(plates, now, spinning),
+      held,
+      now
+    )
 
-    ctx.strokeStyle = pulse > 0.02 ? palette.goldBright : palette.gold
-    ctx.lineWidth = pulse > 0.02 ? 2.2 : 1.6
-    ctx.beginPath()
-    ctx.moveTo(centreX, markTop)
-    ctx.lineTo(centreX, markBottom)
-    ctx.stroke()
-
-    const chevron = plateWidth * 0.09
-    ctx.fillStyle = pulse > 0.02 ? palette.goldBright : palette.gold
-    for (const [y, direction] of [
-      [markTop, 1],
-      [markBottom, -1]
-    ] as const) {
-      ctx.beginPath()
-      ctx.moveTo(centreX, y + chevron * direction)
-      ctx.lineTo(centreX - chevron * 0.8, y)
-      ctx.lineTo(centreX + chevron * 0.8, y)
-      ctx.closePath()
-      ctx.fill()
+    // Footer: the progress rule while it runs, the stamp once it has landed.
+    const footer = channelTop + channelHeight
+    if (spinning) {
+      this.drawProgressRule(footer + Math.max((height - footer) * 0.18, 10), progress)
     }
-
-    if (spinning) this.drawProgressRule(height - height * 0.1, progress)
     if (resolved && revealIndex !== null) {
       const label = this.state.winnerLabel ?? this.state.petitions[revealIndex]?.label
-      if (label) this.drawStampAt(centreX, height * 0.86, width * 0.7, label)
+      if (label) {
+        this.drawStampAt(centreX, (footer + height) / 2, Math.min(width * 0.6, step * 3.6), label)
+      }
     }
-
-    void velocity
   }
 
-  /** One slab on the rail. Engraved, numbered, and lit only if it wins. */
-  private drawProcessionPlate(
+  /**
+   * The course the procession is carried through: recess, lintel, plinth.
+   *
+   * Flat bands of stone with a hairline gold lip and a notch on the slabs' own
+   * interval. Repetition rather than ornament — the rail should read as
+   * standing infrastructure that was here before this spin and will be here
+   * after it, which is the whole difference between an altar and a widget.
+   */
+  private drawProcessionCourse(
+    centreX: number,
+    channelTop: number,
+    channelHeight: number,
+    step: number
+  ): void {
+    const { context: ctx, palette, width } = this
+    const bottom = channelTop + channelHeight
+    const band = Math.max(channelHeight * 0.075, 5)
+
+    // The recess itself, a shade under the slabs that sit in it.
+    ctx.fillStyle = withAlpha(palette.wedgeA, 0.92)
+    ctx.fillRect(0, channelTop, width, channelHeight)
+
+    // Lintel above, plinth below.
+    ctx.fillStyle = withAlpha(palette.brass, 0.32)
+    ctx.fillRect(0, channelTop - band, width, band)
+    ctx.fillRect(0, bottom, width, band)
+
+    // Both lips catch the light, but the recess is lit from above, so the upper
+    // one reads as an edge and the lower one only glints.
+    ctx.fillStyle = withAlpha(palette.gold, 0.5)
+    ctx.fillRect(0, channelTop - 1, width, 1)
+    ctx.fillStyle = withAlpha(palette.gold, 0.24)
+    ctx.fillRect(0, bottom, width, 1)
+
+    // Notches, phased to the gaps between slabs so the structure and the
+    // procession are visibly measured against one another.
+    const notch = band * 0.62
+    ctx.fillStyle = withAlpha(palette.goldDim, 0.36)
+    const from = Math.ceil(-centreX / step - 0.5)
+    const to = Math.floor((width - centreX) / step + 0.5)
+    for (let i = from; i <= to; i += 1) {
+      const x = Math.round(centreX + (i + 0.5) * step)
+      ctx.fillRect(x, channelTop - band, 1, notch)
+      ctx.fillRect(x, bottom + band - notch, 1, notch)
+    }
+  }
+
+  /**
+   * One slab on the rail: cut stone, numbered elsewhere, lit only if it is held.
+   *
+   * Carries no text of its own — the numbers and labels are drawn in their own
+   * passes so the font is set twice a frame instead of twice a slab.
+   *
+   * `crisp` falls toward zero as the strip outruns the eye, and takes the carved
+   * detail with it: the bevel and the edge are what make a slab read as a
+   * discrete block, so holding them at full strength through the burst turns the
+   * rail into a strobing picket fence. Fading them lets the procession blur into
+   * a band of stone, which is what it should look like at speed.
+   */
+  private drawSlab(
     x: number,
     y: number,
     plateWidth: number,
     plateHeight: number,
-    index: number,
-    isWinner: boolean
+    slab: { index: number; alpha: number; lit: boolean },
+    crisp: number,
+    now: number
   ): void {
     const { context: ctx, palette } = this
-    const petition = this.state.petitions[index]
-    if (!petition) return
 
-    if (isWinner) {
+    ctx.globalAlpha = slab.alpha
+
+    if (slab.lit) {
+      // Crimson appears here and on the mark and nowhere else.
       const gradient = ctx.createLinearGradient(x, y, x, y + plateHeight)
-      gradient.addColorStop(0, withAlpha(palette.crimson, 0.62))
-      gradient.addColorStop(1, withAlpha(palette.crimsonDeep, 0.94))
+      gradient.addColorStop(0, withAlpha(palette.crimson, 0.66))
+      gradient.addColorStop(1, withAlpha(palette.crimsonDeep, 0.95))
       ctx.fillStyle = gradient
+      ctx.fillRect(x, y, plateWidth, plateHeight)
     } else {
-      ctx.fillStyle = index % 2 === 0 ? palette.wedgeA : palette.wedgeB
-    }
-    ctx.fillRect(x, y, plateWidth, plateHeight)
+      ctx.fillStyle = slab.index % 2 === 0 ? palette.wedgeA : palette.wedgeB
+      ctx.fillRect(x, y, plateWidth, plateHeight)
 
-    ctx.strokeStyle = isWinner ? withAlpha(palette.crimsonBright, 0.9) : palette.wedgeEdge
-    ctx.lineWidth = isWinner ? 1.6 : 1
+      // Low warm key from above against cold stone. Two thin washes rather than
+      // a full-height gradient: the slab should look lit, not tinted.
+      const key = ctx.createLinearGradient(x, y, x, y + plateHeight * 0.45)
+      key.addColorStop(0, withAlpha(palette.gold, 0.075))
+      key.addColorStop(1, withAlpha(palette.gold, 0))
+      ctx.fillStyle = key
+      ctx.fillRect(x, y, plateWidth, plateHeight * 0.45)
+    }
+
+    // Bevel: a lit top and left, a shadowed bottom and right. This is what
+    // makes the slab read as a block with thickness rather than a filled box.
+    ctx.fillStyle = withAlpha(palette.gold, (slab.lit ? 0.34 : 0.13) * crisp)
+    ctx.fillRect(x, y, plateWidth, 1)
+    ctx.fillRect(x, y, 1, plateHeight)
+    ctx.fillStyle = withAlpha(palette.wedgeA, 0.75 * crisp)
+    ctx.fillRect(x, y + plateHeight - 1, plateWidth, 1)
+    ctx.fillRect(x + plateWidth - 1, y, 1, plateHeight)
+
+    // The held slab keeps its outline whatever the pace: by the time anything
+    // is held the strip is crawling, and the ignition is the one edge in the
+    // composition that must never be ambiguous.
+    ctx.globalAlpha = slab.alpha * (slab.lit ? 1 : 0.35 + crisp * 0.65)
+    ctx.strokeStyle = slab.lit
+      ? withAlpha(palette.crimsonBright, 0.7 + Math.sin(now / 520) * 0.18)
+      : palette.wedgeEdge
+    ctx.lineWidth = slab.lit ? 1.6 : 1
     ctx.strokeRect(x + 0.5, y + 0.5, plateWidth - 1, plateHeight - 1)
 
-    // Filed number: the anchor between the rail, the roster and the result.
-    const numberSize = Math.max(7, plateWidth * 0.11)
-    ctx.font = `${numberSize}px ${palette.mono}`
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'top'
-    ctx.fillStyle = withAlpha(isWinner ? palette.goldBright : palette.gold, 0.75)
-    ctx.fillText(String(index + 1).padStart(2, '0'), x + plateWidth * 0.09, y + plateHeight * 0.09)
+    ctx.globalAlpha = 1
+  }
 
-    // The label runs down the slab, which is the only direction it fits.
-    const labelSize = Math.max(8, plateWidth * 0.13)
+  /**
+   * The mark: the one fixed thing in the composition, and its focal object.
+   *
+   * A gold blade over a crimson core, capped at each end by a chevron seated in
+   * a short bar so it reads as a fixture bolted through the lintel and the
+   * plinth rather than an arrow floating over a list. The wash behind it
+   * widens on each tick and breathes once a slab is held, which lets the mark
+   * carry the rhythm of the spin without ever moving.
+   */
+  private drawProcessionMark(
+    centreX: number,
+    channelTop: number,
+    channelHeight: number,
+    plateWidth: number,
+    tick: number,
+    held: boolean,
+    now: number
+  ): void {
+    const { context: ctx, palette } = this
+    const lit = tick > 0.02
+
+    const glow = held ? 0.17 + Math.sin(now / 520) * 0.05 : 0.08 + tick * 0.1
+    const spread = plateWidth * (0.4 + tick * 0.15)
+    const wash = ctx.createLinearGradient(centreX - spread, 0, centreX + spread, 0)
+    wash.addColorStop(0, withAlpha(palette.crimson, 0))
+    wash.addColorStop(0.5, withAlpha(palette.crimson, glow))
+    wash.addColorStop(1, withAlpha(palette.crimson, 0))
+    ctx.fillStyle = wash
+    ctx.fillRect(centreX - spread, channelTop, spread * 2, channelHeight)
+
+    const top = channelTop - channelHeight * 0.1
+    const bottom = channelTop + channelHeight * 1.1
+
+    // A dim sheath under a warm core, so the blade holds an edge against both
+    // the dark slab and the lit one.
+    ctx.strokeStyle = withAlpha(palette.goldDim, 0.5)
+    ctx.lineWidth = lit ? 4.5 : 3.5
+    ctx.beginPath()
+    ctx.moveTo(centreX, top)
+    ctx.lineTo(centreX, bottom)
+    ctx.stroke()
+
+    ctx.strokeStyle = lit ? palette.goldBright : palette.gold
+    ctx.lineWidth = lit ? 1.8 : 1.2
+    ctx.beginPath()
+    ctx.moveTo(centreX, top)
+    ctx.lineTo(centreX, bottom)
+    ctx.stroke()
+
+    const chevron = Math.max(plateWidth * 0.085, 7)
+    const bar = chevron * 2.4
+    ctx.fillStyle = lit ? palette.goldBright : palette.gold
+    for (const [y, direction] of [
+      [top, 1],
+      [bottom, -1]
+    ] as const) {
+      ctx.fillRect(centreX - bar / 2, y - 1, bar, 2)
+      ctx.beginPath()
+      ctx.moveTo(centreX, y + chevron * direction)
+      ctx.lineTo(centreX - chevron * 0.78, y)
+      ctx.lineTo(centreX + chevron * 0.78, y)
+      ctx.closePath()
+      ctx.fill()
+    }
+  }
+
+  /**
+   * Boundary-crossing detector for the rail, counted in plates.
+   *
+   * Slab `k` is centred on the mark when the strip has travelled exactly `k`
+   * plates, so a gap crosses the mark at every half — which is what this
+   * counts.
+   *
+   * Deliberately not `tickIndexAt`. That measures a ring against a pointer at
+   * twelve o'clock, so feeding it a fabricated rotation folded `POINTER_ANGLE`
+   * into the answer as a `count / 4` plate offset: on eight petitions the mark
+   * struck when a slab was centred beneath it instead of when a gap passed,
+   * and on five it struck three-quarters of the way across a slab.
+   */
+  private plateTick(plates: number, now: number, spinning: boolean): number {
+    if (spinning) {
+      const index = Math.floor(plates + 0.5)
+      if (this.lastTickIndex === null) {
+        this.lastTickIndex = index
+      } else if (index !== this.lastTickIndex) {
+        this.lastTickIndex = index
+        this.tickAt = now
+      }
+    }
+
+    const age = now - this.tickAt
+    if (age < 0 || age > TICK_PULSE_MS) return 0
+    return 1 - age / TICK_PULSE_MS
+  }
+
+  // ---------------------------------------------------------------- descent
+
+  /**
+   * THE DESCENT — the motes are loosed and Nayara takes one.
+   *
+   * One mote per petition is released into a vertical shaft, falls through a
+   * gauntlet of lattice, vanes and colonnade, and the first to break the
+   * planet's surface is taken. The physics is real, unrigged and simulated once
+   * per command in `rite.descent.ts`; read the header there for how a live
+   * simulation is reconciled with a winner that was drawn before it started.
+   *
+   * Drawn in perspective rather than flat, because the shaft's whole point is
+   * depth: a mote's `z` decides whether it clears a peg, and a flat projection
+   * throws away the axis that decides the result. The camera is fixed — no
+   * orbit — so the composition stays symmetrical and both surfaces frame the
+   * event identically. The plexus behind it supplies the only ambient motion,
+   * exactly as it does on the ring and the boot screen.
+   */
+  private drawDescent(
+    now: number,
+    spin: SpinCommand | null,
+    count: number,
+    progress: number,
+    spinning: boolean,
+    revealIndex: number | null,
+    resolved: boolean
+  ): void {
+    const { context: ctx, palette, width, height } = this
+
+    // Same staleness guard the procession uses: `removeOnSelect` rewrites the
+    // roster the moment a result lands, and a plan baked for a different roster
+    // size would put the wrong petition on the mote Nayara took.
+    const command = spin && spin.segmentCount === count ? spin : null
+
+    /*
+     * Camera. Sized so the shaft's mouth spans the frame with the throat
+     * comfortably inside it.
+     *
+     * The mouth projects wider than the shaft is tall — perspective spreads the
+     * near end — which is what makes a tall structure sit properly in a 16:9
+     * frame instead of leaving two dead columns beside it.
+     */
+    this.shaftSpan = Math.min(width / 2.36, height / 1.2)
+    this.shaftX = width / 2
+    this.shaftY = height * 0.46
+
+    const plan = command ? descentPlan(command, count) : null
+    const frame = plan && command ? descentFrameAt(plan, command, this.spinClock(command)) : null
+    this.descentAbsorbed = frame?.absorbed ?? 0
+    // How close the descent is to ending, for the aperture's anticipation.
+    this.descentApproach = frame ? clamp01(frame.progress * 1.15) : 0
+
+    this.drawShaftPlexus()
+    this.drawNayara(command, now)
+    this.drawShaftWall()
+
+    this.collectDescent(plan, frame ? frame.frame : 0, count)
+    this.paintDescent(plan, revealIndex)
+
+    this.drawDescentGauge()
+
+    // Footer, on the same rhythm as the procession's.
+    if (spinning) this.drawProgressRule(height - height * 0.055, progress)
+    if (resolved && revealIndex !== null) {
+      const label = this.state.winnerLabel ?? this.state.petitions[revealIndex]?.label
+      if (label) {
+        this.drawStampAt(width / 2, height * 0.9, Math.min(width * 0.56, height * 0.9), label)
+      }
+    }
+
+    if (!command) {
+      ctx.font = `${Math.max(8, this.shaftSpan * 0.026)}px ${palette.mono}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = withAlpha(palette.labelDim, 0.7)
+      ctx.fillText('THE PORTS ARE SEALED', width / 2, height * 0.9)
+      ctx.textAlign = 'left'
+    }
+  }
+
+  /**
+   * World to screen.
+   *
+   * Writes into scratch fields rather than returning a point: this runs several
+   * hundred times a frame once the plexus links are counted, and a fresh object
+   * for each one is a megabyte a second of garbage for no benefit.
+   */
+  private project(x: number, y: number, z: number): void {
+    const dy = y - DESCENT_LOOK_Y
+    const depth = DESCENT_CAM_DIST + dy * DESCENT_SIN + z * DESCENT_COS
+    // Clamped off zero: a point behind the camera would otherwise invert, and
+    // the near plane sits well outside the shaft anyway.
+    const unit = (DESCENT_FOCAL / Math.max(depth, 0.35)) * this.shaftSpan
+    this.pDepth = depth
+    this.pUnit = unit
+    this.pX = this.shaftX + x * unit
+    this.pY = this.shaftY + (dy * DESCENT_COS - z * DESCENT_SIN) * unit
+  }
+
+  /** Depth cue: 0 at the near wall, 1 at the far one. */
+  private fog(depth: number): number {
+    return clamp01((depth - (DESCENT_CAM_DIST - 1.1)) / 2.2)
+  }
+
+  /**
+   * The resonance field, reshaped to line the shaft.
+   *
+   * The same node cloud the ring uses, stretched from a sphere into a tall
+   * column and projected through the descent's camera, so the plexus reads as
+   * the shaft's own hum rather than a backdrop pasted behind it. Omun is a
+   * resonance event originating inside the planet; this is the one place in the
+   * console where that is literally what is being drawn.
+   */
+  private drawShaftPlexus(): void {
+    const { context: ctx, palette } = this
+    const cos = Math.cos(this.fieldRotation)
+    const sin = Math.sin(this.fieldRotation)
+
+    const px: number[] = this.plexusX
+    const py: number[] = this.plexusY
+    const pf: number[] = this.plexusFog
+    let n = 0
+
+    for (const node of this.field) {
+      // Sphere to column: the radius is pushed out past the shaft wall and the
+      // vertical axis is stretched over the whole drop, so the nodes surround
+      // the course instead of sitting inside it.
+      const x = (node.x * cos - node.z * sin) * 1.24 * node.jitter
+      const z = (node.x * sin + node.z * cos) * 1.24 * node.jitter
+      const y = 0.5 + node.y * 0.78
+
+      this.project(x, y, z)
+      px[n] = this.pX
+      py[n] = this.pY
+      pf[n] = this.fog(this.pDepth)
+      n += 1
+    }
+
+    // Links first, so the nodes sit on top of their own web.
+    ctx.lineWidth = 1
+    for (let i = 0; i < n; i += 1) {
+      for (let j = i + 1; j < n; j += 1) {
+        const dx = px[i] - px[j]
+        const dy = py[i] - py[j]
+        const span = this.shaftSpan * 0.2
+        const distSq = dx * dx + dy * dy
+        if (distSq > span * span) continue
+
+        const near = 1 - Math.sqrt(distSq) / span
+        const dim = 1 - (pf[i] + pf[j]) * 0.5
+        ctx.strokeStyle = withAlpha(palette.goldDim, near * dim * 0.16)
+        ctx.beginPath()
+        ctx.moveTo(px[i], py[i])
+        ctx.lineTo(px[j], py[j])
+        ctx.stroke()
+      }
+    }
+
+    for (let i = 0; i < n; i += 1) {
+      ctx.fillStyle = withAlpha(palette.gold, (1 - pf[i]) * 0.34)
+      ctx.beginPath()
+      ctx.arc(px[i], py[i], 1.5, 0, TAU)
+      ctx.fill()
+    }
+  }
+
+  /**
+   * The shaft: stacked rings and vertical ribs.
+   *
+   * The rings are what make the throat legible — you can see the shaft close
+   * before any mote reaches it — and the ribs are the brief's golden ribbing,
+   * which is also the only thing that tells the eye the structure is a
+   * cylinder rather than a stack of unrelated ellipses.
+   */
+  private drawShaftWall(): void {
+    const { context: ctx, palette } = this
+
+    for (let step = 0; step <= DESCENT_WALL_RINGS; step += 1) {
+      const y = (step / DESCENT_WALL_RINGS) * 1.02 - 0.06
+      const radius = shaftRadius(y)
+      // A ring at the throat is a quarter the mouth's size, so its line has to
+      // carry more weight or the bottom of the shaft dissolves.
+      const emphasis = 0.5 + (1 - radius) * 0.7
+      this.ellipse(0, y, radius)
+      ctx.strokeStyle = withAlpha(palette.goldDim, 0.1 + emphasis * 0.14)
+      ctx.lineWidth = 1
+      ctx.stroke()
+    }
+
+    ctx.lineWidth = 1
+    for (let rib = 0; rib < DESCENT_RIBS; rib += 1) {
+      const angle = (rib / DESCENT_RIBS) * TAU
+      const cos = Math.cos(angle)
+      const sin = Math.sin(angle)
+
+      ctx.beginPath()
+      for (let step = 0; step <= DESCENT_WALL_RINGS; step += 1) {
+        const y = (step / DESCENT_WALL_RINGS) * 1.02 - 0.06
+        const radius = shaftRadius(y)
+        this.project(cos * radius, y, sin * radius)
+        if (step === 0) ctx.moveTo(this.pX, this.pY)
+        else ctx.lineTo(this.pX, this.pY)
+      }
+      // Ribs on the far side read as behind the course; near ones frame it.
+      const front = (sin + 1) / 2
+      ctx.strokeStyle = withAlpha(palette.goldDim, 0.08 + front * 0.16)
+      ctx.stroke()
+    }
+  }
+
+  /** A horizontal circle in the shaft, as a screen-space path. */
+  private ellipse(y: number, atY: number, radius: number): void {
+    const ctx = this.context
+    ctx.beginPath()
+    for (let i = 0; i <= DESCENT_ELLIPSE_STEPS; i += 1) {
+      const angle = (i / DESCENT_ELLIPSE_STEPS) * TAU
+      this.project(Math.cos(angle) * radius + y, atY, Math.sin(angle) * radius)
+      if (i === 0) ctx.moveTo(this.pX, this.pY)
+      else ctx.lineTo(this.pX, this.pY)
+    }
+    ctx.closePath()
+  }
+
+  /**
+   * Nayara, and the aperture into it.
+   *
+   * The planet is the composition's floor: a dark limb across the bottom of the
+   * frame with a warm rim where the shaft's light reaches it, and the aperture
+   * as the one crimson thing on screen until a mote is taken. That is the
+   * single-focal-object rule applied literally — the whole descent is a
+   * hundred small objects converging on one.
+   *
+   * On capture the surface answers with Omun: rings of resonance travelling out
+   * from the aperture across the limb.
+   */
+  private drawNayara(command: SpinCommand | null, now: number): void {
+    const { context: ctx, palette, width, height } = this
+
+    // The limb. Drawn as a wide, shallow arc so it reads as a body far larger
+    // than the frame rather than a bowl sitting in it.
+    this.project(0, 1, 0)
+    const surfaceY = this.pY
+    const unit = this.pUnit
+    const curve = unit * 2.4
+
     ctx.save()
-    ctx.translate(x + plateWidth * 0.62, y + plateHeight * 0.9)
-    ctx.rotate(-Math.PI / 2)
-    ctx.font = `${labelSize}px ${palette.display}`
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = palette.label
-    ctx.fillText(this.fitText(petition.label.toUpperCase(), plateHeight * 0.8), 0, 0)
+    ctx.beginPath()
+    ctx.moveTo(-width, height + 10)
+    ctx.lineTo(-width, surfaceY + curve * 0.42)
+    ctx.quadraticCurveTo(width / 2, surfaceY - curve * 0.06, width * 2, surfaceY + curve * 0.42)
+    ctx.lineTo(width * 2, height + 10)
+    ctx.closePath()
+    ctx.clip()
+
+    const body = ctx.createLinearGradient(0, surfaceY - unit * 0.1, 0, height)
+    body.addColorStop(0, withAlpha(palette.wedgeB, 0.98))
+    body.addColorStop(1, withAlpha(palette.wedgeA, 1))
+    ctx.fillStyle = body
+    ctx.fillRect(0, surfaceY - unit * 0.2, width, height)
+
+    // Omun: the planet answering. Only after it has taken something.
+    const absorbed = this.descentAbsorbed
+    if (absorbed > 0) {
+      for (let ring = 0; ring < 3; ring += 1) {
+        const phase = clamp01(absorbed * 1.6 - ring * 0.22)
+        if (phase <= 0 || phase >= 1) continue
+        ctx.strokeStyle = withAlpha(palette.crimson, (1 - phase) * 0.5)
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.ellipse(
+          width / 2,
+          surfaceY,
+          unit * 0.34 + phase * unit * 2.6,
+          (unit * 0.34 + phase * unit * 2.6) * DESCENT_SIN,
+          0,
+          0,
+          TAU
+        )
+        ctx.stroke()
+      }
+    }
     ctx.restore()
-  }
 
-  // --------------------------------------------------------------- tribunal
+    // The horizon: a warm rim where the shaft's light grazes the surface.
+    ctx.strokeStyle = withAlpha(palette.gold, 0.34)
+    ctx.lineWidth = 1.2
+    ctx.beginPath()
+    ctx.moveTo(0, surfaceY + curve * 0.42 * (1 - 0) - 0)
+    ctx.quadraticCurveTo(width / 2, surfaceY - curve * 0.06, width, surfaceY + curve * 0.42)
+    ctx.stroke()
 
-  /**
-   * THE TRIBUNAL — the docket is scanned and one file is sanctioned.
-   *
-   * The bar steps between whole rows rather than gliding: a bar that slides
-   * continuously reads as a scrollbar, whereas one that jumps reads as a
-   * machine considering each file in turn. It slows to a crawl on the same
-   * curve as everything else, then the file is stamped.
-   *
-   * The docket scrolls only when the roster outruns the frame, and it keeps the
-   * scanned row in view rather than paging, so the eye never loses the bar.
-   */
-  private drawTribunal(
-    now: number,
-    spin: SpinCommand | null,
-    count: number,
-    progress: number,
-    spinning: boolean,
-    revealIndex: number | null,
-    resolved: boolean
-  ): void {
-    const { context: ctx, palette, width, height } = this
-    const pad = width * 0.06
-    const headerHeight = height * 0.1
-    const footerHeight = resolved ? height * 0.16 : height * 0.06
-    const listTop = headerHeight
-    const listHeight = height - headerHeight - footerHeight
-
-    const visible = Math.min(count, DOCKET_VISIBLE_ROWS)
-    const rowHeight = listHeight / visible
-    const active = spin ? docketRowAt(spin, Date.now()) : (revealIndex ?? 0)
-
-    // Keep the scanned row on screen without paging: the window follows it,
-    // clamped so the list never scrolls past its own ends.
-    const firstRow = Math.min(
-      Math.max(active - Math.floor(visible / 2), 0),
-      Math.max(count - visible, 0)
+    /*
+     * The aperture. Crimson, and brighter the closer the descent is to ending —
+     * the planet is not passive, it is waiting.
+     *
+     * It breathes even with nothing falling, on the same slow period as the
+     * ring's orb. A shaft with a dead aperture reads as a diagram of a
+     * mechanism rather than a mechanism that is switched on.
+     */
+    const breath = 0.5 + Math.sin(now / 1400) * 0.5
+    const glow = command
+      ? 0.18 + this.descentApproach * 0.34 + absorbed * 0.45 + breath * 0.06
+      : 0.1 + breath * 0.08
+    const apertureR = shaftRadius(1) * unit
+    const halo = ctx.createRadialGradient(
+      width / 2,
+      surfaceY,
+      0,
+      width / 2,
+      surfaceY,
+      apertureR * 2.6
     )
-
-    ctx.font = `${Math.max(8, height * 0.028)}px ${palette.display}`
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = withAlpha(palette.gold, 0.7)
-    ctx.fillText('DOCKET', pad, headerHeight * 0.5)
-    ctx.textAlign = 'right'
-    ctx.fillStyle = palette.labelDim
-    ctx.fillText(`${count} FILED`, width - pad, headerHeight * 0.5)
-    ctx.textAlign = 'left'
-
-    ctx.strokeStyle = palette.wedgeEdge
-    ctx.lineWidth = 1
+    halo.addColorStop(0, withAlpha(palette.crimson, Math.min(glow, 0.9)))
+    halo.addColorStop(0.42, withAlpha(palette.crimsonDeep, glow * 0.5))
+    halo.addColorStop(1, withAlpha(palette.crimsonVoid, 0))
+    ctx.fillStyle = halo
     ctx.beginPath()
-    ctx.moveTo(pad, headerHeight)
-    ctx.lineTo(width - pad, headerHeight)
+    ctx.ellipse(width / 2, surfaceY, apertureR * 2.6, apertureR * 2.6 * DESCENT_SIN, 0, 0, TAU)
+    ctx.fill()
+
+    this.ellipse(0, 1, shaftRadius(1))
+    ctx.fillStyle = withAlpha(palette.crimsonVoid, 0.92)
+    ctx.fill()
+    ctx.strokeStyle = withAlpha(palette.crimsonBright, 0.5 + absorbed * 0.4)
+    ctx.lineWidth = 1.6
     ctx.stroke()
-
-    for (let row = 0; row < visible; row += 1) {
-      const index = firstRow + row
-      if (index >= count) break
-
-      const petition = this.state.petitions[index]
-      if (!petition) continue
-
-      const y = listTop + row * rowHeight
-      const isActive = index === active
-      const isWinner = resolved && index === revealIndex
-
-      if (isWinner) {
-        ctx.fillStyle = withAlpha(palette.crimson, 0.34)
-        ctx.fillRect(pad, y, width - pad * 2, rowHeight)
-        ctx.fillStyle = palette.crimsonBright
-        ctx.fillRect(pad, y, 3, rowHeight)
-      } else if (isActive && spinning) {
-        // The scanning bar: a lit course, not a highlight.
-        ctx.fillStyle = withAlpha(palette.gold, 0.14)
-        ctx.fillRect(pad, y, width - pad * 2, rowHeight)
-        ctx.fillStyle = palette.goldBright
-        ctx.fillRect(pad, y, 3, rowHeight)
-      }
-
-      const numberSize = Math.max(7, rowHeight * 0.3)
-      ctx.font = `${numberSize}px ${palette.mono}`
-      ctx.fillStyle = isWinner
-        ? palette.crimsonBright
-        : withAlpha(palette.gold, isActive ? 0.9 : 0.55)
-      ctx.textBaseline = 'middle'
-      ctx.fillText(String(index + 1).padStart(2, '0'), pad + rowHeight * 0.34, y + rowHeight / 2)
-
-      const labelSize = Math.max(9, rowHeight * 0.4)
-      ctx.font = `${labelSize}px ${palette.display}`
-      ctx.fillStyle = isWinner ? palette.label : isActive ? palette.label : palette.labelDim
-      ctx.fillText(
-        this.fitText(petition.label.toUpperCase(), width - pad * 2 - rowHeight * 1.6),
-        pad + rowHeight * 1.1,
-        y + rowHeight / 2
-      )
-
-      if (row > 0) {
-        ctx.strokeStyle = withAlpha(palette.goldDim, 0.12)
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(pad, y)
-        ctx.lineTo(width - pad, y)
-        ctx.stroke()
-      }
-    }
-
-    if (spinning) this.drawProgressRule(height - footerHeight * 0.4, progress)
-    if (resolved && revealIndex !== null) {
-      const label = this.state.winnerLabel ?? this.state.petitions[revealIndex]?.label
-      if (label) this.drawStampAt(width / 2, height - footerHeight * 0.5, width * 0.74, label)
-    }
-
-    void now
   }
 
-  // -------------------------------------------------------------- attrition
+  /**
+   * Gathers everything with a depth into one list, so it can be drawn in order.
+   *
+   * A single sorted pass rather than a pass per category. Motes are spread
+   * across the shaft's whole depth, so drawing all the structure and then all
+   * the motes puts a mote at the back of the shaft on top of a peg at the
+   * front — and since the mote's depth is exactly what decided its path, that
+   * is the one cue this presentation cannot afford to get wrong.
+   *
+   * The item pool is reused between frames. At a full roster this is around two
+   * hundred items, and reallocating them sixty times a second is pure waste.
+   */
+  private collectDescent(plan: DescentPlan | null, frame: number, count: number): void {
+    const { pegs, pillars, vanes } = DESCENT_COURSE
+    let n = 0
+
+    const push = (
+      kind: number,
+      x: number,
+      y: number,
+      radius: number,
+      depth: number,
+      x2 = 0,
+      y2 = 0,
+      mote = -1
+    ): void => {
+      const item = this.descentItems[n] ?? (this.descentItems[n] = DESCENT_ITEM())
+      item.kind = kind
+      item.x = x
+      item.y = y
+      item.radius = radius
+      item.depth = depth
+      item.x2 = x2
+      item.y2 = y2
+      item.mote = mote
+      n += 1
+    }
+
+    for (const peg of pegs) {
+      this.project(peg.x, peg.y, peg.z)
+      push(DESCENT_PEG, this.pX, this.pY, peg.r * this.pUnit, this.pDepth)
+    }
+
+    for (const pillar of pillars) {
+      this.project(pillar.x, pillar.top, pillar.z)
+      const topX = this.pX
+      const topY = this.pY
+      const unit = this.pUnit
+      const depth = this.pDepth
+      this.project(pillar.x, pillar.bottom, pillar.z)
+      push(
+        DESCENT_PILLAR,
+        topX,
+        topY,
+        pillar.r * (unit + this.pUnit) * 0.5,
+        (depth + this.pDepth) * 0.5,
+        this.pX,
+        this.pY
+      )
+    }
+
+    for (const vane of vanes) {
+      const angle = vaneAngle(vane, frame)
+      for (let arm = 0; arm < vane.arms; arm += 1) {
+        const a = angle + (arm / vane.arms) * TAU
+        const cos = Math.cos(a)
+        const sin = Math.sin(a)
+        this.project(cos * vane.inner, vane.y, sin * vane.inner)
+        const innerX = this.pX
+        const innerY = this.pY
+        const unit = this.pUnit
+        const depth = this.pDepth
+        this.project(cos * vane.outer, vane.y, sin * vane.outer)
+        push(
+          DESCENT_VANE,
+          innerX,
+          innerY,
+          vane.r * (unit + this.pUnit) * 0.5,
+          (depth + this.pDepth) * 0.5,
+          this.pX,
+          this.pY
+        )
+      }
+    }
+
+    if (plan) {
+      for (let mote = 0; mote < count; mote += 1) {
+        if (frame < plan.releaseFrame[mote]) continue
+        const at = motePosition(plan, mote, frame)
+        this.project(at.x, at.y, at.z)
+        push(DESCENT_MOTE, this.pX, this.pY, MOTE_RADIUS * this.pUnit, this.pDepth, 0, 0, mote)
+      }
+    }
+
+    const order = this.descentOrder
+    order.length = n
+    for (let i = 0; i < n; i += 1) order[i] = i
+    // Back to front, so nearer things overwrite further ones.
+    order.sort((a, b) => this.descentItems[b].depth - this.descentItems[a].depth)
+  }
+
+  /** Draws the collected course and motes in depth order. */
+  private paintDescent(plan: DescentPlan | null, revealIndex: number | null): void {
+    const { context: ctx, palette } = this
+    const takenMote = plan?.capturedMote ?? -1
+    const numberSize = Math.max(7, this.shaftSpan * 0.03)
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+
+    for (const index of this.descentOrder) {
+      const item = this.descentItems[index]
+      const dim = 1 - this.fog(item.depth) * 0.72
+
+      switch (item.kind) {
+        case DESCENT_PEG: {
+          // Lit from above, like everything else in this world: a warm crown
+          // and a cold body, which is what makes a flat disc read as a sphere.
+          const shade = ctx.createLinearGradient(
+            item.x,
+            item.y - item.radius,
+            item.x,
+            item.y + item.radius
+          )
+          shade.addColorStop(0, withAlpha(palette.brass, dim * 0.95))
+          shade.addColorStop(1, withAlpha(palette.wedgeA, dim))
+          ctx.fillStyle = shade
+          ctx.beginPath()
+          ctx.arc(item.x, item.y, item.radius, 0, TAU)
+          ctx.fill()
+          ctx.strokeStyle = withAlpha(palette.gold, dim * 0.4)
+          ctx.lineWidth = 1
+          ctx.stroke()
+          break
+        }
+
+        case DESCENT_PILLAR: {
+          ctx.strokeStyle = withAlpha(palette.wedgeA, dim)
+          ctx.lineWidth = item.radius * 2
+          ctx.lineCap = 'round'
+          ctx.beginPath()
+          ctx.moveTo(item.x, item.y)
+          ctx.lineTo(item.x2, item.y2)
+          ctx.stroke()
+          // A gold edge down one side only — a pillar lit from the shaft's
+          // axis, not a tube with an outline.
+          ctx.strokeStyle = withAlpha(palette.goldDim, dim * 0.55)
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(item.x - item.radius * 0.55, item.y)
+          ctx.lineTo(item.x2 - item.radius * 0.55, item.y2)
+          ctx.stroke()
+          break
+        }
+
+        case DESCENT_VANE: {
+          ctx.strokeStyle = withAlpha(palette.brass, dim)
+          ctx.lineWidth = item.radius * 2
+          ctx.lineCap = 'round'
+          ctx.beginPath()
+          ctx.moveTo(item.x, item.y)
+          ctx.lineTo(item.x2, item.y2)
+          ctx.stroke()
+          ctx.strokeStyle = withAlpha(palette.gold, dim * 0.7)
+          ctx.lineWidth = 1.2
+          ctx.beginPath()
+          ctx.moveTo(item.x, item.y)
+          ctx.lineTo(item.x2, item.y2)
+          ctx.stroke()
+          break
+        }
+
+        default: {
+          if (!plan) break
+          const petition = plan.petitionOf[item.mote]
+          const isTaken = item.mote === takenMote
+          const lit = isTaken && this.descentAbsorbed > 0
+
+          // The taken mote is drawn into the aperture over the settle: it
+          // shrinks and ignites rather than simply stopping, so the moment
+          // Nayara closes on it is a movement and not a caption.
+          const shrink = lit ? 1 - this.descentAbsorbed * 0.55 : 1
+          const radius = Math.max(item.radius * shrink, 1)
+
+          if (lit) {
+            const bloom = ctx.createRadialGradient(item.x, item.y, 0, item.x, item.y, radius * 4)
+            bloom.addColorStop(0, withAlpha(palette.crimson, 0.5))
+            bloom.addColorStop(1, withAlpha(palette.crimson, 0))
+            ctx.fillStyle = bloom
+            ctx.beginPath()
+            ctx.arc(item.x, item.y, radius * 4, 0, TAU)
+            ctx.fill()
+          }
+
+          // Motes that lost fade back once the result is in, so the frame ends
+          // on one object.
+          const spent = this.descentAbsorbed > 0 && !isTaken ? 1 - this.descentAbsorbed * 0.7 : 1
+          const shell = ctx.createLinearGradient(item.x, item.y - radius, item.x, item.y + radius)
+          if (lit) {
+            shell.addColorStop(0, withAlpha(palette.crimsonBright, dim))
+            shell.addColorStop(1, withAlpha(palette.crimsonDeep, dim))
+          } else {
+            shell.addColorStop(0, withAlpha(palette.label, dim * spent * 0.92))
+            shell.addColorStop(1, withAlpha(palette.brass, dim * spent))
+          }
+          ctx.fillStyle = shell
+          ctx.beginPath()
+          ctx.arc(item.x, item.y, radius, 0, TAU)
+          ctx.fill()
+
+          ctx.strokeStyle = withAlpha(
+            lit ? palette.crimsonBright : palette.gold,
+            dim * spent * (lit ? 0.95 : 0.62)
+          )
+          ctx.lineWidth = lit ? 1.6 : 1
+          ctx.stroke()
+
+          // The filed number, the same anchor the rail and the roster use. Only
+          // while the mote is big enough on screen to hold it.
+          if (radius > numberSize * 0.62 && petition !== undefined) {
+            ctx.font = `${numberSize}px ${palette.mono}`
+            ctx.fillStyle = withAlpha(lit ? palette.label : palette.wedgeA, dim * spent * 0.95)
+            ctx.fillText(String(petition + 1).padStart(2, '0'), item.x, item.y + 0.5)
+          }
+          break
+        }
+      }
+    }
+
+    ctx.lineCap = 'butt'
+    ctx.textAlign = 'left'
+
+    // The winner's name, carried by the mote rather than only by the stamp, so
+    // the eye can follow the result back to the object that earned it.
+    if (plan && this.descentAbsorbed > 0.35 && revealIndex !== null) {
+      const label = this.state.winnerLabel ?? this.state.petitions[revealIndex]?.label
+      const at = motePosition(plan, takenMote, plan.capturedFrame)
+      if (label) {
+        this.project(at.x, at.y, at.z)
+        const size = Math.max(9, this.shaftSpan * 0.036)
+        ctx.font = `${size}px ${palette.display}`
+        ctx.textAlign = 'center'
+        ctx.fillStyle = withAlpha(palette.label, clamp01((this.descentAbsorbed - 0.35) * 2.4))
+        ctx.fillText(
+          this.fitText(label.toUpperCase(), this.shaftSpan * 0.9),
+          this.pX,
+          this.pY - size * 1.8
+        )
+        ctx.textAlign = 'left'
+      }
+    }
+  }
 
   /**
-   * RITE OF ATTRITION — records are redacted until one survives.
+   * The depth gauge down the left edge.
    *
-   * The inverse of the others: it does not choose a winner, it forgets the
-   * losers. Records are struck through and blacked out one at a time until a
-   * single file is left standing, which is the selection.
-   *
-   * The order is derived from the spin id rather than rolled locally, so the
-   * console and the broadcast strike the same record at the same moment. The
-   * curve decelerates rather than accelerating: the last elimination is the one
-   * that decides it, so it gets the longest beat.
+   * Every zone of the gauntlet named and measured, in the register this world
+   * uses for everything else: an institution does not build a hazard and leave
+   * it unlabelled. It also does real work — it tells a viewer who joined
+   * mid-descent how far there is left to fall.
    */
-  private drawAttrition(
-    now: number,
-    spin: SpinCommand | null,
-    count: number,
-    progress: number,
-    spinning: boolean,
-    revealIndex: number | null,
-    resolved: boolean
-  ): void {
-    const { context: ctx, palette, width, height } = this
-    const pad = width * 0.06
-    const headerHeight = height * 0.1
-    const footerHeight = resolved ? height * 0.16 : height * 0.06
-    const listHeight = height - headerHeight - footerHeight
+  private drawDescentGauge(): void {
+    const { context: ctx, palette } = this
+    const size = Math.max(6, this.shaftSpan * 0.022)
+    const x = Math.max(this.shaftX - this.shaftSpan * 1.16, size)
 
-    const visible = Math.min(count, DOCKET_VISIBLE_ROWS)
-    const rowHeight = listHeight / visible
-
-    const order = spin ? attritionOrder(spin) : []
-    const struck = spin ? attritionStruckAt(spin, Date.now()) : 0
-    const redacted = new Set(order.slice(0, struck))
-
-    ctx.font = `${Math.max(8, height * 0.028)}px ${palette.display}`
-    ctx.textAlign = 'left'
+    ctx.font = `${size}px ${palette.mono}`
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = withAlpha(palette.gold, 0.7)
-    ctx.fillText('ATTRITION', pad, headerHeight * 0.5)
-    ctx.textAlign = 'right'
-    ctx.fillStyle = redacted.size > 0 ? palette.crimsonBright : palette.labelDim
-    ctx.fillText(`${count - redacted.size} REMAIN`, width - pad, headerHeight * 0.5)
     ctx.textAlign = 'left'
 
-    ctx.strokeStyle = palette.wedgeEdge
+    this.project(0, -0.06, 0)
+    const top = this.pY
+    this.project(0, 1, 0)
+    const bottom = this.pY
+
+    ctx.strokeStyle = withAlpha(palette.goldDim, 0.3)
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.moveTo(pad, headerHeight)
-    ctx.lineTo(width - pad, headerHeight)
+    ctx.moveTo(x, top)
+    ctx.lineTo(x, bottom)
     ctx.stroke()
 
-    // Survivors are kept in place rather than closing the gap, so the eye can
-    // follow one record down the list instead of re-reading a shifting one.
-    for (let index = 0; index < visible; index += 1) {
-      const petition = this.state.petitions[index]
-      if (!petition) continue
-
-      const y = headerHeight + index * rowHeight
-      const isRedacted = redacted.has(index)
-      const isWinner = resolved && index === revealIndex
-
-      const numberSize = Math.max(7, rowHeight * 0.3)
-      const labelSize = Math.max(9, rowHeight * 0.4)
-      const labelX = pad + rowHeight * 1.1
-      const labelText = this.fitText(
-        petition.label.toUpperCase(),
-        width - pad * 2 - rowHeight * 1.6
-      )
-
-      if (isWinner) {
-        ctx.fillStyle = withAlpha(palette.crimson, 0.32)
-        ctx.fillRect(pad, y, width - pad * 2, rowHeight)
-        ctx.fillStyle = palette.crimsonBright
-        ctx.fillRect(pad, y, 3, rowHeight)
-      }
-
-      ctx.font = `${numberSize}px ${palette.mono}`
-      ctx.textBaseline = 'middle'
-      ctx.fillStyle = isRedacted
-        ? withAlpha(palette.labelDim, 0.3)
-        : withAlpha(palette.gold, isWinner ? 0.95 : 0.6)
-      ctx.fillText(String(index + 1).padStart(2, '0'), pad + rowHeight * 0.34, y + rowHeight / 2)
-
-      ctx.font = `${labelSize}px ${palette.display}`
-      ctx.fillStyle = isRedacted
-        ? withAlpha(palette.labelDim, 0.34)
-        : isWinner
-          ? palette.label
-          : palette.labelDim
-      ctx.fillText(labelText, labelX, y + rowHeight / 2)
-
-      if (isRedacted) {
-        const textWidth = ctx.measureText(labelText).width
-        // Struck through, then blacked over: the record is not removed, it is
-        // made unreadable, which is the whole point of the mechanism.
-        ctx.strokeStyle = withAlpha(palette.crimsonBright, 0.7)
-        ctx.lineWidth = 1.4
-        ctx.beginPath()
-        ctx.moveTo(labelX, y + rowHeight / 2)
-        ctx.lineTo(labelX + textWidth, y + rowHeight / 2)
-        ctx.stroke()
-
-        ctx.fillStyle = withAlpha(palette.wedgeA, 0.72)
-        ctx.fillRect(labelX, y + rowHeight * 0.24, textWidth, rowHeight * 0.52)
-      }
-
-      if (index > 0) {
-        ctx.strokeStyle = withAlpha(palette.goldDim, 0.12)
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(pad, y)
-        ctx.lineTo(width - pad, y)
-        ctx.stroke()
-      }
+    for (const zone of DESCENT_ZONES) {
+      this.project(0, zone.y, 0)
+      const y = this.pY
+      ctx.strokeStyle = withAlpha(palette.gold, 0.42)
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.lineTo(x + size * 0.7, y)
+      ctx.stroke()
+      ctx.fillStyle = withAlpha(zone.focal ? palette.crimsonBright : palette.gold, 0.62)
+      ctx.fillText(zone.label, x + size * 1.1, y)
     }
-
-    if (spinning) this.drawProgressRule(height - footerHeight * 0.4, progress)
-    if (resolved && revealIndex !== null) {
-      const label = this.state.winnerLabel ?? this.state.petitions[revealIndex]?.label
-      if (label) this.drawStampAt(width / 2, height - footerHeight * 0.5, width * 0.74, label)
-    }
-
-    void now
   }
 
   // ----------------------------------------------------------------- shared

@@ -7,6 +7,8 @@ import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
 import { TimerService } from './overlay/timer.service'
 import { SpotifyService } from './overlay/spotify.service'
+import { ConcordService } from './overlay/concord.service'
+import { TwitchChatService } from './chat/twitch-chat.service'
 import { getLogger } from '@main/core/logger'
 
 const logger = getLogger('container')
@@ -26,9 +28,18 @@ export interface ServiceContainer {
   readonly projects: ProjectsService
   /** Shared by every overlay: one HTTP server, many pages. */
   readonly overlayServer: OverlayServer
+  /**
+   * Read-only chat ingest, shared like the server.
+   *
+   * Department infrastructure rather than one overlay's feature: THE CONCORD
+   * counts votes out of it, and the rite's filed petitions and THE DOCKET's
+   * queue are both specified against it.
+   */
+  readonly chat: TwitchChatService
   readonly rite: RiteService
   readonly timers: TimerService
   readonly nowPlaying: SpotifyService
+  readonly concord: ConcordService
 }
 
 export function createServiceContainer(): ServiceContainer {
@@ -39,16 +50,23 @@ export function createServiceContainer(): ServiceContainer {
   // so the server is department infrastructure rather than one feature's.
   const overlayServer = new OverlayServer()
 
+  // Chat reads its channel from settings and reconnects when it changes, so it
+  // takes the settings service rather than a string.
+  const settings = new SettingsService()
+  const chat = new TwitchChatService(settings)
+
   return {
-    settings: new SettingsService(),
+    settings,
     archive,
     updates: new UpdateService(),
     telemetry: new TelemetryService(),
     projects: new ProjectsService(archive),
     overlayServer,
+    chat,
     rite: new RiteService(archive, overlayServer),
     timers: new TimerService(archive, overlayServer),
-    nowPlaying: new SpotifyService(archive, overlayServer)
+    nowPlaying: new SpotifyService(archive, overlayServer),
+    concord: new ConcordService(archive, overlayServer, chat, settings)
   }
 }
 
@@ -72,6 +90,10 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
   container.rite.dispose()
   container.timers.dispose()
   container.nowPlaying.dispose()
+  // Before chat: the poll releases its claim on the way down, and disposing the
+  // ingest first would leave that release writing to a cleared emitter.
+  container.concord.dispose()
+  container.chat.dispose()
 
   try {
     await container.archive.shutdown()

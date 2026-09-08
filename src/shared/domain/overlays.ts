@@ -22,9 +22,50 @@
  * (the shape of the next delivery is legible) without burying the working
  * overlays. Removed entries are three lines to reinstate.
  */
-export const OVERLAY_IDS = ['selection', 'transmission', 'interval', 'convene', 'docket'] as const
+export const OVERLAY_IDS = [
+  'selection',
+  'concord',
+  'transmission',
+  'interval',
+  'convene',
+  'docket'
+] as const
 
 export type OverlayId = (typeof OVERLAY_IDS)[number]
+
+/**
+ * One browser-source address.
+ *
+ * An overlay always answers on its own slug, and may answer on further
+ * addresses that each pin a different presentation of the *same* live state —
+ * THE CONCORD serves a full scene at `/concord` and a corner widget at
+ * `/concord-widget`, from one poll and one built document.
+ *
+ * Note which direction this runs, because the registry now expresses both:
+ * `document` lets several catalogue *entries* share one page (the two
+ * countdowns, which have separate state). `addresses` gives one entry several
+ * *addresses*, so it adds no catalogue card and no console page — the operator
+ * manages one poll and pastes two URLs.
+ */
+export interface OverlayAddress {
+  /** URL segment, and the console's key for this address. */
+  slug: string
+  /** Uppercase institutional label. */
+  label: string
+  /** What this address is for, as opposed to what the overlay is. */
+  purpose: string
+  /** Recommended browser-source dimensions for this address specifically. */
+  canvas: { width: number; height: number }
+  /**
+   * Configuration this address pins, interpreted by the overlay's own page.
+   *
+   * A plain string on purpose. This module is read by the main process, the
+   * renderer, the standalone overlay pages *and* electron.vite.config.ts, so it
+   * stays free of domain imports — the page that understands the value is the
+   * page that validates it.
+   */
+  pin?: string
+}
 
 export interface OverlayDefinition {
   id: OverlayId
@@ -50,6 +91,13 @@ export interface OverlayDefinition {
   scope: readonly string[]
   /** Recommended browser-source dimensions, quoted in the console. */
   canvas: { width: number; height: number }
+  /**
+   * Further addresses this overlay answers on, beyond its own slug.
+   *
+   * See `OverlayAddress`. Each one is served off the same document, so adding
+   * one costs a registry entry and a line in the page that reads its pin.
+   */
+  addresses?: readonly OverlayAddress[]
   /**
    * Built document this overlay is served from, when it is not its own slug.
    *
@@ -88,12 +136,49 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     form: 'full'
   },
   {
+    id: 'concord',
+    slug: 'concord',
+    label: 'THE CONCORD',
+    purpose: 'Chat votes on a ballot; a deadlock is settled by casting lots',
+    epigraph: 'Harmony decided for all, not by all.',
+    order: 1,
+    implemented: true,
+    scope: [
+      'Operator files a ballot; chat votes by typing the numeral',
+      'One vote per citizen, changeable while the chamber sits',
+      'Settable window, or open until the operator closes it',
+      'A deadlock escalates to THE CASTING — equal lots, one is taken',
+      'Console and browser source show the same tally and lift the same lot'
+    ],
+    canvas: { width: 640, height: 900 },
+    /*
+     * Two addresses, one poll.
+     *
+     * The point is running both at once: the full scene on whatever the audience
+     * is watching, and the widget in the corner of the operator's working scene.
+     * A single address with a layout setting could not express that, because
+     * there is one setting and two sources — so the *address* is what pins the
+     * layout, which also means the URL the console hands over is the whole
+     * configuration for that source.
+     */
+    addresses: [
+      {
+        slug: 'concord-widget',
+        label: 'THE CONCORD — WIDGET',
+        purpose: 'Compact plate for a corner of a working scene',
+        canvas: { width: 460, height: 320 },
+        pin: 'widget'
+      }
+    ],
+    form: 'panel'
+  },
+  {
     id: 'transmission',
     slug: 'transmission',
     label: 'NOW TRANSMITTING',
     purpose: 'Live Spotify playback: track, artist, cover plate and timeline',
     epigraph: 'Sound is not heard. It is structured. It is shaped.',
-    order: 1,
+    order: 2,
     implemented: true,
     scope: [
       'Reads the operator’s current Spotify playback over the Web API',
@@ -111,7 +196,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     label: 'INTERVAL',
     purpose: 'Multi-purpose countdown with a grace period, for breaks and segments',
     epigraph: 'Time itself is constructed, maintained, and policed.',
-    order: 2,
+    order: 3,
     implemented: true,
     document: 'timer',
     scope: [
@@ -130,7 +215,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     label: 'CONVENING',
     purpose: 'Stream-opening countdown that resolves to NOW',
     epigraph: 'A society built on order, where symmetry is worship.',
-    order: 3,
+    order: 4,
     implemented: true,
     document: 'timer',
     scope: [
@@ -149,7 +234,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     label: 'THE DOCKET',
     purpose: 'Standing queue of chat requests and what is being worked next',
     epigraph: 'Mortals reduced to data; choices measured, deviance erased.',
-    order: 4,
+    order: 5,
     implemented: false,
     scope: [
       'Numbered queue of requests, filed by the operator or by chat',
@@ -190,6 +275,43 @@ export function getOverlayBySlug(slug: string): OverlayDefinition | undefined {
   return OVERLAYS.find((entry) => entry.slug === slug)
 }
 
+/**
+ * Every address an overlay answers on, its own slug first.
+ *
+ * The primary address is synthesised from the definition rather than declared,
+ * so a consumer can treat all of an overlay's addresses uniformly instead of
+ * special-casing the first one.
+ */
+export function overlayAddresses(overlay: OverlayDefinition): readonly OverlayAddress[] {
+  return [
+    { slug: overlay.slug, label: overlay.label, purpose: overlay.purpose, canvas: overlay.canvas },
+    ...(overlay.addresses ?? [])
+  ]
+}
+
+/**
+ * The overlay and address a URL segment resolves to.
+ *
+ * Used by the overlay server to serve a document, and by an overlay page to
+ * discover which of its addresses it was loaded at. Matches an overlay's own
+ * slug as well as its extra addresses, so `/concord` and `/concord-widget` both
+ * resolve to the concord document.
+ */
+export function resolveOverlayAddress(
+  slug: string
+): { overlay: OverlayDefinition; address: OverlayAddress } | undefined {
+  for (const overlay of OVERLAYS) {
+    const address = overlayAddresses(overlay).find((entry) => entry.slug === slug)
+    if (address) return { overlay, address }
+  }
+  return undefined
+}
+
+/** Every live address across the catalogue, for the server's directory page. */
+export function liveOverlayAddresses(): readonly OverlayAddress[] {
+  return LIVE_OVERLAYS.flatMap((overlay) => overlayAddresses(overlay))
+}
+
 /** The document an overlay is served from. Defaults to its own slug. */
 export function overlayDocument(overlay: OverlayDefinition): string {
   return overlay.document ?? overlay.slug
@@ -221,7 +343,16 @@ export function overlaySourceUrl(
   overlay: OverlayDefinition,
   options: { transparent?: boolean; guides?: boolean } = {}
 ): string {
-  const url = new URL(overlay.slug, base.endsWith('/') ? base : `${base}/`)
+  return overlayAddressUrl(base, overlay.slug, options)
+}
+
+/** As `overlaySourceUrl`, for an overlay's non-primary addresses. */
+export function overlayAddressUrl(
+  base: string,
+  slug: string,
+  options: { transparent?: boolean; guides?: boolean } = {}
+): string {
+  const url = new URL(slug, base.endsWith('/') ? base : `${base}/`)
   if (options.transparent) url.searchParams.set('transparent', '1')
   if (options.guides) url.searchParams.set('guides', '1')
   return url.toString()

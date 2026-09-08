@@ -78,6 +78,7 @@ export function RegulationPage(): ReactNode {
   })
 
   const appearance = settings?.appearance
+  const workspace = settings?.workspace
 
   return (
     <div className={styles.page}>
@@ -296,10 +297,59 @@ export function RegulationPage(): ReactNode {
               </Link>
               , which shows the exact URI to paste into the Spotify dashboard.
             </p>
+
+            <TextInput
+              label="Twitch channel"
+              value={integrations?.twitchChannel ?? ''}
+              mono
+              onChange={(twitchChannel) =>
+                applySettings(
+                  { integrations: { twitchChannel } },
+                  { debounceMs: 400, key: 'twitchChannel' }
+                )
+              }
+              hint="Channel name or a pasted twitch.tv URL — either works. Chat is read anonymously, so there is nothing to authorise and no token to store."
+            />
+            <p className={styles.controlHint}>
+              Read-only, and used by{' '}
+              <Link to="/observatory/concord" className={styles.inlineLink}>
+                THE CONCORD
+              </Link>{' '}
+              to count votes. The connection is only held open while something needs it.
+            </p>
           </div>
         </Panel>
 
-        <Panel label="Diagnostics" index="05" className={styles.wide}>
+        {/*
+          Test mode sits with the operator's workspace rather than on any one
+          overlay's page: it lifts the configuration gate on every broadcast
+          feature, so putting it on one of them would imply it were local to it.
+        */}
+        <Panel label="Rehearsal" index="05">
+          <div className={styles.control}>
+            <span className={styles.controlLabel}>Test mode</span>
+            <button
+              type="button"
+              className={styles.toggle}
+              role="switch"
+              aria-checked={workspace?.testMode ?? false}
+              data-on={workspace?.testMode || undefined}
+              onClick={() =>
+                applySettings({ workspace: { testMode: !(workspace?.testMode ?? false) } })
+              }
+            >
+              <span className={styles.toggleThumb} />
+            </button>
+            <p className={styles.controlHint}>
+              Lets broadcast features run without the service they depend on, and reveals their
+              simulators. THE CONCORD normally refuses to open a poll with no Twitch channel set,
+              because one that counts nothing looks exactly like one that works — turn this on to
+              rehearse with synthetic votes, and off before going live.
+            </p>
+          </div>
+        </Panel>
+
+        <Panel label="Diagnostics" index="06" className={styles.wide}>
           <FieldGrid columns={2}>
             <Field
               label="User data"

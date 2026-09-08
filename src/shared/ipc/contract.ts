@@ -23,6 +23,13 @@ import {
   RiteStateSchema
 } from '../domain/rite'
 import {
+  ConcordBallotSchema,
+  ConcordConfigPatchSchema,
+  ConcordOptionDraftSchema,
+  ConcordStateSchema
+} from '../domain/concord'
+import { ChatStatusSchema } from '../domain/chat'
+import {
   MarketingAssetKindSchema,
   MarketingAssetSchema,
   NoteDraftSchema,
@@ -147,6 +154,42 @@ export const IPC_INVOKE = {
   'rite:history-clear': { input: z.void(), output: RiteStateSchema },
 
   /**
+   * THE CONCORD (OBSERVATORY section). Chat votes; a deadlock is settled by
+   * casting lots, drawn in main and carried in the cast command so the console
+   * and every browser source lift the same lot at the same instant.
+   *
+   * Every channel returns the whole poll, as the rite's do: a partial update
+   * would let a caller hold a ballot and a tally that disagree.
+   */
+  'concord:state': { input: z.void(), output: ConcordStateSchema },
+  'concord:option-add': { input: ConcordOptionDraftSchema, output: ConcordStateSchema },
+  'concord:option-remove': { input: z.object({ id: z.string() }), output: ConcordStateSchema },
+  'concord:ballot': { input: ConcordBallotSchema, output: ConcordStateSchema },
+  'concord:ballot-clear': { input: z.void(), output: ConcordStateSchema },
+  'concord:config': { input: ConcordConfigPatchSchema, output: ConcordStateSchema },
+  'concord:open': { input: z.void(), output: ConcordStateSchema },
+  'concord:close': { input: z.void(), output: ConcordStateSchema },
+  'concord:reset': { input: z.void(), output: ConcordStateSchema },
+  'concord:history-clear': { input: z.void(), output: ConcordStateSchema },
+  /**
+   * Synthetic votes. **Refused outside development** by its handler.
+   *
+   * A poll cannot be exercised without an audience, and this is how the flush
+   * cadence, the bar smoothing and the casting were tuned.
+   */
+  'concord:simulate': {
+    input: z.object({
+      count: z.number().int().min(1).max(5_000),
+      changeVotes: z.boolean().optional()
+    }),
+    output: ConcordStateSchema
+  },
+
+  /** Read-only chat ingest, shared by every consumer that files from chat. */
+  'chat:status': { input: z.void(), output: ChatStatusSchema },
+  'chat:reconnect': { input: z.void(), output: ChatStatusSchema },
+
+  /**
    * Countdown overlays. Every action is keyed by timer id — two timers share
    * the implementation but keep separate state, so nothing here is global.
    */
@@ -216,6 +259,8 @@ export const IPC_EVENT = {
   'telemetry:sample': TelemetryStateSchema,
   'projects:scan': ScanStateSchema,
   'rite:state': RiteStateSchema,
+  'concord:state': ConcordStateSchema,
+  'chat:status': ChatStatusSchema,
   'timer:state': TimerStateSchema,
   'nowplaying:state': NowPlayingStateSchema,
   'overlay:info': OverlayServerInfoSchema,

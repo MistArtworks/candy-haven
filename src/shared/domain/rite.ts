@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { sparseShape } from './patch'
 import {
   DEFAULT_SPIN_DURATION_MS,
   RITE_MECHANISMS,
@@ -103,8 +104,13 @@ export const RiteConfigSchema = z.object({
    * A presentation choice only. The winner is drawn once in the main process
    * and travels in the spin command, so every mechanism renders the same
    * result and none of them can disagree with the console.
+   *
+   * Caught rather than merely defaulted, because mechanisms get retired. The
+   * repository parses a stored rite with `safeParse` and discards the whole
+   * thing if it fails, so without this a config naming a mechanism that no
+   * longer exists would take the roster and the history down with it.
    */
-  mechanism: z.enum(RITE_MECHANISMS).default('ring'),
+  mechanism: z.enum(RITE_MECHANISMS).default('ring').catch('ring'),
   /** Masthead on the overlay. */
   title: z.string().max(64).default('RESONANCE SELECTION'),
   /** The question being put to the field, e.g. `WHICH TRACK DO WE REMIX`. */
@@ -215,12 +221,17 @@ type RiteConfigPatchShape = {
   [K in keyof RiteConfig]: z.ZodOptional<z.ZodType<RiteConfig[K]>>
 }
 
-// `Object.fromEntries` erases key types, so the mapping has to be asserted.
-// The assertion is checked at runtime by the patch round-trip covered in the
-// verification script rather than being taken on trust.
-const riteConfigPatchShape = Object.fromEntries(
-  Object.entries(RiteConfigSchema.shape).map(([key, field]) => [key, field.unwrap().optional()])
-) as unknown as RiteConfigPatchShape
+/*
+ * `Object.fromEntries` inside `sparseShape` erases key types, so the mapping has
+ * to be asserted.
+ *
+ * This used to call `field.unwrap()` directly, which peeled exactly one layer —
+ * and that quietly stopped being enough the moment `mechanism` gained a
+ * `.catch()`, because a catch wrapping a default leaves the default in place. So
+ * every `rite:config` write had begun re-injecting `mechanism: 'ring'` and
+ * resetting the operator's chosen presentation. `sparseShape` loops instead.
+ */
+const riteConfigPatchShape = sparseShape(RiteConfigSchema.shape) as unknown as RiteConfigPatchShape
 
 export const RiteConfigPatchSchema = z.object(riteConfigPatchShape)
 export type RiteConfigPatch = z.infer<typeof RiteConfigPatchSchema>

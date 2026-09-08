@@ -1,0 +1,417 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+// Explicit spans per panel, never positional nth-child rules — those fight the
+// responsive overrides on specificity and change layout silently when a panel
+// is reordered.
+.tallyPanel {
+  grid-column: span 2;
+}
+
+.span2 {
+  grid-column: span 2;
+}
+
+.span4 {
+  grid-column: span 4;
+}
+
+.span6 {
+  grid-column: span 6;
+}
+
+@include below('lg') {
+  .tallyPanel {
+    grid-column: span 3;
+  }
+
+  .span2 {
+    grid-column: span 3;
+  }
+
+  .span4 {
+    grid-column: span 6;
+  }
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  .tallyPanel,
+  .span2,
+  .span4 {
+    grid-column: span 6;
+  }
+}
+
+.back {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-secondary);
+  text-decoration: none;
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+
+  &:hover {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+// --------------------------------------------------------------------- tally
+
+.tallyBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(5);
+}
+
+.controls {
+  display: flex;
+  gap: space(3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.asideLive {
+  @include label(8px, 0.18em);
+  color: var(--ch-crimson-400);
+}
+
+.asideResult {
+  @include label(8px, 0.18em);
+  color: var(--ch-gold-300);
+  max-width: 180px;
+  @include truncate;
+}
+
+.asideIdle {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.verdict {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.verdictLabel {
+  @include label(8px, 0.22em);
+  color: var(--ch-crimson-400);
+}
+
+.verdictValue {
+  font-family: var(--ch-font-display);
+  font-size: rem(20px);
+  letter-spacing: 0.06em;
+  // Wide tracking pushes the text right; the indent brings it back to centre.
+  text-indent: 0.06em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+}
+
+.verdictMeta {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  line-height: 1.7;
+}
+
+// ----------------------------------------------------------------- broadcast
+
+.broadcast {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  align-items: flex-start;
+}
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+
+  a {
+    color: var(--ch-gold-300);
+  }
+}
+
+.warnText {
+  @include readout(11px);
+  color: var(--ch-crimson-400);
+  line-height: 1.6;
+}
+
+.inline {
+  font-family: var(--ch-font-mono);
+  color: var(--ch-gold-300);
+}
+
+.url {
+  @include readout(12px);
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-gold);
+  padding: space(2) space(3);
+  width: 100%;
+  user-select: all;
+  word-break: break-all;
+}
+
+// One block per browser-source address, so two of them read as two things
+// rather than as one paragraph with two URLs in it.
+.address {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  width: 100%;
+  padding: space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+}
+
+.addressLabel {
+  @include label(9px, 0.18em);
+  color: var(--ch-gold-300);
+}
+
+.addressPurpose {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.broadcastActions {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
+// -------------------------------------------------------------------- config
+
+.config {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.toggles {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-top: space(2);
+  @include hairline(top, 0.08);
+}
+
+.instruction {
+  @include label(8px, 0.16em);
+  color: var(--ch-gold-300);
+  line-height: 1.8;
+  padding: space(2) space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+}
+
+// ------------------------------------------------------------------- presets
+
+.presets {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.presetLabel {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-secondary);
+}
+
+.presetRow {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
+.preset {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  border-radius: $radius-control;
+  padding: space(2) space(3);
+  cursor: pointer;
+  transition:
+    color $duration-fast $ease-out-expo,
+    border-color $duration-fast $ease-out-expo;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+
+  &[data-active] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+    background: var(--ch-obsidian-600);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+}
+
+// ------------------------------------------------------------------- history
+
+.history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.historyRow {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) 0;
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+}
+
+.historyTime {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.historyLabel {
+  @include readout(12px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.historyOdds {
+  @include label(8px, 0.12em);
+  color: var(--ch-text-faint);
+}
+
+// ------------------------------------------------------------- notice / warn
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin-bottom: space(5);
+  padding: space(3) space(4);
+  border: $hairline solid var(--ch-crimson-600);
+  background: var(--ch-crimson-900);
+  @include readout(11px);
+  color: var(--ch-text-primary);
+}
+
+/*
+ * A hard stop: the feature cannot be used until something is configured.
+ *
+ * This one *is* crimson, and legitimately so — the palette reserves the
+ * saturated colour for focal points and live state, and a blocked broadcast
+ * feature is the most important thing on the page while it is blocked.
+ */
+.blocked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin-bottom: space(5);
+  padding: space(3) space(4);
+  border: $hairline solid var(--ch-crimson-600);
+  background: var(--ch-crimson-900);
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  line-height: 1.6;
+
+  a {
+    color: var(--ch-gold-300);
+  }
+}
+
+// Distinct from `.notice` and `.blocked`: those are a failed action and a hard
+// stop. This is a condition the operator can proceed past. Brass rather than
+// crimson, because crimson is reserved and a warning is not a fault.
+.warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin-bottom: space(5);
+  padding: space(3) space(4);
+  border: $hairline solid var(--ch-line-gold);
+  background: var(--ch-brass-700);
+  @include readout(11px);
+  color: var(--ch-text-primary);
+}
+
+.dismiss {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// ----------------------------------------------------------------- simulator
+
+// Development only. Deliberately plain — it is scaffolding, and dressing it up
+// would make it look like a shipped feature in screenshots.
+.simulator {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  align-items: flex-start;
+}
+
+.simulatorRow {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+}

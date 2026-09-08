@@ -5,6 +5,8 @@ import type { RuntimeInfo, WindowState } from '../domain/system'
 import type { UpdateStatus } from '../domain/update'
 import type { TelemetryState } from '../domain/telemetry'
 import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } from '../domain/rite'
+import type { ConcordConfigPatch, ConcordOptionDraft, ConcordState } from '../domain/concord'
+import type { ChatStatus } from '../domain/chat'
 import type { TimerConfigPatch, TimerId, TimerSet, TimerState } from '../domain/timer'
 import type { NowPlayingConfigPatch, NowPlayingState, SpotifySetup } from '../domain/nowplaying'
 import type {
@@ -108,6 +110,40 @@ export interface CandyHavenApi {
     reset(): Promise<RiteState>
     clearHistory(): Promise<RiteState>
     onState(listener: (state: RiteState) => void): Unsubscribe
+  }
+  /**
+   * THE CONCORD — the chat-voted poll. Every method returns the whole poll, for
+   * the same reason the rite's do.
+   */
+  readonly concord: {
+    state(): Promise<ConcordState>
+    addOption(draft: ConcordOptionDraft): Promise<ConcordState>
+    removeOption(id: string): Promise<ConcordState>
+    /** Replaces the whole ballot, for a pasted list. */
+    setBallot(labels: string[]): Promise<ConcordState>
+    clearBallot(): Promise<ConcordState>
+    configure(patch: ConcordConfigPatch): Promise<ConcordState>
+    /** Opens voting and starts the window, if one is set. */
+    open(): Promise<ConcordState>
+    /** Closes voting; escalates to THE CASTING if the chamber is deadlocked. */
+    close(): Promise<ConcordState>
+    /** Returns to drafting, keeping the ballot and clearing the votes. */
+    reset(): Promise<ConcordState>
+    clearHistory(): Promise<ConcordState>
+    /** Synthetic votes. Rejected outside development. */
+    simulate(count: number, changeVotes?: boolean): Promise<ConcordState>
+    onState(listener: (state: ConcordState) => void): Unsubscribe
+  }
+  /**
+   * Read-only chat ingest. There is nothing to configure here beyond the channel
+   * name, which lives in settings — chat is read anonymously, so there is no
+   * link step and no credential.
+   */
+  readonly chat: {
+    status(): Promise<ChatStatus>
+    /** Drops the socket and attends again, for a channel change or a fault. */
+    reconnect(): Promise<ChatStatus>
+    onStatus(listener: (status: ChatStatus) => void): Unsubscribe
   }
   /**
    * Countdown overlays. Nothing ticks across this boundary — the state carries

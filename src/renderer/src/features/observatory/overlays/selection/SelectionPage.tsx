@@ -273,7 +273,7 @@ export function SelectionPage(): ReactNode {
               }))}
               onChange={(mechanism) => void actions.configure({ mechanism })}
               disabled={spinning}
-              hint="Four ways to present the same draw. Locked while a selection is running."
+              hint="Three ways to present the same draw. Locked while a selection is running."
             />
 
             <SelectInput

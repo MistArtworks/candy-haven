@@ -142,6 +142,25 @@ const api: CandyHavenApi = {
     clearHistory: () => invoke('rite:history-clear'),
     onState: (listener) => subscribe('rite:state', listener)
   },
+  concord: {
+    state: () => invoke('concord:state'),
+    addOption: (draft) => invoke('concord:option-add', draft),
+    removeOption: (id) => invoke('concord:option-remove', { id }),
+    setBallot: (labels) => invoke('concord:ballot', { labels }),
+    clearBallot: () => invoke('concord:ballot-clear'),
+    configure: (patch) => invoke('concord:config', patch),
+    open: () => invoke('concord:open'),
+    close: () => invoke('concord:close'),
+    reset: () => invoke('concord:reset'),
+    clearHistory: () => invoke('concord:history-clear'),
+    simulate: (count, changeVotes) => invoke('concord:simulate', { count, changeVotes }),
+    onState: (listener) => subscribe('concord:state', listener)
+  },
+  chat: {
+    status: () => invoke('chat:status'),
+    reconnect: () => invoke('chat:reconnect'),
+    onStatus: (listener) => subscribe('chat:status', listener)
+  },
   timers: {
     all: () => invoke('timer:all'),
     start: (id) => invoke('timer:start', { id }),

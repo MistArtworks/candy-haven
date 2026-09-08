@@ -5,13 +5,15 @@ import { NexusPage } from '@renderer/features/home/NexusPage'
 import { ArchivePage } from '@renderer/features/archive/ArchivePage'
 import { ObservatoryPage } from '@renderer/features/observatory/ObservatoryPage'
 import { SelectionPage } from '@renderer/features/observatory/overlays/selection/SelectionPage'
+import { ConcordPage } from '@renderer/features/observatory/overlays/concord/ConcordPage'
 import { ReservedOverlayPage } from '@renderer/features/observatory/overlays/ReservedOverlayPage'
+import { ChorusPage } from '@renderer/features/observatory/chorus/ChorusPage'
 import { TimerPage } from '@renderer/features/observatory/overlays/timer/TimerPage'
 import { TransmissionPage } from '@renderer/features/observatory/overlays/transmission/TransmissionPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
 import { ReservedPage } from '@renderer/features/reserved/ReservedPage'
-import { OVERLAYS } from '@shared/domain/overlays'
+import { OVERLAYS, type OverlayId } from '@shared/domain/overlays'
 
 /**
  * Route table.
@@ -25,6 +27,36 @@ import { OVERLAYS } from '@shared/domain/overlays'
  * from local disk, so code-splitting would add a loading state without
  * meaningfully improving startup.
  */
+/**
+ * The page an overlay's sub-route resolves to.
+ *
+ * A switch rather than the chain of ternaries this used to be: with five
+ * overlays shipped, adding one meant reading four conditions to work out where
+ * it belonged, and the nesting had started to obscure that the two countdowns
+ * deliberately share a page.
+ *
+ * The `default` is load-bearing and not a fallback for a missing case — an
+ * overlay that has not shipped resolves to its own scope page, so declaring a
+ * new one in the registry routes it somewhere sensible before a line of its
+ * implementation exists.
+ */
+function overlayElement(id: OverlayId): ReactNode {
+  switch (id) {
+    case 'selection':
+      return <SelectionPage />
+    case 'concord':
+      return <ConcordPage />
+    case 'transmission':
+      return <TransmissionPage />
+    // Both countdowns share a page; the id selects the timer.
+    case 'interval':
+    case 'convene':
+      return <TimerPage timerId={id} />
+    default:
+      return <ReservedOverlayPage overlayId={id} />
+  }
+}
+
 export function AppRouter(): ReactNode {
   return (
     <Routes>
@@ -53,29 +85,25 @@ export function AppRouter(): ReactNode {
           OBSERVATORY is a catalogue with one route per overlay. Every entry in
           the registry is routed whether or not it is built — a reserved one
           resolves to its scope page — so a catalogue card is never a dead link.
-          Shipping an overlay means adding its case below and flipping
-          `implemented` in shared/domain/overlays.ts.
+          Shipping an overlay means adding its case to `overlayElement` and
+          flipping `implemented` in shared/domain/overlays.ts.
         */}
         <Route path="/observatory">
           <Route index element={<ObservatoryPage />} />
           {OVERLAYS.map((overlay) => (
-            <Route
-              key={overlay.id}
-              path={overlay.slug}
-              element={
-                overlay.id === 'selection' ? (
-                  <SelectionPage />
-                ) : overlay.id === 'transmission' ? (
-                  <TransmissionPage />
-                ) : overlay.id === 'interval' || overlay.id === 'convene' ? (
-                  // Both countdowns share a page; the id selects the timer.
-                  <TimerPage timerId={overlay.id} />
-                ) : (
-                  <ReservedOverlayPage overlayId={overlay.id} />
-                )
-              }
-            />
+            <Route key={overlay.id} path={overlay.slug} element={overlayElement(overlay.id)} />
           ))}
+
+          {/*
+            THE CHORUS is routed by hand rather than from the registry, because
+            it is not one of its members. Every entry in `OVERLAYS` is a browser
+            source this app serves and builds a document for — the registry
+            drives the server's URL table and Vite's entry points off exactly
+            that assumption. The Chorus is a Streamlabs widget: we emit its code
+            and Streamlabs hosts it. Declaring it there would ask the build for a
+            document that does not exist.
+          */}
+          <Route path="chorus" element={<ChorusPage />} />
         </Route>
 
         <Route

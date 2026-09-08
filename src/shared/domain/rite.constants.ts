@@ -160,6 +160,112 @@ export function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value
 }
 
+/**
+ * A motion curve, in the one shape every presentation can drive itself from.
+ *
+ * `rateAt` is a multiple of the curve's *average* rate rather than an absolute
+ * speed, which is what lets a renderer turn it into slabs per second, radians
+ * per second or an intensity without knowing which curve it was handed.
+ */
+export interface Easing {
+  /** Progress at time `u`. May leave [0,1] where the curve over- or undershoots. */
+  at(u: number): number
+  /** Rate of change at `u`, as a multiple of the average rate over the curve. */
+  rateAt(u: number): number
+}
+
+/** The ring's flywheel curve, wrapped so it is interchangeable with a bezier. */
+export const SPIN_EASING: Easing = { at: spinEase, rateAt: spinVelocity }
+
+/**
+ * A CSS-style cubic bezier easing, solved rather than approximated.
+ *
+ * `cubic-bezier(x1, y1, x2, y2)` treats x as time and y as progress, so
+ * evaluating one means inverting x for the curve parameter and only then
+ * reading y — sampling `y(u)` directly gives a different curve than the editor
+ * drew. Newton-Raphson reaches the parameter in a few iterations from a good
+ * starting guess, with bisection as the fallback for the steep middle of a
+ * crossed-control curve, where the x derivative gets small enough to send
+ * Newton wandering.
+ *
+ * Control y values outside [0,1] are allowed and meaningful: a negative `y1` is
+ * anticipation, dipping the curve below its start before it sets off.
+ */
+export function cubicBezier(x1: number, y1: number, x2: number, y2: number): Easing {
+  // Polynomial form of a bezier through 0, c1, c2, 1 — `At³ + Bt² + Ct`.
+  const coefficients = (c1: number, c2: number): [number, number, number] => [
+    1 - 3 * c2 + 3 * c1,
+    3 * c2 - 6 * c1,
+    3 * c1
+  ]
+  const [ax, bx, cx] = coefficients(x1, x2)
+  const [ay, by, cy] = coefficients(y1, y2)
+
+  const valueAt = (a: number, b: number, c: number, t: number): number => ((a * t + b) * t + c) * t
+  const slopeAt = (a: number, b: number, c: number, t: number): number =>
+    (3 * a * t + 2 * b) * t + c
+
+  /** The curve parameter whose x is `u`. */
+  const solve = (u: number): number => {
+    let t = u
+    for (let index = 0; index < 8; index += 1) {
+      const error = valueAt(ax, bx, cx, t) - u
+      if (Math.abs(error) < 1e-7) return t
+      const slope = slopeAt(ax, bx, cx, t)
+      if (Math.abs(slope) < 1e-7) break
+      t -= error / slope
+    }
+
+    let low = 0
+    let high = 1
+    t = u
+    for (let index = 0; index < 32; index += 1) {
+      const x = valueAt(ax, bx, cx, t)
+      if (Math.abs(x - u) < 1e-7) break
+      if (x > u) high = t
+      else low = t
+      t = (low + high) / 2
+    }
+    return t
+  }
+
+  return {
+    at(u) {
+      const time = clamp01(u)
+      // Both ends are exact by definition; short-circuiting them keeps the
+      // landing frame free of the solver's 1e-7 of slop, which the reel turns
+      // into a fraction of a pixel of drift on the resting frame.
+      if (time <= 0 || time >= 1) return time
+      return valueAt(ay, by, cy, solve(time))
+    },
+    rateAt(u) {
+      const t = solve(clamp01(u))
+      const dx = slopeAt(ax, bx, cx, t)
+      return dx <= 0 ? 0 : slopeAt(ay, by, cy, t) / dx
+    }
+  }
+}
+
+/**
+ * THE PROCESSION's motion curve.
+ *
+ * An ease-in-out rather than the flywheel coast `spinEase` gives the ring,
+ * because a procession is not a wheel let go of — it is a mechanism executing a
+ * procedure. It holds almost still for the first fifth, tears through the
+ * middle at some eight times its average rate, and arrives on the same long
+ * readable crawl the ring has.
+ *
+ * Counter-intuitively this is *less* of a smear than the flywheel curve, not
+ * more: the burst is violent but brief, so the strip spends about 1.2s of a 7s
+ * spin moving too fast for a label to be read, against the flywheel's 1.9s.
+ *
+ * The `-0.02` is anticipation, and it is honest to say it is nearly invisible
+ * at these numbers: `x1 = 0.77` stretches time so hard across the opening that
+ * the dip bottoms out around -0.0003 of the travel, a pixel or two of backward
+ * drift. Deepen `y1` to about -0.15 to make it a wind-up you can actually see.
+ */
+export const PROCESSION_EASING = cubicBezier(0.77, -0.02, 0.01, 0.94)
+
 // ------------------------------------------------------------------ playback
 
 export interface SpinFrame {
@@ -317,31 +423,38 @@ export function petitionKey(label: string): string {
 // -------------------------------------------------------------- mechanisms
 
 /**
- * The four ways a selection can be presented.
+ * The three ways a selection can be presented.
  *
- * All four render the *same* draw. The winner is decided once in the main
+ * All three render the *same* draw. The winner is decided once in the main
  * process and travels in the spin command, so a mechanism is a presentation
  * choice and never a different result — which is what makes adding one of these
  * cheap and makes none of them able to disagree with the console.
  *
- * They differ in shape and in what carries the tension:
+ * They differ in shape, in what carries the tension, and in how far they have
+ * to go to reconcile a live presentation with a result that was settled before
+ * it began:
  *   - `ring`       a rotating ring read against a fixed bezel
- *   - `procession` plates streaming past a fixed marker
- *   - `tribunal`   a selection bar stepping down a fixed docket
- *   - `attrition`  records struck out until one survives
+ *   - `procession` slabs streaming past a fixed mark
+ *   - `descent`    motes falling through a gauntlet into Nayara
+ *
+ * `descent` is the one that cannot be solved for a position at time `t`, so it
+ * simulates and bakes instead — see `rite.descent.ts`, which also explains how
+ * an unrigged physics sim is made to agree with a predetermined winner.
+ *
+ * Two earlier mechanisms — `tribunal` and `attrition` — were retired. A stored
+ * config naming either still parses, because `RiteConfigSchema` catches an
+ * unknown mechanism back to `ring` rather than failing; without that, the
+ * repository's `safeParse` would discard the whole rite, roster and history
+ * included, over a single dead string.
  */
-export const RITE_MECHANISMS = ['ring', 'procession', 'tribunal', 'attrition'] as const
+export const RITE_MECHANISMS = ['ring', 'procession', 'descent'] as const
 export type RiteMechanism = (typeof RITE_MECHANISMS)[number]
 
 export const RITE_MECHANISM_LABEL: Record<RiteMechanism, string> = {
   ring: 'RESONANCE RING — the ring turns beneath a fixed pointer',
   procession: 'THE PROCESSION — petitions stream past the mark and one is held',
-  tribunal: 'THE TRIBUNAL — the docket is scanned and one file is sanctioned',
-  attrition: 'RITE OF ATTRITION — records are redacted until one survives'
+  descent: 'THE DESCENT — the motes are loosed and Nayara takes one'
 }
-
-/** How many petitions a docket shows before it has to scroll. */
-export const DOCKET_VISIBLE_ROWS = 9
 
 // ---------------------------------------------------------------- the reel
 
@@ -361,18 +474,45 @@ export interface ReelFrame {
 }
 
 /**
+ * How far past the winner a strip travels before easing back, in plates.
+ *
+ * Held strictly under half a plate, which is the entire point of it being a
+ * named constant rather than the ring's `overshootRadians` converted into
+ * plates. A ring is a continuous rim read against a blade, so a swing that
+ * crosses into the neighbouring segment reads as a near-miss and creeps back
+ * out. A rail is discrete slabs with visible gaps between them: the same swing
+ * puts the mark *fully onto the neighbouring slab* and holds it there for the
+ * whole settle, which does not read as a near-miss at all — it reads as the
+ * wrong petition having been chosen and then quietly swapped for another.
+ *
+ * Constant rather than proportional to the roster, unlike the ring's, because a
+ * ring's near-miss is measured in segments crossed while a rail's is measured
+ * in slab — and a slab is the same width whether two petitions are filed or
+ * twenty.
+ */
+export const REEL_OVERSHOOT_PLATES = 0.42
+
+/**
  * The linear equivalent of `spinFrameAt`, for the presentations that move a
  * strip rather than turn a ring.
  *
- * Shares the ring's easing and overshoot deliberately: a spin should feel the
- * same whichever way it is drawn, and the console and the broadcast derive both
- * from the one command.
+ * Takes the curve rather than assuming one, defaulting to the ring's. What has
+ * to be shared between surfaces is the *result* and the *timing* — both derive
+ * from the one command, so the console and the broadcast land on the same
+ * petition at the same instant whatever curve is passed. How a mechanism gets
+ * there is already its own business: the descent does not ease at all, it falls
+ * through a simulation and is resampled onto the same duration.
+ *
+ * The overshoot is the one number that cannot vary — see
+ * `REEL_OVERSHOOT_PLATES`.
  */
-export function reelFrameAt(spin: SpinCommand, now: number): ReelFrame {
+export function reelFrameAt(
+  spin: SpinCommand,
+  now: number,
+  easing: Easing = SPIN_EASING
+): ReelFrame {
   const target = spin.revolutions * spin.segmentCount + spin.targetIndex
-  // A fraction of a plate, so the mark visibly passes the winner and creeps
-  // back onto it — the same near-miss the ring gets from its angular overshoot.
-  const overshoot = 0.55
+  const overshoot = REEL_OVERSHOOT_PLATES
   const elapsed = now - spin.startedAt
   const total = totalSpinDurationMs(spin)
 
@@ -381,8 +521,8 @@ export function reelFrameAt(spin: SpinCommand, now: number): ReelFrame {
   if (elapsed < spin.durationMs) {
     const u = elapsed / spin.durationMs
     return {
-      plates: spinEase(u) * (target + overshoot),
-      velocity: spinVelocity(u),
+      plates: easing.at(u) * (target + overshoot),
+      velocity: easing.rateAt(u),
       progress: elapsed / total,
       settled: false
     }
@@ -405,89 +545,4 @@ export function reelFrameAt(spin: SpinCommand, now: number): ReelFrame {
 export function reelPetitionIndex(reelIndex: number, count: number): number {
   if (count <= 0) return 0
   return ((reelIndex % count) + count) % count
-}
-
-// ------------------------------------------------------------- the docket
-
-/**
- * Which row the selection bar rests on at `now`, for the TRIBUNAL.
- *
- * Steps between whole rows rather than gliding: a bar that slides continuously
- * reads as a scrollbar, whereas one that jumps reads as a machine considering
- * each file in turn. The step rate follows the same easing as everything else,
- * so it slows to a crawl before it settles.
- */
-export function docketRowAt(spin: SpinCommand, now: number): number {
-  const frame = reelFrameAt(spin, now)
-  if (frame.settled) return spin.targetIndex
-  return reelPetitionIndex(Math.round(frame.plates), spin.segmentCount)
-}
-
-// ----------------------------------------------------------- the attrition
-
-/**
- * FNV-1a over the spin id.
- *
- * The elimination order has to be identical on every surface, and the only
- * thing they share is the command — so the order is derived from its id rather
- * than rolled locally. Any stable hash would do; this one is short and has no
- * dependencies.
- */
-function seedFrom(value: string): number {
-  let hash = 0x811c9dc5
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index)
-    hash = Math.imul(hash, 0x01000193)
-  }
-  return hash >>> 0
-}
-
-/** xorshift32. Small, deterministic, and adequate for shuffling a list. */
-function nextSeed(seed: number): number {
-  let next = seed
-  next ^= next << 13
-  next ^= next >>> 17
-  next ^= next << 5
-  return next >>> 0
-}
-
-/**
- * The order in which petitions are struck out, ending with the winner surviving.
- *
- * Every index except the target, shuffled deterministically from the spin id.
- * Computed identically by the console and the broadcast, so both strike the
- * same record at the same moment.
- */
-export function attritionOrder(spin: SpinCommand): number[] {
-  const victims: number[] = []
-  for (let index = 0; index < spin.segmentCount; index += 1) {
-    if (index !== spin.targetIndex) victims.push(index)
-  }
-
-  // Fisher-Yates, seeded.
-  let seed = seedFrom(spin.id)
-  for (let index = victims.length - 1; index > 0; index -= 1) {
-    seed = nextSeed(seed)
-    const swap = seed % (index + 1)
-    ;[victims[index], victims[swap]] = [victims[swap], victims[index]]
-  }
-
-  return victims
-}
-
-/**
- * How many records have been struck out at `now`.
- *
- * Reuses the decelerating curve rather than accelerating into the end. The last
- * elimination is the one that decides it, so it gets the longest beat — an
- * accelerating tempo would rush precisely the moment worth watching.
- */
-export function attritionStruckAt(spin: SpinCommand, now: number): number {
-  const elapsed = now - spin.startedAt
-  if (elapsed <= 0) return 0
-
-  const doomed = Math.max(spin.segmentCount - 1, 0)
-  if (elapsed >= spin.durationMs) return doomed
-
-  return Math.min(Math.floor(spinEase(elapsed / spin.durationMs) * doomed), doomed)
 }

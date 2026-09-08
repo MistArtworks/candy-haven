@@ -10,7 +10,11 @@ import { stat } from 'node:fs/promises'
 import { extname, join, normalize, sep } from 'node:path'
 import { is } from '@electron-toolkit/utils'
 import type { OverlayServerInfo } from '@shared/domain/rite'
-import { LIVE_OVERLAYS, getOverlayBySlug, overlayDocument } from '@shared/domain/overlays'
+import {
+  liveOverlayAddresses,
+  overlayDocument,
+  resolveOverlayAddress
+} from '@shared/domain/overlays'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import { getPaths } from '@main/core/paths'
@@ -335,8 +339,12 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
     const slug = pathname.replace(/^\/+/, '').replace(/\/+$/, '')
 
     if (!slug.includes('/') && !slug.includes('.')) {
-      const overlay = getOverlayBySlug(slug)
-      return overlay?.implemented ? `/${OVERLAY_DIR}/${overlayDocument(overlay)}.html` : null
+      // Matches an overlay's own slug *or* any of its extra addresses, so
+      // `/concord` and `/concord-widget` both resolve to the concord document.
+      const resolved = resolveOverlayAddress(slug)
+      return resolved?.overlay.implemented
+        ? `/${OVERLAY_DIR}/${overlayDocument(resolved.overlay)}.html`
+        : null
     }
 
     return pathname
@@ -351,11 +359,16 @@ export class OverlayServer extends TypedEmitter<OverlayServerEvents> {
    * from.
    */
   private serveDirectory(res: ServerResponse): void {
-    const rows = LIVE_OVERLAYS.map(
-      (overlay) =>
-        `<li><a href="/${overlay.slug}">/${overlay.slug}</a> &mdash; ${overlay.label} ` +
-        `(${overlay.canvas.width}&times;${overlay.canvas.height})</li>`
-    ).join('')
+    // Every address, not every overlay: an overlay serving both a full scene
+    // and a corner widget has two, and this page exists to be the answer to
+    // "what can I point OBS at".
+    const rows = liveOverlayAddresses()
+      .map(
+        (address) =>
+          `<li><a href="/${address.slug}">/${address.slug}</a> &mdash; ${address.label} ` +
+          `(${address.canvas.width}&times;${address.canvas.height})</li>`
+      )
+      .join('')
 
     const body =
       `<!doctype html><meta charset="utf-8"><title>Candy Haven overlays</title>` +

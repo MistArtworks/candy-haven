@@ -163,7 +163,8 @@ export class BootSequence extends TypedEmitter<BootEvents> {
    * reads as a narrative rather than being scattered across the service layer.
    */
   private createRunners(): Record<BootStageId, StageRunner> {
-    const { settings, archive, updates, rite, timers, nowPlaying, overlayServer } = this.services
+    const { settings, archive, updates, rite, timers, nowPlaying, concord, overlayServer } =
+      this.services
 
     // Carried between stages within a single run. The full binary record is
     // kept, not just its path, so the daemon stage reports the runtime's real
@@ -266,6 +267,7 @@ export class BootSequence extends TypedEmitter<BootEvents> {
         const workspace = settings.snapshot.workspace
         await rite.initialize()
         await timers.initialize()
+        await concord.initialize()
         await nowPlaying.initialize(settings.snapshot.integrations.spotifyClientId)
 
         if (workspace.overlayAutoStart) {
