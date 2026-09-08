@@ -12,7 +12,11 @@
   transition:
     color $duration-fast $ease-out-expo,
     border-color $duration-fast $ease-out-expo,
-    background-color $duration-fast $ease-out-expo;
+    background-color $duration-fast $ease-out-expo,
+    // Slower than the hover transitions on purpose: losing `disabled` is a
+    // state reveal rather than a pointer response, and at $duration-fast it
+    // reads as the control snapping on.
+    opacity $duration-base $ease-out-expo;
   @include window-no-drag;
 
   &:disabled {

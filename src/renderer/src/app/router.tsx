@@ -3,9 +3,13 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { ConsoleLayout } from '@renderer/layouts/ConsoleLayout'
 import { NexusPage } from '@renderer/features/home/NexusPage'
 import { ArchivePage } from '@renderer/features/archive/ArchivePage'
+import { ObservatoryPage } from '@renderer/features/observatory/ObservatoryPage'
+import { SelectionPage } from '@renderer/features/observatory/overlays/selection/SelectionPage'
+import { ReservedOverlayPage } from '@renderer/features/observatory/overlays/ReservedOverlayPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
 import { ReservedPage } from '@renderer/features/reserved/ReservedPage'
+import { OVERLAYS } from '@shared/domain/overlays'
 
 /**
  * Route table.
@@ -43,21 +47,29 @@ export function AppRouter(): ReactNode {
           }
         />
 
-        <Route
-          path="/observatory"
-          element={
-            <ReservedPage
-              sectionId="observatory"
-              scope={[
-                'Compose and manage stream overlay scenes',
-                'Serve overlays to OBS via a local browser source',
-                'Bind overlay state to live data from the archive',
-                'Switch scenes and trigger transitions during broadcast',
-                'Record broadcast telemetry for post-stream review'
-              ]}
+        {/*
+          OBSERVATORY is a catalogue with one route per overlay. Every entry in
+          the registry is routed whether or not it is built — a reserved one
+          resolves to its scope page — so a catalogue card is never a dead link.
+          Shipping an overlay means adding its case below and flipping
+          `implemented` in shared/domain/overlays.ts.
+        */}
+        <Route path="/observatory">
+          <Route index element={<ObservatoryPage />} />
+          {OVERLAYS.map((overlay) => (
+            <Route
+              key={overlay.id}
+              path={overlay.slug}
+              element={
+                overlay.id === 'selection' ? (
+                  <SelectionPage />
+                ) : (
+                  <ReservedOverlayPage overlayId={overlay.id} />
+                )
+              }
             />
-          }
-        />
+          ))}
+        </Route>
 
         <Route
           path="/interface"

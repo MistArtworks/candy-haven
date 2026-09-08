@@ -95,6 +95,39 @@ export const bootExitVariants: Variants = {
 }
 
 /** Console shell arriving behind the departing boot layer. */
+/**
+ * The boot screen's enter affordance.
+ *
+ * Mounted for the whole sequence rather than added on completion, so it holds
+ * its place in the layout from the first frame and the meter and log never
+ * shift under it. Readiness is a transition between two states of the same
+ * element, not an insertion — which is what stops the control snapping into
+ * existence the instant the sequence finishes.
+ */
+export const enterAffordanceVariants: Variants = {
+  waiting: { y: 6, filter: 'blur(1px)' },
+  ready: {
+    y: 0,
+    filter: 'blur(0px)',
+    // Slower than the house entrance curve: this is the last beat of a
+    // two-and-a-half second cinematic, so it should arrive rather than snap.
+    transition: { duration: 0.62, ease: EASE_OUT_EXPO, delay: 0.14 }
+  }
+}
+
+/**
+ * The `Press Enter` hint beside it.
+ *
+ * Opacity only, and on its own delay, so it arrives just after the control it
+ * describes. Kept off the parent variant because the button carries its own
+ * dormant opacity through `:disabled` — fading the whole row as well would
+ * multiply the two and leave the control nearly invisible while booting.
+ */
+export const enterHintVariants: Variants = {
+  waiting: { opacity: 0 },
+  ready: { opacity: 1, transition: { duration: 0.5, ease: EASE_OUT_EXPO, delay: 0.42 } }
+}
+
 export const consoleEnterVariants: Variants = {
   initial: { opacity: 0, scale: 1.015 },
   animate: {

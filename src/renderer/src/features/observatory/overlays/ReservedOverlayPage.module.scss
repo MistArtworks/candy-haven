@@ -1,0 +1,99 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+.notice {
+  grid-column: span 6;
+}
+
+.span3 {
+  grid-column: span 3;
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  .span3 {
+    grid-column: span 6;
+  }
+}
+
+.back {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-secondary);
+  text-decoration: none;
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+
+  &:hover {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.noticeBody {
+  display: flex;
+  align-items: center;
+  gap: space(6);
+}
+
+.mark {
+  color: var(--ch-accent);
+  flex-shrink: 0;
+}
+
+.headline {
+  font-family: var(--ch-font-display);
+  font-size: rem(16px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+  margin-bottom: space(2);
+}
+
+.copy {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.7;
+  max-width: 76ch;
+}
+
+.scope {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.scopeItem {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: space(3);
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+}
+
+.scopeIndex {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+}

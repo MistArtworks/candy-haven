@@ -157,6 +157,27 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.projects.thumbnail(path, width ?? 480)
   )
 
+  // --------------------------------------------------------------------- rite
+
+  router.handle('rite:state', () => services.rite.current)
+  router.handle('rite:petition-add', (draft) => services.rite.addPetition(draft))
+  router.handle('rite:petition-remove', ({ id }) => services.rite.removePetition(id))
+  router.handle('rite:petition-weight', ({ id, weight }) =>
+    services.rite.setPetitionWeight(id, weight)
+  )
+  router.handle('rite:petitions-clear', () => services.rite.clearPetitions())
+  router.handle('rite:config', (patch) => services.rite.updateConfig(patch))
+  router.handle('rite:spin', () => services.rite.spin())
+  router.handle('rite:reset', () => services.rite.reset())
+  router.handle('rite:history-clear', () => services.rite.clearHistory())
+
+  router.handle('overlay:info', () => services.rite.serverInfo)
+  // The port comes from settings rather than the renderer, for the same reason
+  // the scan roots do: a compromised renderer should not choose what we bind.
+  router.handle('overlay:restart', () =>
+    services.rite.restartServer(settings.snapshot.workspace.overlayPort)
+  )
+
   // -------------------------------------------------------------------- shell
 
   router.handle('shell:open-external', async ({ url }) => {
@@ -232,5 +253,7 @@ export function registerEventBridges(deps: {
   services.updates.on('status', (status) => router.broadcast('update:status', status))
   services.telemetry.on('sample', (state) => router.broadcast('telemetry:sample', state))
   services.projects.on('scan', (state) => router.broadcast('projects:scan', state))
+  services.rite.on('state', (state) => router.broadcast('rite:state', state))
+  services.rite.on('server', (info) => router.broadcast('overlay:info', info))
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

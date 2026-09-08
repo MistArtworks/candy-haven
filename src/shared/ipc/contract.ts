@@ -6,6 +6,12 @@ import { RuntimeInfoSchema, WindowStateSchema } from '../domain/system'
 import { UpdateStatusSchema } from '../domain/update'
 import { TelemetryStateSchema } from '../domain/telemetry'
 import {
+  OverlayServerInfoSchema,
+  PetitionDraftSchema,
+  RiteConfigPatchSchema,
+  RiteStateSchema
+} from '../domain/rite'
+import {
   MarketingAssetKindSchema,
   MarketingAssetSchema,
   NoteDraftSchema,
@@ -111,6 +117,28 @@ export const IPC_INVOKE = {
     output: z.string().nullable()
   },
 
+  /**
+   * Selection rite (OBSERVATORY section). The winner is drawn in main and
+   * travels inside the spin command, so the console and every browser source
+   * animate toward one predetermined result rather than each rolling their own.
+   */
+  'rite:state': { input: z.void(), output: RiteStateSchema },
+  'rite:petition-add': { input: PetitionDraftSchema, output: RiteStateSchema },
+  'rite:petition-remove': { input: z.object({ id: z.string() }), output: RiteStateSchema },
+  'rite:petition-weight': {
+    input: z.object({ id: z.string(), weight: z.number().int().min(1).max(999) }),
+    output: RiteStateSchema
+  },
+  'rite:petitions-clear': { input: z.void(), output: RiteStateSchema },
+  'rite:config': { input: RiteConfigPatchSchema, output: RiteStateSchema },
+  'rite:spin': { input: z.void(), output: RiteStateSchema },
+  'rite:reset': { input: z.void(), output: RiteStateSchema },
+  'rite:history-clear': { input: z.void(), output: RiteStateSchema },
+
+  'overlay:info': { input: z.void(), output: OverlayServerInfoSchema },
+  /** Rebinds the server, picking up a changed port from settings. */
+  'overlay:restart': { input: z.void(), output: OverlayServerInfoSchema },
+
   'shell:open-external': { input: z.object({ url: z.string() }), output: z.void() },
   'shell:reveal': { input: z.object({ path: z.string() }), output: z.void() },
   'dialog:select-directory': {
@@ -142,6 +170,8 @@ export const IPC_EVENT = {
   'update:status': UpdateStatusSchema,
   'telemetry:sample': TelemetryStateSchema,
   'projects:scan': ScanStateSchema,
+  'rite:state': RiteStateSchema,
+  'overlay:info': OverlayServerInfoSchema,
   'window:state': WindowStateSchema
 } satisfies Record<string, z.ZodType>
 

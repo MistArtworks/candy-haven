@@ -1,0 +1,378 @@
+@use 'abstracts' as *;
+// Theme only — not the console's full global sheet. This page wants the palette
+// and the type stacks, but none of the console's chrome: no vignette, no grain
+// overlay, no scrollbar styling. Those are composited by OBS's own scene, and a
+// film-grain layer on top of a live stream is noise on top of noise.
+@use 'base/theme';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#overlay {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: var(--ch-font-body);
+  color: var(--ch-overlay-text, #ddcfb2);
+  background: var(--ch-overlay-backdrop, #08080a);
+  overflow: hidden;
+  // OBS renders at whatever the source is sized to; smoothing keeps the ring's
+  // hairlines from crawling when the source is scaled in the scene.
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Composited mode. Only the backdrop goes — the panels keep their own
+ * translucent backing so the roster stays readable over arbitrary footage.
+ */
+html[data-transparent='true'],
+html[data-transparent='true'] body {
+  background: transparent;
+}
+
+/*
+ * Presentation presets.
+ *
+ * A fixed set, not a colour picker: each is a different arrangement of the five
+ * locked materials. Values are literal because the ring resolves them through
+ * `getComputedStyle` and does not follow `var()` chains — and because the focal
+ * crimson is absent from every preset on purpose, since the brief reserves the
+ * one saturated colour for the focal point in all of them.
+ */
+
+// OBSIDIAN — the default void. Declared explicitly rather than left to the
+// material fallbacks so all three presets read side by side.
+html[data-theme='obsidian'] {
+  --ch-overlay-backdrop: #08080a;
+  --ch-overlay-panel: rgba(10, 9, 11, 0.62);
+  --ch-overlay-panel-line: rgba(182, 158, 124, 0.12);
+  --ch-overlay-text: #ddcfb2;
+  --ch-overlay-text-dim: #8a8071;
+  --ch-overlay-text-faint: #3d3931;
+  --ch-ring-wedge-a: #0c0c0c;
+  --ch-ring-wedge-b: #171517;
+  --ch-ring-label: #ddcfb2;
+  --ch-ring-label-dim: #8a8071;
+}
+
+// SANCTUM — crimson glass as the void. Ritual rather than institutional.
+html[data-theme='sanctum'] {
+  --ch-overlay-backdrop: #140506;
+  --ch-overlay-panel: rgba(36, 9, 10, 0.66);
+  --ch-overlay-panel-line: rgba(210, 169, 97, 0.16);
+  --ch-overlay-text: #ddcfb2;
+  --ch-overlay-text-dim: #b69e7c;
+  --ch-overlay-text-faint: #5e472c;
+  --ch-ring-wedge-a: #1a0708;
+  --ch-ring-wedge-b: #24090a;
+  --ch-ring-label: #ddcfb2;
+  --ch-ring-label-dim: #8f7d63;
+}
+
+// CHAMBER — pale stone. The bright marble halls of the reference boards, and
+// the one preset that reads on a light capture behind it.
+html[data-theme='chamber'] {
+  --ch-overlay-backdrop: #ddcfb2;
+  --ch-overlay-panel: rgba(205, 185, 148, 0.72);
+  --ch-overlay-panel-line: rgba(59, 55, 47, 0.24);
+  --ch-overlay-text: #171517;
+  --ch-overlay-text-dim: #3b372f;
+  --ch-overlay-text-faint: #6f6656;
+  --ch-ring-wedge-a: #cdb994;
+  --ch-ring-wedge-b: #b69e7c;
+  --ch-ring-edge: rgba(59, 55, 47, 0.3);
+  --ch-ring-label: #171517;
+  --ch-ring-label-dim: #554e42;
+  --ch-ring-rim: #5e472c;
+  --ch-ring-rim-bright: #45351f;
+  --ch-ring-rim-dim: #8f7d63;
+  --ch-ring-arc-track: rgba(59, 55, 47, 0.28);
+}
+
+.shell {
+  height: 100%;
+  display: grid;
+  /*
+   * Two columns, not three rows. The roster is a full-height ledger down the
+   * left; the masthead, the ring and the status line stack together in the
+   * second column, so the heading sits over the object it names rather than
+   * over the whole frame.
+   */
+  grid-template-columns: minmax(200px, 20%) minmax(0, 1fr);
+  gap: space(8);
+  padding: space(8) space(10);
+  /*
+   * Right-edge reserve. Set from the rite config as a percentage, so the band
+   * scales with the source instead of drifting out of register when OBS resizes
+   * it. Padding on the shell rather than a spacer column, so the content column
+   * centres inside what is left instead of running under the camera.
+   */
+  padding-right: calc(#{space(10)} + var(--ch-overlay-reserve, 0%));
+}
+
+// Roster hidden: the content column takes the full width rather than leaving an
+// empty track open where the ledger used to be.
+html[data-roster='off'] .shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+// Roster on the right. The track order flips and the ledger is re-ordered into
+// it, so the ring keeps the larger column either way.
+// Qualified on the roster being shown: unqualified, this rule sat after the
+// `data-roster='off'` rule at equal specificity and won, re-opening the empty
+// track that rule exists to collapse.
+html[data-roster='on'][data-roster-side='right'] .shell {
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 20%);
+}
+
+html[data-roster='on'][data-roster-side='right'] .roster {
+  order: 2;
+}
+
+.content {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: space(6);
+  min-height: 0;
+}
+
+/*
+ * Explicit rows, never auto-placement.
+ *
+ * `display: none` removes an item from the grid entirely, so with the masthead
+ * hidden the stage was auto-placed into row 1 (`auto`, i.e. shrink to content)
+ * and the status line inherited row 2 (`1fr`) — which is why turning the
+ * masthead off left a large empty box under a shrunken ring. Pinning each child
+ * to its own row makes hiding any one of them a no-op for the others.
+ */
+.masthead {
+  grid-row: 1;
+}
+
+.stage {
+  grid-row: 2;
+}
+
+.status {
+  grid-row: 3;
+}
+
+/*
+ * Alignment guide for building the OBS artwork. Enabled with `?guides=1` and
+ * never shown on a live scene: it exists so the reserved band can be measured
+ * against a screenshot while the Photoshop frame is being cut.
+ */
+.guide {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--ch-overlay-reserve, 0%);
+  border-left: 1px dashed var(--ch-crimson-400);
+  background: rgba(163, 43, 35, 0.08);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+html[data-guides='true'] .guide {
+  display: flex;
+}
+
+.guideLabel {
+  @include label(9px, 0.24em);
+  color: var(--ch-crimson-400);
+  writing-mode: vertical-rl;
+  text-indent: 0.24em;
+}
+
+// ------------------------------------------------------------------ masthead
+
+.masthead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(2);
+  text-align: center;
+}
+
+.eyebrow {
+  @include label(10px, 0.34em);
+  color: var(--ch-overlay-text-faint, #3d3931);
+  text-indent: 0.34em;
+}
+
+.title {
+  font-family: var(--ch-font-display);
+  // Sized against the viewport but capped lower than it would be full-bleed:
+  // the content column is narrower than the frame now, and a wrapped title
+  // would push the ring down.
+  font-size: clamp(#{rem(20px)}, 2.7vw, #{rem(46px)});
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  // Wide tracking adds a trailing gap; the indent restores optical centring.
+  text-indent: 0.16em;
+  text-transform: uppercase;
+  color: var(--ch-overlay-text, #ddcfb2);
+  line-height: 1.05;
+}
+
+.prompt {
+  @include label(12px, 0.26em);
+  color: var(--ch-gold-300);
+  text-indent: 0.26em;
+}
+
+.rule {
+  display: block;
+  width: min(420px, 60%);
+  height: $hairline;
+  margin-top: space(2);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--ch-line-gold) 20%,
+    var(--ch-line-gold) 80%,
+    transparent
+  );
+}
+
+// -------------------------------------------------------------------- roster
+
+.roster[hidden],
+.masthead[hidden],
+.status[hidden] {
+  display: none;
+}
+
+.roster {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding: space(5);
+  border: $hairline solid var(--ch-overlay-panel-line, rgba(182, 158, 124, 0.12));
+  background: var(--ch-overlay-panel, rgba(10, 9, 11, 0.62));
+  min-height: 0;
+}
+
+.rosterLabel {
+  @include label(9px, 0.24em);
+  color: var(--ch-overlay-text-faint, #3d3931);
+  padding-bottom: space(3);
+  border-bottom: $hairline solid var(--ch-overlay-panel-line, rgba(182, 158, 124, 0.12));
+}
+
+.rosterList {
+  list-style: none;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.rosterRow {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) 0;
+
+  // Odds hidden: drop the track rather than leaving a gap the eye reads as a
+  // missing figure.
+  &[data-bare='true'] {
+    grid-template-columns: 26px minmax(0, 1fr);
+  }
+
+  & + & {
+    border-top: $hairline solid rgba(182, 158, 124, 0.06);
+  }
+
+  &[data-winner='true'] {
+    .rosterName,
+    .rosterIndex {
+      color: var(--ch-crimson-400);
+    }
+  }
+}
+
+.rosterIndex {
+  font-family: var(--ch-font-mono);
+  font-size: rem(11px);
+  color: var(--ch-gold-300);
+}
+
+.rosterName {
+  font-family: var(--ch-font-display);
+  font-size: rem(14px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ch-overlay-text, #ddcfb2);
+  @include truncate;
+}
+
+.rosterOdds {
+  font-family: var(--ch-font-mono);
+  font-size: rem(10px);
+  color: var(--ch-overlay-text-dim, #8a8071);
+}
+
+// --------------------------------------------------------------------- stage
+
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+}
+
+.ring {
+  // Square, bounded by whichever axis is shorter, so the ring never crops.
+  // `height` plus `aspect-ratio` derives the width; `max-width` then clamps it
+  // on a narrow source and the aspect ratio pulls the height down to match.
+  height: 100%;
+  aspect-ratio: 1;
+  max-width: 100%;
+  display: block;
+}
+
+// -------------------------------------------------------------------- status
+
+.status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: space(2);
+  @include label(8px, 0.2em);
+  color: var(--ch-text-faint);
+  // Diagnostic only. Present so a dead stream is visible while setting the
+  // source up, and faint enough to disappear on a live scene.
+  opacity: 0.5;
+}
+
+.statusDot {
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  background: var(--ch-status-pending);
+
+  &[data-state='online'] {
+    background: var(--ch-status-online);
+  }
+
+  &[data-state='error'] {
+    background: var(--ch-status-error);
+  }
+}
+
+// Reduced motion is honoured by the renderer itself, which paints a resting
+// frame instead of running a loop. Nothing to do here.

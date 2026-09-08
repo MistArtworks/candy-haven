@@ -1,0 +1,80 @@
+@use 'abstracts' as *;
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  align-items: flex-start;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+  width: 100%;
+}
+
+.label {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-muted);
+}
+
+.readout {
+  @include readout(11px);
+  color: var(--ch-gold-300);
+  letter-spacing: normal;
+}
+
+.hint {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+// ---------------------------------------------------------------------- track
+
+.range {
+  height: 2px;
+  appearance: none;
+  background: var(--ch-concrete-700);
+  cursor: pointer;
+
+  // A rectangular slab, not a capsule: this is a fader on an instrument panel.
+  // Deliberately no `accent-color` — the browser default paints a rounded
+  // coloured pill, which is off-palette and off-model in one stroke.
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 10px;
+    height: 16px;
+    background: var(--ch-alabaster-500);
+    cursor: grab;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  }
+
+  &::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    background: var(--ch-accent-bright);
+  }
+
+  &:focus-visible {
+    @include focus-ring(4px);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+
+    &::-webkit-slider-thumb {
+      cursor: not-allowed;
+    }
+  }
+}
+
+.full .range {
+  width: 100%;
+}
+
+.inline .range {
+  width: 200px;
+}

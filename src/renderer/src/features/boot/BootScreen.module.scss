@@ -169,8 +169,11 @@
 .actions {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: space(4);
   margin-top: space(2);
+  // Mounted for the whole sequence, so its height is part of the layout from
+  // the first frame and nothing above it moves when the sequence completes.
 }
 
 .hint {

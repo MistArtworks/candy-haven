@@ -15,6 +15,16 @@ export const APP_SUBTITLE = 'SONOALCHEMY OPERATIONS TERMINAL'
  */
 export const DEFAULT_ARCHIVE_PORT = 27917
 
+/**
+ * Default port for the local overlay server that OBS reads from.
+ *
+ * Sits next to the archive port for the same reason it was chosen: well clear
+ * of anything a streaming setup is likely to already be using. The operator
+ * pastes this URL into a browser source, so the port wants to be stable —
+ * see the overlay server for what happens when it is already taken.
+ */
+export const DEFAULT_OVERLAY_PORT = 27918
+
 /** Logical database name inside the embedded archive. */
 export const ARCHIVE_DB_NAME = 'candy_haven'
 

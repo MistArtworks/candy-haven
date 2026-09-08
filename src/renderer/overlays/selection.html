@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Candy Haven — Resonance Selection</title>
+    <!--
+      Served over HTTP to an OBS browser source rather than loaded into the
+      console, so this document gets its own policy. It is stricter than the
+      console's in one respect that matters here: `connect-src` is limited to the
+      same origin, which is the only thing this page talks to — the local
+      overlay server's event stream. There is no preload and no IPC on this page.
+
+      'unsafe-inline' for styles is required by the bundled stylesheet injection
+      in development; nothing here loads a remote script, style or font.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+  </head>
+
+  <body>
+    <div id="overlay"></div>
+    <script type="module" src="/src/overlays/selection/main.ts"></script>
+  </body>
+</html>

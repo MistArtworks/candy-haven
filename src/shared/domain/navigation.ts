@@ -62,10 +62,10 @@ export const SECTIONS: readonly SectionDefinition[] = [
     id: 'observatory',
     path: '/observatory',
     label: 'OBSERVATORY',
-    purpose: 'Stream overlays, scene control and broadcast telemetry',
+    purpose: 'Stream overlays and live selection rites served to OBS',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     order: 3,
-    implemented: false
+    implemented: true
   },
   {
     id: 'interface',

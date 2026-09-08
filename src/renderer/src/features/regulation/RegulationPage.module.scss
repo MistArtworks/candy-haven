@@ -123,30 +123,6 @@
   }
 }
 
-// -------------------------------------------------------------------- range
-
-.range {
-  width: 200px;
-  height: 2px;
-  appearance: none;
-  background: var(--ch-concrete-700);
-  cursor: pointer;
-
-  &::-webkit-slider-thumb {
-    appearance: none;
-    width: 10px;
-    height: 16px;
-    background: var(--ch-alabaster-500);
-    cursor: grab;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-  }
-
-  &::-webkit-slider-thumb:active {
-    cursor: grabbing;
-    background: var(--ch-accent-bright);
-  }
-}
-
 // ------------------------------------------------------------------ shared
 
 .actions {

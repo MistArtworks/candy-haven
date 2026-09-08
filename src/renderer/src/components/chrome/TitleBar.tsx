@@ -62,6 +62,15 @@ export function TitleBar(): ReactNode {
         {archive.port ? <span className={styles.port}>:{archive.port}</span> : null}
       </div>
 
+      {/*
+        Window controls, restated as institutional switches.
+        See the glyph notes in TitleBar.module.scss for why these are not the
+        usual dash / square / cross.
+
+        `aria-label` keeps the conventional word. The chrome is themed; the
+        accessibility contract is not — a screen reader user looking for
+        "Minimise" should not have to know this world's vocabulary for it.
+      */}
       <div className={styles.controls}>
         <button
           type="button"
@@ -69,8 +78,15 @@ export function TitleBar(): ReactNode {
           onClick={() => void window.candy.window.minimize()}
           aria-label="Minimise"
         >
-          <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
-            <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="0.9" />
+          {/* Recess: lower the housing. A chevron pressing down onto a floor rule. */}
+          <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" fill="none">
+            <path
+              d="M3.6 4.1 6 6.5 8.4 4.1"
+              stroke="currentColor"
+              strokeWidth="1"
+              strokeLinecap="square"
+            />
+            <line x1="2.2" y1="9.2" x2="9.8" y2="9.2" stroke="currentColor" strokeWidth="1" />
           </svg>
         </button>
 
@@ -80,14 +96,24 @@ export function TitleBar(): ReactNode {
           onClick={() => void window.candy.window.toggleMaximize()}
           aria-label={windowState.isMaximized ? 'Restore' : 'Maximise'}
         >
+          {/* Corner brackets — the ribbed-portal motif, opening out or drawing in. */}
           {windowState.isMaximized ? (
-            <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true" fill="none">
-              <rect x="1" y="3" width="6" height="6" stroke="currentColor" strokeWidth="0.9" />
-              <path d="M3 3V1h6v6H7" stroke="currentColor" strokeWidth="0.9" />
+            <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" fill="none">
+              <path
+                d="M4.8 1.8v3H1.8M7.2 1.8v3h3M7.2 10.2v-3h3M4.8 10.2v-3H1.8"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeLinecap="square"
+              />
             </svg>
           ) : (
-            <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true" fill="none">
-              <rect x="1" y="1" width="8" height="8" stroke="currentColor" strokeWidth="0.9" />
+            <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" fill="none">
+              <path
+                d="M1.8 4.4v-2.6h2.6M7.6 1.8h2.6v2.6M10.2 7.6v2.6H7.6M4.4 10.2H1.8V7.6"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeLinecap="square"
+              />
             </svg>
           )}
         </button>
@@ -98,9 +124,10 @@ export function TitleBar(): ReactNode {
           onClick={() => void window.candy.window.close()}
           aria-label="Close"
         >
-          <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
-            <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" strokeWidth="0.9" />
-            <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" strokeWidth="0.9" />
+          {/* Struck through, like a voided record. The arms overshoot the field. */}
+          <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" fill="none">
+            <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.1" />
+            <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.1" />
           </svg>
         </button>
       </div>

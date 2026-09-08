@@ -4,6 +4,7 @@ import type { Settings, SettingsPatch } from '../domain/settings'
 import type { RuntimeInfo, WindowState } from '../domain/system'
 import type { UpdateStatus } from '../domain/update'
 import type { TelemetryState } from '../domain/telemetry'
+import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } from '../domain/rite'
 import type {
   MarketingAsset,
   MarketingAssetKind,
@@ -86,6 +87,30 @@ export interface CandyHavenApi {
     /** Data URL for an image on disk, downscaled to `width`. */
     thumbnail(path: string, width?: number): Promise<string | null>
     onScan(listener: (state: ScanState) => void): Unsubscribe
+  }
+  /**
+   * The selection rite served to OBS. Every method returns the whole state:
+   * it is small, and one shape for every mutation means the host UI can never
+   * hold a partially updated rite.
+   */
+  readonly rite: {
+    state(): Promise<RiteState>
+    addPetition(draft: PetitionDraft): Promise<RiteState>
+    removePetition(id: string): Promise<RiteState>
+    setWeight(id: string, weight: number): Promise<RiteState>
+    clearPetitions(): Promise<RiteState>
+    configure(patch: RiteConfigPatch): Promise<RiteState>
+    /** Draws the winner and arms the animation on every attached surface. */
+    spin(): Promise<RiteState>
+    /** Clears the result and returns the ring to rest, keeping the roster. */
+    reset(): Promise<RiteState>
+    clearHistory(): Promise<RiteState>
+    onState(listener: (state: RiteState) => void): Unsubscribe
+  }
+  readonly overlay: {
+    info(): Promise<OverlayServerInfo>
+    restart(): Promise<OverlayServerInfo>
+    onInfo(listener: (info: OverlayServerInfo) => void): Unsubscribe
   }
   readonly shell: {
     openExternal(url: string): Promise<void>

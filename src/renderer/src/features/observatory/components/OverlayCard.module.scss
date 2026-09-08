@@ -1,0 +1,144 @@
+@use 'abstracts' as *;
+
+.card {
+  height: 100%;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+
+  // Shipped overlays are links. The whole slab is the target, so the affordance
+  // is on the container rather than on a button buried inside it.
+  &[data-live='true'] {
+    cursor: pointer;
+
+    &:hover .label,
+    &:focus-visible .label {
+      color: var(--ch-gold-300);
+    }
+
+    &:hover .enter,
+    &:focus-visible .enter {
+      color: var(--ch-gold-300);
+      opacity: 1;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.label {
+  font-family: var(--ch-font-display);
+  font-size: rem(17px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+  transition: color $duration-fast $ease-out-expo;
+}
+
+.purpose {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+}
+
+.epigraph {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  font-style: italic;
+  line-height: 1.6;
+  padding-left: space(3);
+  border-left: $hairline solid var(--ch-line);
+}
+
+// ----------------------------------------------------------------- shipped
+
+.live {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  margin-top: auto;
+}
+
+.url {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-gold);
+  padding: space(2) space(3);
+  word-break: break-all;
+}
+
+.offline {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+}
+
+.enter {
+  @include label(8px, 0.2em);
+  color: var(--ch-text-secondary);
+  opacity: 0.7;
+  transition:
+    color $duration-fast $ease-out-expo,
+    opacity $duration-fast $ease-out-expo;
+}
+
+// ---------------------------------------------------------------- reserved
+
+.scope {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin-top: auto;
+}
+
+.scopeItem {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: space(2);
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+}
+
+.scopeIndex {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// -------------------------------------------------------------------- meta
+
+.meta {
+  display: flex;
+  gap: space(6);
+  margin: 0;
+  padding-top: space(3);
+  @include hairline(top, 0.08);
+
+  dt {
+    @include label(7px, 0.18em);
+    color: var(--ch-text-faint);
+  }
+
+  dd {
+    @include readout(11px);
+    color: var(--ch-text-primary);
+    margin: 0;
+  }
+}

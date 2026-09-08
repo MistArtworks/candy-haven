@@ -8,7 +8,11 @@ import { formatDuration, formatIndex } from '@renderer/lib/format'
 import { Button } from '@renderer/components/primitives/Button'
 import { Meter } from '@renderer/components/primitives/Meter'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
-import { bootExitVariants } from '@renderer/motion/transitions'
+import {
+  bootExitVariants,
+  enterAffordanceVariants,
+  enterHintVariants
+} from '@renderer/motion/transitions'
 import { BootRing } from './components/BootRing'
 import { BootLog } from './components/BootLog'
 import styles from './BootScreen.module.scss'
@@ -175,13 +179,33 @@ export function BootScreen({ snapshot, onEnter, fastBoot }: BootScreenProps): Re
 
             <BootLog entries={snapshot.logs} />
 
-            {isReady && !fastBoot ? (
-              <div className={styles.actions}>
-                <Button variant="primary" onClick={enter} busy={entering}>
+            {/*
+              Rendered for the whole sequence and disabled until the archive is
+              up, rather than appearing on completion — mounting it late shifted
+              the meter and the log and made the last beat of the cinematic
+              land with a snap.
+            */}
+            {!fastBoot ? (
+              <motion.div
+                className={styles.actions}
+                variants={enterAffordanceVariants}
+                initial="waiting"
+                animate={isReady ? 'ready' : 'waiting'}
+              >
+                {/*
+                  Wording is deliberately constant. Swapping the label at
+                  readiness would change the control's width and re-centre the
+                  row under the meter — trading the pop for a nudge. The state
+                  change carries the meaning instead.
+                */}
+                <Button variant="primary" onClick={enter} busy={entering} disabled={!isReady}>
                   Enter console
                 </Button>
-                <span className={styles.hint}>Press Enter</span>
-              </div>
+                {/* Inherits the parent's variant label; no `animate` needed. */}
+                <motion.span className={styles.hint} variants={enterHintVariants}>
+                  Press Enter
+                </motion.span>
+              </motion.div>
             ) : null}
           </>
         )}

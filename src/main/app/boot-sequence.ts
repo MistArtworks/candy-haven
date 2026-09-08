@@ -163,7 +163,7 @@ export class BootSequence extends TypedEmitter<BootEvents> {
    * reads as a narrative rather than being scattered across the service layer.
    */
   private createRunners(): Record<BootStageId, StageRunner> {
-    const { settings, archive, updates } = this.services
+    const { settings, archive, updates, rite } = this.services
 
     // Carried between stages within a single run. The full binary record is
     // kept, not just its path, so the daemon stage reports the runtime's real
@@ -258,6 +258,22 @@ export class BootSequence extends TypedEmitter<BootEvents> {
       services: async (ctx) => {
         const config = settings.snapshot.updates
         updates.configure({ channel: config.channel, autoDownload: config.autoDownload })
+        ctx.setProgress(0.4)
+
+        // Restores the stored rite and starts serving overlays. Never throws:
+        // it reports its own failure through the OBSERVATORY panel, and a
+        // browser source that cannot be served is not a reason to refuse to
+        // start the application.
+        const workspace = settings.snapshot.workspace
+        await rite.initialize({
+          port: workspace.overlayPort,
+          autoStart: workspace.overlayAutoStart
+        })
+        const overlay = rite.serverInfo
+        ctx.log(
+          overlay.running ? 'info' : 'warn',
+          overlay.running ? `Overlay server on ${overlay.url}` : 'Overlay server offline'
+        )
         ctx.setProgress(0.7)
 
         if (config.autoCheck) {

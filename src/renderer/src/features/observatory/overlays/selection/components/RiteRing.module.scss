@@ -1,0 +1,23 @@
+@use 'abstracts' as *;
+
+.stage {
+  position: relative;
+  width: 100%;
+  // Square: the ring is drawn into the smaller of the two dimensions, so any
+  // other ratio would just be dead margin.
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.announce {
+  @include visually-hidden;
+}

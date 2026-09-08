@@ -28,6 +28,8 @@ export interface AppPaths {
   runtimeMongo: string
   /** MongoDB root written by the NSIS installer, alongside app resources. */
   installedMongo: string
+  /** Built renderer output, served to OBS browser sources by the overlay server. */
+  overlayRoot: string
   resources: string
 }
 
@@ -56,6 +58,9 @@ export function getPaths(): AppPaths {
     runtimeRoot,
     runtimeMongo: join(runtimeRoot, 'mongodb'),
     installedMongo: join(resources, 'mongodb'),
+    // The overlay is a second Vite entry built alongside the console, so it
+    // ships inside the app bundle rather than under resources.
+    overlayRoot: join(app.getAppPath(), 'out', 'renderer'),
     resources
   }
 

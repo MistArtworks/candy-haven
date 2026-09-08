@@ -81,9 +81,25 @@
   @include hairline(left, 0.08);
 }
 
+/*
+ * Window controls as switches set into the housing, not as an OS widget.
+ *
+ * Three departures from the usual chrome, all of them cheap and all of them
+ * doing work:
+ *
+ *   - The glyphs are ours. A chevron pressing onto a floor rule for recess,
+ *     corner brackets opening or closing for the portal, a struck cross for
+ *     dismissal. None of them is the dash / square / cross of a Windows frame,
+ *     and none needs to be — the bar is already unmistakably not one.
+ *   - A gold rule lights along the top edge of the plate on hover, the way a
+ *     switch on an instrument panel takes a lamp rather than a fill.
+ *   - Dismissal is colour-coded crimson permanently, not only on hover. The
+ *     palette reserves crimson for destructive actions, so the one control that
+ *     ends the session should carry it standing still.
+ */
 .control {
   position: relative;
-  width: 44px;
+  width: 46px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -98,23 +114,69 @@
     @include hairline(left, 0.06);
   }
 
+  // The lamp. Scales from the centre so it reads as illuminating rather than
+  // sliding in from one side.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1px;
+    background: var(--ch-gold-300);
+    transform: scaleX(0);
+    transition: transform $duration-fast $ease-out-expo;
+  }
+
   &:hover {
     background: rgba(210, 169, 97, 0.07);
     color: var(--ch-gold-300);
   }
 
+  &:hover::before,
+  &:focus-visible::before {
+    transform: scaleX(1);
+  }
+
   &:active {
     background: rgba(210, 169, 97, 0.12);
+    // Reads as physically depressed into the housing.
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.55);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-3px);
   }
 }
 
-.close:hover {
-  background: var(--ch-crimson-700);
-  color: var(--ch-alabaster-300);
-}
+/*
+ * Dismissal. Marked at rest by a crimson rule along the bottom edge — the
+ * opposite edge to the hover lamp, so the two never read as the same signal.
+ */
+.close {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 2px;
+    background: var(--ch-crimson-700);
+    transition: background-color $duration-fast linear;
+  }
 
-.close:active {
-  background: var(--ch-crimson-600);
+  &::before {
+    background: var(--ch-crimson-400);
+  }
+
+  &:hover {
+    background: var(--ch-crimson-800);
+    color: var(--ch-alabaster-300);
+  }
+
+  &:hover::after {
+    background: var(--ch-crimson-400);
+  }
+
+  &:active {
+    background: var(--ch-crimson-700);
+  }
 }
 
 @include below('sm') {

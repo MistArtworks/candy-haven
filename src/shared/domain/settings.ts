@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { DEFAULT_ARCHIVE_PORT } from '../constants'
+import { DEFAULT_ARCHIVE_PORT, DEFAULT_OVERLAY_PORT } from '../constants'
 
 /**
  * Persisted operator settings. Every field carries a default so a missing or
@@ -39,7 +39,16 @@ export const WorkspaceSettingsSchema = z.object({
   /** Destination vault for mastered release deliverables. */
   releaseVaultPath: z.string().nullable().default(null),
   /** Directory watched for stream overlay assets. */
-  overlayAssetPath: z.string().nullable().default(null)
+  overlayAssetPath: z.string().nullable().default(null),
+  /**
+   * Port the overlay server listens on for OBS browser sources.
+   *
+   * Persisted because the operator pastes the resulting URL into OBS once and
+   * expects it to keep working across restarts.
+   */
+  overlayPort: z.number().int().min(1024).max(65535).default(DEFAULT_OVERLAY_PORT),
+  /** Start the overlay server during boot. */
+  overlayAutoStart: z.boolean().default(true)
 })
 export type WorkspaceSettings = z.infer<typeof WorkspaceSettingsSchema>
 

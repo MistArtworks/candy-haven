@@ -3,6 +3,7 @@ import { ArchiveService } from './archive/archive.service'
 import { UpdateService } from './update/update.service'
 import { TelemetryService } from './telemetry/telemetry.service'
 import { ProjectsService } from './projects/projects.service'
+import { RiteService } from './overlay/rite.service'
 import { getLogger } from '@main/core/logger'
 
 const logger = getLogger('container')
@@ -20,11 +21,12 @@ export interface ServiceContainer {
   readonly updates: UpdateService
   readonly telemetry: TelemetryService
   readonly projects: ProjectsService
+  readonly rite: RiteService
 }
 
 export function createServiceContainer(): ServiceContainer {
-  // Projects reads through the archive connection, so it is the one service
-  // here that takes a collaborator rather than standing alone.
+  // Projects and the rite both read through the archive connection, so they are
+  // the services here that take a collaborator rather than standing alone.
   const archive = new ArchiveService()
 
   return {
@@ -32,7 +34,8 @@ export function createServiceContainer(): ServiceContainer {
     archive,
     updates: new UpdateService(),
     telemetry: new TelemetryService(),
-    projects: new ProjectsService(archive)
+    projects: new ProjectsService(archive),
+    rite: new RiteService(archive)
   }
 }
 
@@ -43,6 +46,15 @@ export function createServiceContainer(): ServiceContainer {
  */
 export async function disposeServiceContainer(container: ServiceContainer): Promise<void> {
   logger.info('Disposing services')
+
+  // Before the archive: the rite mirrors its state to Mongo on the way down,
+  // and its server holds event-stream sockets that must be released or quit
+  // waits on them.
+  try {
+    await container.rite.dispose()
+  } catch (error) {
+    logger.error('Rite shutdown failed', error)
+  }
 
   try {
     await container.archive.shutdown()

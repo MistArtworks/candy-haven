@@ -12,6 +12,7 @@ import { useRuntimeInfo } from '@renderer/hooks/useRuntimeInfo'
 import { useApplySettings } from '@renderer/hooks/useSettings'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
+import { Slider } from '@renderer/components/primitives/Slider'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Button } from '@renderer/components/primitives/Button'
 import { Meter } from '@renderer/components/primitives/Meter'
@@ -125,26 +126,18 @@ export function RegulationPage(): ReactNode {
               </div>
             </div>
 
-            <div className={styles.control}>
-              <label className={styles.controlLabel} htmlFor="grain">
-                Grain
-              </label>
-              <input
-                id="grain"
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                className={styles.range}
-                value={appearance?.grain ?? 0.5}
-                onChange={(event) =>
-                  applySettings(
-                    { appearance: { grain: Number(event.target.value) } },
-                    { debounceMs: 200, key: 'grain' }
-                  )
-                }
-              />
-            </div>
+            <Slider
+              label="Grain"
+              width="inline"
+              min={0}
+              max={1}
+              step={0.05}
+              value={appearance?.grain ?? 0.5}
+              readout={`${Math.round((appearance?.grain ?? 0.5) * 100)}%`}
+              onChange={(grain) =>
+                applySettings({ appearance: { grain } }, { debounceMs: 200, key: 'grain' })
+              }
+            />
 
             <div className={styles.control}>
               <span className={styles.controlLabel}>Fast boot</span>

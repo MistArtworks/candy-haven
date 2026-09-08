@@ -1,0 +1,67 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+// Explicit spans, never positional nth-child rules. Three cards to a row at
+// full width, so the catalogue reads as a set rather than a column of slabs.
+.serverPanel {
+  grid-column: span 6;
+}
+
+.span2 {
+  grid-column: span 2;
+}
+
+@include below('lg') {
+  .span2 {
+    grid-column: span 3;
+  }
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  .span2 {
+    grid-column: span 6;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+// -------------------------------------------------------------------- server
+
+.server {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  align-items: flex-start;
+}
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  max-width: 78ch;
+}
+
+.error {
+  @include readout(11px);
+  color: var(--ch-crimson-400);
+}

@@ -1,0 +1,147 @@
+@use 'abstracts' as *;
+
+.roster {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  min-height: 0;
+  height: 100%;
+}
+
+// ---------------------------------------------------------------------- entry
+
+.entry {
+  display: flex;
+  gap: space(2);
+  align-items: stretch;
+}
+
+.field {
+  flex: 1;
+  min-width: 0;
+  @include readout(12px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  border-radius: $radius-control;
+  padding: space(2) space(3);
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:disabled {
+    color: var(--ch-text-faint);
+    cursor: not-allowed;
+  }
+}
+
+// ----------------------------------------------------------------------- list
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.row {
+  display: grid;
+  // Number, label, odds, entries, withdraw. Fixed tracks either side so the
+  // figures line up down the column instead of shifting with label length.
+  grid-template-columns: 22px minmax(0, 1fr) 42px 30px 20px;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) 0;
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+
+  &[data-winner] {
+    .label {
+      color: var(--ch-crimson-400);
+    }
+
+    .index {
+      color: var(--ch-crimson-400);
+    }
+  }
+}
+
+.index {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+}
+
+.label {
+  @include readout(12px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.odds {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  text-align: right;
+}
+
+.entries {
+  @include label(8px, 0.1em);
+  color: var(--ch-text-faint);
+  text-align: right;
+}
+
+.remove {
+  @include readout(14px);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  transition: color $duration-fast $ease-out-expo;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-crimson-400);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+}
+
+// --------------------------------------------------------------------- footer
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+  padding-top: space(2);
+  @include hairline(top, 0.08);
+}
+
+.count {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  flex: 1;
+}

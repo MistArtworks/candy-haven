@@ -130,6 +130,23 @@ const api: CandyHavenApi = {
     thumbnail: (path, width) => invoke('projects:thumbnail', { path, width }),
     onScan: (listener) => subscribe('projects:scan', listener)
   },
+  rite: {
+    state: () => invoke('rite:state'),
+    addPetition: (draft) => invoke('rite:petition-add', draft),
+    removePetition: (id) => invoke('rite:petition-remove', { id }),
+    setWeight: (id, weight) => invoke('rite:petition-weight', { id, weight }),
+    clearPetitions: () => invoke('rite:petitions-clear'),
+    configure: (patch) => invoke('rite:config', patch),
+    spin: () => invoke('rite:spin'),
+    reset: () => invoke('rite:reset'),
+    clearHistory: () => invoke('rite:history-clear'),
+    onState: (listener) => subscribe('rite:state', listener)
+  },
+  overlay: {
+    info: () => invoke('overlay:info'),
+    restart: () => invoke('overlay:restart'),
+    onInfo: (listener) => subscribe('overlay:info', listener)
+  },
   shell: {
     openExternal: (url) => invoke('shell:open-external', { url }),
     reveal: (path) => invoke('shell:reveal', { path }),

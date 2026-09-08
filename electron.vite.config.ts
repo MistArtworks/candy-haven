@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import { LIVE_OVERLAYS } from './src/shared/domain/overlays'
 
 const alias = {
   '@shared': resolve('src/shared'),
@@ -47,7 +48,23 @@ export default defineConfig({
       // change no longer invalidates the React and animation bundles.
       chunkSizeWarningLimit: 900,
       rollupOptions: {
-        input: { index: resolve('src/renderer/index.html') },
+        // `index` is the console, loaded into the Electron window. Every
+        // shipped overlay adds a second kind of document: a genuine browser
+        // page served over plain HTTP to an OBS browser source, with no preload
+        // and no access to `window.candy`.
+        //
+        // Built straight off the shared registry, so commissioning an overlay
+        // is one entry there plus its `overlays/<slug>.html` — the build never
+        // needs touching.
+        input: {
+          index: resolve('src/renderer/index.html'),
+          ...Object.fromEntries(
+            LIVE_OVERLAYS.map((overlay) => [
+              overlay.slug,
+              resolve(`src/renderer/overlays/${overlay.slug}.html`)
+            ])
+          )
+        },
         output: {
           manualChunks: {
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
