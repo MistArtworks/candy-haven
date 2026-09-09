@@ -112,6 +112,21 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
     }
   }
 
+  /**
+   * Every project record, unfiltered.
+   *
+   * Exposed for departments that need to derive something across the whole
+   * register rather than list it — TRANSMISSIONS builds its schedule out of
+   * release and promotional dates this way. They read through here rather than
+   * opening their own repository on the collection, so projects keep one owner.
+   *
+   * Returns full records, so it is not a substitute for `getRegistry` when a
+   * summary will do.
+   */
+  async listRecords(): Promise<ProjectRecord[]> {
+    return this.repository.listAll()
+  }
+
   async get(id: string): Promise<ProjectRecord> {
     const record = await this.repository.findById(id)
     if (!record) {

@@ -93,6 +93,9 @@ export function useScanState(): ScanState {
        */
       if (next.phase === 'done' || next.phase === 'error') {
         void queryClient.invalidateQueries({ queryKey: ['projects'] })
+        // A scan can register a project that already carries a release date, so
+        // the schedule is stale for the same reason the register is.
+        void queryClient.invalidateQueries({ queryKey: ['transmissions'] })
       }
     })
 
@@ -114,11 +117,21 @@ export function useScanState(): ScanState {
   return state
 }
 
-/** Invalidates every projects query. Called after any successful mutation. */
+/**
+ * Invalidates every projects query. Called after any successful mutation.
+ *
+ * TRANSMISSIONS is invalidated alongside, because its schedule is a projection
+ * over these same records: editing a promotional date in a dossier changes what
+ * the calendar should draw, and without this the two departments would disagree
+ * until something else happened to refetch.
+ */
 function useInvalidateProjects(): () => Promise<void> {
   const queryClient = useQueryClient()
   return async () => {
-    await queryClient.invalidateQueries({ queryKey: ['projects'] })
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['projects'] }),
+      queryClient.invalidateQueries({ queryKey: ['transmissions'] })
+    ])
   }
 }
 

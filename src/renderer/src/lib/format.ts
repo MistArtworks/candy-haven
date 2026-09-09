@@ -65,3 +65,79 @@ export function truncatePath(path: string, maxLength = 44): string {
 export function formatIndex(index: number): string {
   return String(index).padStart(2, '0')
 }
+
+// ---------------------------------------------------------------- calendar
+//
+// Calendar dates are plain `YYYY-MM-DD` strings throughout the project — see
+// the note in shared/domain/projects.constants.ts for why. A release is out on
+// the 14th regardless of where the operator is, so nothing below converts one
+// to an instant in local time, which would drag it across a day boundary.
+//
+// These lived under features/archive until TRANSMISSIONS also needed them.
+
+export const MONTHS = [
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC'
+] as const
+
+/** `2026-03-14` -> `14 MAR 2026`. Parsed as a calendar date, not an instant. */
+export function formatIsoDate(isoDate: string | null): string {
+  if (!isoDate) return '—'
+
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const label = MONTHS[month - 1]
+  if (!label || !year || !day) return isoDate
+
+  return `${String(day).padStart(2, '0')} ${label} ${year}`
+}
+
+/** Today as a `YYYY-MM-DD` string, read in the operator's own timezone. */
+export function todayIso(): string {
+  const now = new Date()
+  const pad = (value: number): string => String(value).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+/**
+ * Distance from today to a scheduled date, as the operator thinks of it:
+ * `IN 12 DAYS`, `TOMORROW`, `TODAY`, `4 DAYS AGO`.
+ */
+export function formatCountdown(isoDate: string | null): string {
+  if (!isoDate) return 'UNDATED'
+
+  const target = new Date(`${isoDate}T00:00:00Z`).getTime()
+  if (Number.isNaN(target)) return 'UNDATED'
+
+  const now = new Date()
+  // Compare date-only values in UTC so a late-evening session does not report
+  // tomorrow's release as being today.
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const days = Math.round((target - today) / 86_400_000)
+
+  if (days === 0) return 'TODAY'
+  if (days === 1) return 'TOMORROW'
+  if (days === -1) return 'YESTERDAY'
+  if (days > 0) return `IN ${days} DAYS`
+  return `${Math.abs(days)} DAYS AGO`
+}
+
+/** Whether a scheduled date has passed — drives the overdue treatment. */
+export function isOverdue(isoDate: string | null): boolean {
+  if (!isoDate) return false
+
+  const target = new Date(`${isoDate}T00:00:00Z`).getTime()
+  if (Number.isNaN(target)) return false
+
+  const now = new Date()
+  return target < Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+}

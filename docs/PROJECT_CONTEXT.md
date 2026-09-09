@@ -5,8 +5,8 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-09-08. Foundation + TELEMETRY delivered; four departments
-> still reserved.
+> Last updated: 2026-09-08. Five of seven departments delivered; INTERFACE is
+> the only one still reserved.
 
 ---
 
@@ -23,10 +23,14 @@ It is backed by a **private, application-owned MongoDB instance** (never a syste
 service). The app is styled as an institutional terminal from a fictional
 universe; see §3.
 
-**Current state:** the application foundation is complete and working — boot
-sequence, console shell, design system, full main-process service layer, and one
-shipped feature department (TELEMETRY). Four departments are routed and
-specified but not implemented.
+**Current state:** the foundation and five of the seven departments are shipped
+— NEXUS, ARCHIVE, OBSERVATORY, TELEMETRY, TRANSMISSIONS. **INTERFACE** is the
+only department still reserved, and THE DOCKET the only reserved overlay.
+
+Note for anyone reading an older copy of this file: the department table in §10
+was stale for several releases, listing ARCHIVE and OBSERVATORY as reserved long
+after they shipped. `src/shared/domain/navigation.ts` is the source of truth;
+when the two disagree, the registry is right and this file needs updating.
 
 ---
 
@@ -221,14 +225,21 @@ Adding a channel is one edit to `contract.ts`, one handler in
 `register-handlers.ts`, one method on `CandyHavenApi` in `shared/ipc/api.ts`,
 and one line in the preload bridge.
 
-**Current invoke channels:** `runtime:info` · `window:{minimize,toggle-maximize,close,state}`
-· `boot:{snapshot,retry,enter}` · `archive:{status,provision,restart}` ·
-`settings:{get,update,reset}` · `update:{status,check,download,install}` ·
-`telemetry:{subscribe,unsubscribe}` · `shell:{open-external,reveal}` ·
-`dialog:select-directory`
+**Channel groups** (see `contract.ts` for the authoritative list — it has grown
+well past what is worth mirroring here): `runtime` · `window` · `boot` ·
+`archive` · `settings` · `update` · `telemetry` · `projects` · `transmissions` ·
+`rite` · `concord` · `chat` · `timer` · `nowplaying` · `overlay` · `shell` ·
+`dialog`.
 
 **Current push events:** `boot:progress` · `archive:status` · `update:status` ·
-`telemetry:sample` · `window:state`
+`telemetry:sample` · `projects:scan` · `rite:state` · `concord:state` ·
+`chat:status` · `timer:state` · `nowplaying:state` · `overlay:info` ·
+`window:state`
+
+Note that not every department has one. TRANSMISSIONS deliberately has no push
+channel: nothing changes its schedule except the operator working in this
+console, so a subscription would be a socket held open to be told about changes
+this window just made. It relies on query invalidation instead.
 
 The renderer surface is exposed as **`window.candy`** (typed by
 `src/preload/index.d.ts`). No component ever touches `ipcRenderer`.
@@ -509,15 +520,15 @@ Registry: **`src/shared/domain/navigation.ts`** — the single source of truth f
 routes, labels, order, and shipped status. The rail, titlebar, page transitions
 and Nexus all read from it.
 
-| #   | Id              | Path             | Status      | Purpose                                             |
-| --- | --------------- | ---------------- | ----------- | --------------------------------------------------- |
-| 1   | `nexus`         | `/`              | **shipped** | Operational overview and system state               |
-| 2   | `archive`       | `/archive`       | reserved    | Ableton project registry, versions, session recall  |
-| 3   | `transmissions` | `/transmissions` | reserved    | Release pipeline, deliverables, distribution        |
-| 4   | `observatory`   | `/observatory`   | reserved    | Stream overlays, scene control, broadcast telemetry |
-| 5   | `interface`     | `/interface`     | reserved    | Natural-language command console                    |
-| 6   | `telemetry`     | `/telemetry`     | **shipped** | Host vitals: processor, memory, graphics, storage   |
-| 7   | `regulation`    | `/regulation`    | **shipped** | Operator settings, archive control, update channel  |
+| #   | Id              | Path             | Status      | Purpose                                                  |
+| --- | --------------- | ---------------- | ----------- | -------------------------------------------------------- |
+| 1   | `nexus`         | `/`              | **shipped** | Operational overview and system state                    |
+| 2   | `archive`       | `/archive`       | **shipped** | Project registry, production pipeline, release packaging |
+| 3   | `transmissions` | `/transmissions` | **shipped** | Release and promotional scheduling across every project  |
+| 4   | `observatory`   | `/observatory`   | **shipped** | Stream overlays and live selection rites served to OBS   |
+| 5   | `interface`     | `/interface`     | reserved    | Natural-language command console                         |
+| 6   | `telemetry`     | `/telemetry`     | **shipped** | Host vitals: processor, memory, graphics, storage        |
+| 7   | `regulation`    | `/regulation`    | **shipped** | Operator settings, archive control, update channel       |
 
 Reserved sections render `ReservedPage` with a commissioning scope list (defined
 inline in `src/renderer/src/app/router.tsx`) — deliberately not an empty page, so
@@ -536,6 +547,41 @@ The rail, transitions and titlebar pick it up automatically.
 
 **TELEMETRY is the best reference implementation** — it exercises a service, a
 push channel with subscribe/unsubscribe, a domain split, charts, and a full page.
+
+### TRANSMISSIONS specifics
+
+Worth knowing before touching it, because it breaks the usual shape in one way:
+**it stores almost nothing.**
+
+A release date belongs to a project's `distribution`, and a promotional
+deliverable's date to its `marketing` plan. Both are ARCHIVE's. `transmissions:schedule`
+is a **projection rebuilt per call** out of `ProjectsService.listRecords()`, not a
+stored record — two copies of the same date drift the moment one is written
+without the other, and the operator would have no way to tell which one the
+release actually goes out on. Do not add a `releases` collection for this; the
+one declared in `schema.ts` remains unused on purpose.
+
+The exception is **tasks** — freeform work items the operator pins to a day,
+which belong to no release. Those are the department's own and live in
+`transmission_tasks`. Unlike the overlay repositories, that one is _not_
+best-effort: a task is something written down so it need not be remembered, so a
+failed write raises rather than being swallowed.
+
+Other things decided here:
+
+- **Collision policy** lives in `transmissions.constants.ts` so main computes it
+  once and every surface agrees. Critical = two releases on a day. Warn = two
+  different projects on a day. A single campaign's own clustered beats never
+  flag — the default plan puts a pre-release the day before release, and a
+  warning that fires on the correct case is one the operator learns to ignore.
+  **Tasks are excluded entirely.**
+- **Four views** (month, week, agenda, timeline) over one entry array. Purely
+  presentational; all four hand off to the same day manifest, which is the only
+  place the department writes.
+- **Submission lead time** is one setting (`workspace.submissionLeadDays`), not
+  a field per project, and `submitBy` is derived from it.
+- The seven-column week declares its own grid **inside** the panel. The page grid
+  stays six columns — see §7.4.
 
 ---
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import type { ProjectQuery, ProjectStage, ProjectViewMode } from '@shared/domain/projects'
 import { getSection } from '@shared/domain/navigation'
@@ -64,8 +65,35 @@ export function ArchivePage(): ReactNode {
 
   const [filters, setFilters] = useState<RegisterFilters>(INITIAL_FILTERS)
   const [view, setView] = useState<ProjectViewMode>('list')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+
+  /*
+   * The open dossier lives in the URL rather than in component state.
+   *
+   * TRANSMISSIONS links to a project from its calendar, and a link needs
+   * somewhere to point. Holding the selection here also means the back gesture
+   * closes the dossier instead of leaving the department, which is what the
+   * operator expects of something that opened from a link.
+   */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selectedId = searchParams.get('project')
+
+  const selectProject = useCallback(
+    (id: string | null) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current)
+          if (id) next.set('project', id)
+          else next.delete('project')
+          return next
+        },
+        // Replace rather than push: opening and closing a dossier should not
+        // build a history stack the operator has to walk back out of.
+        { replace: true }
+      )
+    },
+    [setSearchParams]
+  )
 
   const search = useDebounced(filters.search, 180)
 
@@ -220,19 +248,19 @@ export function ArchivePage(): ReactNode {
               <ProjectListView
                 projects={projects}
                 selectedId={selectedId}
-                onSelect={setSelectedId}
+                onSelect={selectProject}
               />
             ) : view === 'grid' ? (
               <ProjectGridView
                 projects={projects}
                 selectedId={selectedId}
-                onSelect={setSelectedId}
+                onSelect={selectProject}
               />
             ) : (
               <ProjectBoardView
                 projects={projects}
                 selectedId={selectedId}
-                onSelect={setSelectedId}
+                onSelect={selectProject}
                 stageCounts={registry?.stageCounts ?? ({} as Record<ProjectStage, number>)}
                 onStageChange={changeStage}
               />
@@ -286,7 +314,7 @@ export function ArchivePage(): ReactNode {
           <ProjectDossier
             key={selectedId}
             projectId={selectedId}
-            onClose={() => setSelectedId(null)}
+            onClose={() => selectProject(null)}
           />
         ) : null}
       </AnimatePresence>

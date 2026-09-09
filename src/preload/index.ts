@@ -130,6 +130,12 @@ const api: CandyHavenApi = {
     thumbnail: (path, width) => invoke('projects:thumbnail', { path, width }),
     onScan: (listener) => subscribe('projects:scan', listener)
   },
+  transmissions: {
+    schedule: () => invoke('transmissions:schedule'),
+    addTask: (draft) => invoke('transmissions:task-add', draft),
+    updateTask: (id, patch) => invoke('transmissions:task-update', { id, patch }),
+    removeTask: (id) => invoke('transmissions:task-remove', { id })
+  },
   rite: {
     state: () => invoke('rite:state'),
     addPetition: (draft) => invoke('rite:petition-add', draft),

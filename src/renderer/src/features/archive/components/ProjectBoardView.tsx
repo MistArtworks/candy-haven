@@ -2,7 +2,8 @@ import { useState, type DragEvent, type ReactNode } from 'react'
 import type { ProjectStage, ProjectSummary } from '@shared/domain/projects'
 import { PROJECT_STAGES } from '@shared/domain/projects.constants'
 import type { RegisterViewProps } from './ProjectListView'
-import { formatCountdown, formatRelativeDay, formatTempo } from '../lib/present'
+import { formatCountdown } from '@renderer/lib/format'
+import { formatRelativeDay, formatTempo } from '../lib/present'
 import styles from './ProjectBoardView.module.scss'
 
 export interface ProjectBoardViewProps extends RegisterViewProps {

@@ -8,6 +8,7 @@ import { useRuntimeInfo } from '@renderer/hooks/useRuntimeInfo'
 import { useSettingsDraft } from '@renderer/hooks/useSettings'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
+import { MAX_LEAD_DAYS, MIN_LEAD_DAYS } from '@shared/domain/transmissions.constants'
 import { Slider } from '@renderer/components/primitives/Slider'
 import { TextInput } from '@renderer/components/primitives/Input'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
@@ -321,11 +322,42 @@ export function RegulationPage(): ReactNode {
         </Panel>
 
         {/*
+          Distribution policy rather than a per-project field: the operator uses
+          one distributor, and its lead time is the same for every release. Sited
+          here rather than on the TRANSMISSIONS page so it goes through the same
+          staged save as every other setting.
+        */}
+        <Panel label="Distribution" index="05">
+          <div className={styles.control}>
+            <Slider
+              label="Submission lead"
+              width="inline"
+              min={MIN_LEAD_DAYS}
+              max={MAX_LEAD_DAYS}
+              step={1}
+              value={workspace?.submissionLeadDays ?? 14}
+              readout={`${workspace?.submissionLeadDays ?? 14} DAYS`}
+              onChange={(submissionLeadDays) =>
+                applySettings(
+                  { workspace: { submissionLeadDays } },
+                  { debounceMs: 200, key: 'submissionLeadDays' }
+                )
+              }
+            />
+            <p className={styles.controlHint}>
+              How long before a release date your distributor needs the finished package.
+              TRANSMISSIONS derives a SUBMIT BY date from this for every scheduled release and flags
+              the ones whose window has closed.
+            </p>
+          </div>
+        </Panel>
+
+        {/*
           Test mode sits with the operator's workspace rather than on any one
           overlay's page: it lifts the configuration gate on every broadcast
           feature, so putting it on one of them would imply it were local to it.
         */}
-        <Panel label="Rehearsal" index="05">
+        <Panel label="Rehearsal" index="06">
           <div className={styles.control}>
             <span className={styles.controlLabel}>Test mode</span>
             <button
@@ -349,7 +381,7 @@ export function RegulationPage(): ReactNode {
           </div>
         </Panel>
 
-        <Panel label="Diagnostics" index="06" className={styles.wide}>
+        <Panel label="Diagnostics" index="07" className={styles.wide}>
           <FieldGrid columns={2}>
             <Field
               label="User data"

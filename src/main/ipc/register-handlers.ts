@@ -162,6 +162,15 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.projects.thumbnail(path, width ?? 480)
   )
 
+  // ------------------------------------------------------------- transmissions
+
+  router.handle('transmissions:schedule', () => services.transmissions.schedule())
+  router.handle('transmissions:task-add', (draft) => services.transmissions.addTask(draft))
+  router.handle('transmissions:task-update', ({ id, patch }) =>
+    services.transmissions.updateTask(id, patch)
+  )
+  router.handle('transmissions:task-remove', ({ id }) => services.transmissions.removeTask(id))
+
   // --------------------------------------------------------------------- rite
 
   router.handle('rite:state', () => services.rite.current)

@@ -1,4 +1,5 @@
 import type { MusicalKey } from '@shared/domain/projects'
+import { MONTHS } from '@renderer/lib/format'
 
 /**
  * Presentation helpers specific to the project registry.
@@ -6,6 +7,11 @@ import type { MusicalKey } from '@shared/domain/projects'
  * Pure functions. Anything general enough for other departments belongs in
  * lib/format.ts instead; these encode how *this* register reads — compact
  * relative days in a dense table, institutional date stamps in a dossier.
+ *
+ * `formatIsoDate`, `formatCountdown` and `isOverdue` used to live here and now
+ * live there, because TRANSMISSIONS reads the same dates this register does and
+ * two departments disagreeing about what `TOMORROW` means would be worse than
+ * the import.
  */
 
 /** `150.004` -> `150`, `128.5` -> `128.5`, `null` -> `—`. */
@@ -47,32 +53,6 @@ export function formatRelativeDay(timestamp: number): string {
   return `${Math.floor(days / 365)}Y`
 }
 
-const MONTHS = [
-  'JAN',
-  'FEB',
-  'MAR',
-  'APR',
-  'MAY',
-  'JUN',
-  'JUL',
-  'AUG',
-  'SEP',
-  'OCT',
-  'NOV',
-  'DEC'
-] as const
-
-/** `2026-03-14` -> `14 MAR 2026`. Parsed as a calendar date, not an instant. */
-export function formatIsoDate(isoDate: string | null): string {
-  if (!isoDate) return '—'
-
-  const [year, month, day] = isoDate.split('-').map(Number)
-  const label = MONTHS[month - 1]
-  if (!label || !year || !day) return isoDate
-
-  return `${String(day).padStart(2, '0')} ${label} ${year}`
-}
-
 /** Full stamp for record metadata: `14 MAR 2026 · 21:07`. */
 export function formatStamp(timestamp: number): string {
   if (!timestamp) return '—'
@@ -90,38 +70,4 @@ export function formatLength(seconds: number | null): string {
 
   const minutes = Math.floor(seconds / 60)
   return `${minutes}:${String(Math.round(seconds % 60)).padStart(2, '0')}`
-}
-
-/**
- * Distance from today to a scheduled date, as the operator thinks of it:
- * `IN 12 DAYS`, `TOMORROW`, `TODAY`, `4 DAYS AGO`.
- */
-export function formatCountdown(isoDate: string | null): string {
-  if (!isoDate) return 'UNDATED'
-
-  const target = new Date(`${isoDate}T00:00:00Z`).getTime()
-  if (Number.isNaN(target)) return 'UNDATED'
-
-  const now = new Date()
-  // Compare date-only values in UTC so a late-evening session does not report
-  // tomorrow's release as being today.
-  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-  const days = Math.round((target - today) / 86_400_000)
-
-  if (days === 0) return 'TODAY'
-  if (days === 1) return 'TOMORROW'
-  if (days === -1) return 'YESTERDAY'
-  if (days > 0) return `IN ${days} DAYS`
-  return `${Math.abs(days)} DAYS AGO`
-}
-
-/** Whether a scheduled date has passed — drives the overdue treatment. */
-export function isOverdue(isoDate: string | null): boolean {
-  if (!isoDate) return false
-
-  const target = new Date(`${isoDate}T00:00:00Z`).getTime()
-  if (Number.isNaN(target)) return false
-
-  const now = new Date()
-  return target < Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
 }

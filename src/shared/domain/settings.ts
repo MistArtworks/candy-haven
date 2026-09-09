@@ -39,6 +39,19 @@ export const WorkspaceSettingsSchema = z.object({
   scanOnLaunch: z.boolean().default(true),
   /** Destination vault for mastered release deliverables. */
   releaseVaultPath: z.string().nullable().default(null),
+  /**
+   * Days a distributor needs the finished package before a release goes live.
+   *
+   * Drives the SUBMIT BY date TRANSMISSIONS derives for every release. One
+   * setting rather than a field per project because an operator uses one
+   * distributor, and the alternative is the same number typed into every
+   * release and wrong on the ones they forget.
+   *
+   * Sited in `workspace` alongside the release vault for the reason recorded
+   * below for `testMode`: a section holding one field is worse than a comment
+   * saying where it lives.
+   */
+  submissionLeadDays: z.number().int().min(0).max(180).default(14),
   /** Directory watched for stream overlay assets. */
   overlayAssetPath: z.string().nullable().default(null),
   /**

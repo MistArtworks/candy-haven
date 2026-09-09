@@ -20,6 +20,11 @@ import type {
   ScanState,
   UnlinkedMedia
 } from '../domain/projects'
+import type {
+  TransmissionSchedule,
+  TransmissionTaskDraft,
+  TransmissionTaskPatch
+} from '../domain/transmissions'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -91,6 +96,19 @@ export interface CandyHavenApi {
     /** Data URL for an image on disk, downscaled to `width`. */
     thumbnail(path: string, width?: number): Promise<string | null>
     onScan(listener: (state: ScanState) => void): Unsubscribe
+  }
+  /**
+   * Release and promotional scheduling. `schedule()` is a projection over the
+   * project registry rather than a stored record, so there is nothing to write
+   * back except the operator's own tasks — and each of those returns the whole
+   * rebuilt schedule, because moving one date can resolve or raise a collision
+   * elsewhere in the month.
+   */
+  readonly transmissions: {
+    schedule(): Promise<TransmissionSchedule>
+    addTask(draft: TransmissionTaskDraft): Promise<TransmissionSchedule>
+    updateTask(id: string, patch: TransmissionTaskPatch): Promise<TransmissionSchedule>
+    removeTask(id: string): Promise<TransmissionSchedule>
   }
   /**
    * The selection rite served to OBS. Every method returns the whole state:

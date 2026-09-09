@@ -56,7 +56,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Release and promotional scheduling across every project',
     epigraph: 'Sound is not heard. It is structured. It is shaped.',
     order: 2,
-    implemented: false
+    implemented: true
   },
   {
     id: 'observatory',

@@ -16,6 +16,14 @@ export const Collections = {
   Releases: 'releases',
   /** Deliverables attached to a release: masters, artwork, metadata. */
   ReleaseAssets: 'release_assets',
+  /**
+   * Operator-filed work items pinned to a day (TRANSMISSIONS section).
+   *
+   * The only records that department owns. Every other date on its calendar is
+   * read from a project's distribution details or marketing plan rather than
+   * copied here, so the two can never disagree about when something goes out.
+   */
+  TransmissionTasks: 'transmission_tasks',
   /** Audio found under a scanned root that belongs to no project folder. */
   UnlinkedMedia: 'unlinked_media',
   /** Stream overlay scenes and layouts (OBSERVATORY section). */
@@ -56,6 +64,12 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
     { key: { title: 1 }, name: 'release_title' }
   ],
   [Collections.ReleaseAssets]: [{ key: { releaseId: 1, kind: 1 }, name: 'asset_by_release' }],
+  [Collections.TransmissionTasks]: [
+    { key: { date: 1 }, name: 'task_by_date' },
+    // The calendar's standing question is "what is still outstanding, soonest
+    // first" — the done flag leads so a finished backlog costs nothing to skip.
+    { key: { done: 1, date: 1 }, name: 'task_outstanding' }
+  ],
   [Collections.Overlays]: [
     { key: { name: 1 }, unique: true, name: 'overlay_name_unique' },
     { key: { active: 1 }, name: 'overlay_active' }

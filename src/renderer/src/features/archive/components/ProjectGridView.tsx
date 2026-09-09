@@ -5,7 +5,8 @@ import { gridVariants, panelVariants } from '@renderer/motion/transitions'
 import { Artwork } from './Artwork'
 import { StageBadge } from './StageBadge'
 import type { RegisterViewProps } from './ProjectListView'
-import { formatIsoDate, formatKey, formatRelativeDay, formatTempo } from '../lib/present'
+import { formatIsoDate } from '@renderer/lib/format'
+import { formatKey, formatRelativeDay, formatTempo } from '../lib/present'
 import styles from './ProjectGridView.module.scss'
 
 /**

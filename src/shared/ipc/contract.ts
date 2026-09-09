@@ -40,6 +40,11 @@ import {
   ScanStateSchema,
   UnlinkedMediaSchema
 } from '../domain/projects'
+import {
+  TransmissionScheduleSchema,
+  TransmissionTaskDraftSchema,
+  TransmissionTaskPatchSchema
+} from '../domain/transmissions'
 
 /**
  * The IPC contract is declared once, here, and consumed by:
@@ -133,6 +138,33 @@ export const IPC_INVOKE = {
   'projects:thumbnail': {
     input: z.object({ path: z.string(), width: z.number().int().min(32).max(1024).optional() }),
     output: z.string().nullable()
+  },
+
+  /**
+   * Scheduling (TRANSMISSIONS section).
+   *
+   * The schedule is a projection over the project registry, not a stored
+   * record — release and promotional dates belong to ARCHIVE and are read
+   * rather than copied. Only tasks are this department's own, which is why
+   * they are the only thing here that writes.
+   *
+   * Every task mutation returns the whole rebuilt schedule, as the rite's do:
+   * moving one date can change a collision three days away, so a response
+   * carrying only the changed row would leave the page to re-derive what the
+   * main process already knows.
+   */
+  'transmissions:schedule': { input: z.void(), output: TransmissionScheduleSchema },
+  'transmissions:task-add': {
+    input: TransmissionTaskDraftSchema,
+    output: TransmissionScheduleSchema
+  },
+  'transmissions:task-update': {
+    input: z.object({ id: z.string(), patch: TransmissionTaskPatchSchema }),
+    output: TransmissionScheduleSchema
+  },
+  'transmissions:task-remove': {
+    input: z.object({ id: z.string() }),
+    output: TransmissionScheduleSchema
   },
 
   /**

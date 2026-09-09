@@ -3,6 +3,7 @@ import { ArchiveService } from './archive/archive.service'
 import { UpdateService } from './update/update.service'
 import { TelemetryService } from './telemetry/telemetry.service'
 import { ProjectsService } from './projects/projects.service'
+import { TransmissionsService } from './transmissions/transmissions.service'
 import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
 import { TimerService } from './overlay/timer.service'
@@ -26,6 +27,12 @@ export interface ServiceContainer {
   readonly updates: UpdateService
   readonly telemetry: TelemetryService
   readonly projects: ProjectsService
+  /**
+   * Scheduling. Derives its calendar from the project registry rather than
+   * holding release dates of its own, so it takes the projects service rather
+   * than reaching for the collection itself.
+   */
+  readonly transmissions: TransmissionsService
   /** Shared by every overlay: one HTTP server, many pages. */
   readonly overlayServer: OverlayServer
   /**
@@ -55,12 +62,18 @@ export function createServiceContainer(): ServiceContainer {
   const settings = new SettingsService()
   const chat = new TwitchChatService(settings)
 
+  // TRANSMISSIONS reads the register through the projects service rather than
+  // opening a second repository on the same collection, so projects is bound
+  // here rather than constructed inline below.
+  const projects = new ProjectsService(archive)
+
   return {
     settings,
     archive,
     updates: new UpdateService(),
     telemetry: new TelemetryService(),
-    projects: new ProjectsService(archive),
+    projects,
+    transmissions: new TransmissionsService(archive, projects, settings),
     overlayServer,
     chat,
     rite: new RiteService(archive, overlayServer),
