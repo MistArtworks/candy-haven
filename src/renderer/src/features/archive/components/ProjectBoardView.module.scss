@@ -70,6 +70,8 @@
 }
 
 .card {
+  // Containing block for the corner mark.
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: space(1);
@@ -104,6 +106,8 @@
   display: flex;
   align-items: center;
   gap: space(1);
+  // Keeps a long title clear of the corner mark.
+  padding-inline-end: space(3);
   font-family: var(--ch-font-display);
   font-size: rem(11px);
   letter-spacing: 0.04em;
@@ -111,10 +115,43 @@
   line-height: 1.35;
 }
 
+// The corner mark, as on the tiles. Absolute so a card with no favourite is
+// exactly as tall as one with, and lit only once the card is hovered or the
+// mark is set.
 .pin {
-  color: var(--ch-gold-300);
+  position: absolute;
+  inset-block-start: space(1);
+  inset-inline-end: space(1);
+  color: var(--ch-text-faint);
   font-size: rem(7px);
+  line-height: 1;
   flex-shrink: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    color $duration-fast linear,
+    opacity $duration-fast linear;
+
+  .card:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-300);
+    opacity: 1;
+  }
 }
 
 .cardMeta {

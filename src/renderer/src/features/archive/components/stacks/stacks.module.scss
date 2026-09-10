@@ -418,39 +418,37 @@
   }
 }
 
-// The sixteenth swatch: a native colour well wearing the same square tile as
-// the fifteen presets, so "any colour" reads as one more option rather than as
-// an escape hatch. The input itself is scaled out of sight rather than hidden —
-// `display: none` stops some browsers opening the picker at all.
+/*
+ * The native colour picker.
+ *
+ * This was the sixteenth tile in the preset grid — same square, same size,
+ * distinguished only by a nine-pixel hatched corner. The operator reported they
+ * would have had no way of knowing it was a picker at all, which is fair: on a
+ * red swatch that corner is invisible, and a control that looks exactly like
+ * the fourteen beside it will be read as the fifteenth colour, not as a door.
+ *
+ * So it is out of the grid and carries its own words. The dashed hairline is
+ * the same mark the add-tiles use for NEW GENRE and NEW PROJECT, which makes it
+ * the department's established "this one opens something" affordance rather
+ * than a new one to learn.
+ *
+ * The input is scaled out of sight rather than hidden — `display: none` stops
+ * some browsers opening the picker at all.
+ */
 .swatchWell {
   --swatch: var(--ch-concrete-500);
 
   position: relative;
-  height: rem(26px);
-  background: var(--swatch);
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3);
   cursor: pointer;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  @include hairline(all, 0.35);
-  transition: transform $duration-fast $ease-out-expo;
-
-  &::after {
-    // A quiet cross-hatch corner, marking this tile as the open-ended one.
-    content: '';
-    position: absolute;
-    inset-block-end: 0;
-    inset-inline-end: 0;
-    width: rem(9px);
-    height: rem(9px);
-    background: linear-gradient(135deg, transparent 50%, var(--ch-alabaster-200) 50%);
-    opacity: 0.7;
-  }
+  border: $hairline dashed rgb(255 255 255 / 0.22);
+  transition: border-color $duration-fast $ease-out-expo;
 
   &:hover {
-    @include motion-safe {
-      transform: translateY(-1px);
-    }
+    border-color: rgb(255 255 255 / 0.4);
   }
 
   &:focus-within {
@@ -467,13 +465,18 @@
   }
 }
 
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+// The colour it would open on, which is also the colour currently assigned.
+.swatchWellChip {
+  width: rem(20px);
+  height: rem(20px);
+  background: var(--swatch);
+  @include hairline(all, 0.25);
+  flex-shrink: 0;
+}
+
+.swatchWellLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-secondary);
 }
 
 .hexRow {

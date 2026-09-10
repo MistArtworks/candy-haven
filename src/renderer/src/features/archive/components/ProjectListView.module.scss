@@ -99,10 +99,57 @@
   @include truncate;
 }
 
+// A trailing column of fixed width, so the diamond sits at the same x on every
+// row and the figures before it keep their alignment.
+.pinCell {
+  width: rem(28px);
+  text-align: center;
+}
+
+// The header cell needs a label for screen readers and no label for the eye:
+// a word over a column of diamonds would be wider than the column.
+.headHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+// Invisible until the row is hovered or the mark is on — a diamond on all
+// twenty-six rows is noise, not an index.
 .pin {
-  color: var(--ch-gold-300);
+  color: var(--ch-text-faint);
   font-size: rem(8px);
+  line-height: 1;
   flex-shrink: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    color $duration-fast linear,
+    opacity $duration-fast linear;
+
+  .row:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-300);
+    opacity: 1;
+  }
 }
 
 .sub {

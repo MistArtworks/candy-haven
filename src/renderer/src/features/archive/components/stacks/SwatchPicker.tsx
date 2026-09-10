@@ -68,23 +68,23 @@ export function SwatchPicker({
             onClick={() => apply(swatch.hex)}
           />
         ))}
-
-        {/*
-          The colour well sits at the end of the preset row rather than beside
-          the hex field, so "any colour at all" reads as the sixteenth option
-          rather than as an advanced escape hatch. It commits on change: a
-          native picker has its own OK button, and asking for a second
-          confirmation afterwards would be one click too many.
-        */}
-        <label
-          className={styles.swatchWell}
-          style={{ '--swatch': selected } as CSSProperties}
-          title="Any colour"
-        >
-          <span className={styles.visuallyHidden}>Pick any colour</span>
-          <input type="color" value={selected} onChange={(event) => apply(event.target.value)} />
-        </label>
       </div>
+
+      {/*
+        Named, because it used to be the sixteenth tile in the grid above and
+        nobody could tell. It commits on change: a native picker has its own OK
+        button, and asking for a second confirmation would be one click too many.
+      */}
+      <label className={styles.swatchWell} style={{ '--swatch': selected } as CSSProperties}>
+        <span className={styles.swatchWellChip} aria-hidden="true" />
+        <span className={styles.swatchWellLabel}>Pick a custom colour</span>
+        <input
+          type="color"
+          aria-label="Pick a custom colour"
+          value={selected}
+          onChange={(event) => apply(event.target.value)}
+        />
+      </label>
 
       <div className={styles.hexRow}>
         <TextInput

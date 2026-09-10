@@ -30,7 +30,8 @@ export function ProjectBoardView({
   stageCounts,
   onStageChange,
   onProjectDragStart,
-  onProjectMenu
+  onProjectMenu,
+  onToggleFavourite
 }: ProjectBoardViewProps): ReactNode {
   const [dragging, setDragging] = useState<string | null>(null)
   const [hovered, setHovered] = useState<ProjectStage | null>(null)
@@ -116,10 +117,32 @@ export function ProjectBoardView({
                     }
                   }}
                 >
-                  <span className={styles.cardName}>
-                    {project.favourite ? <span className={styles.pin}>◆</span> : null}
-                    {project.name}
-                  </span>
+                  {/* Top-right corner, as on the tiles. In front of the name
+                      it ate the two or three characters that usually tell one
+                      card in a column from another. */}
+                  {onToggleFavourite ? (
+                    <button
+                      type="button"
+                      className={styles.pin}
+                      data-on={project.favourite || undefined}
+                      aria-pressed={project.favourite}
+                      aria-label={project.favourite ? 'Remove favourite' : 'Favourite'}
+                      title={project.favourite ? 'Remove favourite' : 'Favourite'}
+                      onClick={(event) => {
+                        // The card opens the dossier; the mark must not.
+                        event.stopPropagation()
+                        onToggleFavourite(project.id)
+                      }}
+                    >
+                      ◆
+                    </button>
+                  ) : project.favourite ? (
+                    <span className={styles.pin} data-on aria-label="Favourite">
+                      ◆
+                    </span>
+                  ) : null}
+
+                  <span className={styles.cardName}>{project.name}</span>
 
                   <div className={styles.cardMeta}>
                     <span className={styles.tempo}>{formatTempo(project.tempo)}</span>

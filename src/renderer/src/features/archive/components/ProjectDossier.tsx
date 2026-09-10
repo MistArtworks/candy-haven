@@ -52,6 +52,25 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
   const [tab, setTab] = useState<DossierTab>('overview')
   const [dismissed, setDismissed] = useState<string | null>(null)
 
+  /*
+   * Opening the project, two ways.
+   *
+   * `openPath` on the directory lands Explorer inside it; `reveal` would open
+   * the parent with the folder highlighted, which is the wrong end of the
+   * gesture when the folder is the thing you want.
+   *
+   * Ableton goes through `projects:open` rather than opening a path directly,
+   * because the main process is what knows which of several `.als` files in a
+   * project folder is the current set as opposed to a backup.
+   */
+  const openFolder = (): void => {
+    if (project) void window.candy.shell.openPath(project.path)
+  }
+
+  const openInAbleton = (): void => {
+    void window.candy.projects.open(projectId)
+  }
+
   // Escape closes, as it does for any modal layer in the shell.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -177,6 +196,38 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                   >
                     ◆
                   </button>
+
+                  {/*
+                    The two things anyone opens a dossier to do.
+
+                    They were reachable already — the path line reveals the
+                    folder, the context menu launches the set — but both are
+                    somewhere other than here, and this panel is where a project
+                    is actually being looked at. FOLDER uses `openPath` rather
+                    than `reveal` so Explorer lands *inside* the project instead
+                    of highlighting it from the parent.
+
+                    Both are refused while the folder is missing: launching a
+                    set that is not there produces an OS error dialog naming a
+                    path, which is a worse way to learn this than the badge
+                    already in the title row.
+                  */}
+                  <Button size="sm" disabled={project.missing} onClick={openFolder}>
+                    Folder
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={project.missing || project.sets.length === 0}
+                    title={
+                      project.sets.length === 0
+                        ? 'No Ableton set in this project'
+                        : 'Open the set in Ableton Live'
+                    }
+                    onClick={openInAbleton}
+                  >
+                    Ableton
+                  </Button>
+
                   <Button size="sm" onClick={onClose}>
                     Close
                   </Button>

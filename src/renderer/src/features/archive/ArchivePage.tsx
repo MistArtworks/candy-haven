@@ -812,7 +812,8 @@ export function ArchivePage(): ReactNode {
       selectedId,
       onSelect: selectProject,
       onProjectDragStart,
-      onProjectMenu
+      onProjectMenu,
+      onToggleFavourite: favouriteById
     }
 
     if (view === 'list') return <ProjectListView {...shared} />
