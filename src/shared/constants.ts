@@ -28,9 +28,6 @@ export const DEFAULT_OVERLAY_PORT = 27918
 /** Logical database name inside the embedded archive. */
 export const ARCHIVE_DB_NAME = 'candy_haven'
 
-/** Height of the custom window chrome, in CSS pixels. Shared with the main process. */
-export const TITLEBAR_HEIGHT = 40
-
 export const MIN_WINDOW_WIDTH = 1120
 export const MIN_WINDOW_HEIGHT = 720
 export const DEFAULT_WINDOW_WIDTH = 1440

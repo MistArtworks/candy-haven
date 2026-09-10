@@ -7,8 +7,7 @@ import {
   DEFAULT_WINDOW_HEIGHT,
   DEFAULT_WINDOW_WIDTH,
   MIN_WINDOW_HEIGHT,
-  MIN_WINDOW_WIDTH,
-  TITLEBAR_HEIGHT
+  MIN_WINDOW_WIDTH
 } from '@shared/constants'
 import type { WindowState } from '@shared/domain/system'
 import { registerEditing } from './editing'
@@ -93,15 +92,23 @@ export class WindowManager {
       minWidth: MIN_WINDOW_WIDTH,
       minHeight: MIN_WINDOW_HEIGHT,
       show: false,
+      /*
+       * Frameless, with no native caption buttons at all.
+       *
+       * There is deliberately no `titleBarOverlay` here. It used to be set
+       * alongside `frame: false`, which is a contradiction Electron resolves in
+       * the overlay's favour: Windows drew its own minimize / maximize / close
+       * on top of the page while `TitleBar` drew ours underneath. At 100% the
+       * two sets landed on each other and read as one, so it went unnoticed —
+       * until interface scale arrived and pulled them apart, because the page
+       * zooms and the native overlay is fixed in physical pixels.
+       *
+       * The custom bar owns all three actions over IPC and the drag region, so
+       * the overlay was never doing anything but duplicating it.
+       */
       frame: false,
       // Matches the renderer's obsidian base so a resize never flashes white.
       backgroundColor: '#0A0A0B',
-      titleBarStyle: 'hidden',
-      titleBarOverlay: {
-        color: '#0A0A0B',
-        symbolColor: '#B69E7C',
-        height: TITLEBAR_HEIGHT
-      },
       autoHideMenuBar: true,
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),

@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import type { DragEvent, MouseEvent, ReactNode } from 'react'
 import type { ProjectSummary } from '@shared/domain/projects'
+import { PROJECT_CATEGORY_LABEL } from '@shared/domain/projects.constants'
 import { formatBytes } from '@renderer/lib/format'
 import { StageBadge } from './StageBadge'
 import { formatKey, formatRelativeDay, formatTempo } from '../lib/present'
@@ -9,6 +10,13 @@ export interface RegisterViewProps {
   projects: readonly ProjectSummary[]
   selectedId: string | null
   onSelect: (id: string) => void
+  /**
+   * Supplied only while the folder browser is on screen. Its presence is what
+   * makes a project draggable — filing is meaningless in the derived lenses,
+   * where there are no shelves to drop onto.
+   */
+  onProjectDragStart?: (event: DragEvent<HTMLElement>, project: ProjectSummary) => void
+  onProjectMenu?: (event: MouseEvent<HTMLElement>, project: ProjectSummary) => void
 }
 
 /**
@@ -19,7 +27,13 @@ export interface RegisterViewProps {
  * a column without the digits shifting — the reason to have this view at all
  * rather than only cards.
  */
-export function ProjectListView({ projects, selectedId, onSelect }: RegisterViewProps): ReactNode {
+export function ProjectListView({
+  projects,
+  selectedId,
+  onSelect,
+  onProjectDragStart,
+  onProjectMenu
+}: RegisterViewProps): ReactNode {
   return (
     <div className={styles.wrapper}>
       <table className={styles.table}>
@@ -40,7 +54,7 @@ export function ProjectListView({ projects, selectedId, onSelect }: RegisterView
             <th scope="col" className={styles.numeric}>
               Rev
             </th>
-            <th scope="col">Package</th>
+            <th scope="col">Ready</th>
             <th scope="col">Touched</th>
             <th scope="col" className={styles.numeric}>
               Size
@@ -56,6 +70,9 @@ export function ProjectListView({ projects, selectedId, onSelect }: RegisterView
               data-missing={project.missing || undefined}
               tabIndex={0}
               role="button"
+              draggable={onProjectDragStart !== undefined}
+              onDragStart={(event) => onProjectDragStart?.(event, project)}
+              onContextMenu={(event) => onProjectMenu?.(event, project)}
               onClick={() => onSelect(project.id)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -77,16 +94,15 @@ export function ProjectListView({ projects, selectedId, onSelect }: RegisterView
                   ) : null}
                   {project.name}
                 </span>
-                {project.primaryArtist || project.pinnedNote ? (
-                  <span className={styles.sub}>
-                    {project.primaryArtist ? (
-                      <span className={styles.artist}>{project.primaryArtist}</span>
-                    ) : null}
-                    {project.pinnedNote ? (
-                      <span className={styles.note}>{project.pinnedNote}</span>
-                    ) : null}
-                  </span>
-                ) : null}
+                <span className={styles.sub}>
+                  {/* The category replaces the artist line the register used to
+                      carry. An artist name was the same on every row of a solo
+                      producer's library; what a track *is* differs. */}
+                  <span className={styles.artist}>{PROJECT_CATEGORY_LABEL[project.category]}</span>
+                  {project.pinnedNote ? (
+                    <span className={styles.note}>{project.pinnedNote}</span>
+                  ) : null}
+                </span>
               </td>
 
               <td>

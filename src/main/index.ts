@@ -54,7 +54,7 @@ async function start(): Promise<void> {
   const scanOnLaunch = (): void => {
     if (!services.settings.snapshot.workspace.scanOnLaunch) return
 
-    const roots = services.settings.snapshot.workspace.abletonProjectRoots
+    const roots = services.settings.scanRoots
     if (roots.length === 0) return
 
     // Without a connected archive there is nowhere to file the results; boot

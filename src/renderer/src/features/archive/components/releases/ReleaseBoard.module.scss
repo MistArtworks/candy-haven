@@ -1,0 +1,250 @@
+@use 'abstracts' as *;
+
+// RELEASES — the hand-off board.
+//
+// Two states in one component: a tile field, and one open record. Both live
+// inside the register panel rather than in an overlay, because a release is not
+// a detail *of* something on screen — it is the thing itself, and pushing it
+// behind a scrim would make the lens a list that only ever leads elsewhere.
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  padding: space(4) space(5) space(5);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(4) 0 space(2);
+}
+
+.emptyTitle {
+  @include label(10px, 0.14em);
+  color: var(--ch-text-secondary);
+  margin: 0;
+}
+
+.emptyHint {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.7;
+  margin: 0;
+  max-width: rem(520px);
+}
+
+// ------------------------------------------------------------------ record
+
+.record {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+  padding: space(4) space(5) space(5);
+}
+
+.recordHead {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  @include hairline(bottom, 0.08);
+  padding-bottom: space(4);
+}
+
+.back {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.recordTitle {
+  @include label(14px, 0.16em);
+  color: var(--ch-text-primary);
+  margin: 0;
+}
+
+.recordPath {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  @include truncate;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+}
+
+.warn {
+  @include readout(10px);
+  color: var(--ch-crimson-300);
+  line-height: 1.6;
+  margin: 0;
+  padding-left: space(3);
+  border-left: 2px solid var(--ch-crimson-500);
+}
+
+.dateRow {
+  display: flex;
+  align-items: flex-end;
+  gap: space(3);
+  max-width: rem(420px);
+}
+
+// ------------------------------------------------------------ deliverables
+
+.deliverables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(rem(240px), 1fr));
+  gap: space(4);
+}
+
+.deliverable {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+}
+
+.deliverableHead {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+}
+
+.deliverableLabel {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-primary);
+}
+
+.deliverableHint {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+}
+
+.deliverableFile {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  @include truncate;
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+}
+
+.deliverableEmpty {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.deliverableActions {
+  display: flex;
+  gap: space(2);
+  margin-top: space(1);
+}
+
+// ---------------------------------------------------------------- raising
+
+.pickerGroup {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.pickerLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.pickerList {
+  display: flex;
+  flex-direction: column;
+  @include hairline(all, 0.1);
+}
+
+.pickerItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+  padding: space(3) space(4);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  transition: background $duration-fast linear;
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--ch-surface-raised);
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.pickerMeta {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.error {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  line-height: 1.6;
+  margin: 0;
+  padding-left: space(3);
+  border-left: 2px solid var(--ch-crimson-500);
+}
+
+.recordFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  @include hairline(top, 0.08);
+  padding-top: space(4);
+}
+
+.footNote {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}

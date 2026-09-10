@@ -1,14 +1,11 @@
 import { z } from 'zod'
+import { DEFAULT_FOLDER_COLOUR, MAX_FOLDER_NAME_LENGTH, isHexColour } from './stacks.constants'
 import {
-  DELIVERABLE_KINDS,
-  DISTRIBUTION_PLATFORM_IDS,
-  MARKETING_ASSET_KIND_IDS,
-  MARKETING_ASSET_STATUSES,
+  MASTER_PICKS,
+  PROJECT_CATEGORIES,
   PROJECT_SORT_MODES,
   PROJECT_STAGE_IDS,
   PROJECT_VIEW_MODES,
-  RELEASE_KINDS,
-  type MarketingAssetKind,
   type ProjectStage
 } from './projects.constants'
 
@@ -16,64 +13,53 @@ import {
  * Schema half of the projects domain.
  *
  * Imported by the main process to validate IPC payloads, and type-only by the
- * renderer. Runtime values the renderer needs — the stage table, platform
- * labels, readiness rules, date arithmetic — live in projects.constants.ts so
- * importing them does not drag zod into the renderer bundle.
+ * renderer. Runtime values the renderer needs — the stage table, the category
+ * table, the readiness rules, date arithmetic — live in projects.constants.ts
+ * so importing them does not drag zod into the renderer bundle.
  */
 
 export type {
-  DeliverableKind,
-  DistributionPlatform,
-  MarketingAssetKind,
-  MarketingAssetStatus,
+  MasterPick,
   MediaKind,
+  ProjectCategory,
   ProjectSortMode,
   ProjectStage,
   ProjectViewMode,
-  ReleaseKind
+  ScaffoldFolder
 } from './projects.constants'
 
 export {
   ABLETON_SET_EXTENSIONS,
+  ALS_MAX_DECOMPRESSED_BYTES,
   AUDIO_EXTENSIONS,
-  DELIVERABLE_HINT,
-  DELIVERABLE_KINDS,
-  DELIVERABLE_LABEL,
-  DISTRIBUTION_PLATFORM_IDS,
-  DISTRIBUTION_PLATFORM_LABEL,
   IMAGE_EXTENSIONS,
-  MARKETING_ASSET_KINDS,
-  MARKETING_ASSET_KIND_IDS,
-  MARKETING_ASSET_STATUSES,
-  MARKETING_STATUS_LABEL,
+  MASTER_PICKS,
+  MASTER_PICK_HINT,
+  MASTER_PICK_LABEL,
   PIPELINE_STAGES,
-  PRIMARY_PLATFORMS,
+  PROJECT_CATEGORIES,
+  PROJECT_CATEGORY_LABEL,
+  PROJECT_CATEGORY_PURPOSE,
+  PROJECT_SCAFFOLD_FOLDERS,
   PROJECT_SORT_LABEL,
   PROJECT_SORT_MODES,
   PROJECT_STAGES,
   PROJECT_STAGE_IDS,
   PROJECT_VIEW_LABEL,
   PROJECT_VIEW_MODES,
-  RELEASE_KINDS,
-  RELEASE_KIND_LABEL,
+  SCAFFOLD_FOLDER_PURPOSE,
   SCAN_LOG_LIMIT,
   VIDEO_EXTENSIONS,
+  VOLUME_BOUND_CATEGORIES,
   classifyExtension,
-  createDefaultDistribution,
-  createDefaultMarketingPlan,
   createEmptyScanState,
   daysBetweenIsoDates,
-  describeOffset,
   evaluateReadiness,
-  getMarketingKind,
   getStage,
-  isMarketingAssetSettled,
-  isMarketingPlanComplete,
   isReleaseReady,
-  marketingShortfall,
   nextStage,
   previousStage,
-  rescheduleMarketingPlan,
+  requiresVolume,
   shiftIsoDate,
   stageProgress,
   toIsoDate
@@ -95,23 +81,8 @@ export interface ProjectStageDefinition {
   offPipeline?: boolean
   /** No stage follows this one. */
   terminal?: boolean
-  /** The distribution package must be complete to enter this stage. */
-  requiresPackage?: boolean
-  /** The promotional plan must be complete to enter this stage. */
-  requiresPlan?: boolean
-}
-
-export interface MarketingAssetKindDefinition {
-  id: MarketingAssetKind
-  label: string
-  purpose: string
-  /** Deliverables of this kind owed before the plan is complete. */
-  required: number
-  /** Default schedule position relative to release day; negative is before. */
-  offsetDays: number
-  /** Days between successive deliverables of a repeatable kind. */
-  stepDays: number
-  repeatable: boolean
+  /** A final mix and master must be selected to enter this stage. */
+  requiresMaster?: boolean
 }
 
 export interface ReadinessRequirement {
@@ -126,11 +97,8 @@ export interface ReadinessRequirement {
 export const ProjectStageSchema = z.enum(PROJECT_STAGE_IDS)
 export const ProjectViewModeSchema = z.enum(PROJECT_VIEW_MODES)
 export const ProjectSortModeSchema = z.enum(PROJECT_SORT_MODES)
-export const DistributionPlatformSchema = z.enum(DISTRIBUTION_PLATFORM_IDS)
-export const ReleaseKindSchema = z.enum(RELEASE_KINDS)
-export const DeliverableKindSchema = z.enum(DELIVERABLE_KINDS)
-export const MarketingAssetKindSchema = z.enum(MARKETING_ASSET_KIND_IDS)
-export const MarketingAssetStatusSchema = z.enum(MARKETING_ASSET_STATUSES)
+export const ProjectCategorySchema = z.enum(PROJECT_CATEGORIES)
+export const MasterPickSchema = z.enum(MASTER_PICKS)
 
 /** `YYYY-MM-DD`. See projects.constants.ts for why dates are not instants. */
 export const IsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
@@ -259,77 +227,16 @@ export const StageEventSchema = z.object({
 export type StageEvent = z.infer<typeof StageEventSchema>
 
 /**
- * The three files that actually ship, chosen by the operator from what the scan
- * found. Stored as absolute paths so a selection survives a rescan.
- */
-export const DeliverableSelectionSchema = z.object({
-  master: z.string().nullable(),
-  cover: z.string().nullable(),
-  canvas: z.string().nullable()
-})
-export type DeliverableSelection = z.infer<typeof DeliverableSelectionSchema>
-
-/**
- * A live platform link, entered by hand after release.
+ * The two audio picks the operator makes from the project's own bounces.
  *
- * Manual entry is the current design: one aggregator link that resolves every
- * platform automatically is a later change, and until then a fabricated link is
- * worse than a missing one.
+ * Absolute paths, so a selection survives a rescan. See `MASTER_PICKS` for why
+ * these live on the project rather than on a release.
  */
-export const LiveLinkSchema = z.object({
-  platform: DistributionPlatformSchema,
-  /** Free-text label, used when `platform` is `other`. */
-  label: z.string(),
-  url: z.string(),
-  addedAt: z.number()
+export const MasterSelectionSchema = z.object({
+  prefinal: z.string().nullable().default(null),
+  final: z.string().nullable().default(null)
 })
-export type LiveLink = z.infer<typeof LiveLinkSchema>
-
-export const DistributionDetailsSchema = z.object({
-  title: z.string(),
-  primaryArtist: z.string(),
-  featuring: z.array(z.string()),
-  releaseKind: ReleaseKindSchema,
-  releaseDate: IsoDateSchema.nullable(),
-  genre: z.string(),
-  subGenre: z.string(),
-  mood: z.string(),
-  language: z.string(),
-  explicit: z.boolean(),
-  isrc: z.string(),
-  upc: z.string(),
-  label: z.string(),
-  copyright: z.string(),
-  credits: z.string(),
-  lyrics: z.string(),
-  /** Where the release is being submitted. */
-  targetPlatforms: z.array(DistributionPlatformSchema),
-  /** Where it actually landed, once live. */
-  liveLinks: z.array(LiveLinkSchema)
-})
-export type DistributionDetails = z.infer<typeof DistributionDetailsSchema>
-
-export const MarketingAssetSchema = z.object({
-  id: z.string(),
-  kind: MarketingAssetKindSchema,
-  title: z.string(),
-  status: MarketingAssetStatusSchema,
-  /** The date this goes out. Read by the scheduling department. */
-  scheduledFor: IsoDateSchema.nullable(),
-  /** The finished file, once it exists. */
-  assetPath: z.string().nullable(),
-  /** Where this particular piece is going. */
-  platforms: z.array(DistributionPlatformSchema),
-  notes: z.string()
-})
-export type MarketingAsset = z.infer<typeof MarketingAssetSchema>
-
-export const MarketingPlanSchema = z.object({
-  assets: z.array(MarketingAssetSchema),
-  notes: z.string(),
-  startedAt: z.number()
-})
-export type MarketingPlan = z.infer<typeof MarketingPlanSchema>
+export type MasterSelection = z.infer<typeof MasterSelectionSchema>
 
 /**
  * A project as the registry holds it.
@@ -337,8 +244,8 @@ export type MarketingPlan = z.infer<typeof MarketingPlanSchema>
  * Fields divide into two groups with different owners, and the distinction
  * matters when writing: everything under `discovered` belongs to the scanner
  * and is overwritten wholesale on every rescan, while the operator's own work —
- * stage, notes, tags, deliverable selections, distribution, marketing — is
- * never touched by a scan.
+ * stage, notes, tags, category, colour, master picks — is never touched by a
+ * scan.
  */
 export const ProjectRecordSchema = z.object({
   id: z.string(),
@@ -352,10 +259,33 @@ export const ProjectRecordSchema = z.object({
   tags: z.array(z.string()),
   favourite: z.boolean(),
   notes: z.array(ProjectNoteSchema),
-  deliverables: DeliverableSelectionSchema,
-  distribution: DistributionDetailsSchema,
-  /** Created when the project first reaches READY FOR RELEASE. */
-  marketing: MarketingPlanSchema.nullable(),
+
+  /** What this project is. See PROJECT_CATEGORIES. */
+  category: ProjectCategorySchema.default('single'),
+  /**
+   * The volume this project is a track of, or null when it stands alone.
+   *
+   * Membership is held here rather than as an ordered id array on the volume,
+   * so there is one place to look and nothing to keep in step. A volume's track
+   * list is "the projects pointing at it, sorted by `trackNumber`".
+   */
+  volumeId: z.string().nullable().default(null),
+  /** Position within the volume. Null while unset; ties break on name. */
+  trackNumber: z.number().int().min(0).nullable().default(null),
+
+  /** Operator-set tile colour. Stored exactly as picked — see stacks.constants.ts. */
+  colour: z.string().default(DEFAULT_FOLDER_COLOUR),
+  masters: MasterSelectionSchema.prefault({}),
+
+  /**
+   * The stacks folder this project is filed in, or null for unfiled.
+   *
+   * Operator-owned despite describing a location on disk, so it is absent from
+   * `discoveredFields()` and a rescan cannot clear it. The scan does *recompute*
+   * it from the project's path afterwards, which is what keeps the app in step
+   * with a folder the operator dragged around in Explorer.
+   */
+  folderId: z.string().nullable().default(null),
 
   // -------------------------------------------------------------- discovered
   sets: z.array(AbletonSetSchema),
@@ -378,6 +308,18 @@ export const ProjectRecordSchema = z.object({
   /** True when the folder has disappeared since the last successful scan. */
   missing: z.boolean(),
 
+  /**
+   * When the operator deleted this project, or null while it is live.
+   *
+   * A deleted project keeps its whole record. That is the point of an archive-
+   * owned recycle bin over the operating system's: restoring has to put the
+   * folder back where it came from, and only the record remembers where that
+   * was. See `trashedFrom`.
+   */
+  trashedAt: z.number().nullable().default(null),
+  /** The path the project occupied before it was moved into the bin. */
+  trashedFrom: z.string().nullable().default(null),
+
   createdAt: z.number(),
   updatedAt: z.number()
 })
@@ -397,10 +339,12 @@ export const ProjectSummarySchema = z.object({
   stage: ProjectStageSchema,
   tags: z.array(z.string()),
   favourite: z.boolean(),
-  title: z.string(),
-  primaryArtist: z.string(),
-  releaseKind: ReleaseKindSchema,
-  releaseDate: IsoDateSchema.nullable(),
+  colour: z.string().default(DEFAULT_FOLDER_COLOUR),
+  /** Which stacks folder holds this project, for the folder browser. */
+  folderId: z.string().nullable().default(null),
+  category: ProjectCategorySchema.default('single'),
+  volumeId: z.string().nullable().default(null),
+  trackNumber: z.number().int().min(0).nullable().default(null),
   tempo: z.number().nullable(),
   key: MusicalKeySchema.nullable(),
   trackCount: z.number().int().min(0),
@@ -409,36 +353,22 @@ export const ProjectSummarySchema = z.object({
   audioCount: z.number().int().min(0),
   sizeBytes: z.number().min(0),
   missingSampleCount: z.number().int().min(0),
-  /** Chosen cover art, for the grid thumbnail. */
+  /** First image in the project, for the grid thumbnail. */
   coverPath: z.string().nullable(),
   /** First pinned note, shown inline on cards. */
   pinnedNote: z.string().nullable(),
+  /** True once a final mix and master has been chosen. */
+  hasFinalMaster: z.boolean().default(false),
   /** Readiness requirements met / total. */
   readiness: z.object({ met: z.number().int().min(0), total: z.number().int().min(0) }),
-  /** Marketing deliverables settled / required, or null with no plan. */
-  marketing: z
-    .object({ settled: z.number().int().min(0), required: z.number().int().min(0) })
-    .nullable(),
-  liveLinkCount: z.number().int().min(0),
   lastTouchedAt: z.number(),
   updatedAt: z.number(),
-  missing: z.boolean()
+  missing: z.boolean(),
+  trashedAt: z.number().nullable().default(null),
+  /** Where it will go back to if restored. Shown in the bin so the row explains itself. */
+  trashedFrom: z.string().nullable().default(null)
 })
 export type ProjectSummary = z.infer<typeof ProjectSummarySchema>
-
-/**
- * Audio found in the scanned roots that does not belong to any project folder —
- * loose bounces, references, stems exported elsewhere. Surfaced rather than
- * discarded so nothing the operator has made goes uncatalogued.
- */
-export const UnlinkedMediaSchema = z.object({
-  path: z.string(),
-  fileName: z.string(),
-  directory: z.string(),
-  sizeBytes: z.number().min(0),
-  modifiedAt: z.number()
-})
-export type UnlinkedMedia = z.infer<typeof UnlinkedMediaSchema>
 
 // --------------------------------------------------------------------- scan
 
@@ -483,7 +413,29 @@ export const ScanStateSchema = z.object({
 })
 export type ScanState = z.infer<typeof ScanStateSchema>
 
-// -------------------------------------------------------------------- patches
+// ------------------------------------------------------------------ drafts
+
+/** Colour input accepted from the renderer, checked before it is stored. */
+const ColourSchema = z.string().refine(isHexColour, 'Expected a six-digit hex colour')
+
+/**
+ * A project to be provisioned.
+ *
+ * `folderId` is required and not nullable: a project is *created into* a shelf,
+ * unlike an existing one discovered by the scan, which may legitimately be
+ * unfiled. The service refuses a genre — projects live at depth 1 or below.
+ */
+export const ProjectDraftSchema = z.object({
+  folderId: z.string(),
+  name: z.string().max(MAX_FOLDER_NAME_LENGTH),
+  category: ProjectCategorySchema.default('single'),
+  /** Required by the service when the category is one of the volume-bound three. */
+  volumeId: z.string().nullable().default(null),
+  colour: ColourSchema.optional()
+})
+export type ProjectDraft = z.infer<typeof ProjectDraftSchema>
+
+// ------------------------------------------------------------------ patches
 
 /**
  * Operator-authored fields only.
@@ -498,9 +450,18 @@ export const ProjectPatchSchema = z.object({
   stageNote: z.string().optional(),
   tags: z.array(z.string()).optional(),
   favourite: z.boolean().optional(),
-  deliverables: DeliverableSelectionSchema.partial().optional(),
-  distribution: DistributionDetailsSchema.partial().optional(),
-  marketing: MarketingPlanSchema.nullable().optional(),
+  colour: ColourSchema.optional(),
+  category: ProjectCategorySchema.optional(),
+  /**
+   * Re-attaches the project to a volume, or detaches it with `null`.
+   *
+   * Validated against `category` in the service: the two are one statement, and
+   * a patch that sets only one of them has the other adjusted to agree rather
+   * than being refused.
+   */
+  volumeId: z.string().nullable().optional(),
+  trackNumber: z.number().int().min(0).nullable().optional(),
+  masters: MasterSelectionSchema.partial().optional(),
   /** Which set to treat as the project's current working version. */
   primarySetPath: z.string().optional()
 })
@@ -513,14 +474,37 @@ export const NoteDraftSchema = z.object({
 export type NoteDraft = z.infer<typeof NoteDraftSchema>
 
 export const ProjectQuerySchema = z.object({
-  /** Matched against name, title, artist and tags. */
+  /** Matched against name and tags. */
   search: z.string().optional(),
   stages: z.array(ProjectStageSchema).optional(),
   tags: z.array(z.string()).optional(),
+  categories: z.array(ProjectCategorySchema).optional(),
   favouritesOnly: z.boolean().optional(),
   sort: ProjectSortModeSchema.optional(),
   /** Include projects whose folder has disappeared. Off by default. */
-  includeMissing: z.boolean().optional()
+  includeMissing: z.boolean().optional(),
+  /**
+   * Select deleted projects instead of live ones.
+   *
+   * A plain boolean rather than a tri-state, because there is no useful query
+   * that wants both at once: the bin is a place you go, not a filter you relax.
+   * Absent or false means live projects only, which is what every other view
+   * asks for without having to say so.
+   */
+  trashed: z.boolean().optional(),
+  /**
+   * Restrict to one stacks folder.
+   *
+   * Three states, not two: absent means "do not filter at all", a string means
+   * that folder, and `null` means the unfiled projects — which is what the
+   * UNFILED panel shows.
+   */
+  folderId: z.string().nullable().optional(),
+  /**
+   * Restrict to one volume. Same three states as `folderId`: `null` is the
+   * LOOSE lens — everything belonging to no volume at all.
+   */
+  volumeId: z.string().nullable().optional()
 })
 export type ProjectQuery = z.infer<typeof ProjectQuerySchema>
 
@@ -532,7 +516,12 @@ export const ProjectRegistrySchema = z.object({
   tags: z.array(z.string()),
   /** Per-stage counts, including stages with none — the board needs empties. */
   stageCounts: z.record(ProjectStageSchema, z.number().int().min(0)),
-  unlinkedCount: z.number().int().min(0),
+  /** Per-category counts, for the chip row. */
+  categoryCounts: z.record(ProjectCategorySchema, z.number().int().min(0)),
+  /** Projects filed nowhere, for the UNORGANISED panel's badge. */
+  unfiledCount: z.number().int().min(0),
+  /** Projects in the recycle bin, for its lens badge. */
+  trashedCount: z.number().int().min(0),
   roots: z.array(z.string())
 })
 export type ProjectRegistry = z.infer<typeof ProjectRegistrySchema>

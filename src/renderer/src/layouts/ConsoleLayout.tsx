@@ -1,12 +1,14 @@
-import { useState, type ReactNode } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { useMemo, useState, type ReactNode } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { getSectionByPath } from '@shared/domain/navigation'
+import { SECTIONS, getSectionByPath } from '@shared/domain/navigation'
 import { TimerCues } from '@renderer/app/providers/TimerCues'
 import { ConcordCues } from '@renderer/app/providers/ConcordCues'
 import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
 import { CommandRail } from '@renderer/components/nav/CommandRail'
+import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
+import type { Hotkey } from '@renderer/hotkeys/registry'
 import { consoleEnterVariants, pageVariants } from '@renderer/motion/transitions'
 import styles from './ConsoleLayout.module.scss'
 
@@ -19,7 +21,30 @@ import styles from './ConsoleLayout.module.scss'
  */
 export function ConsoleLayout(): ReactNode {
   const location = useLocation()
+  const navigate = useNavigate()
   const section = getSectionByPath(location.pathname)
+
+  /*
+   * Ctrl+1..n walks the rail, in the order the rail is drawn.
+   *
+   * Numbered from the registry rather than hard-coded, so a department added or
+   * removed renumbers the shortcuts with it and the cheatsheet cannot drift.
+   * Reserved sections are bound too — they are on the rail, and a shortcut that
+   * silently skips one would make the numbering stop matching what is on screen.
+   */
+  const navigation = useMemo<Hotkey[]>(
+    () =>
+      SECTIONS.map((entry, index) => ({
+        chord: `ctrl+${index + 1}`,
+        label: entry.label,
+        group: 'Global',
+        whileTyping: true,
+        run: () => navigate(entry.path)
+      })),
+    [navigate]
+  )
+
+  useHotkeys(navigation)
 
   // Direction is derived from the section we navigated away from.
   //

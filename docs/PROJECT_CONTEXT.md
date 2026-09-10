@@ -5,8 +5,9 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-09-08. Five of seven departments delivered; INTERFACE is
-> the only one still reserved.
+> Last updated: 2026-09-09. Five of six departments delivered; INTERFACE is the
+> only one still reserved. TRANSMISSIONS was **removed** in the ARCHIVE rework
+> and will be respecified — see §10.
 
 ---
 
@@ -23,9 +24,15 @@ It is backed by a **private, application-owned MongoDB instance** (never a syste
 service). The app is styled as an institutional terminal from a fictional
 universe; see §3.
 
-**Current state:** the foundation and five of the seven departments are shipped
-— NEXUS, ARCHIVE, OBSERVATORY, TELEMETRY, TRANSMISSIONS. **INTERFACE** is the
-only department still reserved, and THE DOCKET the only reserved overlay.
+**Current state:** the foundation and five of the six departments are shipped —
+NEXUS, ARCHIVE, OBSERVATORY, TELEMETRY, REGULATION. **INTERFACE** is the only
+department still reserved, and THE DOCKET the only reserved overlay.
+
+TRANSMISSIONS (release and promotional scheduling) was **deleted** during the
+ARCHIVE rework of 2026-09-09, on the operator's instruction, because the release
+model it read from no longer exists. A replacement will be specified separately.
+Do not resurrect the old one: its service, domain, hooks, components and six IPC
+channels were removed deliberately.
 
 Note for anyone reading an older copy of this file: the department table in §10
 was stale for several releases, listing ARCHIVE and OBSERVATORY as reserved long
@@ -181,6 +188,10 @@ candy-haven/
     │   └── services/
     │       ├── container.ts      composition root
     │       ├── archive/          MongoDB: locate, provision, supervise, schema
+    │       ├── projects/         register, scanner, .als reader, provisioner
+    │       ├── stacks/           the filing tree — real directories on disk
+    │       ├── volumes/          albums / EPs / compilations (metadata only)
+    │       ├── releases/         RELEASES folders + their deliverables
     │       ├── settings/         file-backed settings
     │       ├── telemetry/        host vitals sampler + GPU probe
     │       └── update/           electron-updater wrapper
@@ -362,10 +373,62 @@ Tokens: `$titlebar-height: 40px`, `$rail-width: 232px`,
 | `Sigil`               | The four-point Sonoalchemy star (used in titlebar, Nexus hero).                              |
 | `Logomark`            | The real brand mark — a galaxy vortex, from `assets/Logo.svg`.                               |
 | `ErrorBoundary`       | Top-level render guard with a reload action.                                                 |
+| `Portal`              | Renders into `document.body`. **Required for every overlay a page draws** — see below.       |
 
 `Logomark` inlines the SVG path rather than importing the file, so it can be
 driven by `currentColor`. **If the artwork changes, re-copy the `d` attribute
 from `src/renderer/src/assets/Logo.svg`.**
+
+#### Interface scale
+
+`appearance.uiScale` (0.8–2.0) is applied as **Electron's zoom factor**, via
+`webFrame.setZoomFactor()` in the preload bridge. It is Windows' display scaling
+for this one window: text, controls, spacing, borders and artwork all move
+together.
+
+**Do not reimplement this as a CSS variable on the root font size.** That was
+tried first and does not work here: `label()` and `readout()` — the two mixins
+that draw nearly every institutional label and mono readout in the console —
+take a **raw pixel** size, so only body copy scaled and the setting looked half
+broken. Fixing that properly would mean converting every call site of both
+mixins; scaling the frame gets everything for one line.
+
+Two details that are load-bearing:
+
+- It is set in the **preload**, not over IPC. `webFrame` is renderer-side and
+  preload runs in the renderer, so it applies directly with no round trip. It is
+  the only thing on that bridge that does not go through a channel.
+- It is re-asserted on **every hydration**, not only on change, because Chromium
+  remembers a zoom factor per origin across reloads — otherwise a reload can
+  come back at whatever the last session left rather than at what is stored.
+
+The control lives behind `ScaleDialog` rather than inline, and that is not
+ceremony: a slider wired straight to the zoom factor rescales the page _while it
+is being dragged_, so the slider slides out from under the pointer. The dialog
+holds the console still and scales a sample instead, using CSS `zoom` — which
+reflows exactly as the frame's zoom will, unlike `transform: scale()`, which
+would resample a 100% layout and misrepresent both line breaks and hairlines.
+
+#### `position: fixed` does not work inside a page — use `Portal`
+
+`ConsoleLayout` animates each page with `pageVariants`, which moves `y`, `scale`
+and `filter`. Motion leaves those inline once settled, and a **transform or a
+filter makes an element the containing block for every `position: fixed`
+descendant**. An overlay rendered by a page therefore resolves `inset: 0`
+against the page, not the viewport: the backdrop covers only the page box and
+the sheet centres on it.
+
+It is not a CSS bug and no amount of `z-index` or `inset` fixes it. Wrap the
+overlay in `<Portal>`. This already bit the project once — every ARCHIVE
+overlay (dossier, setup gate, context menu, all four dialogs) was mispositioned.
+The context menu was the worst case: it positions at `clientX`/`clientY`, which
+are viewport coordinates, so it opened away from the cursor.
+
+`UnsavedBar` solves the same problem differently, by being a sibling of the page
+wrapper — available only to the layout, which owns it.
+
+Portalling does not break `AnimatePresence`: the component stays in the React
+tree and only the DOM node moves, so exit animations still run.
 
 ### 7.4 Grid convention — non-negotiable
 
@@ -501,8 +564,14 @@ than unpacking 800 MB.
 
 ### Collections (`src/main/services/archive/schema.ts`)
 
-`projects` · `project_versions` · `releases` · `release_assets` · `overlays` ·
-`command_history` · `events` · `migrations`
+`projects` · `project_versions` · `archive_folders` · `archive_volumes` ·
+`releases` · `overlays` · `command_history` · `events` · `migrations`
+
+**Schema version 2** (`applyMigrations`) drops `projects`, `archive_folders`,
+`releases`, `release_assets`, `transmission_tasks` and `unlinked_media` once, on
+first boot of a build newer than the ARCHIVE rework. Files on disk are never
+touched — only the database — and the register rebuilds from a rescan in
+seconds. Bump `SCHEMA_VERSION` and add a branch there for the next such change.
 
 Indexes are declared declaratively in `INDEX_PLAN` and reconciled every boot
 (`createIndexes` is idempotent). Index failures are logged but **do not abort
@@ -520,15 +589,18 @@ Registry: **`src/shared/domain/navigation.ts`** — the single source of truth f
 routes, labels, order, and shipped status. The rail, titlebar, page transitions
 and Nexus all read from it.
 
-| #   | Id              | Path             | Status      | Purpose                                                  |
-| --- | --------------- | ---------------- | ----------- | -------------------------------------------------------- |
-| 1   | `nexus`         | `/`              | **shipped** | Operational overview and system state                    |
-| 2   | `archive`       | `/archive`       | **shipped** | Project registry, production pipeline, release packaging |
-| 3   | `transmissions` | `/transmissions` | **shipped** | Release and promotional scheduling across every project  |
-| 4   | `observatory`   | `/observatory`   | **shipped** | Stream overlays and live selection rites served to OBS   |
-| 5   | `interface`     | `/interface`     | reserved    | Natural-language command console                         |
-| 6   | `telemetry`     | `/telemetry`     | **shipped** | Host vitals: processor, memory, graphics, storage        |
-| 7   | `regulation`    | `/regulation`    | **shipped** | Operator settings, archive control, update channel       |
+| #   | Id            | Path           | Status      | Purpose                                                |
+| --- | ------------- | -------------- | ----------- | ------------------------------------------------------ |
+| 1   | `nexus`       | `/`            | **shipped** | Operational overview and system state                  |
+| 2   | `archive`     | `/archive`     | **shipped** | Project registry, production pipeline, releases        |
+| 3   | `observatory` | `/observatory` | **shipped** | Stream overlays and live selection rites served to OBS |
+| 4   | `interface`   | `/interface`   | reserved    | Natural-language command console                       |
+| 5   | `telemetry`   | `/telemetry`   | **shipped** | Host vitals: processor, memory, graphics, storage      |
+| 6   | `regulation`  | `/regulation`  | **shipped** | Operator settings, archive control, update channel     |
+
+Note the OBSERVATORY overlay named **`transmission`** (singular, NOW
+TRANSMITTING — the Spotify now-playing surface) is unrelated to the deleted
+department and is still shipped. Do not conflate them.
 
 Reserved sections render `ReservedPage` with a commissioning scope list (defined
 inline in `src/renderer/src/app/router.tsx`) — deliberately not an empty page, so
@@ -548,42 +620,182 @@ The rail, transitions and titlebar pick it up automatically.
 **TELEMETRY is the best reference implementation** — it exercises a service, a
 push channel with subscribe/unsubscribe, a domain split, charts, and a full page.
 
-### TRANSMISSIONS specifics
+### ARCHIVE specifics
 
-Worth knowing before touching it, because it breaks the usual shape in one way:
-**it stores almost nothing.**
+Reworked 2026-09-09. The department now **makes** structure rather than
+discovering it, and that inversion explains most of its design.
 
-A release date belongs to a project's `distribution`, and a promotional
-deliverable's date to its `marketing` plan. Both are ARCHIVE's. `transmissions:schedule`
-is a **projection rebuilt per call** out of `ProjectsService.listRecords()`, not a
-stored record — two copies of the same date drift the moment one is written
-without the other, and the operator would have no way to tell which one the
-release actually goes out on. Do not add a `releases` collection for this; the
-one declared in `schema.ts` remains unused on purpose.
+**Setup is a gate, not a setting.** With no filing root and no project template,
+`ArchivePage` renders `SetupGate` and nothing else. There is no useful
+half-configured state: the department creates directories and copies files, so
+it cannot honestly draw a workspace before it knows where the workspace is.
 
-The exception is **tasks** — freeform work items the operator pins to a day,
-which belong to no release. Those are the department's own and live in
-`transmission_tasks`. Unlike the overlay repositories, that one is _not_
-best-effort: a task is something written down so it need not be remembered, so a
-failed write raises rather than being swallowed.
+**On disk.** One `filingRoot` holds one `Candy Haven` wrapper. It defaults to
+the **OS music folder** (`app.getPath('music')`), surfaced to the setup gate as
+`ArchiveSetupState.suggestedRoot`, and the operator can change it. It is
+deliberately _not_ their Ableton projects directory: where the archive builds
+and where work already lives are different questions, and an earlier build that
+conflated them buried the archive inside someone else's folder structure and
+forced both onto one disk. Existing project folders are added as
+`satelliteRoots` — scanned, never written to.
 
-Other things decided here:
+Inside the wrapper:
 
-- **Collision policy** lives in `transmissions.constants.ts` so main computes it
-  once and every surface agrees. Critical = two releases on a day. Warn = two
-  different projects on a day. A single campaign's own clustered beats never
-  flag — the default plan puts a pre-release the day before release, and a
-  warning that fires on the correct case is one the operator learns to ignore.
-  **Tasks are excluded entirely.**
-- **Four views** (month, week, agenda, timeline) over one entry array. Purely
-  presentational; all four hand off to the same day manifest, which is the only
-  place the department writes.
-- **Submission lead time** is one setting (`workspace.submissionLeadDays`), not
-  a field per project, and `submitBy` is derived from it.
-- The seven-column week declares its own grid **inside** the panel. The page grid
-  stays six columns — see §7.4.
+```
+Candy Haven\
+  EDM\                          GENRE  (depth 0)
+    Undertow Project\           PROJECT — allowed directly in a genre
+    Melodic Bass\               FOLDER (depth 1+) — optional subdivision
+      Solstice Project\         PROJECT — the Ableton project folder itself
+        Solstice.als            template copy, renamed
+        Samples\  Backup\       Ableton's
+        WIPS\ MIX & MASTER\ STEMS\ GRAPHICS\ MARKETING\ REFERENCES\
+  RELEASES\                     reserved; never a genre, skipped by the scan
+    Solstice\  MASTER\ ART\ COPY\
+  RECYCLE BIN\                  reserved; deleted projects, skipped by the scan
+    Undertow Project\
+```
 
----
+`RESERVED_WRAPPER_DIRECTORIES` holds both reserved names. They are refused as
+genre names and excluded from the scan walk. The bin **must** stay excluded:
+indexing it would resurrect every deleted project as a live record on the next
+launch.
+
+The project folder **is** the Ableton project folder. That keeps the scanner's
+definition — "a folder directly containing a `.als`" — true, which is why
+provisioning needed no scanner change at all.
+
+**Folder kind is derived from depth, never stored.** `folderKindAtDepth`:
+0 = genre, below that = plain folder. Moving a folder changes what it is, and a
+stored `kind` would eventually disagree with where the folder sits.
+
+The kind is a **naming distinction only** — nothing behaves differently at one
+depth than another. **Any folder may hold projects**, including a genre. An
+earlier build named depth 1 a SUB-GENRE and required every project to sit in
+one; the client rejected that as needless complexity, so `MIN_PROJECT_DEPTH` and
+`canHoldProjects` are gone. Do not reintroduce a mandatory level.
+
+**Four objects, three of which touch disk.**
+
+| Object     | Directory?          | Owner                 |
+| ---------- | ------------------- | --------------------- |
+| Folder     | yes, real           | `stacks.service.ts`   |
+| Project    | yes, real           | `projects.service.ts` |
+| **Volume** | **no — metadata**   | `volumes.service.ts`  |
+| Release    | yes, under RELEASES | `releases.service.ts` |
+
+A VOLUME (album / EP / compilation) deliberately owns no directory. A track's
+place on disk is already spoken for by the shelf it is filed on, and making an
+album a second real hierarchy would put the two permanently at war. Membership
+lives on the _project_ (`volumeId` + `trackNumber`), never as a list on the
+volume — one source of truth.
+
+_Invariant:_ `category ∈ {album, ep, compilation}` ⟺ attached to a volume of
+that same kind. Enforced in `reconcileCategory`, not only in the UI.
+
+**Releases copy, never move.** The project stays filed under its genre; the
+master, cover and canvas are duplicated into `RELEASES/<title>/`. Moving them
+would leave the genre tree full of holes the moment anything shipped.
+
+**Disk first, database second**, everywhere both are touched. A failed
+filesystem operation leaves the database untouched and the operator sees a
+refusal; the reverse order would let the app believe in a directory that does
+not exist.
+
+**Deleting is two stages, and no single action destroys anything.**
+
+| Channel            | What it does                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| `projects:forget`  | Drops the record. Files untouched; the next scan finds it again.                                          |
+| `projects:trash`   | Moves the folder into `RECYCLE BIN/`. **Record is kept**, with `trashedAt` and `trashedFrom`.             |
+| `projects:restore` | Moves it back to `trashedFrom`, then re-files it from its landing path.                                   |
+| `projects:purge`   | Refused unless already binned. Sends the folder to the _OS_ recycle bin, then drops the record.           |
+| `stacks:delete`    | Moves a **folder** into the bin with its whole subtree — descendant folders and every project under them. |
+| `stacks:restore`   | Brings that subtree back, re-parenting from wherever it lands.                                            |
+
+Folders go to the bin too. `stacks:delete` used to lift the contents up to the
+parent and remove the emptied directory behind a two-step confirmation — the
+safest thing available before the archive had a bin, but the shelf vanished
+irreversibly and the dialog's "nothing is deleted from disk" was not quite true
+of the directory itself. The whole subtree now moves intact, so an occupied
+folder is no longer a hazard and the second confirmation is gone. `trashedFrom`
+on each folder and project is what lets a restore rebuild the original shape
+rather than flattening it into one directory.
+
+The archive owns its bin rather than using Windows' directly because Windows'
+cannot be browsed or restored from inside this application — "restore that
+project" would otherwise mean telling the operator where to click in Explorer.
+Restoring falls back to the filing root when the original shelf has gone;
+coming back unfiled is one drag to fix, whereas refusing would strand the
+project in the bin forever.
+
+A binned project is excluded from every count and query. `matches()` compares
+trashed-ness in _both_ directions, so nothing leaks either way, and `reconcile`
+never marks a binned project missing even though the scan cannot see it.
+
+Deleting a folder never deletes its contents — they are lifted to the parent.
+Dissolving a volume frees its tracks. Dropping a release leaves its folder.
+
+**Colour is stored verbatim.** `clampToPalette` — which folded custom hues into
+the world's crimson-to-gold band — was **removed** on the operator's
+instruction. The 15 presets remain, but a hand-picked colour is stored exactly
+as chosen, including a green. The brief still governs the chrome; this licence
+covers operator-assigned tile colours only. See `isHexColour` in
+`stacks.constants.ts`. **Do not reinstate the clamp.**
+
+**Six lenses:** STACKS, UNFILED, VOLUMES, RELEASES, ALL, BIN. `unfiled` replaced
+a `loose` lens that selected projects belonging to no _volume_ — redundant,
+because the category chips already express "everything that is not an album
+track", whereas "not on a shelf" cannot be expressed any other way and is the
+question actually asked.
+
+**The layout is a source and a destination, side by side.** Panel 01 is the
+browser (`.browserCell`, four columns wide and two rows tall); panels 02
+UNORGANISED and 03 INDEXING stack beside it. That arrangement fixes a real
+failure: the unfiled projects used to be listed in the register _underneath_ the
+folder tiles, so opening a genre to drag something into it re-filtered that
+register to "what is already in this genre" — nothing — and the list being
+dragged from disappeared. UNORGANISED now runs its own query and ignores the
+lens, the open folder and every filter. The browser draws no register at the
+root of the tree, because "filed here" at the root means "filed nowhere", which
+is what UNORGANISED already shows.
+
+**ICONS is the default view, and in STACKS it is one grid.** `PROJECT_VIEW_MODES`
+is `list | grid | board`; `grid` is labelled ICONS. In the STACKS lens it draws
+folders _and_ projects into a single `TileGrid`, the way a file browser draws a
+directory — projects are objects you open, not rows you scan. The register below
+the tiles is then suppressed, because it would be the same shelf drawn twice.
+LIST and BOARD keep the folder tiles on top (they are navigation) and render the
+projects beneath in the ledger or the kanban.
+
+**Projects join that grid only _inside_ a folder.** At the root, "filed here"
+resolves to "filed nowhere", so including them turned the top of the archive
+into a wall of every unsorted project on disk. The root shows what has been
+organised, and nothing else.
+
+ICONS means the same tile in every lens. A separate cover-art card view
+(`ProjectGridView`) was deleted: it read as a different kind of object from the
+STACKS tiles, and for the unsorted sets this department mostly holds it drew a
+grid of empty frames. `Tile.coverPath` now shows artwork _when a project has
+any_ and falls back to the mark when it does not, so one component covers both
+without promising art that is not there. `Artwork.tsx` went with it.
+
+The project mark is a document with arrangement bars, deliberately _not_ a copy
+of Ableton's own file icon: it marks the operator's project, and the app draws
+nobody else's trademark.
+
+**The open shelf is itself a drop target.** Tiles accept drops, but a folder
+just created has no sub-folders in it, so there was nothing to aim at and the
+whole panel rejected the drag. The `.browser` element handles the drop and files
+into the folder currently open. `TileGrid` and `FolderTrail` both call
+`stopPropagation` in their drop handlers — without it a tile drop would bubble
+and file the same project twice, racing two moves of one directory.
+
+**The scan cache is load-bearing.** The directory walk always runs in full, so
+additions, deletions and moves are exact; a set whose mtime _and_ size are
+unchanged is served from its stored analysis instead of being decompressed. On
+the development library that is ~30 ms versus ~1.4 s. `force` re-reads
+everything, for when the reader itself has changed.
 
 ## 11. TELEMETRY specifics (reference implementation)
 

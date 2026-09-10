@@ -7,6 +7,10 @@
 
 // ---------------------------------------------------------------- dimensions
 
+// The only definition of the chrome's height. A `TITLEBAR_HEIGHT` constant in
+// shared/constants.ts used to mirror it for the main process's window controls
+// overlay; that overlay was removed for duplicating the custom title bar, and
+// the constant went with it rather than being left to drift out of step.
 $titlebar-height: 40px;
 $rail-width: 232px;
 $rail-width-collapsed: 72px;

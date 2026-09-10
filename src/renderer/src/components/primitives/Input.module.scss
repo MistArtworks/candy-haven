@@ -77,6 +77,31 @@
   @extend %entry;
   resize: vertical;
   min-height: rem(72px);
+  line-height: 1.6;
+
+  /*
+   * The grab corner, drawn rather than left to Chromium.
+   *
+   * The default is a light diagonal grip that ignores every colour in this
+   * interface — the one piece of operating-system furniture visible on the
+   * page. `::-webkit-resizer` is the only hook for it, so it gets the same
+   * two-rule treatment the panels use for their ribbing.
+   */
+  &::-webkit-resizer {
+    background:
+      linear-gradient(
+        135deg,
+        transparent 0 45%,
+        var(--ch-line-strong) 45% 55%,
+        transparent 55% 100%
+      ),
+      linear-gradient(
+        135deg,
+        transparent 0 70%,
+        var(--ch-line-strong) 70% 80%,
+        transparent 80% 100%
+      );
+  }
 }
 
 .mono {

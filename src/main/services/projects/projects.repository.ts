@@ -1,6 +1,6 @@
 import type { AnyBulkWriteOperation, Collection, Db } from 'mongodb'
 import { ProjectRecordSchema } from '@shared/domain/projects'
-import type { ProjectRecord, UnlinkedMedia } from '@shared/domain/projects'
+import type { ProjectRecord } from '@shared/domain/projects'
 import { getLogger } from '@main/core/logger'
 import { Collections } from '@main/services/archive/schema'
 
@@ -16,9 +16,6 @@ const logger = getLogger('projects:repository')
 
 /** Stored shape. `_id` carries what the domain calls `id`. */
 export type ProjectDocument = Omit<ProjectRecord, 'id'> & { _id: string }
-
-/** Keyed by lowercased path: the same file discovered twice is one record. */
-type UnlinkedDocument = UnlinkedMedia & { _id: string }
 
 /**
  * Normalises a stored document into a domain record.
@@ -55,10 +52,6 @@ export class ProjectsRepository {
 
   private get projects(): Collection<ProjectDocument> {
     return this.db.collection<ProjectDocument>(Collections.Projects)
-  }
-
-  private get unlinked(): Collection<UnlinkedDocument> {
-    return this.db.collection<UnlinkedDocument>(Collections.UnlinkedMedia)
   }
 
   /**
@@ -104,35 +97,5 @@ export class ProjectsRepository {
     if (operations.length === 0) return
     // Unordered so one rejected document does not abandon the rest of a scan.
     await this.projects.bulkWrite(operations, { ordered: false })
-  }
-
-  // ------------------------------------------------------------ unlinked media
-
-  /**
-   * Replaces the unlinked-media index wholesale.
-   *
-   * These records are derived entirely from the last scan and carry no operator
-   * input, so rebuilding is both correct and cheaper than diffing.
-   */
-  async replaceUnlinked(items: readonly UnlinkedMedia[]): Promise<void> {
-    await this.unlinked.deleteMany({})
-    if (items.length === 0) return
-
-    await this.unlinked.insertMany(
-      items.map((item) => ({ _id: item.path.toLowerCase(), ...item })),
-      { ordered: false }
-    )
-  }
-
-  async countUnlinked(): Promise<number> {
-    return this.unlinked.countDocuments({})
-  }
-
-  async listUnlinked(limit: number): Promise<UnlinkedMedia[]> {
-    // `_id` is a derived key, not domain data, so it is projected away rather
-    // than stripped after the fact.
-    return this.unlinked
-      .find({}, { sort: { modifiedAt: -1 }, limit, projection: { _id: 0 } })
-      .toArray() as Promise<UnlinkedMedia[]>
   }
 }

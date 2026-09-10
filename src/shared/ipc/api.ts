@@ -10,21 +10,29 @@ import type { ChatStatus } from '../domain/chat'
 import type { TimerConfigPatch, TimerId, TimerSet, TimerState } from '../domain/timer'
 import type { NowPlayingConfigPatch, NowPlayingState, SpotifySetup } from '../domain/nowplaying'
 import type {
-  MarketingAsset,
-  MarketingAssetKind,
   NoteDraft,
+  ProjectDraft,
   ProjectPatch,
   ProjectQuery,
   ProjectRecord,
   ProjectRegistry,
-  ScanState,
-  UnlinkedMedia
+  ScanState
 } from '../domain/projects'
 import type {
-  TransmissionSchedule,
-  TransmissionTaskDraft,
-  TransmissionTaskPatch
-} from '../domain/transmissions'
+  ArchiveSetupDraft,
+  ArchiveSetupState,
+  FolderDraft,
+  FolderPatch,
+  StacksTree
+} from '../domain/stacks'
+import type { ArchiveVolume, VolumeDraft, VolumePatch, VolumeSummary } from '../domain/volumes'
+import type {
+  ArchiveRelease,
+  DeliverableKind,
+  ReleaseDraft,
+  ReleasePatch,
+  ReleaseSummary
+} from '../domain/releases'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -42,6 +50,13 @@ export interface CandyHavenApi {
     toggleMaximize(): Promise<WindowState>
     close(): Promise<void>
     state(): Promise<WindowState>
+    /**
+     * Scales the whole frame — Windows' display scaling, for this window.
+     *
+     * Synchronous and local to the renderer; see the preload bridge for why it
+     * does not go over IPC.
+     */
+    setZoom(factor: number): void
     onState(listener: (state: WindowState) => void): Unsubscribe
   }
   readonly boot: {
@@ -87,28 +102,80 @@ export interface CandyHavenApi {
     addNote(id: string, draft: NoteDraft): Promise<ProjectRecord>
     updateNote(id: string, noteId: string, draft: NoteDraft): Promise<ProjectRecord>
     deleteNote(id: string, noteId: string): Promise<ProjectRecord>
-    addMarketingAsset(id: string, kind: MarketingAssetKind): Promise<ProjectRecord>
-    saveMarketingAsset(id: string, asset: MarketingAsset): Promise<ProjectRecord>
-    removeMarketingAsset(id: string, assetId: string): Promise<ProjectRecord>
-    /** Drops a record whose folder no longer exists. */
+    /** Provisions a directory, the template set and the scaffold folders. */
+    create(draft: ProjectDraft): Promise<ProjectRecord>
+    /** Opens the primary set in whatever the OS has registered for `.als`. */
+    open(id: string): Promise<void>
+    /** Drops the record. Files are left exactly where they are. */
     forget(id: string): Promise<void>
-    unlinked(limit?: number): Promise<UnlinkedMedia[]>
+    /** Moves the project folder into the archive's recycle bin. Reversible. */
+    trash(id: string): Promise<ProjectRecord>
+    /** Puts a binned project back where it came from. */
+    restore(id: string): Promise<ProjectRecord>
+    /** Removes a binned project for good. Refused for anything still live. */
+    purge(id: string): Promise<void>
     /** Data URL for an image on disk, downscaled to `width`. */
     thumbnail(path: string, width?: number): Promise<string | null>
+    /** Moves the project's folder into a stacks folder, or out of the tree. */
+    file(id: string, folderId: string | null): Promise<ProjectRecord>
     onScan(listener: (state: ScanState) => void): Unsubscribe
   }
   /**
-   * Release and promotional scheduling. `schedule()` is a projection over the
-   * project registry rather than a stored record, so there is nothing to write
-   * back except the operator's own tasks — and each of those returns the whole
-   * rebuilt schedule, because moving one date can resolve or raise a collision
-   * elsewhere in the month.
+   * THE STACKS — the ARCHIVE's shelving.
+   *
+   * Every folder is a real directory on disk, so these calls move files.
+   * Each returns the whole tree, for the same reason the rite's methods return
+   * the whole rite: a rename cascades through every descendant, and a caller
+   * holding a folder and a count that disagree is worse than one extra payload.
    */
-  readonly transmissions: {
-    schedule(): Promise<TransmissionSchedule>
-    addTask(draft: TransmissionTaskDraft): Promise<TransmissionSchedule>
-    updateTask(id: string, patch: TransmissionTaskPatch): Promise<TransmissionSchedule>
-    removeTask(id: string): Promise<TransmissionSchedule>
+  readonly stacks: {
+    tree(): Promise<StacksTree>
+    /** Which setup gate, if any, is still unsatisfied. */
+    setupState(): Promise<ArchiveSetupState>
+    /** Saves the root and template, then provisions the wrapper and RELEASES. */
+    setup(draft: ArchiveSetupDraft): Promise<ArchiveSetupState>
+    create(draft: FolderDraft): Promise<StacksTree>
+    update(id: string, patch: FolderPatch): Promise<StacksTree>
+    /** Moves the folder and everything in it into the recycle bin. Reversible. */
+    remove(id: string): Promise<StacksTree>
+    /** Puts a binned folder and its whole subtree back. */
+    restore(id: string): Promise<StacksTree>
+    /** Removes a binned folder for good. Refused for anything still on a shelf. */
+    purge(id: string): Promise<StacksTree>
+  }
+  /**
+   * VOLUMES — albums, EPs and compilations.
+   *
+   * Metadata only; nothing here touches disk. A track joins a volume through
+   * `projects.patch`, not through this interface, because the project is what
+   * holds `volumeId` — see volumes.ts for why membership lives in one place.
+   */
+  readonly volumes: {
+    list(): Promise<VolumeSummary[]>
+    get(id: string): Promise<ArchiveVolume>
+    create(draft: VolumeDraft): Promise<VolumeSummary>
+    update(id: string, patch: VolumePatch): Promise<VolumeSummary>
+    /** Detaches every track first; each falls back to `single`. */
+    remove(id: string): Promise<void>
+    /** Ids in their new order; writes each track's `trackNumber`. */
+    reorder(id: string, projectIds: string[]): Promise<VolumeSummary[]>
+  }
+  /**
+   * RELEASES — what is going out, and the files that go with it.
+   *
+   * A release owns a real directory under the wrapper, so creating, renaming
+   * and attaching all move things on disk. Attaching *copies* the chosen file
+   * in rather than moving it: the project keeps its own bounces.
+   */
+  readonly releases: {
+    list(): Promise<ReleaseSummary[]>
+    get(id: string): Promise<ArchiveRelease>
+    create(draft: ReleaseDraft): Promise<ReleaseSummary>
+    update(id: string, patch: ReleasePatch): Promise<ReleaseSummary>
+    /** A null `source` detaches, leaving any copy already made in place. */
+    attach(id: string, kind: DeliverableKind, source: string | null): Promise<ArchiveRelease>
+    /** Drops the record; the assembled directory stays on disk. */
+    remove(id: string): Promise<void>
   }
   /**
    * The selection rite served to OBS. Every method returns the whole state:
@@ -202,6 +269,8 @@ export interface CandyHavenApi {
   readonly shell: {
     openExternal(url: string): Promise<void>
     reveal(path: string): Promise<void>
+    /** Opens a file with whatever the OS has registered for its extension. */
+    openPath(path: string): Promise<void>
     selectDirectory(title?: string): Promise<string | null>
     selectFile(options?: {
       title?: string

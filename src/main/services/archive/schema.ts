@@ -12,20 +12,28 @@ export const Collections = {
   Projects: 'projects',
   /** Point-in-time snapshots of a project's .als file and assets. */
   ProjectVersions: 'project_versions',
-  /** Release pipeline entries (TRANSMISSIONS section). */
-  Releases: 'releases',
-  /** Deliverables attached to a release: masters, artwork, metadata. */
-  ReleaseAssets: 'release_assets',
   /**
-   * Operator-filed work items pinned to a day (TRANSMISSIONS section).
+   * Releases (ARCHIVE section).
    *
-   * The only records that department owns. Every other date on its calendar is
-   * read from a project's distribution details or marketing plan rather than
-   * copied here, so the two can never disagree about when something goes out.
+   * Each document owns a real directory under `<wrapper>/RELEASES`, so this
+   * collection and the filesystem are two views of one thing.
    */
-  TransmissionTasks: 'transmission_tasks',
-  /** Audio found under a scanned root that belongs to no project folder. */
-  UnlinkedMedia: 'unlinked_media',
+  Releases: 'releases',
+  /**
+   * VOLUMES — albums, EPs and compilations (ARCHIVE section).
+   *
+   * The one ARCHIVE collection with no filesystem counterpart at all: a volume
+   * is metadata, and its tracks are held by `volumeId` on the project rather
+   * than by a list here. See domain/volumes.constants.ts.
+   */
+  ArchiveVolumes: 'archive_volumes',
+  /**
+   * THE STACKS — the filing tree projects are sorted into (ARCHIVE section).
+   *
+   * Each document describes a real directory on disk, so this collection and
+   * the filesystem are two views of one thing. The scan reconciles them.
+   */
+  ArchiveFolders: 'archive_folders',
   /** Stream overlay scenes and layouts (OBSERVATORY section). */
   Overlays: 'overlays',
   /** Natural-language commands and their resolved actions (INTERFACE section). */
@@ -52,23 +60,32 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
     // are the default reads of the ARCHIVE section.
     { key: { stage: 1, lastTouchedAt: -1 }, name: 'project_pipeline' },
     { key: { lastTouchedAt: -1 }, name: 'project_touched' },
-    { key: { 'distribution.releaseDate': 1 }, name: 'project_release_date' }
+    // The folder browser's every read is "what is filed here", and the volumes
+    // lens asks the same question of `volumeId`.
+    { key: { folderId: 1 }, name: 'project_folder' },
+    { key: { volumeId: 1, trackNumber: 1 }, name: 'project_volume_order' },
+    { key: { category: 1 }, name: 'project_category' }
   ],
-  [Collections.UnlinkedMedia]: [{ key: { modifiedAt: -1 }, name: 'unlinked_recent' }],
+  [Collections.ArchiveFolders]: [
+    // Two folders cannot describe one directory; the unique index is the last
+    // line of defence behind the service's own sibling-name check.
+    { key: { path: 1 }, unique: true, name: 'folder_path_unique' },
+    { key: { parentId: 1, order: 1 }, name: 'folder_siblings' }
+  ],
   [Collections.ProjectVersions]: [
     { key: { projectId: 1, capturedAt: -1 }, name: 'version_by_project' },
     { key: { checksum: 1 }, name: 'version_checksum' }
   ],
   [Collections.Releases]: [
-    { key: { status: 1, releaseDate: -1 }, name: 'release_pipeline' },
-    { key: { title: 1 }, name: 'release_title' }
+    { key: { releaseDate: -1 }, name: 'release_schedule' },
+    { key: { title: 1 }, name: 'release_title' },
+    // A subject can only be released once, and the create path checks for it.
+    // The unique index is the last line of defence behind that check.
+    { key: { subjectId: 1 }, unique: true, name: 'release_subject_unique' }
   ],
-  [Collections.ReleaseAssets]: [{ key: { releaseId: 1, kind: 1 }, name: 'asset_by_release' }],
-  [Collections.TransmissionTasks]: [
-    { key: { date: 1 }, name: 'task_by_date' },
-    // The calendar's standing question is "what is still outstanding, soonest
-    // first" — the done flag leads so a finished backlog costs nothing to skip.
-    { key: { done: 1, date: 1 }, name: 'task_outstanding' }
+  [Collections.ArchiveVolumes]: [
+    { key: { title: 1 }, name: 'volume_title' },
+    { key: { kind: 1, title: 1 }, name: 'volume_by_kind' }
   ],
   [Collections.Overlays]: [
     { key: { name: 1 }, unique: true, name: 'overlay_name_unique' },
@@ -112,13 +129,73 @@ export async function applySchema(db: Db): Promise<void> {
     }
   }
 
-  await db
-    .collection(Collections.Migrations)
-    .updateOne(
-      { _id: 'schema' as unknown as import('mongodb').ObjectId },
-      { $set: { version: 1, appliedAt: new Date() } },
-      { upsert: true }
-    )
+  await applyMigrations(db)
 
   logger.info('Schema reconciled')
+}
+
+/**
+ * Current schema version. Bump when stored documents change shape.
+ */
+const SCHEMA_VERSION = 2
+
+/**
+ * Collections dropped by the version 2 migration.
+ *
+ * The ARCHIVE rework changed what a project record *is* — categories replaced
+ * release kinds, volumes and releases became separate objects, distribution and
+ * marketing were removed entirely — and the TRANSMISSIONS department was
+ * retired. Nothing stored under the old shape describes the new model closely
+ * enough to be worth a field-by-field migration, and the operator chose a clean
+ * rescan over carrying translation code forever.
+ *
+ * Note what this costs and what it does not: the register is rebuilt from disk
+ * in seconds, and **no file is touched**. What is genuinely lost is the
+ * operator-authored half — stage history, notes, tags, favourites and filing.
+ * That was accepted knowingly.
+ */
+const DROPPED_AT_V2 = [
+  Collections.Projects,
+  Collections.ArchiveFolders,
+  Collections.Releases,
+  'release_assets',
+  'transmission_tasks',
+  'unlinked_media'
+]
+
+interface MigrationRecord {
+  version?: number
+}
+
+/**
+ * Brings the database up to the current schema version.
+ *
+ * Runs after collections and indexes are reconciled, so a dropped collection is
+ * recreated empty on the next boot rather than leaving a hole — and re-running
+ * is a no-op once the version is recorded.
+ */
+async function applyMigrations(db: Db): Promise<void> {
+  const collection = db.collection<MigrationRecord>(Collections.Migrations)
+  const current = await collection.findOne({ _id: 'schema' as never })
+  const from = current?.version ?? 0
+
+  if (from < 2) {
+    logger.warn(`Migrating archive schema ${from} -> 2: rebuilding the ARCHIVE register`)
+
+    for (const name of DROPPED_AT_V2) {
+      try {
+        await db.collection(name).drop()
+        logger.info(`Dropped ${name}`)
+      } catch {
+        // Already absent. `drop` throws rather than no-oping on a missing
+        // collection, and a missing one is exactly the desired end state.
+      }
+    }
+  }
+
+  await collection.updateOne(
+    { _id: 'schema' as never },
+    { $set: { version: SCHEMA_VERSION, appliedAt: new Date() } },
+    { upsert: true }
+  )
 }

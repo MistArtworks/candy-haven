@@ -45,6 +45,21 @@
   color: var(--ch-text-muted);
 }
 
+// A readout paired with the control that changes it. Used where the change is
+// made elsewhere — behind a dialog — so the row states the value rather than
+// offering a way to drag it.
+.controlRow {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+}
+
+.controlValue {
+  @include readout(12px);
+  color: var(--ch-text-primary);
+  min-width: rem(52px);
+}
+
 .controlHint {
   font-size: rem(11px);
   color: var(--ch-text-faint);

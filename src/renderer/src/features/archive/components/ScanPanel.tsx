@@ -36,11 +36,17 @@ export interface ScanPanelProps {
 /**
  * Indexing control and readout.
  *
- * Roots are managed here rather than only in Regulation: choosing which folders
- * hold your projects is the first thing this department needs, and sending the
- * operator to a different section to do it would make the register unusable on
- * first open. Regulation still owns the same setting — this writes through the
- * same local-first path, so the two cannot disagree.
+ * Locations are managed here rather than only in Regulation: where the work
+ * lives is the first thing this department needs, and sending the operator to a
+ * different section would make the register unusable on first open. Regulation
+ * writes through the same local-first path, so the two cannot disagree.
+ *
+ * Two kinds of location, and the distinction is the whole point of the panel.
+ * The **filing root** is the one directory the ARCHIVE builds in — it holds
+ * `Candy Haven`, every genre and every provisioned project — and it is chosen
+ * once at the setup gate. **Satellite locations** are read-only: other drives
+ * and folders that happen to contain sets, walked so those sets can be found
+ * and then filed into the tree. Nothing is ever created in one.
  */
 export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): ReactNode {
   const settings = useSettings()
@@ -51,33 +57,48 @@ export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): Rea
   // "no roots" made the panel assert there were none configured — and disabled
   // the scan — while the operator's roots were sitting in the settings file.
   const loaded = settings !== null
-  const roots = settings?.workspace.abletonProjectRoots ?? []
+  const satellites = settings?.workspace.satelliteRoots ?? []
   const scanOnLaunch = settings?.workspace.scanOnLaunch ?? true
+  const filingRoot = settings?.workspace.filingRoot ?? null
+  const templatePath = settings?.workspace.projectTemplatePath ?? null
+  const scannable = filingRoot !== null || satellites.length > 0
   const running =
     scan.phase === 'walking' || scan.phase === 'analysing' || scan.phase === 'persisting'
 
-  const addRoot = useCallback(async () => {
+  const addSatellite = useCallback(async () => {
     setChoosing(true)
     try {
-      const selected = await window.candy.shell.selectDirectory('Select a projects directory')
+      const selected = await window.candy.shell.selectDirectory('Select another projects location')
       if (!selected) return
 
-      const current = settings?.workspace.abletonProjectRoots ?? []
+      const current = settings?.workspace.satelliteRoots ?? []
       // Case-insensitive on Windows: the same folder picked twice is one root.
       if (current.some((root) => root.toLowerCase() === selected.toLowerCase())) return
 
-      applySettings({ workspace: { abletonProjectRoots: [...current, selected] } })
+      // The filing root is already walked; adding it again would double every
+      // directory count in the readout for no extra coverage.
+      if (selected.toLowerCase() === (settings?.workspace.filingRoot ?? '').toLowerCase()) return
+
+      applySettings({ workspace: { satelliteRoots: [...current, selected] } })
     } finally {
       setChoosing(false)
     }
   }, [applySettings, settings])
 
-  const removeRoot = (root: string): void => {
-    const current = settings?.workspace.abletonProjectRoots ?? []
+  const removeSatellite = (root: string): void => {
+    const current = settings?.workspace.satelliteRoots ?? []
     applySettings({
-      workspace: { abletonProjectRoots: current.filter((entry) => entry !== root) }
+      workspace: { satelliteRoots: current.filter((entry) => entry !== root) }
     })
   }
+
+  const chooseTemplate = useCallback(async () => {
+    const selected = await window.candy.shell.selectFile({
+      title: 'Select the template Ableton set',
+      filters: [{ name: 'Ableton Live Set', extensions: ['als'] }]
+    })
+    if (selected) applySettings({ workspace: { projectTemplatePath: selected } })
+  }, [applySettings])
 
   return (
     <div className={styles.panel}>
@@ -133,21 +154,77 @@ export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): Rea
 
       <div className={styles.roots}>
         <div className={styles.rootsHead}>
-          <span className={styles.rootsLabel}>Roots</span>
-          <Button size="sm" onClick={addRoot} busy={choosing}>
-            Add
-          </Button>
+          <span className={styles.rootsLabel}>Filing root</span>
         </div>
 
         {!loaded ? (
           <p className={styles.empty}>Reading settings…</p>
-        ) : roots.length === 0 ? (
+        ) : filingRoot === null ? (
           <p className={styles.empty}>
-            No directories configured. Add the folder that holds your Ableton projects.
+            Not chosen yet. The ARCHIVE asks for it when you open the department.
           </p>
         ) : (
           <ul className={styles.rootList}>
-            {roots.map((root) => (
+            <li className={styles.root}>
+              <button
+                type="button"
+                className={styles.rootPath}
+                title={`Open ${filingRoot}`}
+                onClick={() => void window.candy.shell.reveal(filingRoot)}
+              >
+                {truncatePath(filingRoot, 40)}
+              </button>
+            </li>
+          </ul>
+        )}
+
+        {/*
+          The template has no remove affordance on purpose: a project cannot be
+          created without one, so clearing it would only ever break the next
+          thing the operator tried to do. It can be replaced, which is the
+          action they actually want.
+        */}
+        <div className={styles.rootsHead}>
+          <span className={styles.rootsLabel}>Project template</span>
+          <Button size="sm" onClick={chooseTemplate}>
+            {templatePath ? 'Change' : 'Choose'}
+          </Button>
+        </div>
+
+        {templatePath ? (
+          <ul className={styles.rootList}>
+            <li className={styles.root}>
+              <button
+                type="button"
+                className={styles.rootPath}
+                title={`Open ${templatePath}`}
+                onClick={() => void window.candy.shell.reveal(templatePath)}
+              >
+                {truncatePath(templatePath, 40)}
+              </button>
+            </li>
+          </ul>
+        ) : (
+          <p className={styles.empty}>
+            No template set. Every new project is created from a copy of it.
+          </p>
+        )}
+
+        <div className={styles.rootsHead}>
+          <span className={styles.rootsLabel}>Other locations</span>
+          <Button size="sm" onClick={addSatellite} busy={choosing}>
+            Add
+          </Button>
+        </div>
+
+        {satellites.length === 0 ? (
+          <p className={styles.empty}>
+            Add a folder here to index sets that live outside the filing root. They are read only —
+            nothing is written to them — and can be filed into the tree afterwards.
+          </p>
+        ) : (
+          <ul className={styles.rootList}>
+            {satellites.map((root) => (
               <li key={root} className={styles.root}>
                 <button
                   type="button"
@@ -161,7 +238,7 @@ export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): Rea
                   type="button"
                   className={styles.rootRemove}
                   aria-label={`Remove ${root}`}
-                  onClick={() => removeRoot(root)}
+                  onClick={() => removeSatellite(root)}
                 >
                   ×
                 </button>
@@ -191,7 +268,7 @@ export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): Rea
           size="sm"
           onClick={() => onScan(false)}
           busy={busy || running}
-          disabled={!loaded || roots.length === 0}
+          disabled={!loaded || !scannable}
         >
           {scan.phase === 'done' ? 'Rescan' : 'Scan'}
         </Button>
@@ -203,7 +280,7 @@ export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): Rea
           <Button
             size="sm"
             onClick={() => onScan(true)}
-            disabled={!loaded || roots.length === 0}
+            disabled={!loaded || !scannable}
             title="Re-read every set, ignoring stored analyses"
           >
             Full re-read

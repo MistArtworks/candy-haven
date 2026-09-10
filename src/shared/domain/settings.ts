@@ -19,6 +19,20 @@ export type UpdateChannel = z.infer<typeof UpdateChannelSchema>
 export const AppearanceSettingsSchema = z.object({
   motion: MotionPreferenceSchema.default('full'),
   accent: AccentSchema.default('crimson'),
+  /**
+   * How large the whole interface is drawn, 0.8–2.0. Windows' display scaling,
+   * for this one window.
+   *
+   * Applied as Electron's zoom factor rather than as a CSS variable, and the
+   * distinction matters. A first attempt scaled the root font size, which
+   * reaches anything sized in `rem()` — but the two mixins that draw almost all
+   * of this interface, `label()` and `readout()`, take a raw pixel size. Body
+   * copy grew and every institutional label and mono readout did not, which
+   * looked like the setting half working. Converting every call site was the
+   * alternative; scaling the frame gets type, spacing, borders and artwork
+   * together, for one line.
+   */
+  uiScale: z.number().min(0.8).max(2).default(1),
   /** Film grain / scanline intensity, 0..1. */
   grain: z.number().min(0).max(1).default(0.5),
   /** Skip the boot cinematic once the sequence itself has completed. */
@@ -27,8 +41,36 @@ export const AppearanceSettingsSchema = z.object({
 export type AppearanceSettings = z.infer<typeof AppearanceSettingsSchema>
 
 export const WorkspaceSettingsSchema = z.object({
-  /** Directories scanned for Ableton project folders. */
-  abletonProjectRoots: z.array(z.string()).default([]),
+  /**
+   * The one root the ARCHIVE builds in. Required before the department opens.
+   *
+   * Everything the app creates lives in a single `Candy Haven` directory inside
+   * this root: the genre tree, every project it provisions, and the RELEASES
+   * folder. Promoted from an optional hint to the primary setting when the
+   * ARCHIVE stopped discovering structure and started making it — there is no
+   * sensible "first of several" answer when the question is where to write.
+   */
+  filingRoot: z.string().nullable().default(null),
+  /**
+   * The Ableton set copied into every new project.
+   *
+   * Required alongside the root, on the operator's instruction: a project
+   * scaffolded without a set is a set of empty folders, and the point of
+   * provisioning is that the work can start immediately.
+   */
+  projectTemplatePath: z.string().nullable().default(null),
+  /**
+   * Extra locations scanned for Ableton projects, outside the filing root.
+   *
+   * Read-only as far as the app is concerned — nothing is ever created here.
+   * They exist so sets scattered across other drives can be found and then
+   * *filed into* the tree, which is the only way a project leaves this list.
+   *
+   * Renamed from `abletonProjectRoots`, which described the old model where
+   * every root was equal and the tree happened to live in whichever sorted
+   * first.
+   */
+  satelliteRoots: z.array(z.string()).default([]),
   /**
    * Re-index the roots in the background once the console opens.
    *
@@ -37,21 +79,6 @@ export const WorkspaceSettingsSchema = z.object({
    * than decompressed again.
    */
   scanOnLaunch: z.boolean().default(true),
-  /** Destination vault for mastered release deliverables. */
-  releaseVaultPath: z.string().nullable().default(null),
-  /**
-   * Days a distributor needs the finished package before a release goes live.
-   *
-   * Drives the SUBMIT BY date TRANSMISSIONS derives for every release. One
-   * setting rather than a field per project because an operator uses one
-   * distributor, and the alternative is the same number typed into every
-   * release and wrong on the ones they forget.
-   *
-   * Sited in `workspace` alongside the release vault for the reason recorded
-   * below for `testMode`: a section holding one field is worse than a comment
-   * saying where it lives.
-   */
-  submissionLeadDays: z.number().int().min(0).max(180).default(14),
   /** Directory watched for stream overlay assets. */
   overlayAssetPath: z.string().nullable().default(null),
   /**

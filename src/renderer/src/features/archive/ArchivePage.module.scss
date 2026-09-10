@@ -32,6 +32,59 @@
   grid-column: span 3;
 }
 
+.span2 {
+  grid-column: span 2;
+}
+
+/*
+ * The browser takes the whole row; UNFILED and INDEXING split the one below.
+ *
+ * It was previously four columns wide and two rows tall, with the other two
+ * panels stacked beside it — laid out that way so a drag source and a drop
+ * destination were always on screen together. Full width won out: the tile grid
+ * is the thing the operator actually works in and it was being squeezed into
+ * two thirds of the page, while UNFILED had a single narrow column for a list
+ * that routinely runs to dozens of projects.
+ *
+ * The trade-off is that on a short window the two rows may not both be visible,
+ * so a drag from UNFILED onto a tile can need a scroll first. The breadcrumb is
+ * also a drop target, which covers the common case of filing into the folder
+ * already open.
+ */
+.browserCell {
+  grid-column: span 6;
+  min-width: 0;
+}
+
+// ------------------------------------------------------------------ stacks
+
+// The folder browser manages its own padding, as the register does, so the
+// breadcrumb can sit flush against the panel's header rule.
+.browser {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  padding: space(4) space(5) space(5);
+}
+
+.stackEmpty {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: rem(620px);
+}
+
+.stackEmptyTitle {
+  @include label(11px, 0.14em);
+  color: var(--ch-text-secondary);
+}
+
+.stackEmptyHint {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
 .span6 {
   grid-column: span 6;
 }
@@ -41,9 +94,21 @@
     padding: space(8) space(6) space(10);
   }
 
+  .span2,
   .span3 {
     grid-column: span 6;
   }
+
+  .browserCell {
+    grid-column: span 6;
+  }
+}
+
+// Sits between the tiles and whatever follows them. Left-aligned rather than
+// centred under the grid: it acts on the folder being browsed, not on the tiles.
+.shelfActions {
+  display: flex;
+  gap: space(2);
 }
 
 .panelAside {
@@ -155,4 +220,55 @@
   @include readout(9px);
   color: var(--ch-text-faint);
   flex-shrink: 0;
+}
+
+// ------------------------------------------------------------- volume header
+
+// The bar above a volume's track list. Mirrors the folder breadcrumb's job —
+// say where you are and offer the way back — without pretending a volume is a
+// place on disk, which it is not.
+.volumeHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex-wrap: wrap;
+  @include hairline(bottom, 0.08);
+  padding-bottom: space(3);
+}
+
+.back {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.volumeTitle {
+  @include label(12px, 0.16em);
+  color: var(--ch-text-primary);
+}
+
+.volumeMeta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// The open shelf, lit while a project is dragged over it.
+//
+// An inset outline rather than a border: the panel already has one, and a
+// second would shift every child by a pixel the moment a drag started.
+.browser[data-drop] {
+  box-shadow: inset 0 0 0 1px var(--ch-gold-400);
+  background: var(--ch-surface-raised);
 }

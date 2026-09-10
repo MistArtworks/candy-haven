@@ -1,0 +1,111 @@
+@use 'abstracts' as *;
+
+// UNFILED — the staging list beside the shelves.
+//
+// Denser than the register: this is a source to drag *from*, not a table to
+// read figures out of, so each row carries a name and three short facts and
+// nothing else.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.empty {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+.hint {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  @include hairline(all, 0.08);
+  max-height: rem(520px);
+  overflow-y: auto;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: space(1) space(2);
+  padding: space(2) space(3);
+  cursor: grab;
+  transition: background $duration-fast linear;
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+
+  &:hover {
+    background: var(--ch-surface-raised);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // A project whose folder has gone cannot be dragged anywhere useful; it is
+  // shown so the operator can clear it, not so they can file it.
+  &[data-missing] {
+    opacity: 0.5;
+  }
+}
+
+.grip {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  grid-row: span 2;
+  align-self: center;
+  line-height: 1;
+}
+
+.name {
+  @include label(9px, 0.08em);
+  color: var(--ch-text-primary);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  @include truncate;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.pin {
+  color: var(--ch-gold-300);
+  margin-inline-end: space(1);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  min-width: 0;
+}
+
+.category {
+  @include label(7px, 0.14em);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.figure {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+}

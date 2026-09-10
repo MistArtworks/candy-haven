@@ -3,7 +3,9 @@ import { ArchiveService } from './archive/archive.service'
 import { UpdateService } from './update/update.service'
 import { TelemetryService } from './telemetry/telemetry.service'
 import { ProjectsService } from './projects/projects.service'
-import { TransmissionsService } from './transmissions/transmissions.service'
+import { StacksService } from './stacks/stacks.service'
+import { VolumesService } from './volumes/volumes.service'
+import { ReleasesService } from './releases/releases.service'
 import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
 import { TimerService } from './overlay/timer.service'
@@ -28,11 +30,22 @@ export interface ServiceContainer {
   readonly telemetry: TelemetryService
   readonly projects: ProjectsService
   /**
-   * Scheduling. Derives its calendar from the project registry rather than
-   * holding release dates of its own, so it takes the projects service rather
-   * than reaching for the collection itself.
+   * THE STACKS — the filing tree projects are sorted into. Reads the register
+   * through the projects service and writes back through it, so the ownership
+   * split survives: folders are this service's, records remain projects'.
    */
-  readonly transmissions: TransmissionsService
+  readonly stacks: StacksService
+  /**
+   * VOLUMES — albums, EPs and compilations. Metadata only; it writes nothing to
+   * disk. Reads and writes membership through the projects service, so the
+   * ownership split survives.
+   */
+  readonly volumes: VolumesService
+  /**
+   * RELEASES. Owns a directory under the stacks wrapper, so it takes the stacks
+   * service to resolve where that is rather than reading settings itself.
+   */
+  readonly releases: ReleasesService
   /** Shared by every overlay: one HTTP server, many pages. */
   readonly overlayServer: OverlayServer
   /**
@@ -62,10 +75,22 @@ export function createServiceContainer(): ServiceContainer {
   const settings = new SettingsService()
   const chat = new TwitchChatService(settings)
 
-  // TRANSMISSIONS reads the register through the projects service rather than
-  // opening a second repository on the same collection, so projects is bound
-  // here rather than constructed inline below.
+  // Every other ARCHIVE service reads the register through the projects service
+  // rather than opening a second repository on the same collection, so projects
+  // is bound here rather than constructed inline below.
   const projects = new ProjectsService(archive)
+
+  // The stacks read the register through the projects service, so the reverse
+  // dependency — recomputing which folder each project sits in after a scan —
+  // is handed back as a callback rather than made mutual. See `FilingResolver`.
+  const stacks = new StacksService(archive, projects, settings)
+  projects.setFilingResolver((records) => stacks.reconcileFiling(records))
+
+  // Releases resolve their subject through both of the services above and their
+  // directory through the stacks, which is why this is the one ARCHIVE service
+  // constructed with three collaborators rather than one.
+  const volumes = new VolumesService(archive, projects)
+  const releases = new ReleasesService(archive, projects, volumes, stacks)
 
   return {
     settings,
@@ -73,7 +98,9 @@ export function createServiceContainer(): ServiceContainer {
     updates: new UpdateService(),
     telemetry: new TelemetryService(),
     projects,
-    transmissions: new TransmissionsService(archive, projects, settings),
+    stacks,
+    volumes,
+    releases,
     overlayServer,
     chat,
     rite: new RiteService(archive, overlayServer),

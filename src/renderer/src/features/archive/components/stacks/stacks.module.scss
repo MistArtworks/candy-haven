@@ -1,0 +1,592 @@
+@use 'abstracts' as *;
+
+// THE STACKS — the folder browser inside ARCHIVE.
+//
+// Every colour here resolves through `--folder-colour`, set inline from the
+// record's stored swatch, or through an existing `--ch-*` token. No literal hex
+// appears in this file. The swatch itself is now whatever the operator chose,
+// including colours outside the world palette — see `isHexColour` in
+// stacks.constants.ts for why that licence was granted and how far it goes.
+
+.browser {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  padding: space(4) space(5) space(5);
+}
+
+// ------------------------------------------------------------------- trail
+
+.trail {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-wrap: wrap;
+  @include hairline(bottom, 0.08);
+  padding-bottom: space(3);
+}
+
+.crumb {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: 0;
+  padding: space(1) space(2);
+  cursor: pointer;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-current] {
+    color: var(--ch-gold-300);
+    cursor: default;
+  }
+
+  // Lit while a project is dragged over it: dropping here unfiles.
+  &[data-drop] {
+    color: var(--ch-accent-bright);
+    background: var(--ch-accent-dim);
+  }
+}
+
+.crumbSeparator {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.trailSpacer {
+  flex: 1;
+}
+
+.trailCount {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+// -------------------------------------------------------------------- grid
+
+// Extra-large by instruction and by function: a folder tile is the primary
+// object of this view, and at ledger scale the mark would read as a bullet.
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(rem(180px), 1fr));
+  gap: space(3);
+}
+
+.tile {
+  --folder-colour: var(--ch-concrete-500);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(2);
+  padding: space(4) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear,
+    transform $duration-base $ease-out-expo;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+
+    @include motion-safe {
+      transform: translateY(-2px);
+    }
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  // The tile a dragged project would land in.
+  &[data-drop] {
+    border-color: var(--folder-colour);
+    background: var(--ch-surface-overlay);
+    box-shadow: inset 0 0 0 1px var(--folder-colour);
+  }
+
+  &[data-dragging] {
+    opacity: 0.4;
+  }
+
+  // Picked, not opened. Deliberately quieter than the drop state: this marks
+  // what a menu or a keystroke will act on, rather than announcing a target.
+  &[data-selected] {
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+  }
+}
+
+// The favourite mark rides in the corner rather than in the name line: the
+// name is already truncated at tile width, and a diamond in front of it would
+// eat the two characters that usually distinguish one shelf from another.
+.tilePin {
+  position: absolute;
+  inset-block-start: space(1);
+  inset-inline-end: space(1);
+  font-size: rem(9px);
+  line-height: 1;
+  padding: space(1);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  // Barely there until hovered or set. A permanent bright mark on every tile
+  // would compete with the folder colour, which is the thing the grid is
+  // actually coded by.
+  color: var(--ch-text-faint);
+  opacity: 0;
+  transition:
+    color $duration-fast linear,
+    opacity $duration-fast linear;
+
+  .tile:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-300);
+    opacity: 1;
+  }
+}
+
+.tileIcon {
+  width: rem(72px);
+  height: rem(54px);
+  color: var(--folder-colour);
+  flex-shrink: 0;
+}
+
+.tileName {
+  @include label(10px, 0.1em);
+  color: var(--ch-text-primary);
+  max-width: 100%;
+  @include truncate;
+}
+
+.tileCount {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// The add tile is the same object with nothing in it, so it keeps the same
+// footprint rather than becoming a button that shifts the grid when it appears.
+.addTile {
+  --folder-colour: var(--ch-concrete-600);
+
+  border-style: dashed;
+  background: none;
+
+  &:hover {
+    --folder-colour: var(--ch-gold-400);
+  }
+}
+
+// ------------------------------------------------------------------ empty
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: rem(560px);
+}
+
+.emptyTitle {
+  @include label(11px, 0.14em);
+  color: var(--ch-text-secondary);
+}
+
+.emptyHint {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+// ------------------------------------------------------------------- menu
+
+.menu {
+  position: fixed;
+  z-index: z('modal');
+  min-width: rem(184px);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.18);
+  box-shadow: var(--ch-shadow-panel);
+  padding: space(1) 0;
+}
+
+.menuLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+  padding: space(2) space(3) space(1);
+  display: block;
+  @include truncate;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: space(2) space(3);
+  @include label(9px, 0.12em);
+  color: var(--ch-text-secondary);
+  cursor: pointer;
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--ch-surface-sunken);
+    color: var(--ch-text-primary);
+    outline: none;
+  }
+
+  &[data-danger] {
+    color: var(--ch-crimson-400);
+  }
+
+  &:disabled {
+    color: var(--ch-text-faint);
+    cursor: default;
+    background: none;
+  }
+}
+
+.menuDivider {
+  height: $hairline;
+  background: var(--ch-line);
+  margin: space(1) 0;
+}
+
+// A nested list of folders for "File to…". Scrolls rather than growing past the
+// window once a library has a dozen genres.
+.menuScroll {
+  max-height: rem(260px);
+  overflow-y: auto;
+}
+
+.menuSwatch {
+  width: rem(8px);
+  height: rem(8px);
+  background: var(--folder-colour);
+  flex-shrink: 0;
+}
+
+.menuIndent {
+  padding-left: space(3);
+}
+
+// ----------------------------------------------------------------- dialog
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: z('modal');
+  background: var(--ch-surface-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: space(6);
+}
+
+.dialog {
+  width: min(rem(460px), 100%);
+  background: var(--ch-surface);
+  @include hairline(all, 0.18);
+  box-shadow: var(--ch-shadow-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+.dialogHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  padding: space(4) space(5);
+  @include hairline(bottom, 0.1);
+}
+
+.dialogTitle {
+  @include label(11px, 0.18em);
+  color: var(--ch-text-primary);
+}
+
+.dialogWhere {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  padding: space(5);
+}
+
+.dialogError {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  border-left: 2px solid var(--ch-crimson-500);
+  padding-left: space(2);
+}
+
+.confirmMessage {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  line-height: 1.6;
+}
+
+.confirmDetail {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: space(2);
+  padding: space(4) space(5);
+  @include hairline(top, 0.1);
+}
+
+// ---------------------------------------------------------------- swatches
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.pickerLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.swatchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(rem(30px), 1fr));
+  gap: space(2);
+}
+
+.swatch {
+  --swatch: var(--ch-concrete-500);
+
+  height: rem(26px);
+  background: var(--swatch);
+  border: $hairline solid transparent;
+  cursor: pointer;
+  transition: transform $duration-fast $ease-out-expo;
+
+  &:hover {
+    @include motion-safe {
+      transform: translateY(-1px);
+    }
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  &[data-selected] {
+    box-shadow:
+      0 0 0 1px var(--ch-obsidian-800),
+      0 0 0 2px var(--ch-gold-300);
+  }
+}
+
+// The sixteenth swatch: a native colour well wearing the same square tile as
+// the fifteen presets, so "any colour" reads as one more option rather than as
+// an escape hatch. The input itself is scaled out of sight rather than hidden —
+// `display: none` stops some browsers opening the picker at all.
+.swatchWell {
+  --swatch: var(--ch-concrete-500);
+
+  position: relative;
+  height: rem(26px);
+  background: var(--swatch);
+  cursor: pointer;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  @include hairline(all, 0.35);
+  transition: transform $duration-fast $ease-out-expo;
+
+  &::after {
+    // A quiet cross-hatch corner, marking this tile as the open-ended one.
+    content: '';
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline-end: 0;
+    width: rem(9px);
+    height: rem(9px);
+    background: linear-gradient(135deg, transparent 50%, var(--ch-alabaster-200) 50%);
+    opacity: 0.7;
+  }
+
+  &:hover {
+    @include motion-safe {
+      transform: translateY(-1px);
+    }
+  }
+
+  &:focus-within {
+    @include focus-ring(1px);
+  }
+
+  input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+  }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.hexRow {
+  display: flex;
+  align-items: flex-end;
+  gap: space(3);
+}
+
+.hexField {
+  flex: 1;
+}
+
+// Shows the typed colour beside the field before it is committed. It is now
+// simply that colour — the clamp this used to preview was removed.
+.hexPreview {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  padding-bottom: space(2);
+}
+
+.hexChip {
+  width: rem(26px);
+  height: rem(26px);
+  background: var(--folder-colour);
+  @include hairline(all, 0.18);
+  flex-shrink: 0;
+}
+
+// ------------------------------------------------------------ dialog fields
+
+// A labelled block inside a dialog body. The primitives cover text inputs; a
+// chip row and a select need their own wrapper to sit at the same rhythm.
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.chip {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.12);
+  padding: space(2) space(3);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  &[data-selected] {
+    color: var(--ch-obsidian-900);
+    background: var(--ch-gold-300);
+    border-color: var(--ch-gold-300);
+  }
+}
+
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+// Shown where a select would be if there were anything to select. Keeps the
+// create affordance in the same place either way, so the row does not jump as
+// the first volume of a kind is made.
+.inlineEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+  padding: space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+}
+
+.select {
+  flex: 1;
+  min-width: 0;
+  @include readout(10px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.12);
+  padding: space(2) space(3);
+  cursor: pointer;
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// Cover art standing in for the mark, at exactly the mark's footprint so a
+// grid of mixed tiles — some with artwork, some without — stays on one baseline.
+.tileArt {
+  width: rem(72px);
+  height: rem(54px);
+  object-fit: cover;
+  flex-shrink: 0;
+  @include hairline(all, 0.14);
+}

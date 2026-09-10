@@ -75,6 +75,27 @@
   line-height: 1.6;
 }
 
+// Which root holds the filing tree. Only rendered with several configured.
+.filingRoot {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  margin-top: space(2);
+}
+
+.filingSelect {
+  @include readout(10px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+  padding: space(1) space(2);
+  width: 100%;
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
 .rootList {
   display: flex;
   flex-direction: column;

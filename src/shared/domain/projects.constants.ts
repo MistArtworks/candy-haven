@@ -1,8 +1,4 @@
 import type {
-  DistributionDetails,
-  MarketingAsset,
-  MarketingAssetKindDefinition,
-  MarketingPlan,
   ProjectRecord,
   ProjectStageDefinition,
   ReadinessRequirement,
@@ -11,7 +7,7 @@ import type {
 
 /**
  * Zod-free half of the projects domain — see boot.constants.ts for why the
- * split exists. The renderer needs the stage table, the platform table and the
+ * split exists. The renderer needs the stage table, the category table and the
  * readiness rules as *values*; it never needs the validators, which run once at
  * the IPC boundary in the main process.
  */
@@ -74,25 +70,23 @@ export const PROJECT_STAGES: readonly ProjectStageDefinition[] = [
   {
     id: 'ready',
     label: 'READY FOR RELEASE',
-    purpose: 'Final master, artwork and canvas selected; metadata complete.',
+    purpose: 'Final mix and master chosen, and filed where it belongs.',
     order: 5,
-    requiresPackage: true
+    requiresMaster: true
   },
   {
     id: 'scheduled',
     label: 'SCHEDULED',
-    purpose: 'Release date set and promotional plan in motion.',
+    purpose: 'Attached to a release with a date set.',
     order: 6,
-    requiresPackage: true,
-    requiresPlan: true
+    requiresMaster: true
   },
   {
     id: 'released',
     label: 'RELEASED',
-    purpose: 'Live on the platforms. Links recorded.',
+    purpose: 'Out in the world.',
     order: 7,
-    requiresPackage: true,
-    requiresPlan: true,
+    requiresMaster: true,
     terminal: true
   },
   {
@@ -140,19 +134,137 @@ export function previousStage(id: ProjectStage): ProjectStage | null {
   return PIPELINE_STAGES[stage.order - 1]?.id ?? null
 }
 
+// --------------------------------------------------------------- categories
+
+/**
+ * What a project *is*.
+ *
+ * Three of these — `album`, `ep`, `compilation` — describe something larger
+ * than one set, so choosing them is only half a statement: the project must
+ * also be attached to a VOLUME of the same kind, which is the object that says
+ * *which* album it belongs to. See volumes.constants.ts. The remaining four
+ * stand alone and need nothing further.
+ */
+export const PROJECT_CATEGORIES = [
+  'single',
+  'ep',
+  'album',
+  'compilation',
+  'bootleg',
+  'experimental',
+  'beat-battle'
+] as const
+
+export type ProjectCategory = (typeof PROJECT_CATEGORIES)[number]
+
+export const PROJECT_CATEGORY_LABEL: Record<ProjectCategory, string> = {
+  single: 'SINGLE',
+  ep: 'EP',
+  album: 'ALBUM',
+  compilation: 'COMPILATION',
+  bootleg: 'BOOTLEG',
+  experimental: 'EXPERIMENTAL',
+  'beat-battle': 'BEAT BATTLE'
+}
+
+export const PROJECT_CATEGORY_PURPOSE: Record<ProjectCategory, string> = {
+  single: 'Stands alone. The default for anything not part of a larger work.',
+  ep: 'One track of an EP. Must be attached to an EP volume.',
+  album: 'One track of an album. Must be attached to an album volume.',
+  compilation: 'One track of a compilation. Must be attached to a compilation volume.',
+  bootleg: 'An unofficial edit or flip. Stands alone.',
+  experimental: 'A test, a study, a technique. Not aimed at release.',
+  'beat-battle': 'Made to a brief, against a clock.'
+}
+
+/**
+ * Categories that require a volume, and therefore cannot be set on their own.
+ *
+ * Declared here rather than in volumes.constants.ts because the *project* is
+ * what carries the category, and the rule reads as a fact about categories.
+ * The volume kinds themselves are the same three values, exported there.
+ */
+export const VOLUME_BOUND_CATEGORIES: readonly ProjectCategory[] = ['album', 'ep', 'compilation']
+
+export function requiresVolume(category: ProjectCategory): boolean {
+  return VOLUME_BOUND_CATEGORIES.includes(category)
+}
+
+// ----------------------------------------------------------------- scaffold
+
+/**
+ * The folders created inside every new project.
+ *
+ * These sit *beside* Ableton's own `Samples/` and `Backup/` rather than around
+ * them: the project folder we create is the Ableton project folder, so the
+ * template set lands at its root and Live resolves everything from there
+ * without being told anything.
+ *
+ * `MIX & MASTER` is one folder rather than two because a mixdown and the master
+ * cut from it are the same conversation, and an ampersand is legal on Windows
+ * where the obvious `MIX/MASTER` is not.
+ */
+export const PROJECT_SCAFFOLD_FOLDERS = [
+  'WIPS',
+  'MIX & MASTER',
+  'STEMS',
+  'GRAPHICS',
+  'MARKETING',
+  'REFERENCES'
+] as const
+
+export type ScaffoldFolder = (typeof PROJECT_SCAFFOLD_FOLDERS)[number]
+
+export const SCAFFOLD_FOLDER_PURPOSE: Record<ScaffoldFolder, string> = {
+  WIPS: 'Rough bounces as the arrangement moves.',
+  'MIX & MASTER': 'Mixdowns and the masters cut from them.',
+  STEMS: 'Exported stems, for collaborators and for live.',
+  GRAPHICS: 'Cover art, canvases, source files.',
+  MARKETING: 'Clips, copy, anything promotional.',
+  REFERENCES: 'Tracks being A/B-ed against.'
+}
+
+// ------------------------------------------------------------------ masters
+
+/**
+ * The two audio picks a project carries.
+ *
+ * Deliberately on the project rather than on a release: these are production
+ * artefacts and exist long before anything is scheduled. A release *reads* the
+ * final pick when one is attached; it does not own it.
+ */
+export const MASTER_PICKS = ['prefinal', 'final'] as const
+export type MasterPick = (typeof MASTER_PICKS)[number]
+
+export const MASTER_PICK_LABEL: Record<MasterPick, string> = {
+  prefinal: 'PRE-FINAL MIX & MASTER',
+  final: 'FINAL MIX & MASTER'
+}
+
+export const MASTER_PICK_HINT: Record<MasterPick, string> = {
+  prefinal: 'The candidate currently being lived with. Expected to be replaced.',
+  final: 'The exact file that ships. Chosen from the bounces found in this project.'
+}
+
 // ------------------------------------------------------------------- views
 
 /**
+ * How whatever is in scope gets drawn.
+ *
+ * `grid` is the icons view, and in the STACKS lens it is the one that matters:
+ * there it draws folders and projects into a *single* tile grid, the way a file
+ * browser does, rather than tiles above a table. Projects are objects you open,
+ * not rows you scan, and the operator asked for them to look like it.
+ *
  * `board` is the pipeline kanban. There is deliberately no calendar view here —
- * scheduling lives in its own department so one project's dates can be seen
- * alongside every other project's.
+ * a project's dates belong to its release, not to the register.
  */
 export const PROJECT_VIEW_MODES = ['list', 'grid', 'board'] as const
 export type ProjectViewMode = (typeof PROJECT_VIEW_MODES)[number]
 
 export const PROJECT_VIEW_LABEL: Record<ProjectViewMode, string> = {
   list: 'LIST',
-  grid: 'GRID',
+  grid: 'ICONS',
   board: 'BOARD'
 }
 
@@ -223,270 +335,6 @@ export function classifyExtension(fileName: string): MediaKind {
   return 'other'
 }
 
-// ------------------------------------------------------------- distribution
-
-export const DISTRIBUTION_PLATFORM_IDS = [
-  'spotify',
-  'apple-music',
-  'youtube-music',
-  'youtube',
-  'soundcloud',
-  'bandcamp',
-  'tidal',
-  'deezer',
-  'amazon-music',
-  'beatport',
-  'audiomack',
-  'pandora',
-  'shazam',
-  'instagram',
-  'tiktok',
-  'other'
-] as const
-
-export type DistributionPlatform = (typeof DISTRIBUTION_PLATFORM_IDS)[number]
-
-export const DISTRIBUTION_PLATFORM_LABEL: Record<DistributionPlatform, string> = {
-  spotify: 'SPOTIFY',
-  'apple-music': 'APPLE MUSIC',
-  'youtube-music': 'YOUTUBE MUSIC',
-  youtube: 'YOUTUBE',
-  soundcloud: 'SOUNDCLOUD',
-  bandcamp: 'BANDCAMP',
-  tidal: 'TIDAL',
-  deezer: 'DEEZER',
-  'amazon-music': 'AMAZON MUSIC',
-  beatport: 'BEATPORT',
-  audiomack: 'AUDIOMACK',
-  pandora: 'PANDORA',
-  shazam: 'SHAZAM',
-  instagram: 'INSTAGRAM',
-  tiktok: 'TIKTOK',
-  other: 'OTHER'
-}
-
-/** The subset offered first — everything else is behind "more platforms". */
-export const PRIMARY_PLATFORMS: readonly DistributionPlatform[] = [
-  'spotify',
-  'apple-music',
-  'youtube-music',
-  'soundcloud',
-  'bandcamp',
-  'tidal'
-]
-
-export const RELEASE_KINDS = ['single', 'ep', 'album', 'remix', 'collaboration'] as const
-export type ReleaseKind = (typeof RELEASE_KINDS)[number]
-
-export const RELEASE_KIND_LABEL: Record<ReleaseKind, string> = {
-  single: 'SINGLE',
-  ep: 'EP',
-  album: 'ALBUM',
-  remix: 'REMIX',
-  collaboration: 'COLLABORATION'
-}
-
-/** Deliverables the operator selects from the project's own discovered files. */
-export const DELIVERABLE_KINDS = ['master', 'cover', 'canvas'] as const
-export type DeliverableKind = (typeof DELIVERABLE_KINDS)[number]
-
-export const DELIVERABLE_LABEL: Record<DeliverableKind, string> = {
-  master: 'FINAL MASTER',
-  cover: 'COVER ART',
-  canvas: 'CANVAS'
-}
-
-export const DELIVERABLE_HINT: Record<DeliverableKind, string> = {
-  master: 'The exact audio file that ships. Pick from the bounces found in this project.',
-  cover: 'Square artwork, 3000×3000 or larger.',
-  canvas: 'Looping vertical video, 9:16, 3–8 seconds.'
-}
-
-// -------------------------------------------------------------- marketing
-
-export const MARKETING_ASSET_KIND_IDS = [
-  'release-date-reveal',
-  'artwork-reveal',
-  'promo-video',
-  'social-post',
-  'pre-release',
-  'release-day-video'
-] as const
-
-export type MarketingAssetKind = (typeof MARKETING_ASSET_KIND_IDS)[number]
-
-/**
- * The promotional deliverables a release needs before it ships.
- *
- * `offsetDays` is negative for "before the release date" and drives the default
- * schedule. Nothing here is enforced as a date — the operator sets real dates —
- * but seeding sensible offsets means a fresh plan is already in a workable
- * order instead of nine undated rows.
- */
-export const MARKETING_ASSET_KINDS: readonly MarketingAssetKindDefinition[] = [
-  {
-    id: 'release-date-reveal',
-    label: 'RELEASE DATE REVEAL',
-    purpose: 'Announces the date. The first public signal.',
-    required: 1,
-    offsetDays: -21,
-    stepDays: 0,
-    repeatable: false
-  },
-  {
-    id: 'artwork-reveal',
-    label: 'ARTWORK REVEAL',
-    purpose: 'Cover art unveiled on its own, ahead of the audio.',
-    required: 1,
-    offsetDays: -14,
-    stepDays: 0,
-    repeatable: false
-  },
-  {
-    id: 'promo-video',
-    label: 'PROMOTION VIDEO',
-    purpose: 'Short-form video built around a section of the track.',
-    required: 3,
-    offsetDays: -10,
-    // Spaced so the three required videos do not land on the same day.
-    stepDays: 3,
-    repeatable: true
-  },
-  {
-    id: 'social-post',
-    label: 'SOCIAL CONTENT',
-    purpose: 'Stills, quotes, process shots — the connective promotional tissue.',
-    required: 1,
-    offsetDays: -5,
-    stepDays: 2,
-    repeatable: true
-  },
-  {
-    id: 'pre-release',
-    label: 'PRE-RELEASE',
-    purpose: 'Out tomorrow. Posted the day before release.',
-    required: 1,
-    offsetDays: -1,
-    stepDays: 0,
-    repeatable: false
-  },
-  {
-    id: 'release-day-video',
-    label: 'RELEASE DAY VIDEO',
-    purpose: 'It is out. Posted on release day itself.',
-    required: 1,
-    offsetDays: 0,
-    stepDays: 0,
-    repeatable: false
-  }
-] as const
-
-export function getMarketingKind(id: MarketingAssetKind): MarketingAssetKindDefinition {
-  const kind = MARKETING_ASSET_KINDS.find((entry) => entry.id === id)
-  if (!kind) throw new Error(`Unknown marketing asset kind: ${id}`)
-  return kind
-}
-
-export const MARKETING_ASSET_STATUSES = [
-  'planned',
-  'in-progress',
-  'ready',
-  'scheduled',
-  'published'
-] as const
-
-export type MarketingAssetStatus = (typeof MARKETING_ASSET_STATUSES)[number]
-
-export const MARKETING_STATUS_LABEL: Record<MarketingAssetStatus, string> = {
-  planned: 'PLANNED',
-  'in-progress': 'IN PROGRESS',
-  ready: 'READY',
-  scheduled: 'SCHEDULED',
-  published: 'PUBLISHED'
-}
-
-/** A deliverable counts as done once it is ready to go out or already has. */
-export function isMarketingAssetSettled(status: MarketingAssetStatus): boolean {
-  return status === 'ready' || status === 'scheduled' || status === 'published'
-}
-
-/**
- * Builds the required deliverable set. Called when a project first reaches
- * READY FOR RELEASE, so the plan appears already populated with what is owed
- * rather than as an empty list the operator has to remember to fill.
- */
-export function createDefaultMarketingPlan(releaseDate: string | null = null): MarketingPlan {
-  const assets: MarketingAsset[] = []
-
-  for (const kind of MARKETING_ASSET_KINDS) {
-    for (let index = 0; index < kind.required; index += 1) {
-      const offset = kind.offsetDays + index * kind.stepDays
-      assets.push({
-        id: `${kind.id}-${index + 1}`,
-        kind: kind.id,
-        title: kind.required > 1 ? `${kind.label} ${index + 1}` : kind.label,
-        status: 'planned',
-        scheduledFor: releaseDate ? shiftIsoDate(releaseDate, offset) : null,
-        assetPath: null,
-        platforms: [],
-        notes: ''
-      })
-    }
-  }
-
-  return { assets, notes: '', startedAt: Date.now() }
-}
-
-/**
- * Re-dates every unpublished deliverable against a new release date, keeping
- * each one's original distance from release. Used when the operator moves a
- * release: the plan should follow the date, not be rebuilt by hand.
- */
-export function rescheduleMarketingPlan(
-  plan: MarketingPlan,
-  releaseDate: string,
-  previousReleaseDate: string | null
-): MarketingPlan {
-  return {
-    ...plan,
-    assets: plan.assets.map((asset) => {
-      if (asset.status === 'published') return asset
-
-      // Preserve a hand-set distance from release where one can be derived;
-      // otherwise fall back to the kind's default offset.
-      const offset =
-        asset.scheduledFor && previousReleaseDate
-          ? daysBetweenIsoDates(previousReleaseDate, asset.scheduledFor)
-          : defaultOffsetFor(plan, asset)
-
-      return { ...asset, scheduledFor: shiftIsoDate(releaseDate, offset) }
-    })
-  }
-}
-
-function defaultOffsetFor(plan: MarketingPlan, asset: MarketingAsset): number {
-  const kind = getMarketingKind(asset.kind)
-  const index = plan.assets.filter((entry) => entry.kind === asset.kind).indexOf(asset)
-  return kind.offsetDays + Math.max(index, 0) * kind.stepDays
-}
-
-/** Deliverables still owed, per kind, for the plan-completion readout. */
-export function marketingShortfall(
-  plan: MarketingPlan
-): { kind: MarketingAssetKind; owed: number }[] {
-  return MARKETING_ASSET_KINDS.map((kind) => {
-    const settled = plan.assets.filter(
-      (asset) => asset.kind === kind.id && isMarketingAssetSettled(asset.status)
-    ).length
-    return { kind: kind.id, owed: Math.max(kind.required - settled, 0) }
-  }).filter((entry) => entry.owed > 0)
-}
-
-export function isMarketingPlanComplete(plan: MarketingPlan | null): boolean {
-  if (!plan) return false
-  return marketingShortfall(plan).length === 0
-}
-
 // -------------------------------------------------------------- readiness
 
 /**
@@ -494,53 +342,34 @@ export function isMarketingPlanComplete(plan: MarketingPlan | null): boolean {
  *
  * Returned as data rather than a boolean so the UI can show *which* item is
  * missing. An honest checklist is more useful than a disabled button.
+ *
+ * Much shorter than it used to be, and deliberately so: this list once checked
+ * ISRCs, copyright lines and target platforms, all of which now belong to a
+ * release rather than to the project that feeds it. What remains is the set of
+ * things that are true of the *work* — it has a final master, and if it claims
+ * to be part of something larger, that something exists.
  */
 export function evaluateReadiness(project: ProjectRecord): ReadinessRequirement[] {
-  const { distribution, deliverables } = project
-
   return [
     {
       id: 'master',
-      label: 'Final master selected',
-      met: deliverables.master !== null,
+      label: 'Final mix and master selected',
+      met: project.masters.final !== null,
       hint: 'Choose the exact audio file that ships from the bounces in this project.'
     },
     {
-      id: 'cover',
-      label: 'Cover art selected',
-      met: deliverables.cover !== null,
-      hint: 'Square artwork, 3000×3000 or larger.'
+      id: 'filed',
+      label: 'Filed on a shelf',
+      met: project.folderId !== null,
+      hint: 'Drag it onto a shelf, or right-click and choose where it belongs.'
     },
     {
-      id: 'canvas',
-      label: 'Canvas selected',
-      met: deliverables.canvas !== null,
-      hint: 'Looping 9:16 video, 3–8 seconds.'
-    },
-    {
-      id: 'title',
-      label: 'Release title and primary artist',
-      met: distribution.title.trim().length > 0 && distribution.primaryArtist.trim().length > 0
-    },
-    {
-      id: 'genre',
-      label: 'Genre recorded',
-      met: distribution.genre.trim().length > 0
-    },
-    {
-      id: 'credits',
-      label: 'Copyright and credit lines',
-      met: distribution.copyright.trim().length > 0
-    },
-    {
-      id: 'platforms',
-      label: 'At least one target platform',
-      met: distribution.targetPlatforms.length > 0
-    },
-    {
-      id: 'date',
-      label: 'Release date set',
-      met: distribution.releaseDate !== null
+      id: 'volume',
+      label: requiresVolume(project.category)
+        ? `Attached to ${project.category === 'ep' ? 'an' : 'a'} ${project.category}`
+        : 'Category set',
+      met: !requiresVolume(project.category) || project.volumeId !== null,
+      hint: 'A track of a larger work has to say which one.'
     }
   ]
 }
@@ -577,38 +406,7 @@ export function daysBetweenIsoDates(from: string, to: string): number {
   return Math.round((b - a) / 86_400_000)
 }
 
-/** `-3` → `3 DAYS BEFORE`, `0` → `RELEASE DAY`. */
-export function describeOffset(days: number): string {
-  if (days === 0) return 'RELEASE DAY'
-  const magnitude = Math.abs(days)
-  const unit = magnitude === 1 ? 'DAY' : 'DAYS'
-  return days < 0 ? `${magnitude} ${unit} BEFORE` : `${magnitude} ${unit} AFTER`
-}
-
-// ------------------------------------------------------------------ factories
-
-export function createDefaultDistribution(name: string): DistributionDetails {
-  return {
-    title: name,
-    primaryArtist: '',
-    featuring: [],
-    releaseKind: 'single',
-    releaseDate: null,
-    genre: '',
-    subGenre: '',
-    mood: '',
-    language: 'en',
-    explicit: false,
-    isrc: '',
-    upc: '',
-    label: '',
-    copyright: '',
-    credits: '',
-    lyrics: '',
-    targetPlatforms: [],
-    liveLinks: []
-  }
-}
+// ---------------------------------------------------------------- factories
 
 export function createEmptyScanState(): ScanState {
   return {

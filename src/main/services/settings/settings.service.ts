@@ -67,6 +67,24 @@ export class SettingsService extends TypedEmitter<SettingsEvents> {
     return this.current
   }
 
+  /**
+   * Every directory a scan should walk, filing root first.
+   *
+   * Derived here rather than assembled at each call site, because there are two
+   * of them — the IPC handler and the launch scan — and they must not be able
+   * to disagree about what gets indexed.
+   *
+   * The filing root is omitted when unset rather than defaulted to anything, so
+   * a scan attempted before setup reports "no roots configured" instead of
+   * quietly walking somewhere arbitrary. Satellite roots are included because
+   * finding stray sets is exactly what they are for; nothing is ever written to
+   * them.
+   */
+  get scanRoots(): string[] {
+    const { filingRoot, satelliteRoots } = this.snapshot.workspace
+    return [...(filingRoot ? [filingRoot] : []), ...satelliteRoots]
+  }
+
   async update(patch: SettingsPatch): Promise<Settings> {
     this.assertLoaded()
 

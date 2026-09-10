@@ -127,13 +127,26 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('projects:get', ({ id }) => services.projects.get(id))
   router.handle('projects:patch', ({ id, patch }) => services.projects.patchProject(id, patch))
 
-  // Roots come from settings rather than the renderer so a compromised renderer
-  // cannot direct a recursive walk at an arbitrary directory.
+  /*
+   * Creating a project is handled by the stacks service, not by projects.
+   *
+   * It needs a folder's path to provision into, and the folder tree belongs to
+   * the stacks. Routing it there keeps the dependency one-directional — the
+   * same reason `projects:file` is handled there too.
+   */
+  router.handle('projects:create', (draft) => services.stacks.createProject(draft))
+  router.handle('projects:open', ({ id }) => services.projects.openInLive(id))
+
+  /*
+   * Roots come from settings rather than the renderer so a compromised renderer
+   * cannot direct a recursive walk at an arbitrary directory.
+   *
+   * The filing root leads, followed by the satellite locations. It is filtered
+   * out when unset rather than defaulted, so a scan before setup reports "no
+   * roots configured" instead of walking somewhere arbitrary.
+   */
   router.handle('projects:scan', (input) =>
-    services.projects.runScan(
-      settings.snapshot.workspace.abletonProjectRoots,
-      input?.force ?? false
-    )
+    services.projects.runScan(settings.scanRoots, input?.force ?? false)
   )
   router.handle('projects:scan-cancel', () => services.projects.cancelScan())
   router.handle('projects:scan-state', () => services.projects.scan)
@@ -146,30 +159,51 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.projects.deleteNote(id, noteId)
   )
 
-  router.handle('projects:marketing-add', ({ id, kind }) =>
-    services.projects.addMarketingAsset(id, kind)
-  )
-  router.handle('projects:marketing-upsert', ({ id, asset }) =>
-    services.projects.upsertMarketingAsset(id, asset)
-  )
-  router.handle('projects:marketing-remove', ({ id, assetId }) =>
-    services.projects.removeMarketingAsset(id, assetId)
-  )
-
   router.handle('projects:forget', ({ id }) => services.projects.forget(id))
-  router.handle('projects:unlinked', (input) => services.projects.listUnlinked(input?.limit))
+  /*
+   * Binning and restoring both move a directory inside the wrapper, so they are
+   * handled by the stacks service — the one that knows where the wrapper is.
+   * Purging touches no wrapper path and stays with projects.
+   */
+  router.handle('projects:trash', ({ id }) => services.stacks.trashProject(id))
+  router.handle('projects:restore', ({ id }) => services.stacks.restoreProject(id))
+  router.handle('projects:purge', ({ id }) => services.projects.purge(id))
   router.handle('projects:thumbnail', ({ path, width }) =>
     services.projects.thumbnail(path, width ?? 480)
   )
 
-  // ------------------------------------------------------------- transmissions
+  // THE STACKS. Filing moves the operator's project folders on disk, so the
+  // service — not the renderer — owns every guard: no overwrite, no recursive
+  // delete, nothing moved while a scan is walking the same tree.
+  router.handle('projects:file', ({ id, folderId }) => services.stacks.fileProject(id, folderId))
+  router.handle('stacks:tree', () => services.stacks.getTree())
+  router.handle('stacks:setup-state', () => services.stacks.getSetupState())
+  router.handle('stacks:setup', (draft) => services.stacks.setup(draft))
+  router.handle('stacks:create', (draft) => services.stacks.createFolder(draft))
+  router.handle('stacks:update', ({ id, patch }) => services.stacks.updateFolder(id, patch))
+  router.handle('stacks:delete', ({ id }) => services.stacks.deleteFolder(id))
+  router.handle('stacks:restore', ({ id }) => services.stacks.restoreFolder(id))
+  router.handle('stacks:purge', ({ id }) => services.stacks.purgeFolder(id))
 
-  router.handle('transmissions:schedule', () => services.transmissions.schedule())
-  router.handle('transmissions:task-add', (draft) => services.transmissions.addTask(draft))
-  router.handle('transmissions:task-update', ({ id, patch }) =>
-    services.transmissions.updateTask(id, patch)
+  // ------------------------------------------------------------------ volumes
+
+  router.handle('volumes:list', () => services.volumes.list())
+  router.handle('volumes:get', ({ id }) => services.volumes.get(id))
+  router.handle('volumes:create', (draft) => services.volumes.create(draft))
+  router.handle('volumes:update', ({ id, patch }) => services.volumes.update(id, patch))
+  router.handle('volumes:delete', ({ id }) => services.volumes.remove(id))
+  router.handle('volumes:reorder', ({ id, projectIds }) => services.volumes.reorder(id, projectIds))
+
+  // ----------------------------------------------------------------- releases
+
+  router.handle('releases:list', () => services.releases.list())
+  router.handle('releases:get', ({ id }) => services.releases.get(id))
+  router.handle('releases:create', (draft) => services.releases.create(draft))
+  router.handle('releases:update', ({ id, patch }) => services.releases.update(id, patch))
+  router.handle('releases:attach', ({ id, kind, sourcePath }) =>
+    services.releases.attach(id, kind, sourcePath)
   )
-  router.handle('transmissions:task-remove', ({ id }) => services.transmissions.removeTask(id))
+  router.handle('releases:delete', ({ id }) => services.releases.remove(id))
 
   // --------------------------------------------------------------------- rite
 
@@ -271,8 +305,34 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     await shell.openExternal(parsed.toString())
   })
 
-  router.handle('shell:reveal', async ({ path }) => {
-    await shell.openPath(path)
+  /**
+   * Selects the item in the operator's file manager.
+   *
+   * `showItemInFolder`, not `openPath` — which is what this used to call, and
+   * meant "reveal" silently *opened* whatever was passed to it. Harmless while
+   * the only caller passed directories; wrong the moment anything passed a
+   * file, which the register now does from several places.
+   */
+  router.handle('shell:reveal', ({ path }) => {
+    shell.showItemInFolder(path)
+  })
+
+  /**
+   * Opens a file with whatever the OS has registered for it.
+   *
+   * Distinct from `shell:reveal`, which selects the file in Explorer. Opening
+   * an `.als` hands it to whichever Live version the operator has associated
+   * with the extension, which is a better answer than this app guessing.
+   */
+  router.handle('shell:open-path', async ({ path }) => {
+    const failure = await shell.openPath(path)
+    if (failure) {
+      throw new AppError('That file could not be opened.', {
+        code: ErrorCode.Unknown,
+        hint: failure,
+        recoverable: true
+      })
+    }
   })
 
   router.handle('dialog:select-directory', async (input) => {

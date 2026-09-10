@@ -1,0 +1,141 @@
+@use 'abstracts' as *;
+
+// The console's dropdown. See Select.tsx for why the list is drawn in the
+// document rather than left to the operating system.
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+  width: 100%;
+  @include label(9px, 0.14em);
+  color: var(--ch-text-primary);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// Standalone: carries its own frame.
+.boxed {
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+  padding: space(2) space(3);
+
+  &:hover:not(:disabled) {
+    border-color: var(--ch-line-strong);
+  }
+
+  &[data-open] {
+    border-color: var(--ch-line-gold);
+  }
+}
+
+// Sits inside another bordered control — the SORT cluster — so it sheds its own
+// frame rather than drawing a box inside a box.
+.inline {
+  background: none;
+  border: 0;
+  padding: space(2) space(1);
+  width: auto;
+}
+
+.value {
+  @include truncate;
+
+  &[data-placeholder] {
+    color: var(--ch-text-faint);
+  }
+}
+
+// A solid triangle rather than a glyph: the font's ▾ sits off the baseline and
+// differs between the display and mono faces, which the rest of this interface
+// mixes freely.
+.caret {
+  width: 0;
+  height: 0;
+  flex-shrink: 0;
+  border-left: rem(3px) solid transparent;
+  border-right: rem(3px) solid transparent;
+  border-top: rem(4px) solid var(--ch-text-faint);
+  transition: transform $duration-fast $ease-out-expo;
+
+  .trigger[data-open] & {
+    transform: rotate(180deg);
+    border-top-color: var(--ch-gold-300);
+  }
+}
+
+// ------------------------------------------------------------------ the list
+
+.list {
+  position: fixed;
+  z-index: z('modal');
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  background: var(--ch-obsidian-800);
+  @include hairline(all, 0.2);
+  box-shadow: var(--ch-shadow-panel);
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  padding: space(2) space(3);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  & + & {
+    @include hairline(top, 0.05);
+  }
+
+  /*
+   * One highlight for both the pointer and the keyboard.
+   *
+   * `data-cursor` is set by arrow keys and by pointer entry alike, so the two
+   * can never disagree about which row is live — which is the usual failure of
+   * a hand-rolled listbox, where hovering leaves a second row lit somewhere
+   * else on screen.
+   */
+  &[data-cursor] {
+    background: var(--ch-surface-overlay);
+  }
+
+  &[data-selected] .optionLabel {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-1px);
+  }
+}
+
+.optionLabel {
+  @include label(9px, 0.14em);
+  color: var(--ch-text-secondary);
+
+  .option[data-cursor] & {
+    color: var(--ch-text-primary);
+  }
+}
+
+.optionHint {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}

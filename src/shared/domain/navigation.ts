@@ -6,7 +6,6 @@
 export const SECTION_IDS = [
   'nexus',
   'archive',
-  'transmissions',
   'observatory',
   'interface',
   'telemetry',
@@ -50,21 +49,12 @@ export const SECTIONS: readonly SectionDefinition[] = [
     implemented: true
   },
   {
-    id: 'transmissions',
-    path: '/transmissions',
-    label: 'TRANSMISSIONS',
-    purpose: 'Release and promotional scheduling across every project',
-    epigraph: 'Sound is not heard. It is structured. It is shaped.',
-    order: 2,
-    implemented: true
-  },
-  {
     id: 'observatory',
     path: '/observatory',
     label: 'OBSERVATORY',
     purpose: 'Stream overlays and live selection rites served to OBS',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
-    order: 3,
+    order: 2,
     implemented: true
   },
   {
@@ -73,7 +63,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     label: 'INTERFACE',
     purpose: 'Natural-language command console for system-wide operations',
     epigraph: 'The core remembers what the people have forgotten.',
-    order: 4,
+    order: 3,
     implemented: false
   },
   {
@@ -82,7 +72,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     label: 'TELEMETRY',
     purpose: 'Host vitals: processor, memory, graphics and storage',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
-    order: 5,
+    order: 4,
     implemented: true
   },
   {
@@ -91,7 +81,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     label: 'REGULATION',
     purpose: 'Operator settings, archive control and update channel',
     epigraph: 'Harmony is maintained.',
-    order: 6,
+    order: 5,
     implemented: true
   }
 ] as const

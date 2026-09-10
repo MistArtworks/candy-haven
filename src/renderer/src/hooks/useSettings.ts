@@ -108,6 +108,30 @@ export function useApplySettings(): ApplySettings {
   )
 }
 
+/**
+ * Fields a save asked for that the stored result does not reflect.
+ *
+ * Compared structurally, because a section can hold an array — the satellite
+ * roots are the live case — and two arrays with equal contents are not the same
+ * object. Returned as `section.field` names so the message can say which
+ * control did not take.
+ */
+function unappliedFields(patch: SettingsPatch, stored: Settings): string[] {
+  const missed: string[] = []
+
+  for (const [section, fields] of Object.entries(patch)) {
+    if (!fields) continue
+    const applied = stored[section as keyof Settings] as Record<string, unknown> | undefined
+
+    for (const [field, wanted] of Object.entries(fields as Record<string, unknown>)) {
+      if (JSON.stringify(applied?.[field]) === JSON.stringify(wanted)) continue
+      missed.push(`${section}.${field}`)
+    }
+  }
+
+  return missed
+}
+
 /** Current settings, or `null` before the first hydration completes. */
 export function useSettings(): Settings | null {
   return useSystemStore(selectSettings)
@@ -185,6 +209,32 @@ export function useSettingsDraft(): SettingsDraft {
     void window.candy.settings
       .update(patch)
       .then((stored) => {
+        /*
+         * Check that what came back is what was asked for.
+         *
+         * The response is authoritative and is adopted wholesale below, which
+         * means anything the main process quietly declined to store shows up as
+         * the control springing back to its old value with no explanation. That
+         * is exactly what happens when main is running older code than the
+         * renderer: `SettingsPatchSchema` is a zod object, zod objects **strip
+         * unknown keys**, so a field main has never heard of is discarded at the
+         * IPC boundary and the save appears to do nothing.
+         *
+         * It cost a real debugging session — a new text-size setting reverted on
+         * every save while every other control worked — so the mismatch is now
+         * reported rather than left to be inferred. In a shipped build renderer
+         * and main always move together and this can only fire on a genuine bug.
+         */
+        const rejected = unappliedFields(patch, stored)
+
+        if (rejected.length > 0) {
+          setError(
+            `The archive did not store ${rejected.join(', ')}. ` +
+              'If you are running a development build, restart the app so the main process ' +
+              'picks up the current settings schema.'
+          )
+        }
+
         // The response is the authoritative persisted state, so it becomes both
         // the baseline and the live value — this is the one moment where
         // applying the response cannot race anything, because the operator

@@ -13,6 +13,7 @@ import {
   selectShellPhase
 } from '@renderer/app/store/system.store'
 import { useThemePreferences } from '@renderer/hooks/useMotionPreference'
+import { HotkeyProvider } from '@renderer/hotkeys/HotkeyProvider'
 
 /**
  * Query client tuned for a desktop app talking to a local main process:
@@ -86,7 +87,14 @@ export default function App(): ReactNode {
             where the History API cannot resolve paths.
           */}
           <HashRouter>
-            <Shell />
+            {/*
+              Inside the router, because most bindings navigate; outside the
+              shell, so the cheatsheet is not unmounted along with the boot
+              screen and survives every page change.
+            */}
+            <HotkeyProvider>
+              <Shell />
+            </HotkeyProvider>
           </HashRouter>
         </SystemBridge>
       </QueryClientProvider>

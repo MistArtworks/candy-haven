@@ -1,0 +1,192 @@
+@use 'abstracts' as *;
+
+// Interface scale, chosen against a contained preview.
+//
+// The dialog itself is drawn at the *current* scale throughout; only the sample
+// inside the preview frame changes size. That is the whole point — the controls
+// have to stay where the operator put their pointer.
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: z('modal');
+  background: var(--ch-surface-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: space(6);
+}
+
+.dialog {
+  width: min(rem(520px), 100%);
+  max-height: 100%;
+  background: var(--ch-surface);
+  @include hairline(all, 0.18);
+  box-shadow: var(--ch-shadow-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+  padding: space(4) space(5);
+  @include hairline(bottom, 0.1);
+}
+
+.title {
+  @include label(11px, 0.18em);
+  color: var(--ch-text-primary);
+}
+
+.current {
+  @include readout(11px);
+  color: var(--ch-gold-300);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  padding: space(5);
+  overflow-y: auto;
+}
+
+// ----------------------------------------------------------------- presets
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: space(2);
+}
+
+.preset {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.12);
+  padding: space(2) 0;
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    background $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  &[data-selected] {
+    color: var(--ch-obsidian-900);
+    background: var(--ch-gold-300);
+    border-color: var(--ch-gold-300);
+  }
+}
+
+// ----------------------------------------------------------------- preview
+
+.previewFrame {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.previewLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+// A fixed viewport onto the sample.
+//
+// Fixed height on purpose: without it the dialog itself would grow and shrink
+// as the slider moved, reintroducing the moving-target problem one level up.
+// The sample is clipped instead, which is honest — at 200% the operator is
+// meant to see that things no longer fit.
+.preview {
+  height: rem(190px);
+  overflow: hidden;
+  background: var(--ch-obsidian-900);
+  @include hairline(all, 0.12);
+  padding: space(3);
+}
+
+// `zoom` rather than `transform: scale()`. It reflows its contents the way the
+// frame's zoom factor will, so the preview shows the real line breaks and the
+// real hairline weights instead of a resampled 100% layout.
+.sample {
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  padding: space(3);
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.sampleHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+  @include hairline(bottom, 0.08);
+  padding-bottom: space(2);
+}
+
+.sampleIndex {
+  @include readout(9px);
+  color: var(--ch-gold-400);
+}
+
+.sampleTitle {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-muted);
+}
+
+.sampleFields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: space(2);
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.sampleFieldLabel {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.sampleFieldValue {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+}
+
+.sampleBody {
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.note {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: space(2);
+  padding: space(4) space(5);
+  @include hairline(top, 0.1);
+}

@@ -3,16 +3,14 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { ConsoleLayout } from '@renderer/layouts/ConsoleLayout'
 import { NexusPage } from '@renderer/features/home/NexusPage'
 import { ArchivePage } from '@renderer/features/archive/ArchivePage'
-// Plural, and not to be confused with the singular `TransmissionPage` imported
-// below — that one is the NOW TRANSMITTING overlay's host page. This is the
-// scheduling department.
-import { TransmissionsPage } from '@renderer/features/transmissions/TransmissionsPage'
 import { ObservatoryPage } from '@renderer/features/observatory/ObservatoryPage'
 import { SelectionPage } from '@renderer/features/observatory/overlays/selection/SelectionPage'
 import { ConcordPage } from '@renderer/features/observatory/overlays/concord/ConcordPage'
 import { ReservedOverlayPage } from '@renderer/features/observatory/overlays/ReservedOverlayPage'
 import { ChorusPage } from '@renderer/features/observatory/chorus/ChorusPage'
 import { TimerPage } from '@renderer/features/observatory/overlays/timer/TimerPage'
+// Singular: the NOW TRANSMITTING *overlay's* host page, which survives the
+// removal of the TRANSMISSIONS department it merely shared a word with.
 import { TransmissionPage } from '@renderer/features/observatory/overlays/transmission/TransmissionPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
@@ -68,8 +66,6 @@ export function AppRouter(): ReactNode {
         <Route index element={<NexusPage />} />
 
         <Route path="/archive" element={<ArchivePage />} />
-
-        <Route path="/transmissions" element={<TransmissionsPage />} />
 
         {/*
           OBSERVATORY is a catalogue with one route per overlay. Every entry in

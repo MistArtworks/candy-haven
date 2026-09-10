@@ -1,0 +1,127 @@
+@use 'abstracts' as *;
+
+// The shortcut reference. Reached by a chord that is not advertised anywhere,
+// so it is drawn as a reference card rather than as a feature of the console —
+// no numbered index, no epigraph, nothing that would make it look like a page.
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: z('modal');
+  background: var(--ch-surface-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: space(8);
+}
+
+.sheet {
+  width: min(rem(720px), 100%);
+  max-height: 100%;
+  background: var(--ch-obsidian-800);
+  @include hairline(all, 0.2);
+  box-shadow: var(--ch-shadow-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: space(4) space(5);
+  @include hairline(bottom, 0.1);
+}
+
+.title {
+  @include label(11px, 0.2em);
+  color: var(--ch-text-primary);
+}
+
+.dismiss {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(rem(280px), 1fr));
+  gap: space(5);
+  padding: space(5);
+  overflow-y: auto;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+}
+
+.groupTitle {
+  @include label(8px, 0.18em);
+  color: var(--ch-gold-400);
+  margin: 0;
+  @include hairline(bottom, 0.08);
+  padding-bottom: space(2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  padding: space(2) 0;
+
+  & + & {
+    @include hairline(top, 0.05);
+  }
+
+  // Registered but currently unavailable — the shortcut exists, the thing it
+  // acts on does not. Shown rather than hidden so the list stays stable.
+  &[data-disabled] {
+    opacity: 0.4;
+  }
+}
+
+// Fixed width so every label starts on one line down the column, which is what
+// makes a reference card scannable rather than merely complete.
+.keys {
+  display: flex;
+  align-items: center;
+  gap: space(1);
+  margin: 0;
+  flex-shrink: 0;
+  width: rem(116px);
+}
+
+.key {
+  @include readout(9px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.16);
+  padding: 1px space(2);
+  min-width: rem(18px);
+  text-align: center;
+  // Two caps that differ only in width read as one control; a fixed floor keeps
+  // `K` and `Ctrl` looking like members of the same set.
+  line-height: 1.5;
+}
+
+.label {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  margin: 0;
+  min-width: 0;
+}
+
+.empty {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  margin: 0;
+}

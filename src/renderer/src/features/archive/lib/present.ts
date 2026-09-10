@@ -9,9 +9,8 @@ import { MONTHS } from '@renderer/lib/format'
  * relative days in a dense table, institutional date stamps in a dossier.
  *
  * `formatIsoDate`, `formatCountdown` and `isOverdue` used to live here and now
- * live there, because TRANSMISSIONS reads the same dates this register does and
- * two departments disagreeing about what `TOMORROW` means would be worse than
- * the import.
+ * live there: they were needed by a second department, and two departments
+ * disagreeing about what `TOMORROW` means would be worse than the import.
  */
 
 /** `150.004` -> `150`, `128.5` -> `128.5`, `null` -> `—`. */

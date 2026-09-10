@@ -30,21 +30,34 @@ import {
 } from '../domain/concord'
 import { ChatStatusSchema } from '../domain/chat'
 import {
-  MarketingAssetKindSchema,
-  MarketingAssetSchema,
   NoteDraftSchema,
+  ProjectDraftSchema,
   ProjectPatchSchema,
   ProjectQuerySchema,
   ProjectRecordSchema,
   ProjectRegistrySchema,
-  ScanStateSchema,
-  UnlinkedMediaSchema
+  ScanStateSchema
 } from '../domain/projects'
 import {
-  TransmissionScheduleSchema,
-  TransmissionTaskDraftSchema,
-  TransmissionTaskPatchSchema
-} from '../domain/transmissions'
+  ArchiveSetupDraftSchema,
+  ArchiveSetupStateSchema,
+  FolderDraftSchema,
+  FolderPatchSchema,
+  StacksTreeSchema
+} from '../domain/stacks'
+import {
+  ArchiveVolumeSchema,
+  VolumeDraftSchema,
+  VolumePatchSchema,
+  VolumeSummarySchema
+} from '../domain/volumes'
+import {
+  ArchiveReleaseSchema,
+  DeliverableAttachSchema,
+  ReleaseDraftSchema,
+  ReleasePatchSchema,
+  ReleaseSummarySchema
+} from '../domain/releases'
 
 /**
  * The IPC contract is declared once, here, and consumed by:
@@ -98,6 +111,16 @@ export const IPC_INVOKE = {
     input: z.object({ id: z.string(), patch: ProjectPatchSchema }),
     output: ProjectRecordSchema
   },
+  /**
+   * Provisions a new project: creates the directory, copies the template set
+   * under the project's name, and makes the scaffold folders inside it.
+   *
+   * Refused unless the department is set up. Any folder in the tree may hold a
+   * project, including a genre at the top level.
+   */
+  'projects:create': { input: ProjectDraftSchema, output: ProjectRecordSchema },
+  /** Opens the project's primary set in whatever handles `.als`. */
+  'projects:open': { input: z.object({ id: z.string() }), output: z.void() },
   /** `force` re-reads every set instead of reusing unchanged analyses. */
   'projects:scan': {
     input: z.object({ force: z.boolean().optional() }).optional(),
@@ -117,55 +140,140 @@ export const IPC_INVOKE = {
     input: z.object({ id: z.string(), noteId: z.string() }),
     output: ProjectRecordSchema
   },
-  'projects:marketing-add': {
-    input: z.object({ id: z.string(), kind: MarketingAssetKindSchema }),
-    output: ProjectRecordSchema
-  },
-  'projects:marketing-upsert': {
-    input: z.object({ id: z.string(), asset: MarketingAssetSchema }),
-    output: ProjectRecordSchema
-  },
-  'projects:marketing-remove': {
-    input: z.object({ id: z.string(), assetId: z.string() }),
-    output: ProjectRecordSchema
-  },
+  /** Drops the record and leaves every file exactly where it is. */
   'projects:forget': { input: z.object({ id: z.string() }), output: z.void() },
-  'projects:unlinked': {
-    input: z.object({ limit: z.number().int().min(1).max(2000) }).optional(),
-    output: z.array(UnlinkedMediaSchema)
-  },
+  /**
+   * Moves the project folder into the archive's own recycle bin.
+   *
+   * Reversible: the record is kept, complete, along with the path it came from,
+   * and `projects:restore` puts it back. Nothing here reaches the operating
+   * system's bin — see `projects:purge` for the step that does.
+   */
+  'projects:trash': { input: z.object({ id: z.string() }), output: ProjectRecordSchema },
+  /** Puts a binned project back where it came from, and re-files it. */
+  'projects:restore': { input: z.object({ id: z.string() }), output: ProjectRecordSchema },
+  /**
+   * Removes a binned project for good.
+   *
+   * Refused for anything not already in the bin, which is the safety property
+   * worth stating: no single action takes a live project from the register to
+   * gone. Even this sends the folder to the OS recycle bin rather than
+   * unlinking it.
+   */
+  'projects:purge': { input: z.object({ id: z.string() }), output: z.void() },
   /** Decoded and downscaled in main: the renderer CSP forbids `file:` images. */
   'projects:thumbnail': {
     input: z.object({ path: z.string(), width: z.number().int().min(32).max(1024).optional() }),
     output: z.string().nullable()
   },
+  /**
+   * Moves a project's folder into a stacks folder, or back out of the tree.
+   *
+   * Returns the record rather than the tree: the caller almost always has a
+   * dossier or a card on screen for this one project, and the tree is refetched
+   * alongside it because the counts changed.
+   */
+  'projects:file': {
+    input: z.object({ id: z.string(), folderId: z.string().nullable() }),
+    output: ProjectRecordSchema
+  },
 
   /**
-   * Scheduling (TRANSMISSIONS section).
+   * THE STACKS (ARCHIVE section) — the filing tree.
    *
-   * The schedule is a projection over the project registry, not a stored
-   * record — release and promotional dates belong to ARCHIVE and are read
-   * rather than copied. Only tasks are this department's own, which is why
-   * they are the only thing here that writes.
-   *
-   * Every task mutation returns the whole rebuilt schedule, as the rite's do:
-   * moving one date can change a collision three days away, so a response
-   * carrying only the changed row would leave the page to re-derive what the
-   * main process already knows.
+   * Every folder here is a real directory, so these channels move the
+   * operator's files. Each mutation returns the whole rebuilt tree, as the
+   * rite's and THE CONCORD's do: renaming one folder rewrites the path of every
+   * descendant and re-parenting changes counts several levels away, so a
+   * response carrying only the changed row would leave the page to re-derive
+   * what the main process already knows.
    */
-  'transmissions:schedule': { input: z.void(), output: TransmissionScheduleSchema },
-  'transmissions:task-add': {
-    input: TransmissionTaskDraftSchema,
-    output: TransmissionScheduleSchema
+  'stacks:tree': { input: z.void(), output: StacksTreeSchema },
+  /**
+   * Whether the department can be used, and which gate is missing if not.
+   *
+   * Separate from `stacks:tree` because the setup gate asks it before there is
+   * a tree to fetch — with no root configured, there is no wrapper to read
+   * folders out of.
+   */
+  'stacks:setup-state': { input: z.void(), output: ArchiveSetupStateSchema },
+  /** Saves the root and template, then creates the wrapper and RELEASES. */
+  'stacks:setup': { input: ArchiveSetupDraftSchema, output: ArchiveSetupStateSchema },
+  'stacks:create': { input: FolderDraftSchema, output: StacksTreeSchema },
+  'stacks:update': {
+    input: z.object({ id: z.string(), patch: FolderPatchSchema }),
+    output: StacksTreeSchema
   },
-  'transmissions:task-update': {
-    input: z.object({ id: z.string(), patch: TransmissionTaskPatchSchema }),
-    output: TransmissionScheduleSchema
+  /**
+   * Moves a folder into the recycle bin, with everything inside it.
+   *
+   * Reversible, and that is why it no longer needs the two-step `unfile`
+   * confirmation it used to: nothing is destroyed, so an occupied folder is not
+   * a hazard. Descendant folders and every project filed under them are trashed
+   * alongside, and `stacks:restore` brings the whole subtree back.
+   */
+  'stacks:delete': { input: z.object({ id: z.string() }), output: StacksTreeSchema },
+  /** Puts a binned folder and its whole subtree back where it came from. */
+  'stacks:restore': { input: z.object({ id: z.string() }), output: StacksTreeSchema },
+  /**
+   * Removes a binned folder for good, with everything inside it.
+   *
+   * Refused unless already binned. Sends the directory to the *OS* recycle bin
+   * rather than unlinking it, then drops every record underneath.
+   */
+  'stacks:purge': { input: z.object({ id: z.string() }), output: StacksTreeSchema },
+
+  /**
+   * VOLUMES (ARCHIVE section) — albums, EPs and compilations.
+   *
+   * Metadata only: no channel here touches the filesystem. Membership is
+   * written through `projects:patch` on the *track*, not here, because the
+   * project is what holds `volumeId` — see volumes.ts for why there is no
+   * track list on the volume itself.
+   */
+  'volumes:list': { input: z.void(), output: z.array(VolumeSummarySchema) },
+  'volumes:get': { input: z.object({ id: z.string() }), output: ArchiveVolumeSchema },
+  'volumes:create': { input: VolumeDraftSchema, output: VolumeSummarySchema },
+  'volumes:update': {
+    input: z.object({ id: z.string(), patch: VolumePatchSchema }),
+    output: VolumeSummarySchema
   },
-  'transmissions:task-remove': {
-    input: z.object({ id: z.string() }),
-    output: TransmissionScheduleSchema
+  /**
+   * Detaches every track first, dropping each one's category back to `single`.
+   * Nothing on disk is touched — a volume never owned a directory.
+   */
+  'volumes:delete': { input: z.object({ id: z.string() }), output: z.void() },
+  /** Reorders tracks within a volume; ids are given in their new order. */
+  'volumes:reorder': {
+    input: z.object({ id: z.string(), projectIds: z.array(z.string()) }),
+    output: z.array(VolumeSummarySchema)
   },
+
+  /**
+   * RELEASES (ARCHIVE section).
+   *
+   * A release owns a real directory under `<wrapper>/RELEASES`, so `create`,
+   * `update` (when it renames) and `delete` all move things on disk and follow
+   * the same disk-first ordering the stacks use.
+   */
+  'releases:list': { input: z.void(), output: z.array(ReleaseSummarySchema) },
+  'releases:get': { input: z.object({ id: z.string() }), output: ArchiveReleaseSchema },
+  'releases:create': { input: ReleaseDraftSchema, output: ReleaseSummarySchema },
+  'releases:update': {
+    input: z.object({ id: z.string(), patch: ReleasePatchSchema }),
+    output: ReleaseSummarySchema
+  },
+  /**
+   * Copies a chosen file into the release folder and records both paths.
+   * A null `sourcePath` detaches, leaving any existing copy on disk.
+   */
+  'releases:attach': { input: DeliverableAttachSchema, output: ArchiveReleaseSchema },
+  /**
+   * Drops the record. The directory is left on disk: it holds copies the
+   * operator assembled deliberately, and this app does not delete those without
+   * being asked plainly — which `projects:trash` is, and this is not.
+   */
+  'releases:delete': { input: z.object({ id: z.string() }), output: z.void() },
 
   /**
    * Selection rite (OBSERVATORY section). The winner is drawn in main and
@@ -261,6 +369,8 @@ export const IPC_INVOKE = {
 
   'shell:open-external': { input: z.object({ url: z.string() }), output: z.void() },
   'shell:reveal': { input: z.object({ path: z.string() }), output: z.void() },
+  /** Opens a file with whatever the OS has registered for it. */
+  'shell:open-path': { input: z.object({ path: z.string() }), output: z.void() },
   'dialog:select-directory': {
     input: z.object({ title: z.string().optional() }).optional(),
     output: z.string().nullable()

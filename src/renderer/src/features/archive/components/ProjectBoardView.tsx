@@ -2,7 +2,6 @@ import { useState, type DragEvent, type ReactNode } from 'react'
 import type { ProjectStage, ProjectSummary } from '@shared/domain/projects'
 import { PROJECT_STAGES } from '@shared/domain/projects.constants'
 import type { RegisterViewProps } from './ProjectListView'
-import { formatCountdown } from '@renderer/lib/format'
 import { formatRelativeDay, formatTempo } from '../lib/present'
 import styles from './ProjectBoardView.module.scss'
 
@@ -29,7 +28,9 @@ export function ProjectBoardView({
   selectedId,
   onSelect,
   stageCounts,
-  onStageChange
+  onStageChange,
+  onProjectDragStart,
+  onProjectMenu
 }: ProjectBoardViewProps): ReactNode {
   const [dragging, setDragging] = useState<string | null>(null)
   const [hovered, setHovered] = useState<ProjectStage | null>(null)
@@ -40,6 +41,11 @@ export function ProjectBoardView({
     // A payload is required for the drop to register in Chromium even though
     // the id is also held in state.
     event.dataTransfer.setData('text/plain', project.id)
+
+    // While the folder browser is on screen, the same card also carries the
+    // filing payload — so one drag can change the stage *or* the shelf,
+    // depending on which target it is released over.
+    onProjectDragStart?.(event, project)
   }
 
   const onDrop = (event: DragEvent<HTMLElement>, stage: ProjectStage): void => {
@@ -101,6 +107,7 @@ export function ProjectBoardView({
                     setDragging(null)
                     setHovered(null)
                   }}
+                  onContextMenu={(event) => onProjectMenu?.(event, project)}
                   onClick={() => onSelect(project.id)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -122,15 +129,10 @@ export function ProjectBoardView({
                     </span>
                   </div>
 
-                  {project.releaseDate ? (
-                    <span className={styles.countdown}>{formatCountdown(project.releaseDate)}</span>
-                  ) : null}
-
-                  {project.marketing ? (
-                    <span className={styles.plan}>
-                      PROMO {project.marketing.settled}/{project.marketing.required}
-                    </span>
-                  ) : null}
+                  {/* A final master is the one fact that changes what a card
+                      can do next — it is the gate on READY, SCHEDULED and
+                      RELEASED — so it is the one badge worth the space. */}
+                  {project.hasFinalMaster ? <span className={styles.plan}>MASTERED</span> : null}
 
                   {project.missingSampleCount > 0 ? (
                     <span className={styles.warning}>{project.missingSampleCount} missing</span>

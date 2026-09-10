@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { getStage } from '@shared/domain/projects.constants'
+import { PROJECT_CATEGORY_LABEL, getStage } from '@shared/domain/projects.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Panel } from '@renderer/components/primitives/Panel'
@@ -9,6 +9,9 @@ import { formatKey, formatLength, formatStamp, formatTempo } from '../../lib/pre
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
 import styles from './dossier.module.scss'
+
+/** Stage-history rows drawn before the rest are summarised. See `recentHistory`. */
+const HISTORY_SHOWN = 6
 
 /**
  * What the project *is*: the facts read out of the set, the operator's notes,
@@ -21,6 +24,23 @@ export function DossierOverview({ project, mutations }: DossierTabProps): ReactN
 
   const primary = project.sets.find((set) => set.isPrimary) ?? project.sets[0] ?? null
   const analysis = primary?.analysis ?? null
+
+  /*
+   * The history is trimmed for display, not scrolled.
+   *
+   * It grows on every stage change and never shrinks, so it has to be bounded
+   * somehow. Giving the list its own scrollbar was the obvious answer and the
+   * wrong one: the dossier body scrolls too, so a long history put two
+   * scrollbars on screen a few pixels apart, which reads as broken however
+   * carefully the cap is tuned. Rendering a fixed number of rows bounds the
+   * panel without ever introducing a second scroller.
+   *
+   * Six covers the recent past — the pipeline is eight stages, and what matters
+   * here is what happened lately. The remainder is counted rather than hidden
+   * silently, and the record itself stays complete in the database.
+   */
+  const recentHistory = [...project.stageHistory].reverse().slice(0, HISTORY_SHOWN)
+  const earlierCount = Math.max(project.stageHistory.length - HISTORY_SHOWN, 0)
 
   const submitNote = (): void => {
     if (!draft.trim()) return
@@ -121,6 +141,7 @@ export function DossierOverview({ project, mutations }: DossierTabProps): ReactN
         <FieldGrid columns={1}>
           <Field label="Stage" value={getStage(project.stage).label} />
           <Field label="Purpose" value={getStage(project.stage).purpose} />
+          <Field label="Category" value={PROJECT_CATEGORY_LABEL[project.category]} />
           <Field label="Last touched" value={formatStamp(project.lastTouchedAt)} mono />
           <Field label="Indexed" value={formatStamp(project.scannedAt)} mono />
           <Field label="Folder size" value={formatBytes(project.sizeBytes)} mono />
@@ -164,7 +185,7 @@ export function DossierOverview({ project, mutations }: DossierTabProps): ReactN
           {project.notes.length === 0 ? (
             <p className={styles.empty}>No notes on this project yet.</p>
           ) : (
-            <div className={styles.stackTight}>
+            <div className={styles.noteList}>
               {project.notes.map((note) => (
                 <div key={note.id} className={styles.note} data-pinned={note.pinned || undefined}>
                   {editing === note.id ? (
@@ -245,7 +266,7 @@ export function DossierOverview({ project, mutations }: DossierTabProps): ReactN
           <p className={styles.empty}>No stage changes recorded.</p>
         ) : (
           <div className={styles.history}>
-            {[...project.stageHistory].reverse().map((event, index) => (
+            {recentHistory.map((event, index) => (
               <div key={`${event.at}-${index}`} className={styles.event}>
                 <span className={styles.eventStamp}>{formatStamp(event.at)}</span>
                 <span>
@@ -254,6 +275,12 @@ export function DossierOverview({ project, mutations }: DossierTabProps): ReactN
                 </span>
               </div>
             ))}
+
+            {earlierCount > 0 ? (
+              <p className={styles.historyMore}>
+                + {earlierCount} earlier change{earlierCount === 1 ? '' : 's'}
+              </p>
+            ) : null}
           </div>
         )}
       </Panel>

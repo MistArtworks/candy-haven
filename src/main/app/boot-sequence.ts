@@ -185,8 +185,13 @@ export class BootSequence extends TypedEmitter<BootEvents> {
       configuration: async (ctx) => {
         const loaded = await settings.load()
         ctx.setProgress(0.8)
-        const roots = loaded.workspace.abletonProjectRoots.length
-        return { detail: `${roots} workspace root${roots === 1 ? '' : 's'} registered` }
+        const configured = loaded.workspace.filingRoot !== null
+        const satellites = loaded.workspace.satelliteRoots.length
+        return {
+          detail: configured
+            ? `Filing root and ${satellites} satellite location${satellites === 1 ? '' : 's'}`
+            : 'No filing root chosen yet'
+        }
       },
 
       'archive-binary': async (ctx) => {

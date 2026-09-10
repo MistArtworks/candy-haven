@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -6,9 +6,9 @@ import { getSection } from '@shared/domain/navigation'
 import { useSystemStore, selectArchive, selectUpdate } from '@renderer/app/store/system.store'
 import { useRuntimeInfo } from '@renderer/hooks/useRuntimeInfo'
 import { useSettingsDraft } from '@renderer/hooks/useSettings'
+import { ScaleDialog } from './components/ScaleDialog'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
-import { MAX_LEAD_DAYS, MIN_LEAD_DAYS } from '@shared/domain/transmissions.constants'
 import { Slider } from '@renderer/components/primitives/Slider'
 import { TextInput } from '@renderer/components/primitives/Input'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
@@ -33,6 +33,7 @@ export function RegulationPage(): ReactNode {
   const { data: runtime } = useRuntimeInfo()
   const queryClient = useQueryClient()
 
+  const [scaleOpen, setScaleOpen] = useState(false)
   const draft = useSettingsDraft()
   const settings = draft.settings
   const applySettings = draft.apply
@@ -143,6 +144,31 @@ export function RegulationPage(): ReactNode {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/*
+              Behind a dialog rather than inline, and not for ceremony.
+
+              Interface scale is the frame's zoom factor, so a slider wired
+              straight to it rescales the page while it is being dragged — the
+              slider slides out from under the pointer, and at 150% the thumb
+              has moved half a panel from where it was grabbed. The dialog holds
+              the console still and scales a sample instead.
+            */}
+            <div className={styles.control}>
+              <span className={styles.controlLabel}>Interface scale</span>
+              <div className={styles.controlRow}>
+                <span className={styles.controlValue}>
+                  {Math.round((appearance?.uiScale ?? 1) * 100)}%
+                </span>
+                <Button size="sm" onClick={() => setScaleOpen(true)}>
+                  Adjust
+                </Button>
+              </div>
+              <p className={styles.controlHint}>
+                Scales the whole console — text, controls and spacing together — the way
+                Windows&apos; own display scaling does.
+              </p>
             </div>
 
             <Slider
@@ -322,42 +348,11 @@ export function RegulationPage(): ReactNode {
         </Panel>
 
         {/*
-          Distribution policy rather than a per-project field: the operator uses
-          one distributor, and its lead time is the same for every release. Sited
-          here rather than on the TRANSMISSIONS page so it goes through the same
-          staged save as every other setting.
-        */}
-        <Panel label="Distribution" index="05">
-          <div className={styles.control}>
-            <Slider
-              label="Submission lead"
-              width="inline"
-              min={MIN_LEAD_DAYS}
-              max={MAX_LEAD_DAYS}
-              step={1}
-              value={workspace?.submissionLeadDays ?? 14}
-              readout={`${workspace?.submissionLeadDays ?? 14} DAYS`}
-              onChange={(submissionLeadDays) =>
-                applySettings(
-                  { workspace: { submissionLeadDays } },
-                  { debounceMs: 200, key: 'submissionLeadDays' }
-                )
-              }
-            />
-            <p className={styles.controlHint}>
-              How long before a release date your distributor needs the finished package.
-              TRANSMISSIONS derives a SUBMIT BY date from this for every scheduled release and flags
-              the ones whose window has closed.
-            </p>
-          </div>
-        </Panel>
-
-        {/*
           Test mode sits with the operator's workspace rather than on any one
           overlay's page: it lifts the configuration gate on every broadcast
           feature, so putting it on one of them would imply it were local to it.
         */}
-        <Panel label="Rehearsal" index="06">
+        <Panel label="Rehearsal" index="05">
           <div className={styles.control}>
             <span className={styles.controlLabel}>Test mode</span>
             <button
@@ -381,7 +376,7 @@ export function RegulationPage(): ReactNode {
           </div>
         </Panel>
 
-        <Panel label="Diagnostics" index="07" className={styles.wide}>
+        <Panel label="Diagnostics" index="06" className={styles.wide}>
           <FieldGrid columns={2}>
             <Field
               label="User data"
@@ -413,6 +408,20 @@ export function RegulationPage(): ReactNode {
           </div>
         </Panel>
       </motion.div>
+
+      {scaleOpen ? (
+        <ScaleDialog
+          value={appearance?.uiScale ?? 1}
+          onCancel={() => setScaleOpen(false)}
+          onApply={(uiScale) => {
+            setScaleOpen(false)
+            // Staged like every other control on this page: the console rescales
+            // immediately so the choice can be judged in place, and FILE CHANGES
+            // is still what writes it to disk.
+            applySettings({ appearance: { uiScale } })
+          }}
+        />
+      ) : null}
     </div>
   )
 }

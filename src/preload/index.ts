@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webFrame, type IpcRendererEvent } from 'electron'
 import type { CandyHavenApi, Unsubscribe } from '@shared/ipc/api'
 import {
   EVENT_CHANNELS,
@@ -81,6 +81,18 @@ const api: CandyHavenApi = {
     toggleMaximize: () => invoke('window:toggle-maximize'),
     close: () => invoke('window:close'),
     state: () => invoke('window:state'),
+    /*
+     * Set here rather than over IPC.
+     *
+     * `webFrame` is a renderer-side API and preload runs in the renderer, so
+     * this takes effect on the frame directly — no round trip, and no chance of
+     * the window being drawn at one scale while a reply is in flight. It is the
+     * one thing on this bridge that does not go through a channel, which is why
+     * it is worth saying so.
+     */
+    setZoom: (factor: number) => {
+      webFrame.setZoomFactor(factor)
+    },
     onState: (listener) => subscribe('window:state', listener)
   },
   boot: {
@@ -122,19 +134,41 @@ const api: CandyHavenApi = {
     addNote: (id, draft) => invoke('projects:note-add', { id, draft }),
     updateNote: (id, noteId, draft) => invoke('projects:note-update', { id, noteId, draft }),
     deleteNote: (id, noteId) => invoke('projects:note-delete', { id, noteId }),
-    addMarketingAsset: (id, kind) => invoke('projects:marketing-add', { id, kind }),
-    saveMarketingAsset: (id, asset) => invoke('projects:marketing-upsert', { id, asset }),
-    removeMarketingAsset: (id, assetId) => invoke('projects:marketing-remove', { id, assetId }),
+    create: (draft) => invoke('projects:create', draft),
+    open: (id) => invoke('projects:open', { id }),
     forget: (id) => invoke('projects:forget', { id }),
-    unlinked: (limit) => invoke('projects:unlinked', limit ? { limit } : undefined),
+    trash: (id) => invoke('projects:trash', { id }),
+    restore: (id) => invoke('projects:restore', { id }),
+    purge: (id) => invoke('projects:purge', { id }),
     thumbnail: (path, width) => invoke('projects:thumbnail', { path, width }),
+    file: (id, folderId) => invoke('projects:file', { id, folderId }),
     onScan: (listener) => subscribe('projects:scan', listener)
   },
-  transmissions: {
-    schedule: () => invoke('transmissions:schedule'),
-    addTask: (draft) => invoke('transmissions:task-add', draft),
-    updateTask: (id, patch) => invoke('transmissions:task-update', { id, patch }),
-    removeTask: (id) => invoke('transmissions:task-remove', { id })
+  stacks: {
+    tree: () => invoke('stacks:tree'),
+    setupState: () => invoke('stacks:setup-state'),
+    setup: (draft) => invoke('stacks:setup', draft),
+    create: (draft) => invoke('stacks:create', draft),
+    update: (id, patch) => invoke('stacks:update', { id, patch }),
+    remove: (id) => invoke('stacks:delete', { id }),
+    restore: (id) => invoke('stacks:restore', { id }),
+    purge: (id) => invoke('stacks:purge', { id })
+  },
+  volumes: {
+    list: () => invoke('volumes:list'),
+    get: (id) => invoke('volumes:get', { id }),
+    create: (draft) => invoke('volumes:create', draft),
+    update: (id, patch) => invoke('volumes:update', { id, patch }),
+    remove: (id) => invoke('volumes:delete', { id }),
+    reorder: (id, projectIds) => invoke('volumes:reorder', { id, projectIds })
+  },
+  releases: {
+    list: () => invoke('releases:list'),
+    get: (id) => invoke('releases:get', { id }),
+    create: (draft) => invoke('releases:create', draft),
+    update: (id, patch) => invoke('releases:update', { id, patch }),
+    attach: (id, kind, sourcePath) => invoke('releases:attach', { id, kind, sourcePath }),
+    remove: (id) => invoke('releases:delete', { id })
   },
   rite: {
     state: () => invoke('rite:state'),
@@ -196,6 +230,7 @@ const api: CandyHavenApi = {
   shell: {
     openExternal: (url) => invoke('shell:open-external', { url }),
     reveal: (path) => invoke('shell:reveal', { path }),
+    openPath: (path) => invoke('shell:open-path', { path }),
     selectDirectory: (title) => invoke('dialog:select-directory', title ? { title } : undefined),
     selectFile: (options) => invoke('dialog:select-file', options)
   }

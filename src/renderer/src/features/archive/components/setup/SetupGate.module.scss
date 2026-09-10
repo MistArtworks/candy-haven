@@ -1,0 +1,264 @@
+@use 'abstracts' as *;
+
+// The setup gate — the sheet the ARCHIVE opens behind until it has a filing
+// root and a template.
+//
+// Built from the same materials as the dossier overlay rather than as a new
+// kind of object: a full-bleed scrim, one raised sheet, numbered sections. It
+// is the first thing the operator ever sees of this department, so it should
+// read as the department rather than as an installer.
+
+// A panel at the foot of the page rather than a sheet over it. Carries the
+// accent border because until it is filled in, it is the only thing on the page
+// that can actually be acted on.
+.sheet {
+  width: 100%;
+  background: var(--ch-surface);
+  border: $hairline solid var(--ch-line-gold);
+  box-shadow: var(--ch-shadow-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+// ------------------------------------------------------------------ header
+
+.header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: space(1) space(3);
+  padding: space(5) space(6);
+  @include hairline(bottom, 0.1);
+}
+
+.index {
+  @include readout(10px);
+  color: var(--ch-gold-400);
+  grid-row: span 2;
+}
+
+.title {
+  @include label(13px, 0.2em);
+  color: var(--ch-text-primary);
+  margin: 0;
+}
+
+.purpose {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.warn {
+  @include readout(10px);
+  color: var(--ch-crimson-300);
+  line-height: 1.6;
+  margin: 0;
+  padding: space(3) space(6);
+  border-left: 2px solid var(--ch-crimson-500);
+  background: var(--ch-surface-raised);
+}
+
+// ------------------------------------------------------------------- steps
+
+.steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(5) space(6);
+
+  & + & {
+    @include hairline(top, 0.08);
+  }
+}
+
+.stepHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+}
+
+.stepIndex {
+  @include readout(9px);
+  color: var(--ch-gold-400);
+}
+
+.stepLabel {
+  @include label(10px, 0.18em);
+  color: var(--ch-text-primary);
+}
+
+.stepBody {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.stepAction {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  margin-top: space(1);
+}
+
+// Fills the row so the button stays pinned right whether a path is set or not,
+// and truncates from the left — the end of a path is the part that identifies
+// it, and `…\Music\Projects` is far more useful than `D:\Users\hanee\Doc…`.
+.value {
+  flex: 1;
+  min-width: 0;
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  padding: space(2) space(3);
+  direction: rtl;
+  text-align: left;
+  @include truncate;
+}
+
+// ----------------------------------------------------------------- preview
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(5) space(6);
+  @include hairline(top, 0.08);
+  background: var(--ch-surface-raised);
+}
+
+.previewLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.tree {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.previewNote {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.mono {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.error {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  line-height: 1.6;
+  margin: 0;
+  padding: space(3) space(6);
+  border-left: 2px solid var(--ch-crimson-500);
+}
+
+// ------------------------------------------------------------------ footer
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  padding: space(4) space(6);
+  @include hairline(top, 0.1);
+}
+
+.footNote {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// ------------------------------------------------------- source locations
+
+// Marks the one step that can be skipped. Sits in the head rather than in the
+// body copy so it is legible before the paragraph is read.
+.optional {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-faint);
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(2);
+  margin-inline-start: auto;
+}
+
+.sourceList {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.source {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.sourceRemove {
+  @include readout(12px);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  padding: 0 space(2);
+  cursor: pointer;
+  line-height: 1;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-crimson-400);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// Says where the prefilled path came from — saved, chosen, or the suggestion.
+// Without it a re-run of the gate shows an old choice indistinguishable from
+// the default the operator was expecting.
+.provenance {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+}
+
+// Offered only when a saved root is masking the suggestion, so the way back to
+// the default is one click rather than a trip through the directory picker.
+.reset {
+  @include readout(9px);
+  color: var(--ch-gold-400);
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-top: space(1);
+  cursor: pointer;
+  text-align: left;
+  align-self: flex-start;
+
+  &:hover {
+    color: var(--ch-gold-300);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}

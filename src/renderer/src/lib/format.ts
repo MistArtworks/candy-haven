@@ -73,7 +73,10 @@ export function formatIndex(index: number): string {
 // the 14th regardless of where the operator is, so nothing below converts one
 // to an instant in local time, which would drag it across a day boundary.
 //
-// These lived under features/archive until TRANSMISSIONS also needed them.
+// These lived under features/archive until a second department needed them.
+// `formatCountdown` and `isOverdue` are kept alongside `formatIsoDate` although
+// nothing reads them today: they were written for the scheduling department and
+// the replacement for it will want exactly these three again.
 
 export const MONTHS = [
   'JAN',

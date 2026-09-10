@@ -7,15 +7,13 @@ import {
   type UseQueryResult
 } from '@tanstack/react-query'
 import type {
-  MarketingAsset,
-  MarketingAssetKind,
   NoteDraft,
+  ProjectDraft,
   ProjectPatch,
   ProjectQuery,
   ProjectRecord,
   ProjectRegistry,
-  ScanState,
-  UnlinkedMedia
+  ScanState
 } from '@shared/domain/projects'
 import { createEmptyScanState } from '@shared/domain/projects.constants'
 
@@ -52,15 +50,6 @@ export function useProject(id: string | null): UseQueryResult<ProjectRecord> {
   })
 }
 
-export function useUnlinkedMedia(enabled: boolean): UseQueryResult<UnlinkedMedia[]> {
-  return useQuery({
-    queryKey: ['projects', 'unlinked'],
-    queryFn: () => window.candy.projects.unlinked(200),
-    enabled,
-    staleTime: 30_000
-  })
-}
-
 /**
  * Live scan state.
  *
@@ -93,9 +82,12 @@ export function useScanState(): ScanState {
        */
       if (next.phase === 'done' || next.phase === 'error') {
         void queryClient.invalidateQueries({ queryKey: ['projects'] })
-        // A scan can register a project that already carries a release date, so
-        // the schedule is stale for the same reason the register is.
-        void queryClient.invalidateQueries({ queryKey: ['transmissions'] })
+        // A scan re-files projects from their paths, so folder counts move with
+        // the register. Volumes and releases read the register too — a relinked
+        // project changes a volume's track count and un-orphans a release.
+        void queryClient.invalidateQueries({ queryKey: ['stacks'] })
+        void queryClient.invalidateQueries({ queryKey: ['volumes'] })
+        void queryClient.invalidateQueries({ queryKey: ['releases'] })
       }
     })
 
@@ -118,19 +110,24 @@ export function useScanState(): ScanState {
 }
 
 /**
- * Invalidates every projects query. Called after any successful mutation.
+ * Invalidates every query that reads the register. Called after any successful
+ * mutation.
  *
- * TRANSMISSIONS is invalidated alongside, because its schedule is a projection
- * over these same records: editing a promotional date in a dossier changes what
- * the calendar should draw, and without this the two departments would disagree
- * until something else happened to refetch.
+ * Four keys rather than one, because three other views are projections over
+ * these same records and none of them can tell on their own that a record
+ * changed: filing moves a folder's count, a category change moves a track
+ * between volumes, and trashing a project orphans its release. Refetching all
+ * four is a few kilobytes against a local database; leaving them stale means
+ * two panels on one screen disagreeing.
  */
 function useInvalidateProjects(): () => Promise<void> {
   const queryClient = useQueryClient()
   return async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['projects'] }),
-      queryClient.invalidateQueries({ queryKey: ['transmissions'] })
+      queryClient.invalidateQueries({ queryKey: ['stacks'] }),
+      queryClient.invalidateQueries({ queryKey: ['volumes'] }),
+      queryClient.invalidateQueries({ queryKey: ['releases'] })
     ])
   }
 }
@@ -141,12 +138,17 @@ function useInvalidateProjects(): () => Promise<void> {
  *
  * Unlike settings — which are local-first because the renderer is their only
  * writer — a project edit can be *rejected* by rules the renderer does not
- * own: a stage gate on an incomplete package, a marketing plan seeded as a side
- * effect, a release date that re-dates nine deliverables. Showing the operator
- * a guess and then correcting it would be worse than a brief wait for the truth.
+ * own: a stage gate with no final master chosen, a category that demands a
+ * volume, a folder that turns out to be a genre. Showing the operator a guess
+ * and then correcting it would be worse than a brief wait for the truth.
+ *
+ * `create` and `trash` are the strongest case for that rule: one makes
+ * directories and copies a template, the other moves a folder to the Recycle
+ * Bin. Neither may be drawn as done before the disk agrees.
  */
 export function useProjectMutations(): {
   patch: UseMutationResult<ProjectRecord, Error, { id: string; patch: ProjectPatch }>
+  create: UseMutationResult<ProjectRecord, Error, ProjectDraft>
   addNote: UseMutationResult<ProjectRecord, Error, { id: string; draft: NoteDraft }>
   updateNote: UseMutationResult<
     ProjectRecord,
@@ -154,14 +156,10 @@ export function useProjectMutations(): {
     { id: string; noteId: string; draft: NoteDraft }
   >
   deleteNote: UseMutationResult<ProjectRecord, Error, { id: string; noteId: string }>
-  addMarketingAsset: UseMutationResult<
-    ProjectRecord,
-    Error,
-    { id: string; kind: MarketingAssetKind }
-  >
-  saveMarketingAsset: UseMutationResult<ProjectRecord, Error, { id: string; asset: MarketingAsset }>
-  removeMarketingAsset: UseMutationResult<ProjectRecord, Error, { id: string; assetId: string }>
   forget: UseMutationResult<void, Error, string>
+  trash: UseMutationResult<ProjectRecord, Error, string>
+  restore: UseMutationResult<ProjectRecord, Error, string>
+  purge: UseMutationResult<void, Error, string>
 } {
   const invalidate = useInvalidateProjects()
   const onSuccess = (): Promise<void> => invalidate()
@@ -169,6 +167,10 @@ export function useProjectMutations(): {
   return {
     patch: useMutation({
       mutationFn: ({ id, patch }) => window.candy.projects.patch(id, patch),
+      onSuccess
+    }),
+    create: useMutation({
+      mutationFn: (draft: ProjectDraft) => window.candy.projects.create(draft),
       onSuccess
     }),
     addNote: useMutation({
@@ -183,20 +185,20 @@ export function useProjectMutations(): {
       mutationFn: ({ id, noteId }) => window.candy.projects.deleteNote(id, noteId),
       onSuccess
     }),
-    addMarketingAsset: useMutation({
-      mutationFn: ({ id, kind }) => window.candy.projects.addMarketingAsset(id, kind),
-      onSuccess
-    }),
-    saveMarketingAsset: useMutation({
-      mutationFn: ({ id, asset }) => window.candy.projects.saveMarketingAsset(id, asset),
-      onSuccess
-    }),
-    removeMarketingAsset: useMutation({
-      mutationFn: ({ id, assetId }) => window.candy.projects.removeMarketingAsset(id, assetId),
-      onSuccess
-    }),
     forget: useMutation({
       mutationFn: (id: string) => window.candy.projects.forget(id),
+      onSuccess
+    }),
+    trash: useMutation({
+      mutationFn: (id: string) => window.candy.projects.trash(id),
+      onSuccess
+    }),
+    restore: useMutation({
+      mutationFn: (id: string) => window.candy.projects.restore(id),
+      onSuccess
+    }),
+    purge: useMutation({
+      mutationFn: (id: string) => window.candy.projects.purge(id),
       onSuccess
     })
   }

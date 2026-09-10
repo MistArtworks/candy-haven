@@ -71,6 +71,14 @@
   flex-shrink: 0;
 }
 
+// The lens selector is a direct child of the column, so it needs to be told not
+// to stretch across the strip the way a block-level child otherwise would.
+.lensRow {
+  display: flex;
+  align-self: flex-start;
+  flex-wrap: wrap;
+}
+
 .segment {
   position: relative;
   padding: space(2) space(4);
@@ -107,6 +115,25 @@
 }
 
 // ------------------------------------------------------------------ filter chips
+
+// Categories, stages and the toggles on one line. Wraps rather than scrolls:
+// on a narrow window the axes stack, which is the old layout and still legible.
+.filters {
+  display: flex;
+  align-items: center;
+  gap: space(2) space(3);
+  flex-wrap: wrap;
+}
+
+// Separates the two filter axes. A rule rather than a gap, because "what a
+// project is" and "how far along it is" answer different questions and running
+// them together as one strip of chips would imply they were one set.
+.axisRule {
+  width: $hairline;
+  align-self: stretch;
+  min-height: rem(16px);
+  background: var(--ch-line);
+}
 
 .chipRow {
   display: flex;
@@ -177,8 +204,74 @@
   }
 }
 
+// Stretched like everything else in the row, so it has to centre its own text
+// rather than sitting against the top of a full-height box.
 .count {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
   @include readout(10px);
   color: var(--ch-text-faint);
   white-space: nowrap;
+}
+
+// ------------------------------------------------------------ filter toggle
+
+// Sits beside SORT, and reads as a peer of it: both are ways of shaping the
+// panel below rather than actions on the register.
+.filterButton {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  @include label(8px, 0.16em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.12);
+  // No vertical padding: the row stretches every child to a common height, so
+  // adding some here made this the tallest thing and threw the row out.
+  padding: 0 space(3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  // Open. Distinct from *active*: the panel can be open with nothing set.
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+  }
+
+  // Something is actually being filtered out. Gold rather than crimson: this is
+  // a state the operator chose, not a warning.
+  &[data-active] {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+}
+
+.filterCount {
+  @include readout(8px);
+  color: var(--ch-obsidian-900);
+  background: var(--ch-gold-300);
+  padding: 0 space(1);
+  min-width: rem(14px);
+  text-align: center;
+}
+
+// A chip for something the register holds none of. Kept in place rather than
+// removed so the list never reshuffles under the pointer, but dimmed so the
+// eye skips it.
+.filterChip[data-empty]:not([data-selected]) {
+  opacity: 0.4;
 }

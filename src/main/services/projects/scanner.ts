@@ -1,18 +1,13 @@
 import type { Dirent } from 'node:fs'
 import { readdir, stat } from 'node:fs/promises'
 import { basename, join, relative, sep } from 'node:path'
-import type {
-  AbletonAnalysis,
-  AbletonSet,
-  MediaFile,
-  SetRevision,
-  UnlinkedMedia
-} from '@shared/domain/projects'
+import type { AbletonAnalysis, AbletonSet, MediaFile, SetRevision } from '@shared/domain/projects'
 import {
   SCAN_IGNORED_DIRECTORIES,
   SCAN_MAX_DEPTH,
   classifyExtension
 } from '@shared/domain/projects.constants'
+import { RESERVED_WRAPPER_DIRECTORIES } from '@shared/domain/stacks.constants'
 import { mapWithConcurrency } from '@main/core/async'
 import { getLogger } from '@main/core/logger'
 import { readAbletonSet, reverifySamples } from './als-reader'
@@ -32,7 +27,20 @@ const logger = getLogger('projects:scanner')
  * keeps a scan of a large sample library from taking minutes.
  */
 
-const IGNORED = new Set<string>(SCAN_IGNORED_DIRECTORIES)
+/**
+ * Directories the walk never descends into.
+ *
+ * The reserved wrapper directories are ours. `RELEASES` holds copies of
+ * finished files assembled for a hand-off, never projects — walking it would
+ * index the same masters a second time. `RECYCLE BIN` holds projects the
+ * operator deleted, and indexing those would resurrect every one of them as a
+ * live record on the next launch, which is the single worst thing a scan of a
+ * bin could do.
+ */
+const IGNORED = new Set<string>([
+  ...SCAN_IGNORED_DIRECTORIES,
+  ...RESERVED_WRAPPER_DIRECTORIES.map((name) => name.toLowerCase())
+])
 
 /** Bounded so one pathological folder cannot produce a multi-megabyte record. */
 const MAX_LISTED_FILES = 400
@@ -96,7 +104,6 @@ export interface ScanOptions {
 
 export interface ScanResult {
   projects: ScannedProject[]
-  unlinked: UnlinkedMedia[]
   directoriesVisited: number
   filesSeen: number
   /** Sets decompressed and read during this scan. */
@@ -107,7 +114,6 @@ export interface ScanResult {
 
 interface WalkContext {
   projectDirectories: string[]
-  unlinked: UnlinkedMedia[]
   directoriesVisited: number
   filesSeen: number
   /** Guards against symlink loops and roots that overlap one another. */
@@ -121,7 +127,6 @@ export async function scanRoots(
 ): Promise<ScanResult> {
   const context: WalkContext = {
     projectDirectories: [],
-    unlinked: [],
     directoriesVisited: 0,
     filesSeen: 0,
     visited: new Set(),
@@ -188,7 +193,6 @@ export async function scanRoots(
 
   return {
     projects,
-    unlinked: context.unlinked,
     directoriesVisited: context.directoriesVisited,
     filesSeen: context.filesSeen,
     setsParsed: stats.parsed,
@@ -262,26 +266,15 @@ async function walk(directory: string, depth: number, context: WalkContext): Pro
     return
   }
 
-  // Loose audio outside any project folder is still the operator's work, so it
-  // is recorded rather than dropped — they can attach it to a project later.
-  for (const entry of files) {
-    if (classifyExtension(entry.name) !== 'audio') continue
-
-    const path = join(directory, entry.name)
-    try {
-      const info = await stat(path)
-      context.unlinked.push({
-        path,
-        fileName: entry.name,
-        directory,
-        sizeBytes: info.size,
-        modifiedAt: info.mtimeMs
-      })
-    } catch {
-      // Vanished between readdir and stat; nothing worth reporting.
-    }
-  }
-
+  /*
+   * Audio sitting outside any project folder is simply walked past.
+   *
+   * An earlier build catalogued it as "unlinked media" and surfaced it in its
+   * own panel. That was removed as noise: it listed thousands of samples and
+   * old bounces, and no action was ever taken on any of them. What the operator
+   * actually wants surfaced is *projects* that are not yet filed, which the
+   * register already knows — see the UNFILED panel.
+   */
   for (const entry of directories) {
     await walk(join(directory, entry.name), depth + 1, context)
   }
@@ -451,6 +444,36 @@ async function collectRevisions(directory: string, into: SetRevision[]): Promise
 }
 
 /** `Midnight Signal Project` -> `Midnight Signal`. */
+/**
+ * Indexes one project folder, without walking anything to find it.
+ *
+ * Used immediately after provisioning a new project, so its record carries the
+ * template set's analysis from the moment it appears rather than an empty
+ * dossier that only fills in on the next scan.
+ *
+ * No analysis cache is passed: the set was copied a moment ago and has never
+ * been read, so there is nothing to reuse.
+ */
+export async function indexProject(directory: string): Promise<ScannedProject> {
+  const existence = new Map<string, boolean>()
+  const sampleExists = async (path: string): Promise<boolean> => {
+    const cached = existence.get(path)
+    if (cached !== undefined) return cached
+
+    let exists = false
+    try {
+      await stat(path)
+      exists = true
+    } catch {
+      exists = false
+    }
+    existence.set(path, exists)
+    return exists
+  }
+
+  return inventory(directory, sampleExists, {}, { parsed: 0, reused: 0 })
+}
+
 export function cleanProjectName(folderName: string): string {
   return folderName.replace(/\s+project$/i, '').trim() || folderName
 }

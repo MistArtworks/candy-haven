@@ -1,0 +1,38 @@
+@use 'abstracts' as *;
+
+// Sits in a panel header, so it is smaller and quieter than the lens strip in
+// the control bar — it chooses how one panel draws, not what the page is about.
+
+.group {
+  display: flex;
+  @include hairline(all, 0.12);
+}
+
+.segment {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  padding: space(1) space(2);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    background $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.1);
+  }
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-1px);
+  }
+
+  &[data-selected] {
+    color: var(--ch-obsidian-900);
+    background: var(--ch-alabaster-500);
+  }
+}

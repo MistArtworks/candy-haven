@@ -121,12 +121,31 @@
   color: var(--ch-gold-300);
 }
 
+// -------------------------------------------------------- unbounded lists
+
+// How tall a list inside a panel may get before it scrolls itself.
+//
+// **Only the file lists use this.** The dossier body is itself a scroll
+// container, so any list that scrolls independently can put a second scrollbar
+// on screen a few pixels from the first — which reads as broken no matter how
+// the cap is tuned, and cannot be tuned away because whether the body overflows
+// depends on the window.
+//
+// The file lists keep it because they are reference material that can run to
+// hundreds of rows, they live on their own tab beside other tall panels that
+// force the body to scroll regardless, and nobody scrolls a sample list looking
+// for anything in particular.
+//
+// Notes and stage history took the opposite route: they are bounded by *what
+// gets rendered* instead. See `HISTORY_SHOWN` in DossierOverview.tsx.
+$list-cap: min(#{rem(280px)}, 24vh);
+
 // ---------------------------------------------------------------- file rows
 
 .fileList {
   display: flex;
   flex-direction: column;
-  max-height: rem(280px);
+  max-height: $list-cap;
   overflow-y: auto;
 }
 
@@ -261,6 +280,17 @@
 
 // -------------------------------------------------------------------- notes
 
+// Deliberately unbounded, and deliberately not scrolling.
+//
+// Notes are written to be read, and there are rarely many; letting them flow
+// means the dossier body — the one scroll container — carries them, so no
+// second scrollbar ever appears next to it.
+.noteList {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
 .note {
   display: flex;
   flex-direction: column;
@@ -305,9 +335,22 @@
 
 // ------------------------------------------------------------------ history
 
+// No scroll here: the row count is bounded by the component instead, so this
+// panel has a ceiling without ever growing a scrollbar of its own beside the
+// body's. See `HISTORY_SHOWN` in DossierOverview.tsx.
 .history {
   display: flex;
   flex-direction: column;
+}
+
+// The tail the panel does not draw. Muted and set apart from the rows above, so
+// it reads as a footnote rather than as another entry.
+.historyMore {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  padding-top: space(3);
+  margin-top: space(1);
+  @include hairline(top, 0.05);
 }
 
 .event {
