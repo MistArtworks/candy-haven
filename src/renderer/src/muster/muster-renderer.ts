@@ -45,6 +45,14 @@ import { readCustomProperty, withAlpha } from '@renderer/overlays/colour'
 
 const TAU = Math.PI * 2
 
+/**
+ * The ambient population behind the roll.
+ *
+ * Enough to imply a field, not enough to compete with it. Thirty-four read as
+ * a starscape over the ledger; this is a backdrop.
+ */
+const AMBIENT_NODES = 20
+
 const FALLBACK = {
   obsidian: '#0c0c0c',
   slab: '#111011',
@@ -76,8 +84,16 @@ interface Node {
   phase: number
   /** The entry this node stands for, or null for the ambient population. */
   entryId: string | null
-  /** Seconds since it appeared, for the arrival flare. */
-  age: number
+  /**
+   * When the entry was filed, in wall-clock ms, or 0 for ambient nodes.
+   *
+   * The arrival flare is timed from *this* rather than from how long the node
+   * has existed. A source that joins a call halfway through should not flare
+   * for fourteen entries it has just been told about, and a node's own age
+   * depends on frame delivery — which a throttled or backgrounded browser
+   * source does not have.
+   */
+  filedAt: number
 }
 
 export interface MusterFaceOptions {
@@ -149,7 +165,7 @@ export class MusterFace {
     for (const entry of state.entries) {
       if (this.known.has(entry.id)) continue
       this.known.add(entry.id)
-      this.nodes.push(this.makeNode(entry.id))
+      this.nodes.push(this.makeNode(entry.id, entry.at))
     }
   }
 
@@ -186,10 +202,10 @@ export class MusterFace {
     // The ambient population is topped up rather than replaced, so a resize
     // does not scatter a network the audience is watching.
     const ambient = this.nodes.filter((node) => node.entryId === null).length
-    for (let i = ambient; i < 34; i += 1) this.nodes.push(this.makeNode(null))
+    for (let i = ambient; i < AMBIENT_NODES; i += 1) this.nodes.push(this.makeNode(null))
   }
 
-  private makeNode(entryId: string | null): Node {
+  private makeNode(entryId: string | null, filedAt = 0): Node {
     return {
       x: Math.random(),
       y: Math.random(),
@@ -198,7 +214,7 @@ export class MusterFace {
       vy: (Math.random() - 0.5) * 0.016,
       phase: Math.random() * TAU,
       entryId,
-      age: 0
+      filedAt
     }
   }
 
@@ -281,16 +297,24 @@ export class MusterFace {
 
     const drift = this.motion ? delta : 0
     const unit = Math.min(this.width, this.height)
-    const reach = 0.22
+    const reach = 0.19
     const reachSquared = reach * reach
-    // The field brightens while a call is open: the network is *live*.
-    const energy = state.phase === 'open' ? 1 : resting ? 0.4 : 0.7
+    /*
+     * Turned right down, deliberately.
+     *
+     * The field is the *backdrop*: the roll is what the audience is reading,
+     * and a lattice of bright orange blobs behind it competes with the one
+     * thing on screen that carries information. It first shipped bright enough
+     * to be the subject, which was the wrong call — everything here is now
+     * about a third of what it was, and the field reads as depth rather than
+     * as content.
+     */
+    const energy = (state.phase === 'open' ? 1 : resting ? 0.35 : 0.6) * 0.42
 
     for (const node of this.nodes) {
       node.x += node.vx * drift
       node.y += node.vy * drift
       node.phase += drift * 0.5
-      node.age += drift
 
       // Wrapped, not bounced: a bounce puts a visible edge on the frame.
       if (node.x < -0.05) node.x = 1.05
@@ -317,7 +341,7 @@ export class MusterFace {
         const filed = a.entryId !== null && b.entryId !== null
         context.strokeStyle = withAlpha(
           filed ? this.palette.goldLit : this.palette.gold,
-          closeness * closeness * (filed ? 0.3 : 0.13) * energy
+          closeness * closeness * (filed ? 0.24 : 0.1) * energy
         )
         context.beginPath()
         context.moveTo(a.x * this.width, a.y * this.height)
@@ -334,19 +358,21 @@ export class MusterFace {
       if (node.entryId !== null) {
         // A new filing lands hot and cools into the network over a couple of
         // seconds — the one moment the audience should see their entry arrive.
-        const arrival = Math.max(1 - (node.age * 1000) / ARRIVAL_MS, 0)
+        const arrival = Math.max(1 - (Date.now() - node.filedAt) / ARRIVAL_MS, 0)
+        // Small and brief. A filing should register at the edge of vision, not
+        // detonate: it was a sixty-pixel bloom and is now a fifth of that.
         if (arrival > 0) {
-          const size = unit * (0.02 + arrival * 0.09)
-          context.globalAlpha = arrival * 0.8 * energy
+          const size = unit * (0.008 + arrival * 0.022)
+          context.globalAlpha = arrival * 0.5 * energy
           context.drawImage(this.flare, x - size / 2, y - size / 2, size, size)
         }
 
-        context.globalAlpha = Math.min((0.5 + arrival * 0.5) * pulse * energy, 1)
-        const size = Math.max(unit * 0.012, 3)
+        context.globalAlpha = Math.min((0.34 + arrival * 0.3) * pulse * energy, 1)
+        const size = Math.max(unit * 0.008, 2)
         context.drawImage(this.spark, x - size / 2, y - size / 2, size, size)
       } else {
-        context.globalAlpha = Math.min(0.22 * pulse * energy, 1)
-        const size = Math.max(unit * 0.006, 1.5)
+        context.globalAlpha = Math.min(0.16 * pulse * energy, 1)
+        const size = Math.max(unit * 0.005, 1.2)
         context.drawImage(this.spark, x - size / 2, y - size / 2, size, size)
       }
     }
@@ -529,10 +555,12 @@ export class MusterFace {
     context.save()
     context.globalCompositeOperation = 'lighter'
 
+    // Faint. It is architecture behind the plate, and at the alpha it first
+    // shipped at it was reading as a diagram drawn over the roll.
     for (const [scale, speed, alpha] of [
-      [1, 1, 0.16],
-      [0.74, -0.7, 0.12],
-      [0.46, 1.6, 0.1]
+      [1, 1, 0.075],
+      [0.74, -0.7, 0.055],
+      [0.46, 1.6, 0.045]
     ]) {
       context.strokeStyle = withAlpha(palette.gold, alpha * live)
       context.lineWidth = 1
@@ -542,7 +570,7 @@ export class MusterFace {
 
       // Twelve stations on each ring. An instrument is graduated; a hoop is not.
       const angle = spin * speed
-      context.fillStyle = withAlpha(palette.goldLit, alpha * 2.2 * live)
+      context.fillStyle = withAlpha(palette.goldLit, alpha * 1.8 * live)
       for (let i = 0; i < 12; i += 1) {
         const at = angle + (i / 12) * TAU
         const r = radius * scale
