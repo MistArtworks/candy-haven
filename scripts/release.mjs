@@ -29,10 +29,13 @@
  */
 
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+const require = createRequire(import.meta.url)
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const OWNER = 'MistArtworks'
@@ -65,29 +68,34 @@ function die(message, hint) {
   throw new ReleaseError(message, hint)
 }
 
-/**
- * The executable to spawn for a command.
- *
- * Windows resolves `npx` to `npx.cmd`, which `spawnSync` will not find without
- * either a shell or the extension. The extension is the better half of that
- * trade: `shell: true` with an argument *array* is deprecated in Node, and is
- * also how an unescaped argument becomes a second command.
- */
-function executable(command) {
-  return process.platform === 'win32' && command === 'npx' ? 'npx.cmd' : command
-}
-
 /** Runs a command, inheriting stdio. Dies on a non-zero exit. */
 function run(command, args) {
-  const result = spawnSync(executable(command), args, { cwd: ROOT, stdio: 'inherit' })
+  const result = spawnSync(command, args, { cwd: ROOT, stdio: 'inherit' })
   if (result.error) die(`Could not run ${command}: ${result.error.message}`)
   if (result.status !== 0) die(`\`${command} ${args.join(' ')}\` failed with ${result.status}.`)
 }
 
 /** Runs a command and returns its stdout, trimmed. */
 function capture(command, args) {
-  const result = spawnSync(executable(command), args, { cwd: ROOT, encoding: 'utf8' })
+  const result = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8' })
   return (result.stdout ?? '').trim()
+}
+
+/**
+ * Builds the installer, without going through `npx`.
+ *
+ * Node refuses to `spawn` a `.cmd` without a shell — it has since the argument
+ * injection fix in 20.12 — and on Windows every npm shim is a `.cmd`, so
+ * `npx electron-builder` dies with `EINVAL`. Handing it a shell instead would
+ * work and would reintroduce the argument-array deprecation, and with it the
+ * quoting problem the refusal exists to prevent.
+ *
+ * So the CLI's own entry point is resolved and run with the Node that is
+ * already running this. No shim, no shell, nothing to quote.
+ */
+function build() {
+  const cli = require.resolve('electron-builder/out/cli/cli.js')
+  run(process.execPath, [cli, '--win'])
 }
 
 let TOKEN = ''
@@ -271,7 +279,7 @@ async function main() {
   step('Build')
   if (skipBuild) say('skipped')
   else if (dryRun) say('would run electron-builder --win')
-  else run('npx', ['electron-builder', '--win'])
+  else build()
 
   step('Assets')
   const installer = `release/CandyHaven-Setup-${version}.exe`
