@@ -226,12 +226,6 @@ const api: CandyHavenApi = {
     setup: () => invoke('nowplaying:setup'),
     onState: (listener) => subscribe('nowplaying:state', listener)
   },
-  antechamber: {
-    state: () => invoke('antechamber:state'),
-    configure: (patch) => invoke('antechamber:config', patch),
-    reset: () => invoke('antechamber:reset'),
-    onState: (listener) => subscribe('antechamber:state', listener)
-  },
   release: {
     arrival: () => invoke('update:arrival'),
     acknowledge: () => invoke('update:acknowledge')

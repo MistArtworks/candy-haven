@@ -10,7 +10,6 @@ import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
 import { TimerService } from './overlay/timer.service'
 import { SpotifyService } from './overlay/spotify.service'
-import { AntechamberService } from './overlay/antechamber.service'
 import { DispatchService } from './dispatch/dispatch.service'
 import { ConcordService } from './overlay/concord.service'
 import { TwitchChatService } from './chat/twitch-chat.service'
@@ -62,7 +61,6 @@ export interface ServiceContainer {
   readonly timers: TimerService
   readonly nowPlaying: SpotifyService
   readonly dispatch: DispatchService
-  readonly antechamber: AntechamberService
   readonly concord: ConcordService
 }
 
@@ -111,7 +109,6 @@ export function createServiceContainer(): ServiceContainer {
     timers: new TimerService(archive, overlayServer),
     nowPlaying: new SpotifyService(archive, overlayServer),
     dispatch: new DispatchService(),
-    antechamber: new AntechamberService(archive, overlayServer),
     concord: new ConcordService(archive, overlayServer, chat, settings)
   }
 }
