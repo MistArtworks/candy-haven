@@ -19,7 +19,16 @@ export default defineConfig(
        * only ever produces demands to make it something it must not become.
        * Prettier still formats it; see .prettierignore, which does not.
        */
-      'streamlabs/**/*.js'
+      'streamlabs/**/*.js',
+      /*
+       * Build scripts are Node, not application source.
+       *
+       * They run under `node` directly rather than through the bundler, and the
+       * TypeScript rules that govern `src/` — return-type annotations chief
+       * among them — have nothing to say about a plain `.mjs` that never sees
+       * `tsc`. Prettier still formats them.
+       */
+      'scripts/**/*.mjs'
     ]
   },
   tseslint.configs.recommended,

@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { Link } from 'react-router-dom'
@@ -87,6 +88,19 @@ export function SelectionPage(): ReactNode {
   )
 
   useHotkeys(hotkeys)
+
+  /*
+   * Owned locally while being typed into; see `useEchoedText`. Bound directly
+   * to the pushed state these dropped characters at speed.
+   */
+  const [title, setTitle] = useEchoedText(
+    state.config.title,
+    (value) => void actions.configure({ title: value })
+  )
+  const [prompt, setPrompt] = useEchoedText(
+    state.config.prompt,
+    (value) => void actions.configure({ prompt: value })
+  )
 
   const copyUrl = (): void => {
     if (!sourceUrl) return
@@ -254,14 +268,14 @@ export function SelectionPage(): ReactNode {
           <div className={styles.config}>
             <TextInput
               label="Title"
-              value={state.config.title}
-              onChange={(title) => void actions.configure({ title })}
+              value={title}
+              onChange={setTitle}
               placeholder="RESONANCE SELECTION"
             />
             <TextInput
               label="Question"
-              value={state.config.prompt}
-              onChange={(prompt) => void actions.configure({ prompt })}
+              value={prompt}
+              onChange={setPrompt}
               hint="Shown above the ring on the overlay."
             />
 

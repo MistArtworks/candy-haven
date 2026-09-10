@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { Link } from 'react-router-dom'
@@ -104,6 +105,16 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
   )
 
   useHotkeys(hotkeys)
+
+  // Owned locally while being typed into; see `useEchoedText`.
+  const [label, setLabel] = useEchoedText(
+    state.config.label,
+    (value) => void actions.configure(timerId, { label: value })
+  )
+  const [terminalWord, setTerminalWord] = useEchoedText(
+    state.config.terminalWord,
+    (value) => void actions.configure(timerId, { terminalWord: value })
+  )
 
   const copyUrl = (): void => {
     if (!sourceUrl) return
@@ -300,17 +311,12 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
               hint="Four presentations of the same clock. The overlay is always transparent."
             />
 
-            <TextInput
-              label="Label"
-              value={state.config.label}
-              onChange={(label) => void actions.configure(timerId, { label })}
-              placeholder="INTERVAL"
-            />
+            <TextInput label="Label" value={label} onChange={setLabel} placeholder="INTERVAL" />
 
             <TextInput
               label="Terminal word"
-              value={state.config.terminalWord}
-              onChange={(terminalWord) => void actions.configure(timerId, { terminalWord })}
+              value={terminalWord}
+              onChange={setTerminalWord}
               hint={
                 kind === 'convene'
                   ? 'Shown in place of the clock when the countdown resolves.'

@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { Link } from 'react-router-dom'
@@ -141,6 +142,25 @@ export function ConcordPage(): ReactNode {
   )
 
   useHotkeys(hotkeys)
+
+  /*
+   * The three text fields, owned locally while they are being typed into.
+   *
+   * They were controlled straight off the pushed state, which dropped
+   * characters at speed — see `useEchoedText` for the mechanism.
+   */
+  const [title, setTitle] = useEchoedText(
+    state.config.title,
+    (value) => void actions.configure({ title: value })
+  )
+  const [prompt, setPrompt] = useEchoedText(
+    state.config.prompt,
+    (value) => void actions.configure({ prompt: value })
+  )
+  const [command, setCommand] = useEchoedText(
+    state.config.command,
+    (value) => void actions.configure({ command: value })
+  )
 
   const addresses = overlayAddresses(overlay)
 
@@ -376,16 +396,11 @@ export function ConcordPage(): ReactNode {
 
         <Panel label="The question" index="04" className={styles.span2}>
           <div className={styles.config}>
-            <TextInput
-              label="Title"
-              value={state.config.title}
-              onChange={(title) => void actions.configure({ title })}
-              placeholder="THE CONCORD"
-            />
+            <TextInput label="Title" value={title} onChange={setTitle} placeholder="THE CONCORD" />
             <TextInput
               label="Question"
-              value={state.config.prompt}
-              onChange={(prompt) => void actions.configure({ prompt })}
+              value={prompt}
+              onChange={setPrompt}
               hint="Shown above the ballot on the overlay."
             />
 
@@ -445,8 +460,8 @@ export function ConcordPage(): ReactNode {
             {state.config.voteSyntax !== 'bare' ? (
               <TextInput
                 label="Command"
-                value={state.config.command}
-                onChange={(command) => void actions.configure({ command })}
+                value={command}
+                onChange={setCommand}
                 disabled={locked}
                 placeholder="!vote"
                 hint="Another bot's command is never counted as a vote."

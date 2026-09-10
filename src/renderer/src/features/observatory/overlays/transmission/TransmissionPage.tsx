@@ -34,6 +34,7 @@ import {
   useSpotifySetup
 } from '@renderer/hooks/useNowPlaying'
 import { NowPlayingFace } from '@renderer/nowplaying/nowplaying-renderer'
+import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { SourceList } from './SourceList'
 import styles from './TransmissionPage.module.scss'
 
@@ -101,6 +102,15 @@ export function TransmissionPage(): ReactNode {
   const set = (patch: Partial<NowPlayingConfig>): void => {
     if (selected) void actions.configure(selected.id, patch)
   }
+
+  /*
+   * Owned locally while being typed into; see `useEchoedText`.
+   *
+   * `config` follows whichever source is selected, so picking a different one
+   * changes the remote value and the field adopts it — the hook only holds on
+   * while an edit of its own is outstanding.
+   */
+  const [label, setLabel] = useEchoedText(config.label, (value) => set({ label: value }))
 
   return (
     <div className={styles.page}>
@@ -369,8 +379,8 @@ export function TransmissionPage(): ReactNode {
 
             <TextInput
               label="Label"
-              value={config.label}
-              onChange={(label) => set({ label })}
+              value={label}
+              onChange={setLabel}
               placeholder="NOW TRANSMITTING"
             />
 
