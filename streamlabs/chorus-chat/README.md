@@ -99,6 +99,19 @@ Grid cannot replace it here — rows would need `display: contents`, which
 generates no box, and a row with no box cannot be faded in or out. Per-row
 opacity is the whole widget.
 
+**Inside the name column, the name gives way and the badges do not.** The two
+share one fixed-width cell and do not always both fit — three badges and an
+eleven-character name is already over at the default 30%. So the name shrinks
+and truncates with an ellipsis while the badges hold their size, on the grounds
+that the name is the record and the badges are issued chrome. Deciding _which_
+child shrinks needs a flex row, and a table cell cannot be one, which is why
+`.meta` wraps its contents in `.meta-inner`. Leaving it to the cell's own
+`text-overflow` does not work: an ellipsis cannot truncate inside an atomic
+box, so the browser drops the whole name instead and the row renders as badges
+followed by `…`. If you are updating from an earlier paste, **re-paste the HTML
+tab as well as the CSS** — the CSS on its own degrades to a name hard-clipped at
+the hairline with no ellipsis, which is legible but not the intended reading.
+
 ---
 
 ## Working on it locally

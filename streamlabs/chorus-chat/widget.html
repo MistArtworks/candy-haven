@@ -11,6 +11,13 @@
   - `.index` is an extra table cell, filled by widget.js. It is deliberately
     empty here: the sequence is a property of arrival order, which only the
     renderer knows, and a token would just print the same value on every row.
+  - `.meta-inner` wraps the badges and the name. The name cell is a fixed-width
+    column and the two do not always both fit, so one of them has to shrink —
+    and a table cell cannot be a flex container, which is what deciding *which*
+    requires. Without it the name is what silently disappears; see the note in
+    widget.css. It does assume Streamlabs locates `.badges` by descendant
+    lookup rather than as a direct child of `.meta`, which is the one thing to
+    check first if badges ever stop appearing.
   - `style="color: {color}"` is GONE. That inline style is the viewer's Twitch
     colour, which is overwhelmingly blue/green/purple and would put a sixth hue
     on screen on the first message. The raw value is kept on `data-color` so
@@ -56,8 +63,10 @@
       <span class="index"></span>
 
       <span class="meta">
-          <span class="badges"></span>
-          <span class="name">{from}</span>
+          <span class="meta-inner">
+              <span class="badges"></span>
+              <span class="name">{from}</span>
+          </span>
       </span>
 
       <span class="message">{message}</span>

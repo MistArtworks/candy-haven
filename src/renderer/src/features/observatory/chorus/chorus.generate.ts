@@ -282,7 +282,7 @@ export function chorusPreviewDocument(config: ChorusConfig): string {
 
     return `<div class="${classes}" data-tone="${tone}" data-from="${escapeHtml(entry.from)}">
       <span class="index">${index}</span>
-      <span class="meta"><span class="badges">${badge}</span><span class="name">${escapeHtml(entry.from)}</span></span>
+      <span class="meta"><span class="meta-inner"><span class="badges">${badge}</span><span class="name">${escapeHtml(entry.from)}</span></span></span>
       <span class="message">${escapeHtml(entry.message)}</span>
     </div>`
   }).join('\n')

@@ -348,15 +348,70 @@ html[data-index='off'] #log .index {
 #log .meta {
   width: var(--ch-name-width);
   padding-right: 0.62em;
+  /* Only reached if the HTML tab still holds a pre-`.meta-inner` template: the
+     flex row below right-aligns itself. Kept so an out-of-date paste degrades
+     to the old layout rather than flushing the column left. */
   text-align: right;
+  /* Inherited by both children — the name is a single unbroken unit and the
+     badges are a row of them. */
   white-space: nowrap;
-  text-overflow: ellipsis;
+  /* Backstop only. The truncation itself happens on `.name`, for the reason
+     given below. */
   overflow: hidden;
   border-right: 1px solid var(--ch-line);
 }
 
+/*
+ * Badges and the name share one fixed-width column, and they do not always
+ * both fit — three badges and an eleven-character name is already over at the
+ * default 30%. Something has to give, and the whole bug is *what*.
+ *
+ * `text-overflow: ellipsis` on the cell cannot do it. It truncates inline text,
+ * and `.name` is an `inline-block` — an atomic box, which the ellipsis cannot
+ * reach inside. Faced with one that does not fit, the browser drops the entire
+ * box and draws the ellipsis where it would have started, so the row renders as
+ * badges followed by "…" and no name at all. A long name with no badges renders
+ * as nothing whatsoever.
+ *
+ * A flex row is the fix. It shrinks a chosen child rather than dropping the
+ * last one, and the child it shrinks then ellipsises its own text. Which is
+ * also the right editorial answer: the name is the record and the badges are
+ * issued chrome, so the name is what gives way, and it gives way by truncating
+ * instead of vanishing.
+ *
+ * This needs a box the cell itself cannot be — a table cell cannot also be a
+ * flex container — hence `.meta-inner` in widget.html.
+ */
+#log .meta-inner {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+}
+
+#log .badges {
+  /* Holds its size, so no badge is ever clipped mid-glyph in the ordinary
+     case of the name simply being long. */
+  flex: 0 0 auto;
+  /* Except past the point where badges would leave the name nothing at all.
+     Twitch shows five or six at the outside, which fits; the cap is what keeps
+     the failure this rule exists to fix from returning by another route. */
+  max-width: 60%;
+  overflow: hidden;
+}
+
 #log .name {
+  /* A flex item is blockified, so this is inert here — it is what keeps
+     `ch-attribute`'s `translateX` working on the degraded path above, where
+     transforms would otherwise not apply to a non-replaced inline box. */
   display: inline-block;
+  /* Shrinks to whatever the badges leave, then truncates its own text. Both
+     halves are required: `min-width: 0` because a flex item will not shrink
+     below its content otherwise, and the ellipsis because being narrower than
+     the name is the normal condition, not the exception. */
+  flex: 0 1 auto;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
   font-family: var(--ch-font-display);
   font-size: 0.74em;
   font-weight: 600;
