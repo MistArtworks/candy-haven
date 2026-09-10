@@ -163,8 +163,17 @@ export class BootSequence extends TypedEmitter<BootEvents> {
    * reads as a narrative rather than being scattered across the service layer.
    */
   private createRunners(): Record<BootStageId, StageRunner> {
-    const { settings, archive, updates, rite, timers, nowPlaying, concord, overlayServer } =
-      this.services
+    const {
+      settings,
+      archive,
+      updates,
+      rite,
+      timers,
+      nowPlaying,
+      concord,
+      dispatch,
+      overlayServer
+    } = this.services
 
     // Carried between stages within a single run. The full binary record is
     // kept, not just its path, so the daemon stage reports the runtime's real
@@ -274,6 +283,11 @@ export class BootSequence extends TypedEmitter<BootEvents> {
         await timers.initialize()
         await concord.initialize()
         await nowPlaying.initialize(settings.snapshot.integrations.spotifyClientId)
+
+        // The shared board attaches to a database over the network. Same rule
+        // as the rest of this step: an unreachable one reports itself on its own
+        // page and is not a reason to hold up the boot.
+        await dispatch.initialize()
 
         if (workspace.overlayAutoStart) {
           try {

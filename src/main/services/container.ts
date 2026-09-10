@@ -10,6 +10,7 @@ import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
 import { TimerService } from './overlay/timer.service'
 import { SpotifyService } from './overlay/spotify.service'
+import { DispatchService } from './dispatch/dispatch.service'
 import { ConcordService } from './overlay/concord.service'
 import { TwitchChatService } from './chat/twitch-chat.service'
 import { getLogger } from '@main/core/logger'
@@ -59,6 +60,7 @@ export interface ServiceContainer {
   readonly rite: RiteService
   readonly timers: TimerService
   readonly nowPlaying: SpotifyService
+  readonly dispatch: DispatchService
   readonly concord: ConcordService
 }
 
@@ -106,6 +108,7 @@ export function createServiceContainer(): ServiceContainer {
     rite: new RiteService(archive, overlayServer),
     timers: new TimerService(archive, overlayServer),
     nowPlaying: new SpotifyService(archive, overlayServer),
+    dispatch: new DispatchService(),
     concord: new ConcordService(archive, overlayServer, chat, settings)
   }
 }
@@ -130,6 +133,7 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
   container.rite.dispose()
   container.timers.dispose()
   container.nowPlaying.dispose()
+  container.dispatch.dispose()
   // Before chat: the poll releases its claim on the way down, and disposing the
   // ingest first would leave that release writing to a cleared emitter.
   container.concord.dispose()

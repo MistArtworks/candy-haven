@@ -9,6 +9,7 @@ export const SECTION_IDS = [
   'observatory',
   'interface',
   'telemetry',
+  'dispatch',
   'regulation'
 ] as const
 
@@ -76,12 +77,21 @@ export const SECTIONS: readonly SectionDefinition[] = [
     implemented: true
   },
   {
+    id: 'dispatch',
+    path: '/dispatch',
+    label: 'DISPATCH',
+    purpose: 'Feedback and suggestions between operators, ruled on and recorded',
+    epigraph: 'Nothing is lost that is entered into the record.',
+    order: 5,
+    implemented: true
+  },
+  {
     id: 'regulation',
     path: '/regulation',
     label: 'REGULATION',
     purpose: 'Operator settings, archive control and update channel',
     epigraph: 'Harmony is maintained.',
-    order: 5,
+    order: 6,
     implemented: true
   }
 ] as const

@@ -18,6 +18,9 @@ export const ErrorCode = {
   ArchiveConnectFailed: 'E_ARCHIVE_CONNECT_FAILED',
   ArchivePortUnavailable: 'E_ARCHIVE_PORT_UNAVAILABLE',
 
+  /** A service exists but cannot act right now — usually a dropped connection. */
+  Unavailable: 'E_UNAVAILABLE',
+
   SettingsCorrupt: 'E_SETTINGS_CORRUPT',
   UpdateUnsupported: 'E_UPDATE_UNSUPPORTED',
   UpdateFailed: 'E_UPDATE_FAILED'

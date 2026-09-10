@@ -1,0 +1,545 @@
+@use 'abstracts' as *;
+
+// DISPATCH — the shared suggestion board.
+//
+// The one page whose content came from somewhere else, and the styling carries
+// that: the unread mark is the only place on this page allowed the accent,
+// because "has anything happened since I last looked" is the single question
+// the board exists to answer at a glance.
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+// Explicit spans, never positional nth-child rules.
+.boardPanel {
+  grid-column: span 4;
+}
+
+.threadPanel {
+  grid-column: span 2;
+}
+
+.setupPanel {
+  grid-column: span 6;
+}
+
+@include below('lg') {
+  .boardPanel,
+  .threadPanel {
+    grid-column: span 6;
+  }
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+}
+
+// ------------------------------------------------------------------- header
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(5);
+}
+
+// Who is at the keyboard. Leads the header because it is the one thing that has
+// to be right before anything else on the page means what it says.
+.identity {
+  display: flex;
+  align-items: center;
+  gap: space(1);
+}
+
+.identityLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+  margin-right: space(2);
+}
+
+.identityPick {
+  @include label(9px, 0.14em);
+  color: var(--ch-text-faint);
+  background: none;
+  @include hairline(all, 0.12);
+  padding: space(1) space(3);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-gold-500);
+    background: var(--ch-surface-raised);
+  }
+}
+
+// ------------------------------------------------------------------ notices
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin: space(5) 0 0;
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.14);
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.dismiss {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// -------------------------------------------------------------------- board
+
+.boardCount {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// The one figure on this page worth the accent.
+.boardWaiting {
+  @include label(8px, 0.14em);
+  color: var(--ch-accent-bright);
+  background: var(--ch-accent-dim);
+  padding: 1px space(2);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: space(3);
+  padding-bottom: space(4);
+  @include hairline(bottom, 0.08);
+}
+
+.searchField {
+  min-width: 0;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: space(4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  width: 100%;
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+    box-shadow: inset 2px 0 0 var(--ch-gold-400);
+  }
+
+  // A settled item recedes rather than disappearing. The record is the point:
+  // "we decided not to" is an answer, and hiding it invites the same request
+  // again in a fortnight.
+  &[data-status='resolved'],
+  &[data-status='denied'] {
+    opacity: 0.62;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.cardMarks {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  min-height: rem(2px);
+}
+
+// Filed by the other person and never opened. Distinct from unread comments,
+// and worth its own mark: an item with no discussion is the one most easily
+// missed, precisely because there is no count drawing the eye.
+.markNew {
+  @include label(7px, 0.18em);
+  color: var(--ch-gold-200);
+  background: var(--ch-gold-900, var(--ch-surface-overlay));
+  @include hairline(all, 0.2);
+  padding: 1px space(2);
+}
+
+.markUnread {
+  @include readout(9px);
+  color: var(--ch-alabaster-100);
+  background: var(--ch-accent);
+  padding: 1px space(2);
+  min-width: rem(16px);
+  text-align: center;
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  min-width: 0;
+}
+
+.cardKind {
+  @include label(8px, 0.16em);
+  color: var(--ch-gold-300);
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  min-width: 0;
+}
+
+.cardAuthor {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+}
+
+.cardArea,
+.cardComments,
+.cardStamp {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.cardPriority {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-faint);
+
+  &[data-level='high'] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.cardSpacer {
+  flex: 1;
+}
+
+.cardStatus {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+
+  &[data-status='resolved'] {
+    color: var(--ch-gold-300);
+  }
+
+  &[data-status='denied'] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+// ------------------------------------------------------------------ compose
+
+.compose {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  margin-top: space(4);
+  padding: space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.14);
+}
+
+.composeRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: space(3);
+}
+
+.composeActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: space(2);
+}
+
+// ------------------------------------------------------------------- thread
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.threadHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex-wrap: wrap;
+  @include hairline(bottom, 0.08);
+  padding-bottom: space(3);
+}
+
+.threadKind {
+  @include label(8px, 0.16em);
+  color: var(--ch-gold-300);
+}
+
+.threadTitle {
+  font-family: var(--ch-font-display);
+  font-size: rem(15px);
+  letter-spacing: 0.04em;
+  color: var(--ch-text-primary);
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.threadStatus {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+
+  &[data-status='resolved'] {
+    color: var(--ch-gold-300);
+  }
+
+  &[data-status='denied'] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.threadBody {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+// The ruling, quoted rather than reduced to a badge. For whoever filed the
+// item this is the most important text on the page.
+.ruling {
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.14);
+  border-left: 2px solid var(--ch-line-strong);
+
+  &[data-status='resolved'] {
+    border-left-color: var(--ch-gold-400);
+  }
+
+  &[data-status='denied'] {
+    border-left-color: var(--ch-accent);
+  }
+}
+
+.rulingLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.rulingReason {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  margin: space(2) 0 0;
+  white-space: pre-wrap;
+}
+
+// ----------------------------------------------------------------- comments
+
+.comments {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.sectionLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.commentList {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  // Bounded by height rather than by count: a long thread should scroll inside
+  // its pane instead of pushing the reply box off the bottom of the page.
+  max-height: rem(320px);
+  overflow-y: auto;
+}
+
+.comment {
+  padding: space(2) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.08);
+
+  // The reader's own, set apart by a rib rather than by alignment: a chat
+  // layout in an institutional record would be the wrong register entirely.
+  &[data-own] {
+    border-left: 2px solid var(--ch-gold-500);
+  }
+}
+
+.commentHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+}
+
+.commentAuthor {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+}
+
+.commentStamp {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+}
+
+.commentBody {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  margin: space(2) 0 0;
+  white-space: pre-wrap;
+}
+
+.commentActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+// -------------------------------------------------------------------- ruling
+
+.ruleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+}
+
+.ruleActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.confirmText {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+}
+
+// --------------------------------------------------------------------- setup
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  max-width: rem(760px);
+}
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.footnote {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.url {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+  padding: space(2) space(3);
+  word-break: break-all;
+  display: block;
+}
+
+.inline {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  padding: 0 space(1);
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  margin: space(4) 0 0;
+}

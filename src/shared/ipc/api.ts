@@ -7,6 +7,14 @@ import type { TelemetryState } from '../domain/telemetry'
 import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } from '../domain/rite'
 import type { ConcordConfigPatch, ConcordOptionDraft, ConcordState } from '../domain/concord'
 import type { ChatStatus } from '../domain/chat'
+import type {
+  DispatchCommentDraft,
+  DispatchDraft,
+  DispatchRuling,
+  DispatchSetup,
+  DispatchState
+} from '../domain/dispatch'
+import type { DispatchAuthor } from '../domain/dispatch.constants'
 import type { TimerConfigPatch, TimerId, TimerSet, TimerState } from '../domain/timer'
 import type {
   NowPlayingConfigPatch,
@@ -272,6 +280,19 @@ export interface CandyHavenApi {
     unlink(): Promise<NowPlayingState>
     setup(): Promise<SpotifySetup>
     onState(listener: (state: NowPlayingState) => void): Unsubscribe
+  }
+  readonly dispatch: {
+    state(): Promise<DispatchState>
+    setup(): Promise<DispatchSetup>
+    /** Accepts the whole Firebase console snippet, not just JSON. */
+    configure(source: string): Promise<DispatchState>
+    file(draft: DispatchDraft): Promise<DispatchState>
+    comment(draft: DispatchCommentDraft): Promise<DispatchState>
+    rule(ruling: DispatchRuling): Promise<DispatchState>
+    markSeen(itemId: string, author: DispatchAuthor): Promise<DispatchState>
+    /** Removes the item and its discussion. Denying keeps both. */
+    withdraw(id: string): Promise<DispatchState>
+    onState(listener: (state: DispatchState) => void): Unsubscribe
   }
   readonly overlay: {
     info(): Promise<OverlayServerInfo>

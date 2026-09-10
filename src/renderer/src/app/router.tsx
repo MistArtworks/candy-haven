@@ -14,6 +14,7 @@ import { TimerPage } from '@renderer/features/observatory/overlays/timer/TimerPa
 import { TransmissionPage } from '@renderer/features/observatory/overlays/transmission/TransmissionPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
+import { DispatchPage } from '@renderer/features/dispatch/DispatchPage'
 import { ReservedPage } from '@renderer/features/reserved/ReservedPage'
 import { OVERLAYS, type OverlayId } from '@shared/domain/overlays'
 
@@ -110,6 +111,7 @@ export function AppRouter(): ReactNode {
 
         <Route path="/telemetry" element={<TelemetryPage />} />
 
+        <Route path="/dispatch" element={<DispatchPage />} />
         <Route path="/regulation" element={<RegulationPage />} />
 
         {/* Unknown paths return to the Nexus rather than dead-ending. */}

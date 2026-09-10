@@ -226,6 +226,17 @@ const api: CandyHavenApi = {
     setup: () => invoke('nowplaying:setup'),
     onState: (listener) => subscribe('nowplaying:state', listener)
   },
+  dispatch: {
+    state: () => invoke('dispatch:state'),
+    setup: () => invoke('dispatch:setup'),
+    configure: (source) => invoke('dispatch:configure', { source }),
+    file: (draft) => invoke('dispatch:file', draft),
+    comment: (draft) => invoke('dispatch:comment', draft),
+    rule: (ruling) => invoke('dispatch:rule', ruling),
+    markSeen: (itemId, author) => invoke('dispatch:seen', { itemId, author }),
+    withdraw: (id) => invoke('dispatch:withdraw', { id }),
+    onState: (listener) => subscribe('dispatch:state', listener)
+  },
   overlay: {
     info: () => invoke('overlay:info'),
     restart: () => invoke('overlay:restart'),

@@ -32,6 +32,14 @@ import {
 } from '../domain/concord'
 import { ChatStatusSchema } from '../domain/chat'
 import {
+  DispatchCommentDraftSchema,
+  DispatchDraftSchema,
+  DispatchRulingSchema,
+  DispatchSeenMarkSchema,
+  DispatchSetupSchema,
+  DispatchStateSchema
+} from '../domain/dispatch'
+import {
   NoteDraftSchema,
   ProjectDraftSchema,
   ProjectPatchSchema,
@@ -388,6 +396,28 @@ export const IPC_INVOKE = {
   /** Redirect URI to register, plus whether a client id has been saved. */
   'nowplaying:setup': { input: z.void(), output: SpotifySetupSchema },
 
+  /*
+   * DISPATCH — the shared suggestion board.
+   *
+   * Every write returns the state, as everywhere else here, but note what that
+   * state is: a mirror of a *remote* database, and the write will not be
+   * reflected in it yet. The change arrives moments later on the broadcast
+   * channel below, having gone to Firebase and come back. Nothing is applied
+   * optimistically — see the service for why that trade is the right one on a
+   * board two people share.
+   */
+  'dispatch:state': { input: z.void(), output: DispatchStateSchema },
+  'dispatch:setup': { input: z.void(), output: DispatchSetupSchema },
+  /** Accepts the whole snippet the Firebase console shows, not just JSON. */
+  'dispatch:configure': { input: z.object({ source: z.string() }), output: DispatchStateSchema },
+  'dispatch:file': { input: DispatchDraftSchema, output: DispatchStateSchema },
+  'dispatch:comment': { input: DispatchCommentDraftSchema, output: DispatchStateSchema },
+  /** Resolve, deny with a reason, or put an item back to pending. */
+  'dispatch:rule': { input: DispatchRulingSchema, output: DispatchStateSchema },
+  'dispatch:seen': { input: DispatchSeenMarkSchema, output: DispatchStateSchema },
+  /** Removes the item and its discussion. Distinct from denying it. */
+  'dispatch:withdraw': { input: z.object({ id: z.string() }), output: DispatchStateSchema },
+
   'overlay:info': { input: z.void(), output: OverlayServerInfoSchema },
   /** Rebinds the server, picking up a changed port from settings. */
   'overlay:restart': { input: z.void(), output: OverlayServerInfoSchema },
@@ -430,6 +460,7 @@ export const IPC_EVENT = {
   'chat:status': ChatStatusSchema,
   'timer:state': TimerStateSchema,
   'nowplaying:state': NowPlayingStateSchema,
+  'dispatch:state': DispatchStateSchema,
   'overlay:info': OverlayServerInfoSchema,
   'window:state': WindowStateSchema
 } satisfies Record<string, z.ZodType>

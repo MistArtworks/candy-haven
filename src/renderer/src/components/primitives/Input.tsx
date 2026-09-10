@@ -106,6 +106,7 @@ export function TextArea({
   hint,
   aside,
   rows = 4,
+  maxLength,
   disabled = false,
   className
 }: TextAreaProps): ReactNode {
@@ -119,6 +120,7 @@ export function TextArea({
         rows={rows}
         value={value}
         placeholder={placeholder}
+        maxLength={maxLength}
         disabled={disabled}
         onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onChange(event.target.value)}
       />

@@ -280,6 +280,17 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('nowplaying:unlink', () => services.nowPlaying.unlink())
   router.handle('nowplaying:setup', () => services.nowPlaying.setup)
 
+  // ------------------------------------------------------------------ dispatch
+
+  router.handle('dispatch:state', () => services.dispatch.current)
+  router.handle('dispatch:setup', () => services.dispatch.setup)
+  router.handle('dispatch:configure', ({ source }) => services.dispatch.configure(source))
+  router.handle('dispatch:file', (draft) => services.dispatch.file(draft))
+  router.handle('dispatch:comment', (draft) => services.dispatch.comment(draft))
+  router.handle('dispatch:rule', (ruling) => services.dispatch.rule(ruling))
+  router.handle('dispatch:seen', ({ itemId, author }) => services.dispatch.markSeen(itemId, author))
+  router.handle('dispatch:withdraw', ({ id }) => services.dispatch.withdraw(id))
+
   router.handle('overlay:info', () => services.overlayServer.info)
   // The port comes from settings rather than the renderer, for the same reason
   // the scan roots do: a compromised renderer should not choose what we bind.
@@ -394,6 +405,7 @@ export function registerEventBridges(deps: {
   services.chat.on('status', (status) => router.broadcast('chat:status', status))
   services.timers.on('state', (state) => router.broadcast('timer:state', state))
   services.nowPlaying.on('state', (state) => router.broadcast('nowplaying:state', state))
+  services.dispatch.on('state', (state) => router.broadcast('dispatch:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   windows.subscribe((state) => router.broadcast('window:state', state))
 }
