@@ -1,6 +1,6 @@
 {
   "name": "candy-haven",
-  "version": "2.0.0",
+  "version": "1.2.0",
   "description": "Candy Haven â€” production assistant and content operations console.",
   "main": "./out/main/index.js",
   "author": "Candy Haven",
