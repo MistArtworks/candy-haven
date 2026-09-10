@@ -287,7 +287,21 @@ html:not([data-masthead='off']) #log {
 #log .meta,
 #log .message {
   display: table-cell;
-  vertical-align: top;
+  /*
+   * Baselines, not tops.
+   *
+   * The three cells are set at three sizes — the numeral at 0.56em, the name at
+   * 0.74em, the message at full — and aligning their *tops* put each one at a
+   * different height inside the row, because a smaller line box is shorter and
+   * its text sits higher in it. The name floated above the message it belongs
+   * to, which reads as a row that has not been set properly rather than as a
+   * deliberate hierarchy.
+   *
+   * Baseline puts all three on one line, which is what the eye is looking for.
+   * On a message that wraps it is the *first* line that aligns with the name,
+   * which is also right: the name introduces the message's opening line.
+   */
+  vertical-align: baseline;
   padding-bottom: 0.62em;
 }
 
