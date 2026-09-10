@@ -7,6 +7,7 @@ import { ConcordCues } from '@renderer/app/providers/ConcordCues'
 import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
 import { ReleaseNotice } from '@renderer/components/feedback/ReleaseNotice'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
+import { MiniPlayer } from '@renderer/components/chrome/MiniPlayer'
 import { CommandRail } from '@renderer/components/nav/CommandRail'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
@@ -141,6 +142,15 @@ export function ConsoleLayout(): ReactNode {
           <UnsavedBar />
         </main>
       </div>
+
+      {/*
+        A sibling of the body rather than a child of the page, for two reasons.
+        The page wrapper carries a transform, which would make it the containing
+        block for anything positioned inside it — the trap UnsavedBar documents
+        — and what is playing is a property of the console rather than of
+        whichever department is on screen, so it belongs under the rail as well.
+      */}
+      <MiniPlayer />
     </motion.div>
   )
 }

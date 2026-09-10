@@ -34,6 +34,13 @@ export const Collections = {
    * the filesystem are two views of one thing. The scan reconciles them.
    */
   ArchiveFolders: 'archive_folders',
+  /**
+   * The dated register — sessions, deliveries and observances (CALENDAR).
+   *
+   * Nothing here is derived from a project or a release: an entry is a dated
+   * statement of intent the operator made. See shared/domain/calendar.ts.
+   */
+  Calendar: 'calendar',
   /** Stream overlay scenes and layouts (OBSERVATORY section). */
   Overlays: 'overlays',
   /** Natural-language commands and their resolved actions (INTERFACE section). */
@@ -71,6 +78,10 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
     // line of defence behind the service's own sibling-name check.
     { key: { path: 1 }, unique: true, name: 'folder_path_unique' },
     { key: { parentId: 1, order: 1 }, name: 'folder_siblings' }
+  ],
+  [Collections.Calendar]: [
+    // Every read the department makes is "what is on these dates", in order.
+    { key: { date: 1, startMinute: 1 }, name: 'calendar_by_date' }
   ],
   [Collections.ProjectVersions]: [
     { key: { projectId: 1, capturedAt: -1 }, name: 'version_by_project' },

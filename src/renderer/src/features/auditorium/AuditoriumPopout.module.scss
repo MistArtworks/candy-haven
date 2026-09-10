@@ -1,0 +1,320 @@
+@use 'abstracts' as *;
+
+// AUDITORIUM, detached.
+//
+// All stage and one row of chrome at each end. A popout is a window you leave
+// open in the corner of a second screen, so everything that exists to orient a
+// visitor — page header, epigraph, panel furniture — is gone, and what is left
+// is the render, the transport, and enough of the institution's hand that the
+// window is plainly part of this application and not a media player.
+
+.popout {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100vh;
+  background: var(--ch-obsidian-900);
+  overflow: hidden;
+}
+
+// -------------------------------------------------------------------- bar
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: 0 space(2) 0 space(3);
+  height: rem(34px);
+  background: var(--ch-obsidian-800);
+  @include hairline(bottom, 0.1);
+  // The bar is the window's drag handle; every control in it opts back out.
+  @include window-drag;
+}
+
+.mark {
+  display: flex;
+  color: var(--ch-gold-500);
+  flex-shrink: 0;
+}
+
+.title {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+  min-width: 0;
+  @include truncate;
+  flex: 1;
+}
+
+.presets {
+  display: flex;
+  flex-shrink: 0;
+  @include window-no-drag;
+  @include hairline(all, 0.1);
+}
+
+.preset {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  padding: space(1) space(2);
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.1);
+  }
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &[data-active] {
+    color: var(--ch-text-primary);
+    background: rgba(163, 43, 35, 0.16);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+.barActions {
+  display: flex;
+  align-items: center;
+  gap: space(1);
+  flex-shrink: 0;
+  @include window-no-drag;
+}
+
+.barButton {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  padding: space(1) space(2);
+  min-width: rem(24px);
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.08);
+  }
+
+  // The pin is the one control here that holds a state, so it is the one that
+  // shows one.
+  &[data-on] {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+.close:hover {
+  color: var(--ch-alabaster-300);
+  background: var(--ch-crimson-700);
+}
+
+// ------------------------------------------------------------------ stage
+
+.stageHost {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+
+  &[data-seekable] {
+    cursor: pointer;
+  }
+
+  // The stage sizes itself against the department page's clamp, which is wrong
+  // in a window the operator resizes freely: here it should simply fill what is
+  // left between the two bars.
+  > * {
+    height: 100%;
+  }
+}
+
+.fault {
+  @include readout(9px);
+  color: var(--ch-crimson-400);
+  border-left: 2px solid var(--ch-crimson-500);
+  padding: space(1) space(2);
+  margin: 0 space(3);
+  line-height: 1.5;
+}
+
+// -------------------------------------------------------------- transport
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3);
+  background: var(--ch-obsidian-800);
+  @include hairline(top, 0.1);
+}
+
+.play {
+  width: rem(26px);
+  height: rem(26px);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: rem(10px);
+  color: var(--ch-text-primary);
+  border: $hairline solid var(--ch-line-strong);
+  transition:
+    background-color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    background: rgba(163, 43, 35, 0.16);
+    border-color: var(--ch-accent);
+  }
+
+  &:disabled {
+    color: var(--ch-text-faint);
+    border-color: var(--ch-line);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.clock {
+  @include readout(9px);
+  color: var(--ch-text-secondary);
+  flex-shrink: 0;
+}
+
+.scrub {
+  position: relative;
+  flex: 1;
+  height: rem(14px);
+  min-width: rem(80px);
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(182, 158, 124, 0.16);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.scrubFill {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  background: var(--ch-accent);
+  box-shadow: 0 0 10px var(--ch-accent-glow);
+}
+
+.zoom {
+  display: flex;
+  flex-shrink: 0;
+  @include hairline(all, 0.1);
+}
+
+.zoomStep {
+  @include readout(8px);
+  color: var(--ch-text-muted);
+  padding: 1px space(2);
+  min-width: rem(24px);
+
+  & + & {
+    @include hairline(left, 0.18);
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-secondary);
+  }
+
+  &[data-active] {
+    color: var(--ch-text-primary);
+    background: rgba(163, 43, 35, 0.16);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+.level {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+
+  // The house fader, at popout scale. Not the Slider primitive: that draws a
+  // label row above its track, and this row has no vertical space for one.
+  input[type='range'] {
+    width: rem(74px);
+    height: 2px;
+    appearance: none;
+    background: var(--ch-concrete-700);
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 8px;
+      height: 13px;
+      background: var(--ch-alabaster-500);
+      cursor: grab;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+    }
+
+    &::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      background: var(--ch-accent-bright);
+    }
+
+    &:focus-visible {
+      @include focus-ring(4px);
+    }
+  }
+}
+
+.levelLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.presetNote {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  flex-shrink: 1;
+  min-width: 0;
+  @include truncate;
+}
+
+// Below this the transport's readouts start colliding; the render is the point
+// of the window, so the words go and the controls stay.
+@media (max-width: 640px) {
+  .presetNote,
+  .levelLabel {
+    display: none;
+  }
+
+  .title {
+    display: none;
+  }
+}

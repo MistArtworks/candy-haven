@@ -31,6 +31,16 @@ export interface AppPaths {
   /** Built renderer output, served to OBS browser sources by the overlay server. */
   overlayRoot: string
   resources: string
+  /**
+   * The application mark, for the tray.
+   *
+   * Resolved against the app path rather than `resources`, which in a packaged
+   * build points at the installation's own resources directory — where `icon.png`
+   * is not, because it ships inside the asar. `getAppPath()` is the project root
+   * in development and the asar in a build, and the file is at the same place
+   * relative to both.
+   */
+  appIcon: string
 }
 
 let cached: AppPaths | null = null
@@ -61,7 +71,8 @@ export function getPaths(): AppPaths {
     // The overlay is a second Vite entry built alongside the console, so it
     // ships inside the app bundle rather than under resources.
     overlayRoot: join(app.getAppPath(), 'out', 'renderer'),
-    resources
+    resources,
+    appIcon: join(app.getAppPath(), 'resources', 'icon.png')
   }
 
   return cached

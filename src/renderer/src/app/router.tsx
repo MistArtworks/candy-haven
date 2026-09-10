@@ -13,6 +13,8 @@ import { TimerPage } from '@renderer/features/observatory/overlays/timer/TimerPa
 // removal of the TRANSMISSIONS department it merely shared a word with.
 import { MusterPage } from '@renderer/features/observatory/overlays/muster/MusterPage'
 import { TransmissionPage } from '@renderer/features/observatory/overlays/transmission/TransmissionPage'
+import { CalendarPage } from '@renderer/features/calendar/CalendarPage'
+import { AuditoriumPage } from '@renderer/features/auditorium/AuditoriumPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
 import { DispatchPage } from '@renderer/features/dispatch/DispatchPage'
@@ -70,6 +72,8 @@ export function AppRouter(): ReactNode {
         <Route index element={<NexusPage />} />
 
         <Route path="/archive" element={<ArchivePage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/auditorium" element={<AuditoriumPage />} />
 
         {/*
           OBSERVATORY is a catalogue with one route per overlay. Every entry in

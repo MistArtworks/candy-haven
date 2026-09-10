@@ -123,6 +123,7 @@ export function RegulationPage(): ReactNode {
 
   const appearance = settings?.appearance
   const workspace = settings?.workspace
+  const system = settings?.system
 
   return (
     <div className={styles.page}>
@@ -331,6 +332,83 @@ export function RegulationPage(): ReactNode {
                       Restart and install
                     </Button>
                   ) : null}
+                </div>
+              </Panel>
+            ) : null}
+
+            {category === 'startup' ? (
+              <Panel label="Startup" index="01">
+                <div className={styles.controls}>
+                  <div className={styles.control}>
+                    <span className={styles.controlLabel}>Launch at sign-in</span>
+                    <button
+                      type="button"
+                      className={styles.toggle}
+                      role="switch"
+                      aria-checked={system?.launchAtStartup ?? false}
+                      data-on={system?.launchAtStartup || undefined}
+                      onClick={() =>
+                        applySettings({
+                          system: { launchAtStartup: !(system?.launchAtStartup ?? false) }
+                        })
+                      }
+                    >
+                      <span className={styles.toggleThumb} />
+                    </button>
+                    <p className={styles.controlHint}>
+                      Registers the console to start when you sign in to Windows. The point is
+                      not the window — it is that the archive, the overlay server and the chat
+                      ingest are already up before OBS asks for them.
+                    </p>
+                  </div>
+
+                  <div className={styles.control}>
+                    <span className={styles.controlLabel}>Start in the tray</span>
+                    <button
+                      type="button"
+                      className={styles.toggle}
+                      role="switch"
+                      aria-checked={system?.startMinimised ?? true}
+                      data-on={system?.startMinimised || undefined}
+                      disabled={!system?.launchAtStartup}
+                      onClick={() =>
+                        applySettings({
+                          system: { startMinimised: !(system?.startMinimised ?? true) }
+                        })
+                      }
+                    >
+                      <span className={styles.toggleThumb} />
+                    </button>
+                    <p className={styles.controlHint}>
+                      A sign-in launch comes up in the tray rather than on screen. Only applies
+                      when the console is launched by the sign-in; opening it yourself always
+                      shows it.
+                    </p>
+                  </div>
+
+                  <div className={styles.control}>
+                    <span className={styles.controlLabel}>Close retires to the tray</span>
+                    <button
+                      type="button"
+                      className={styles.toggle}
+                      role="switch"
+                      aria-checked={system?.closeToTray ?? true}
+                      data-on={system?.closeToTray || undefined}
+                      onClick={() =>
+                        applySettings({
+                          system: { closeToTray: !(system?.closeToTray ?? true) }
+                        })
+                      }
+                    >
+                      <span className={styles.toggleThumb} />
+                    </button>
+                    <p className={styles.controlHint}>
+                      The console&apos;s own close button puts it in the tray and leaves the
+                      overlays serving. <strong>Alt+F4 always quits</strong>, whatever this is
+                      set to, as does Quit on the tray icon — an application that refuses the
+                      operating system&apos;s own close is one you cannot get rid of.
+                    </p>
+                  </div>
                 </div>
               </Panel>
             ) : null}

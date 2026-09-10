@@ -259,6 +259,24 @@ const api: CandyHavenApi = {
     restart: () => invoke('overlay:restart'),
     onInfo: (listener) => subscribe('overlay:info', listener)
   },
+  calendar: {
+    state: () => invoke('calendar:state'),
+    create: (draft) => invoke('calendar:create', draft),
+    patch: (id, patch) => invoke('calendar:patch', { id, patch }),
+    remove: (id) => invoke('calendar:delete', { id }),
+    onState: (listener) => subscribe('calendar:state', listener)
+  },
+  auditorium: {
+    read: (path) => invoke('auditorium:read', { path }),
+    popout: (file) => invoke('auditorium:popout', { file }),
+    pin: (pinned) => invoke('auditorium:popout-pin', { pinned }),
+    announce: (file) => invoke('auditorium:announce', { file }),
+    onFile: (listener) => subscribe('auditorium:file', listener)
+  },
+  popout: {
+    minimize: () => invoke('popout:minimize'),
+    close: () => invoke('popout:close')
+  },
   shell: {
     openExternal: (url) => invoke('shell:open-external', { url }),
     reveal: (path) => invoke('shell:reveal', { path }),

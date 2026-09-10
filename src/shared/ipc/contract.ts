@@ -6,6 +6,13 @@ import { RuntimeInfoSchema, WindowStateSchema } from '../domain/system'
 import { ReleaseArrivalSchema, UpdateStatusSchema } from '../domain/update'
 import { TelemetryStateSchema } from '../domain/telemetry'
 import {
+  CalendarDraftSchema,
+  CalendarEntrySchema,
+  CalendarPatchSchema,
+  CalendarStateSchema
+} from '../domain/calendar'
+import { AudioPayloadSchema } from '../domain/auditorium'
+import {
   NowPlayingSourceConfigSchema,
   NowPlayingSourceDraftSchema,
   NowPlayingSourceRenameSchema,
@@ -472,6 +479,70 @@ export const IPC_INVOKE = {
   /** Rebinds the server, picking up a changed port from settings. */
   'overlay:restart': { input: z.void(), output: OverlayServerInfoSchema },
 
+  // ----------------------------------------------------------------- calendar
+
+  'calendar:state': { input: z.void(), output: CalendarStateSchema },
+  'calendar:create': { input: CalendarDraftSchema, output: CalendarEntrySchema },
+  'calendar:patch': {
+    input: z.object({ id: z.string(), patch: CalendarPatchSchema }),
+    output: CalendarEntrySchema
+  },
+  'calendar:delete': { input: z.object({ id: z.string() }), output: z.void() },
+
+  // --------------------------------------------------------------- auditorium
+
+  /**
+   * Reads an audio file whole, for the listening room.
+   *
+   * Deliberately not a `file://` URL handed to an `<audio>` element: the
+   * renderer is loaded from a dev server in development and from `file:` in a
+   * build, so the two would need different handling, and neither should be
+   * given blanket read access to the disk. This channel reads exactly the path
+   * the operator chose in a native dialog, once, and refuses anything that is
+   * not an audio file or is larger than the ceiling in domain/auditorium.ts.
+   */
+  'auditorium:read': { input: z.object({ path: z.string() }), output: AudioPayloadSchema },
+
+  /**
+   * Opens the listening room in its own window, carrying the current file.
+   *
+   * The popout is an independent player — its own transport, its own audio
+   * graph — so the file travels as a path and nothing else is synchronised
+   * between the two. See app/popout.ts.
+   */
+  'auditorium:popout': {
+    input: z.object({ file: z.string().nullable() }),
+    output: z.void()
+  },
+  /**
+   * Tells every window which file the room is on.
+   *
+   * The console and the popout are separate renderers with separate audio
+   * graphs, so admitting a file in one would otherwise leave the other showing
+   * the last thing it was given. This is the whole of what they say to each
+   * other: a path, broadcast, and each window decides for itself whether it is
+   * already there.
+   */
+  'auditorium:announce': {
+    input: z.object({ file: z.string().nullable() }),
+    output: z.void()
+  },
+  /** Pins the popout above other windows. Returns the state it settled on. */
+  'auditorium:popout-pin': {
+    input: z.object({ pinned: z.boolean() }),
+    output: z.boolean()
+  },
+
+  /**
+   * Window controls that act on *the calling window*, not the console.
+   *
+   * `window:close` and `window:minimize` are the main window's, and the first
+   * of them now means "retire to the tray" — neither is what a detached player
+   * wants from its own title bar. These resolve the sender instead.
+   */
+  'popout:minimize': { input: z.void(), output: z.void() },
+  'popout:close': { input: z.void(), output: z.void() },
+
   'shell:open-external': { input: z.object({ url: z.string() }), output: z.void() },
   'shell:reveal': { input: z.object({ path: z.string() }), output: z.void() },
   /** Opens a file with whatever the OS has registered for it. */
@@ -513,6 +584,8 @@ export const IPC_EVENT = {
   'dispatch:state': DispatchStateSchema,
   'muster:state': MusterStateSchema,
   'overlay:info': OverlayServerInfoSchema,
+  'calendar:state': CalendarStateSchema,
+  'auditorium:file': z.object({ path: z.string().nullable() }),
   'window:state': WindowStateSchema
 } satisfies Record<string, z.ZodType>
 

@@ -70,6 +70,21 @@ export class WindowManager {
   private window: BrowserWindow | null = null
   private saveTimer: NodeJS.Timeout | null = null
   private onStateChange: ((state: WindowState) => void) | null = null
+  private onVisibilityChange: ((visible: boolean) => void) | null = null
+  /**
+   * Suppresses the reveal on `ready-to-show` for this launch only.
+   *
+   * Set when the login item started the process. The window is still created
+   * and still loads — boot has to run, because the whole reason to start at
+   * sign-in is that the archive and the overlay server are up before they are
+   * wanted — it simply never comes to the front.
+   */
+  private startHidden = false
+  /**
+   * Decides what the console's own close button means. Returns true to retire
+   * to the tray instead of ending the session; see `requestClose`.
+   */
+  private closeIntercept: (() => boolean) | null = null
 
   get mainWindow(): BrowserWindow | null {
     return this.window
@@ -79,8 +94,26 @@ export class WindowManager {
     this.onStateChange = listener
   }
 
-  async create(): Promise<BrowserWindow> {
+  /** Notified whenever the window is shown or hidden, for the tray's menu. */
+  subscribeVisibility(listener: (visible: boolean) => void): void {
+    this.onVisibilityChange = listener
+  }
+
+  /**
+   * Installs the close policy.
+   *
+   * A predicate rather than a boolean because the setting can change while the
+   * app is running, and a value captured at startup would leave the close
+   * button doing whatever it was told once.
+   */
+  setCloseIntercept(intercept: () => boolean): void {
+    this.closeIntercept = intercept
+  }
+
+  async create(options: { hidden?: boolean } = {}): Promise<BrowserWindow> {
     if (this.window && !this.window.isDestroyed()) return this.window
+
+    this.startHidden = options.hidden ?? false
 
     const persisted = await readPersistedState()
 
@@ -130,6 +163,15 @@ export class WindowManager {
     if (persisted.isMaximized) window.maximize()
 
     window.on('ready-to-show', () => {
+      if (this.startHidden) {
+        // Consumed here, not on the next launch: once the operator opens the
+        // console from the tray, a later reload must show it normally.
+        this.startHidden = false
+        logger.info('Renderer ready; holding in the tray (started at sign-in)')
+        this.emitVisibility(false)
+        return
+      }
+
       logger.info('Renderer ready to show')
       window.show()
       // Only when the Vite dev server is actually driving the renderer.
@@ -170,6 +212,9 @@ export class WindowManager {
     for (const event of stateEvents) {
       window.on(event as 'maximize', () => this.emitState())
     }
+
+    window.on('show', () => this.emitVisibility(true))
+    window.on('hide', () => this.emitVisibility(false))
 
     window.on('resize', () => this.scheduleSave())
     window.on('move', () => this.scheduleSave())
@@ -218,6 +263,61 @@ export class WindowManager {
     this.window?.close()
   }
 
+  /**
+   * What the console's own close button does.
+   *
+   * Distinct from `close`, and the distinction is the whole design. Alt+F4 and
+   * the taskbar's Close reach the window directly and end the session, because
+   * that is what the operating system means by closing a window and an
+   * application that quietly refuses it is one the operator cannot get rid of.
+   * The button this app draws in its own title bar is ours to define, and it
+   * retires to the tray — which is what keeps the overlay server serving OBS
+   * while the console is out of the way.
+   */
+  requestClose(): void {
+    const window = this.window
+    if (!window || window.isDestroyed()) return
+
+    if (this.closeIntercept?.() === true) {
+      this.hide()
+      return
+    }
+
+    window.close()
+  }
+
+  hide(): void {
+    const window = this.window
+    if (!window || window.isDestroyed() || !window.isVisible()) return
+    window.hide()
+  }
+
+  isVisible(): boolean {
+    const window = this.window
+    return window !== null && !window.isDestroyed() && window.isVisible()
+  }
+
+  /**
+   * Brings the console to the front from wherever it was — hidden in the tray,
+   * minimised, or merely behind something. The tray and the single-instance
+   * guard both land here, since "the operator asked for the console" has one
+   * meaning however they asked.
+   */
+  async reveal(): Promise<void> {
+    // A second launch after the window was genuinely closed has nothing to
+    // restore, so the console is rebuilt rather than the request ignored.
+    if (!this.window || this.window.isDestroyed()) {
+      await this.create()
+      return
+    }
+
+    const window = this.window
+    this.startHidden = false
+    if (window.isMinimized()) window.restore()
+    if (!window.isVisible()) window.show()
+    window.focus()
+  }
+
   /** Brings an existing window forward — used by the single-instance guard. */
   focus(): void {
     const window = this.window
@@ -228,6 +328,10 @@ export class WindowManager {
 
   private emitState(): void {
     this.onStateChange?.(this.getState())
+  }
+
+  private emitVisibility(visible: boolean): void {
+    this.onVisibilityChange?.(visible)
   }
 
   /** Debounced so a drag or resize writes once, not on every frame. */
@@ -263,5 +367,7 @@ export class WindowManager {
     if (this.saveTimer) clearTimeout(this.saveTimer)
     this.saveTimer = null
     this.onStateChange = null
+    this.onVisibilityChange = null
+    this.closeIntercept = null
   }
 }

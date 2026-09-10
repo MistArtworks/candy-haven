@@ -12,6 +12,7 @@
  */
 export const REGULATION_CATEGORIES = [
   'presentation',
+  'startup',
   'archive',
   'integrations',
   'board',
@@ -35,6 +36,11 @@ export const REGULATION_CATEGORY: Record<RegulationCategory, RegulationCategoryD
     id: 'presentation',
     label: 'PRESENTATION',
     purpose: 'Motion, interface scale and the accent this console draws with.'
+  },
+  startup: {
+    id: 'startup',
+    label: 'STARTUP',
+    purpose: 'Whether this console starts with the machine, and what closing it means.'
   },
   archive: {
     id: 'archive',

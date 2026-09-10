@@ -4,6 +4,8 @@ import type { Settings, SettingsPatch } from '../domain/settings'
 import type { RuntimeInfo, WindowState } from '../domain/system'
 import type { ReleaseArrival, UpdateStatus } from '../domain/update'
 import type { TelemetryState } from '../domain/telemetry'
+import type { CalendarDraft, CalendarEntry, CalendarPatch, CalendarState } from '../domain/calendar'
+import type { AudioPayload } from '../domain/auditorium'
 import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } from '../domain/rite'
 import type { ConcordConfigPatch, ConcordOptionDraft, ConcordState } from '../domain/concord'
 import type { ChatStatus } from '../domain/chat'
@@ -324,6 +326,29 @@ export interface CandyHavenApi {
     info(): Promise<OverlayServerInfo>
     restart(): Promise<OverlayServerInfo>
     onInfo(listener: (info: OverlayServerInfo) => void): Unsubscribe
+  }
+  readonly calendar: {
+    state(): Promise<CalendarState>
+    create(draft: CalendarDraft): Promise<CalendarEntry>
+    patch(id: string, patch: CalendarPatch): Promise<CalendarEntry>
+    remove(id: string): Promise<void>
+    onState(listener: (state: CalendarState) => void): Unsubscribe
+  }
+  readonly auditorium: {
+    /** Reads a chosen audio file whole. See the contract for why. */
+    read(path: string): Promise<AudioPayload>
+    /** Opens the room in its own window, starting on `file` if one is given. */
+    popout(file: string | null): Promise<void>
+    /** Pins the popout above other windows; resolves to the settled state. */
+    pin(pinned: boolean): Promise<boolean>
+    /** Tells every window which file the room is on. */
+    announce(file: string | null): Promise<void>
+    onFile(listener: (payload: { path: string | null }) => void): Unsubscribe
+  }
+  /** Window controls scoped to the calling window, for detached views. */
+  readonly popout: {
+    minimize(): Promise<void>
+    close(): Promise<void>
   }
   readonly shell: {
     openExternal(url: string): Promise<void>

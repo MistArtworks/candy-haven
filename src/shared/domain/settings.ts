@@ -109,6 +109,47 @@ export const WorkspaceSettingsSchema = z.object({
 })
 export type WorkspaceSettings = z.infer<typeof WorkspaceSettingsSchema>
 
+/**
+ * How the application behaves as a resident of the machine, rather than as a
+ * window.
+ *
+ * Its own section rather than fields on `workspace`, because these three are
+ * the only settings that change what happens when the console is *not* on
+ * screen — they are read at launch and at close, and by the tray, none of which
+ * are workspace concerns.
+ */
+export const SystemSettingsSchema = z.object({
+  /**
+   * Register the console to start when the operator signs in.
+   *
+   * Written through to the OS immediately rather than only read at boot: a
+   * setting that says "launch at startup" while the registry says otherwise is
+   * worse than not having the setting. See app/startup.ts.
+   */
+  launchAtStartup: z.boolean().default(false),
+  /**
+   * When started by the sign-in, come up in the tray rather than on screen.
+   *
+   * On by default, because the point of launching at startup is that the
+   * overlay server and the archive are already up when they are wanted — not
+   * that a full-screen console is the first thing the operator sees after
+   * signing in.
+   */
+  startMinimised: z.boolean().default(true),
+  /**
+   * The window's close button retires the console to the tray instead of
+   * ending the session.
+   *
+   * Alt+F4 always quits, whatever this is set to. The two are deliberately
+   * different: one is a control this application draws and can define, the
+   * other is what the operating system means by "close this window", and
+   * quietly refusing to honour it is how an app becomes impossible to get rid
+   * of. The tray menu carries an explicit QUIT for the same reason.
+   */
+  closeToTray: z.boolean().default(true)
+})
+export type SystemSettings = z.infer<typeof SystemSettingsSchema>
+
 export const ArchiveSettingsSchema = z.object({
   port: z.number().int().min(1024).max(65535).default(DEFAULT_ARCHIVE_PORT),
   /** Start the embedded daemon during boot. Disable to attach to an external instance. */
@@ -167,6 +208,7 @@ export const SettingsSchema = z.object({
   version: z.number().int().default(1),
   appearance: AppearanceSettingsSchema.prefault({}),
   workspace: WorkspaceSettingsSchema.prefault({}),
+  system: SystemSettingsSchema.prefault({}),
   archive: ArchiveSettingsSchema.prefault({}),
   updates: UpdateSettingsSchema.prefault({}),
   integrations: IntegrationSettingsSchema.prefault({})
@@ -186,6 +228,7 @@ export type Settings = z.infer<typeof SettingsSchema>
 export const SettingsPatchSchema = z.object({
   appearance: z.object(sparseShape(AppearanceSettingsSchema.shape)).optional(),
   workspace: z.object(sparseShape(WorkspaceSettingsSchema.shape)).optional(),
+  system: z.object(sparseShape(SystemSettingsSchema.shape)).optional(),
   archive: z.object(sparseShape(ArchiveSettingsSchema.shape)).optional(),
   updates: z.object(sparseShape(UpdateSettingsSchema.shape)).optional(),
   integrations: z.object(sparseShape(IntegrationSettingsSchema.shape)).optional()

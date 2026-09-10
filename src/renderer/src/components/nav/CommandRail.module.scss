@@ -45,6 +45,40 @@
   flex-shrink: 0;
 }
 
+// -------------------------------------------------------------------- groups
+
+// The divisions the departments are filed under. Each is a heading and a ruled
+// list — the same furniture as a panel, one order quieter, so the rail reads as
+// an organisation chart rather than a menu with separators in it.
+.group {
+  display: block;
+
+  & + & {
+    margin-top: space(4);
+  }
+}
+
+.groupHeading {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: 0 space(5) space(2);
+}
+
+.groupLabel {
+  @include label(8px, 0.22em);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+}
+
+.groupRule {
+  flex: 1;
+  height: 1px;
+  background: var(--ch-line);
+  min-width: space(2);
+  opacity: 0.6;
+}
+
 // ---------------------------------------------------------------------- list
 
 .list {
@@ -259,8 +293,15 @@
   }
 
   .mastheadLabel,
-  .mastheadCount {
+  .mastheadCount,
+  .groupLabel {
     display: none;
+  }
+
+  // The division survives as its rule alone: the grouping stays visible, the
+  // word does not fit, and a truncated "PRODUCTI…" is worse than neither.
+  .groupHeading {
+    padding: 0 space(3) space(2);
   }
 
   .item {

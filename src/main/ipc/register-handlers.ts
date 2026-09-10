@@ -1,6 +1,9 @@
-import { app, dialog, shell } from 'electron'
+import { BrowserWindow, app, dialog, shell } from 'electron'
+import { readFile, stat } from 'node:fs/promises'
+import { basename, extname } from 'node:path'
 import { is } from '@electron-toolkit/utils'
 import { APP_NAME } from '@shared/constants'
+import { AUDIO_EXTENSIONS, MAX_AUDIO_BYTES } from '@shared/domain/auditorium'
 import type { RuntimeInfo } from '@shared/domain/system'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogFilePath, getLogger } from '@main/core/logger'
@@ -8,6 +11,8 @@ import { getPaths } from '@main/core/paths'
 import type { ServiceContainer } from '@main/services/container'
 import type { BootSequence } from '@main/app/boot-sequence'
 import type { WindowManager } from '@main/app/window-manager'
+import type { PopoutManager } from '@main/app/popout'
+import { applyLaunchAtStartup } from '@main/app/startup'
 import type { IpcRouter } from './router'
 
 const logger = getLogger('ipc:handlers')
@@ -20,12 +25,13 @@ export interface HandlerDependencies {
   services: ServiceContainer
   boot: BootSequence
   windows: WindowManager
+  popouts: PopoutManager
   /** Called when the renderer reports the boot cinematic has finished. */
   onBootEntered: () => void
 }
 
 export function registerIpcHandlers(deps: HandlerDependencies): void {
-  const { router, services, boot, windows, onBootEntered } = deps
+  const { router, services, boot, windows, popouts, onBootEntered } = deps
   const { settings, archive, updates } = services
 
   // ------------------------------------------------------------------ runtime
@@ -59,7 +65,10 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   })
   router.handle('window:toggle-maximize', () => windows.toggleMaximize())
   router.handle('window:close', () => {
-    windows.close()
+    // Not `close()`: the title bar's button is this application's own control,
+    // and with a tray it retires the console rather than ending the session.
+    // See WindowManager.requestClose for why Alt+F4 is treated differently.
+    windows.requestClose()
   })
   router.handle('window:state', () => windows.getState())
 
@@ -99,6 +108,18 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     // Update preferences take effect immediately rather than at next launch.
     if (patch.updates) {
       updates.configure({ channel: next.updates.channel, autoDownload: next.updates.autoDownload })
+    }
+    /*
+     * The login item is written through on the same call that stores the
+     * setting, not at the next launch.
+     *
+     * Both fields are reconciled whenever either changes, because they describe
+     * one registry entry between them: turning off "start minimised" has to
+     * rewrite the existing entry's arguments, and only writing on
+     * `launchAtStartup` would leave it starting hidden forever.
+     */
+    if (patch.system?.launchAtStartup !== undefined || patch.system?.startMinimised !== undefined) {
+      applyLaunchAtStartup(next.system.launchAtStartup, next.system.startMinimised)
     }
     return next
   })
@@ -319,6 +340,105 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
 
   // -------------------------------------------------------------------- shell
 
+  // ----------------------------------------------------------------- calendar
+
+  router.handle('calendar:state', () => services.calendar.snapshot())
+  router.handle('calendar:create', (draft) => services.calendar.create(draft))
+  router.handle('calendar:patch', ({ id, patch }) => services.calendar.patch(id, patch))
+  router.handle('calendar:delete', async ({ id }) => {
+    await services.calendar.remove(id)
+  })
+
+  // --------------------------------------------------------------- auditorium
+
+  /**
+   * Hands one audio file to the listening room.
+   *
+   * The path is checked rather than trusted even though it comes from a native
+   * dialog: this is a renderer-supplied string by the time it arrives here, and
+   * the channel would otherwise read any file on the disk into the renderer for
+   * anything that could reach the bridge. Extension and size are both refused
+   * with a plain reason, because "nothing happened" is the worst outcome for an
+   * operator who just chose a file.
+   */
+  router.handle('auditorium:read', async ({ path }) => {
+    const extension = extname(path).slice(1).toLowerCase()
+
+    if (!AUDIO_EXTENSIONS.includes(extension as (typeof AUDIO_EXTENSIONS)[number])) {
+      throw new AppError(`${extension ? `.${extension}` : 'That file'} is not an audio format.`, {
+        code: ErrorCode.Validation,
+        hint: `Supported: ${AUDIO_EXTENSIONS.map((value) => `.${value}`).join(', ')}`,
+        recoverable: false
+      })
+    }
+
+    const info = await stat(path).catch(() => null)
+    if (!info?.isFile()) {
+      throw new AppError('That file is no longer where it was.', {
+        code: ErrorCode.NotFound,
+        recoverable: false
+      })
+    }
+
+    if (info.size > MAX_AUDIO_BYTES) {
+      throw new AppError('That file is too large for the listening room.', {
+        code: ErrorCode.Validation,
+        hint: `The ceiling is ${Math.round(MAX_AUDIO_BYTES / 1024 / 1024)} MB; this is ${Math.round(
+          info.size / 1024 / 1024
+        )} MB.`,
+        recoverable: false
+      })
+    }
+
+    const contents = await readFile(path)
+
+    return {
+      path,
+      name: basename(path),
+      extension,
+      size: info.size,
+      modifiedAt: info.mtimeMs,
+      // A copy backed by its own ArrayBuffer. Node hands out Buffers that are
+      // views into a shared pool, and structured-cloning one of those across
+      // the bridge sends the whole pool — megabytes of unrelated memory, and a
+      // renderer-side view whose byteOffset nobody accounted for.
+      bytes: new Uint8Array(
+        contents.buffer.slice(contents.byteOffset, contents.byteOffset + contents.byteLength)
+      )
+    }
+  })
+
+  router.handle('auditorium:popout', ({ file }) => {
+    popouts.openAuditorium(file)
+  })
+
+  router.handle('auditorium:announce', ({ file }) => {
+    // Broadcast, including back to the sender. The renderer compares against
+    // what it already has, so the echo costs nothing and the alternative —
+    // tracking which window asked — is state this does not need to hold.
+    router.broadcast('auditorium:file', { path: file })
+  })
+
+  router.handle('auditorium:popout-pin', ({ pinned }) => {
+    popouts.setAlwaysOnTop(pinned)
+    // The settled state is read back rather than echoed, so a window manager
+    // that refused the request is reported honestly to the control.
+    return popouts.isAlwaysOnTop()
+  })
+
+  // ------------------------------------------------------------ popout chrome
+
+  router.handle('popout:minimize', (_input, event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize()
+  })
+
+  router.handle('popout:close', (_input, event) => {
+    // A real close. The tray policy belongs to the console's window and would
+    // be actively wrong here: hiding a detached player leaves it playing with
+    // nothing to click.
+    BrowserWindow.fromWebContents(event.sender)?.close()
+  })
+
   router.handle('shell:open-external', async ({ url }) => {
     let parsed: URL
     try {
@@ -426,5 +546,7 @@ export function registerEventBridges(deps: {
   services.dispatch.on('state', (state) => router.broadcast('dispatch:state', state))
   services.muster.on('state', (state) => router.broadcast('muster:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
+  services.calendar.on('changed', (state) => router.broadcast('calendar:state', state))
+
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

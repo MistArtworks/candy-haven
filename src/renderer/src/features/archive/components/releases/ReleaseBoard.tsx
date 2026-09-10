@@ -11,6 +11,7 @@ import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { formatIsoDate } from '@renderer/lib/format'
+import { isPlayableAudio, usePlayback } from '@renderer/app/providers/playback'
 import { PROJECT_CATEGORY_LABEL } from '@shared/domain/projects.constants'
 import { TileGrid, type Tile } from '../tiles/TileGrid'
 import styles from './ReleaseBoard.module.scss'
@@ -152,6 +153,7 @@ function ReleaseRecord({
   onReveal: (path: string) => void
 }): ReactNode {
   const [date, setDate] = useState(release.releaseDate ?? '')
+  const playback = usePlayback()
 
   const choose = async (kind: DeliverableKind): Promise<void> => {
     const filters =
@@ -241,6 +243,21 @@ function ReleaseRecord({
               )}
 
               <div className={styles.deliverableActions}>
+                {/*
+                  Offered only where the file is one the room can open, which
+                  is what keeps a play button from appearing beside a cover
+                  image. It hands the path to the console's shared transport,
+                  so the master keeps playing while the operator carries on
+                  working here — see app/providers/PlaybackProvider.tsx.
+                */}
+                {isPlayableAudio(deliverable.copiedPath) ? (
+                  <Button
+                    size="sm"
+                    onClick={() => void playback.open(deliverable.copiedPath as string)}
+                  >
+                    Play
+                  </Button>
+                ) : null}
                 <Button size="sm" busy={busy} onClick={() => void choose(kind)}>
                   {deliverable.copiedPath ? 'Replace' : 'Attach'}
                 </Button>

@@ -1,0 +1,222 @@
+@use 'abstracts' as *;
+
+// The transport bar.
+//
+// Full width at the foot of the shell, under the rail as well as the page: what
+// is playing is a property of the console, not of whichever department the
+// operator happens to be looking at. Sized and weighted as chrome — a single
+// row of hairlines and readouts — so it never competes with the page above it.
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  flex-shrink: 0;
+  padding: space(2) space(4);
+  height: rem(46px);
+  background: var(--ch-obsidian-800);
+  @include hairline(top, 0.1);
+  z-index: z('titlebar');
+}
+
+.play {
+  width: rem(28px);
+  height: rem(28px);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: rem(10px);
+  color: var(--ch-text-primary);
+  border: $hairline solid var(--ch-line-strong);
+  transition:
+    background-color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(163, 43, 35, 0.16);
+    border-color: var(--ch-accent);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.clock {
+  @include readout(9px);
+  color: var(--ch-text-secondary);
+  flex-shrink: 0;
+}
+
+// The bar is the readout and the control at once, which is why it is a button
+// rather than a range input with its thumb restyled into something else.
+.scrub {
+  position: relative;
+  flex: 1;
+  height: rem(16px);
+  min-width: rem(120px);
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(182, 158, 124, 0.16);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.scrubFill {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  background: var(--ch-accent);
+  box-shadow: 0 0 10px var(--ch-accent-glow);
+}
+
+.scrubHead {
+  position: absolute;
+  width: 2px;
+  height: rem(11px);
+  background: var(--ch-gold-300);
+  transform: translateX(-1px);
+}
+
+.level {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+
+  // The house fader at chrome scale. Not the Slider primitive: that draws a
+  // label row above its track, and this row has no vertical space for one.
+  input[type='range'] {
+    width: rem(86px);
+    height: 2px;
+    appearance: none;
+    background: var(--ch-concrete-700);
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 8px;
+      height: 14px;
+      background: var(--ch-alabaster-500);
+      cursor: grab;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+    }
+
+    &::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      background: var(--ch-accent-bright);
+    }
+
+    &:focus-visible {
+      @include focus-ring(4px);
+    }
+  }
+}
+
+.levelLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.subject {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-shrink: 0;
+  max-width: rem(260px);
+  min-width: 0;
+  padding-left: space(4);
+  @include hairline(left, 0.08);
+  text-align: left;
+
+  &:hover .subjectName {
+    color: var(--ch-text-primary);
+  }
+
+  &:hover .mark {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+.mark {
+  display: flex;
+  color: var(--ch-gold-500);
+  flex-shrink: 0;
+  transition: color $duration-fast linear;
+}
+
+.subjectBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.subjectName {
+  font-size: rem(11px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+  transition: color $duration-fast linear;
+}
+
+.subjectWhere {
+  @include label(8px, 0.2em);
+  color: var(--ch-text-faint);
+}
+
+.detach {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+  padding: space(2) space(3);
+  border: $hairline solid var(--ch-line);
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// Narrow: the render is not here, so the words go before the controls do.
+@include below('md') {
+  .bar {
+    gap: space(3);
+    padding: space(2) space(3);
+  }
+
+  .level,
+  .detach,
+  .subjectWhere {
+    display: none;
+  }
+
+  .subject {
+    max-width: rem(160px);
+  }
+}

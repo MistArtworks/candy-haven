@@ -8,10 +8,19 @@
       no remote script, style or font. 'unsafe-inline' for styles is required by
       the animation libraries, which set styles on elements directly.
       https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
+
+      `media-src 'self' blob:` is what lets the AUDITORIUM play a file. The room
+      reads an operator-chosen file over IPC and hands the bytes to an <audio>
+      element as a blob URL, and without this directive media falls back to
+      `default-src 'self'`, which does not cover blob:. The give-away is that
+      Chromium does not report a blocked media source as a CSP violation on the
+      element — it surfaces it as MEDIA_ERR_SRC_NOT_SUPPORTED, which reads as
+      "this build cannot play MP3" and sends you hunting for a codec that was
+      never missing. No remote origin is admitted; blob: is our own memory.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'none'; form-action 'none'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'none'; form-action 'none'"
     />
   </head>
 

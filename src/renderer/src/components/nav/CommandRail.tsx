@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
 import { NavLink } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { SECTIONS } from '@shared/domain/navigation'
+import { SECTIONS, getSectionGroups } from '@shared/domain/navigation'
 import { APP_SUBTITLE } from '@shared/constants'
 import { formatIndex } from '@renderer/lib/format'
 import { useSystemStore, selectArchive, selectUpdate } from '@renderer/app/store/system.store'
@@ -16,6 +16,14 @@ import styles from './CommandRail.module.scss'
  * register. Sections that have not shipped yet are still listed and reachable;
  * they render a reserved-state page rather than being hidden, so the shape of
  * the whole system is legible from day one.
+ *
+ * Filed under divisions rather than listed flat. At six departments a single
+ * column was still a list; at nine it had become a menu, and the operator was
+ * reading every entry to find the one they wanted. The divisions come from the
+ * registry, so a department added there appears under its heading without a
+ * second edit — and the numbering stays continuous across the whole directory,
+ * because a department's index is its identity: it is what the page header
+ * prints and what Ctrl+N selects, not its position within a group.
  */
 export function CommandRail(): ReactNode {
   const update = useSystemStore(selectUpdate)
@@ -40,6 +48,7 @@ export function CommandRail(): ReactNode {
   const archive = useSystemStore(selectArchive)
   const updateReady = update?.state === 'downloaded' || update?.state === 'available'
   const commissioned = SECTIONS.filter((section) => section.implemented).length
+  const groups = getSectionGroups()
 
   return (
     <nav className={styles.rail} aria-label="Sections">
@@ -54,48 +63,62 @@ export function CommandRail(): ReactNode {
           </span>
         </header>
 
-        <ul className={styles.list}>
-          {SECTIONS.map((section) => (
-            <li key={section.id}>
-              <NavLink
-                to={section.path}
-                onClick={guard}
-                end={section.path === '/'}
-                className={({ isActive }) =>
-                  [styles.item, isActive ? styles.active : ''].filter(Boolean).join(' ')
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {/* The active marker is a shared layout element, so it slides
-                        between sections instead of cross-fading in place. */}
-                    {isActive ? (
-                      <motion.span
-                        layoutId="rail-marker"
-                        className={styles.marker}
-                        transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-                      />
-                    ) : null}
+        {groups.map((group) => (
+          <section key={group.definition.id} className={styles.group}>
+            {/* The division heading is a rule with a word on it — the same
+                furniture as the masthead above, one order quieter. */}
+            <h2 className={styles.groupHeading} title={group.definition.purpose}>
+              <span className={styles.groupLabel}>{group.definition.label}</span>
+              <span className={styles.groupRule} aria-hidden="true" />
+            </h2>
 
-                    <span className={styles.index}>{formatIndex(section.order + 1)}</span>
+            <ul className={styles.list}>
+              {group.sections.map((section) => (
+                <li key={section.id}>
+                  <NavLink
+                    to={section.path}
+                    onClick={guard}
+                    end={section.path === '/'}
+                    className={({ isActive }) =>
+                      [styles.item, isActive ? styles.active : ''].filter(Boolean).join(' ')
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {/* The active marker is a shared layout element, so it
+                            slides between sections instead of cross-fading in
+                            place — across divisions as well as within one. */}
+                        {isActive ? (
+                          <motion.span
+                            layoutId="rail-marker"
+                            className={styles.marker}
+                            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+                          />
+                        ) : null}
 
-                    <span className={styles.body}>
-                      <span className={styles.label}>{section.label}</span>
-                      <span className={styles.purpose}>{section.purpose}</span>
-                    </span>
+                        <span className={styles.index}>{formatIndex(section.order + 1)}</span>
 
-                    <span
-                      className={styles.state}
-                      data-reserved={!section.implemented || undefined}
-                      title={section.implemented ? 'In service' : 'Reserved — not yet in service'}
-                      aria-label={section.implemented ? 'In service' : 'Reserved'}
-                    />
-                  </>
-                )}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+                        <span className={styles.body}>
+                          <span className={styles.label}>{section.label}</span>
+                          <span className={styles.purpose}>{section.purpose}</span>
+                        </span>
+
+                        <span
+                          className={styles.state}
+                          data-reserved={!section.implemented || undefined}
+                          title={
+                            section.implemented ? 'In service' : 'Reserved — not yet in service'
+                          }
+                          aria-label={section.implemented ? 'In service' : 'Reserved'}
+                        />
+                      </>
+                    )}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
 
       <footer className={styles.footer}>

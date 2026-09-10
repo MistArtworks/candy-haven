@@ -6,6 +6,7 @@ import { ProjectsService } from './projects/projects.service'
 import { StacksService } from './stacks/stacks.service'
 import { VolumesService } from './volumes/volumes.service'
 import { ReleasesService } from './releases/releases.service'
+import { CalendarService } from './calendar/calendar.service'
 import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
 import { TimerService } from './overlay/timer.service'
@@ -48,6 +49,12 @@ export interface ServiceContainer {
    * service to resolve where that is rather than reading settings itself.
    */
   readonly releases: ReleasesService
+  /**
+   * CALENDAR — the dated register. Reads and writes its own collection and
+   * nothing else's: an entry is the operator's statement of intent, not a
+   * projection of a project or a release.
+   */
+  readonly calendar: CalendarService
   /** Shared by every overlay: one HTTP server, many pages. */
   readonly overlayServer: OverlayServer
   /**
@@ -116,6 +123,7 @@ export function createServiceContainer(): ServiceContainer {
     stacks,
     volumes,
     releases,
+    calendar: new CalendarService(archive),
     overlayServer,
     chat,
     rite,
@@ -160,6 +168,7 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
     logger.error('Archive shutdown failed', error)
   }
 
+  container.calendar.dispose()
   container.projects.dispose()
   container.telemetry.dispose()
   container.settings.clear()
