@@ -1,8 +1,10 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import type { ServerResponse } from 'node:http'
 import { shell } from 'electron'
 import type {
   NowPlayingConfigPatch,
+  NowPlayingSource,
+  NowPlayingSourceDraft,
   NowPlayingState,
   NowPlayingTrack,
   SpotifyLink
@@ -14,8 +16,11 @@ import {
   SPOTIFY_SCOPES,
   SPOTIFY_TOKEN_URL,
   clampPollSeconds,
+  createDefaultNowPlayingConfig,
   createNowPlayingState,
-  spotifyRedirectUri
+  findNowPlayingPreset,
+  spotifyRedirectUri,
+  uniqueSourceSlug
 } from '@shared/domain/nowplaying.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
@@ -130,7 +135,13 @@ export class SpotifyService extends TypedEmitter<SpotifyEvents> {
     this.clientId = clientId?.trim() || null
 
     const stored = await this.repository.load()
-    if (stored) this.state = { ...this.state, config: stored.config }
+    if (stored) {
+      this.state = {
+        ...this.state,
+        sources: stored.sources,
+        pollSeconds: clampPollSeconds(stored.pollSeconds ?? this.state.pollSeconds)
+      }
+    }
 
     if (!this.clientId) {
       this.patchLink({ state: 'unconfigured', message: 'No client id has been entered.' })
@@ -412,7 +423,7 @@ export class SpotifyService extends TypedEmitter<SpotifyEvents> {
       return
     }
 
-    const interval = clampPollSeconds(this.state.config.pollSeconds) * 1000
+    const interval = clampPollSeconds(this.state.pollSeconds) * 1000
     if (this.timer) clearInterval(this.timer)
     this.timer = setInterval(() => void this.poll(), interval)
   }
@@ -546,13 +557,95 @@ export class SpotifyService extends TypedEmitter<SpotifyEvents> {
 
   // ----------------------------------------------------------------- plumbing
 
-  configure(patch: NowPlayingConfigPatch): NowPlayingState {
-    const config = { ...this.state.config, ...patch }
-    if (patch.pollSeconds !== undefined) config.pollSeconds = clampPollSeconds(patch.pollSeconds)
+  // ------------------------------------------------------------------ sources
 
-    const next = this.commit({ config })
+  /**
+   * Edits one source's presentation.
+   *
+   * Addressed by id rather than applied to "the" config, because there is no
+   * longer a single one: every OBS scene points at its own source, and an edit
+   * meant for the lo-fi plate must not reach the hardstyle monolith.
+   *
+   * An unknown id is a no-op that still publishes. The console cannot easily
+   * get here — it edits the source it has selected — but a stale renderer
+   * holding a deleted id should be answered with the current truth rather than
+   * with an error it has no way to act on.
+   */
+  configureSource(id: string, patch: NowPlayingConfigPatch): NowPlayingState {
+    return this.commit({
+      sources: this.state.sources.map((source) =>
+        source.id === id ? { ...source, config: { ...source.config, ...patch } } : source
+      )
+    })
+  }
+
+  /**
+   * Adds a source, optionally seeded from a preset.
+   *
+   * The slug is derived from the name and made unique against the ones already
+   * taken, because it is an address: two sources answering the same URL would
+   * mean one of the operator's scenes silently drawing the other's treatment.
+   */
+  addSource(draft: NowPlayingSourceDraft): NowPlayingState {
+    const preset = draft.presetId ? findNowPlayingPreset(draft.presetId) : undefined
+    const name = draft.name.trim() || preset?.label || 'New source'
+
+    const source: NowPlayingSource = {
+      id: `nowplaying:${randomUUID()}`,
+      slug: uniqueSourceSlug(
+        this.state.sources.map((entry) => entry.slug),
+        name
+      ),
+      name,
+      note: preset?.note ?? '',
+      config: preset
+        ? { ...createDefaultNowPlayingConfig(), ...preset.config }
+        : createDefaultNowPlayingConfig()
+    }
+
+    return this.commit({ sources: [...this.state.sources, source] })
+  }
+
+  /**
+   * Renames a source, and its note with it.
+   *
+   * **The slug does not follow.** It is what the operator pasted into OBS, and
+   * a rename that repointed it would break a scene without saying so — the
+   * failure would show up mid-broadcast as a source drawing the wrong
+   * treatment, or nothing.
+   */
+  renameSource(id: string, name: string, note: string): NowPlayingState {
+    const trimmed = name.trim()
+
+    return this.commit({
+      sources: this.state.sources.map((source) =>
+        source.id === id ? { ...source, name: trimmed || source.name, note: note.trim() } : source
+      )
+    })
+  }
+
+  /**
+   * Removes a source.
+   *
+   * The last one is refused rather than allowed: with no sources a browser
+   * source pointed at the overlay has nothing to resolve to, and the operator
+   * would have to know to add one before the scene came back. There is always
+   * something to draw.
+   */
+  removeSource(id: string): NowPlayingState {
+    if (this.state.sources.length <= 1) return this.state
+
+    const sources = this.state.sources.filter((source) => source.id !== id)
+    if (sources.length === this.state.sources.length) return this.state
+
+    return this.commit({ sources })
+  }
+
+  /** One poller serves every source, so this is a single setting. */
+  setPollSeconds(seconds: number): NowPlayingState {
+    const next = this.commit({ pollSeconds: clampPollSeconds(seconds) })
     // A changed interval has to take effect now rather than at the next start.
-    if (patch.pollSeconds !== undefined) this.updatePolling()
+    this.updatePolling()
     return next
   }
 
@@ -566,7 +659,7 @@ export class SpotifyService extends TypedEmitter<SpotifyEvents> {
 
     this.emit('state', this.state)
     this.server.broadcast('nowplaying', this.state)
-    // Only the config is persisted; a track sample is worthless after a restart.
+    // Only the sources are persisted; a track sample is worthless after a restart.
     void this.repository.save(this.state)
 
     return this.state

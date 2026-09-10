@@ -1,5 +1,6 @@
-import type { NowPlayingState, NowPlayingTrack } from '@shared/domain/nowplaying'
+import type { NowPlayingConfig, NowPlayingState, NowPlayingTrack } from '@shared/domain/nowplaying'
 import {
+  createDefaultNowPlayingConfig,
   formatArtists,
   formatTrackTime,
   isSampleStale,
@@ -99,6 +100,17 @@ export class NowPlayingFace {
 
   private state: NowPlayingState | null = null
 
+  /*
+   * Which presentation this face draws.
+   *
+   * Held beside the state rather than read out of it, because the state now
+   * carries *every* configured source and one canvas draws exactly one of
+   * them. The console preview sets whichever source the operator has selected;
+   * a browser source sets the one its address named. Same face, same frames,
+   * different treatment.
+   */
+  private config: NowPlayingConfig = createDefaultNowPlayingConfig()
+
   private width = 0
   private height = 0
   private frameHandle = 0
@@ -127,6 +139,11 @@ export class NowPlayingFace {
     this.motion = options.motion ?? true
     this.palette = readPalette(document.documentElement)
     this.resize()
+  }
+
+  /** The presentation to draw. Independent of the state, and set separately. */
+  setConfig(config: NowPlayingConfig): void {
+    this.config = config
   }
 
   setState(state: NowPlayingState): void {
@@ -221,7 +238,7 @@ export class NowPlayingFace {
 
     const track = state.track
     const playing = track !== null && !isSampleStale(track, Date.now())
-    const visible = playing || !state.config.hideWhenIdle
+    const visible = playing || !this.config.hideWhenIdle
 
     // The whole face fades in and out rather than snapping, so a track ending
     // between songs does not flash the scene.
@@ -234,7 +251,7 @@ export class NowPlayingFace {
     const opacity = visible ? easeOutExpo(reveal) : 1 - easeOutExpo(reveal)
     if (opacity <= 0.002) return
 
-    if (state.config.spinCover && playing && track.isPlaying) {
+    if (this.config.spinCover && playing && track.isPlaying) {
       this.discRotation += (delta * Math.PI * 2) / DISC_PERIOD_SECONDS
     }
 
@@ -244,7 +261,7 @@ export class NowPlayingFace {
     if (!track) {
       this.drawIdle()
     } else {
-      switch (state.config.style) {
+      switch (this.config.style) {
         case 'plate':
           this.drawPlate(track, now)
           break
@@ -264,7 +281,10 @@ export class NowPlayingFace {
   }
 
   private get accent(): string {
-    return this.state?.config.accent === 'crimson' ? this.palette.crimsonBright : this.palette.gold
+    // `custom` is stored exactly as picked, so it is used exactly as stored —
+    // no clamping toward the house palette. See the field's note in the domain.
+    if (this.config.accent === 'custom') return this.config.accentHex
+    return this.config.accent === 'crimson' ? this.palette.crimsonBright : this.palette.gold
   }
 
   /** Institutional caps with hand-applied tracking; canvas has no letter-spacing. */
@@ -313,7 +333,7 @@ export class NowPlayingFace {
       return
     }
 
-    if (!this.state?.config.marquee || !this.motion) {
+    if (!this.config.marquee || !this.motion) {
       let trimmed = text
       while (trimmed.length > 1 && ctx.measureText(`${trimmed}…`).width > maxWidth) {
         trimmed = trimmed.slice(0, -1)
@@ -394,7 +414,7 @@ export class NowPlayingFace {
     timeSize?: number
   ): void {
     const { context: ctx, palette } = this
-    if (!this.state?.config.showTimeline) return
+    if (!this.config.showTimeline) return
 
     const now = Date.now()
     const ratio = trackProgressRatio(track, now)
@@ -421,7 +441,7 @@ export class NowPlayingFace {
     ctx.fillText(formatTrackTime(elapsed), x, y + 9)
     ctx.textAlign = 'right'
     ctx.fillText(
-      this.state.config.showRemaining
+      this.config.showRemaining
         ? `-${formatTrackTime(track.durationMs - elapsed)}`
         : formatTrackTime(track.durationMs),
       x + width,
@@ -438,13 +458,13 @@ export class NowPlayingFace {
    */
   private drawLabel(x: number, y: number, align: 'left' | 'centre', size?: number): number {
     const { context: ctx, palette } = this
-    if (!this.state?.config.showLabel) return 0
+    if (!this.config.showLabel) return 0
 
     const resolved = size ?? (this.compact ? 8 : 9)
     ctx.font = `${resolved}px ${palette.display}`
     ctx.textBaseline = 'top'
     ctx.fillStyle = this.accent
-    this.tracked(this.state.config.label.toUpperCase(), x, y, resolved * 0.3, align)
+    this.tracked(this.config.label.toUpperCase(), x, y, resolved * 0.3, align)
     return resolved * 2.1
   }
 
@@ -477,7 +497,7 @@ export class NowPlayingFace {
   /** Cover slab left, record right, timeline beneath. The default lower third. */
   private drawPlate(track: NowPlayingTrack, now: number): void {
     const { context: ctx, palette, width, height } = this
-    const config = this.state!.config
+    const config = this.config
     const pad = Math.min(height * 0.12, 22)
     const shift = this.changeOffset(now)
 
@@ -548,7 +568,7 @@ export class NowPlayingFace {
    */
   private drawMonolith(track: NowPlayingTrack, now: number): void {
     const { context: ctx, palette, width, height } = this
-    const config = this.state!.config
+    const config = this.config
     const pad = width * 0.07
     const gap = width * 0.05
 
@@ -639,7 +659,7 @@ export class NowPlayingFace {
   /** Thin lower third with a hairline timeline along the bottom edge. */
   private drawStrip(track: NowPlayingTrack, now: number): void {
     const { context: ctx, palette, width, height } = this
-    const config = this.state!.config
+    const config = this.config
     const pad = Math.min(height * 0.2, 14)
     const shift = this.changeOffset(now)
 
@@ -716,7 +736,7 @@ export class NowPlayingFace {
    */
   private drawDisc(track: NowPlayingTrack, now: number): void {
     const { context: ctx, palette, width, height } = this
-    const config = this.state!.config
+    const config = this.config
     const centreX = width / 2
     const TAU = Math.PI * 2
 

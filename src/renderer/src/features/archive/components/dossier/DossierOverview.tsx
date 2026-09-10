@@ -3,6 +3,7 @@ import { PROJECT_CATEGORY_LABEL, getStage } from '@shared/domain/projects.consta
 import { Button } from '@renderer/components/primitives/Button'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Panel } from '@renderer/components/primitives/Panel'
+import { ArchiveIcon } from '../icons/ArchiveIcon'
 import { TextArea } from '@renderer/components/primitives/Input'
 import { formatBytes } from '@renderer/lib/format'
 import { formatKey, formatLength, formatStamp, formatTempo } from '../../lib/present'
@@ -17,7 +18,7 @@ const HISTORY_SHOWN = 6
  * What the project *is*: the facts read out of the set, the operator's notes,
  * and how it arrived at its current stage.
  */
-export function DossierOverview({ project, mutations }: DossierTabProps): ReactNode {
+export function DossierOverview({ project, mutations, open }: DossierTabProps): ReactNode {
   const [draft, setDraft] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
@@ -51,90 +52,135 @@ export function DossierOverview({ project, mutations }: DossierTabProps): ReactN
   return (
     <DossierGrid>
       <Panel label="Set analysis" index="01" className={styles.span4} focal>
-        {analysis ? (
-          <div className={styles.stack}>
-            <FieldGrid columns={4}>
-              <Field label="Tempo" value={formatTempo(analysis.tempo)} mono />
-              <Field
-                label="Signature"
-                value={
-                  analysis.timeSignature
-                    ? `${analysis.timeSignature.numerator}/${analysis.timeSignature.denominator}`
-                    : '—'
-                }
-                mono
-              />
-              <Field
-                label="Key"
-                value={formatKey(analysis.key)}
-                mono
-                hint={
-                  analysis.key
-                    ? analysis.inKey
-                      ? undefined
-                      : "Live's In Key filter is off for this set"
-                    : 'Sets saved before Live 12 carry no song key'
-                }
-              />
-              <Field
-                label="Length"
-                value={formatLength(analysis.arrangementSeconds)}
-                mono
-                hint="Estimated from the furthest clip"
-              />
-              <Field label="Tracks" value={analysis.trackCounts.total || '—'} mono />
-              <Field
-                label="MIDI / audio"
-                value={`${analysis.trackCounts.midi} / ${analysis.trackCounts.audio}`}
-                mono
-              />
-              <Field label="Scenes" value={analysis.sceneCount || '—'} mono />
-              <Field label="Samples" value={analysis.sampleCount || '—'} mono />
-            </FieldGrid>
+        {/*
+          A column filling the panel, so the open row below can be pushed to the
+          foot with `margin-top: auto`. The Panel's own body is `flex: 1` but is
+          not itself a flex container, and it is shared by every panel in the
+          app — giving it a direction here would move the furniture everywhere.
+        */}
+        <div className={styles.analysisBody}>
+          {analysis ? (
+            <div className={styles.stack}>
+              <FieldGrid columns={4}>
+                <Field label="Tempo" value={formatTempo(analysis.tempo)} mono />
+                <Field
+                  label="Signature"
+                  value={
+                    analysis.timeSignature
+                      ? `${analysis.timeSignature.numerator}/${analysis.timeSignature.denominator}`
+                      : '—'
+                  }
+                  mono
+                />
+                <Field
+                  label="Key"
+                  value={formatKey(analysis.key)}
+                  mono
+                  hint={
+                    analysis.key
+                      ? analysis.inKey
+                        ? undefined
+                        : "Live's In Key filter is off for this set"
+                      : 'Sets saved before Live 12 carry no song key'
+                  }
+                />
+                <Field
+                  label="Length"
+                  value={formatLength(analysis.arrangementSeconds)}
+                  mono
+                  hint="Estimated from the furthest clip"
+                />
+                <Field label="Tracks" value={analysis.trackCounts.total || '—'} mono />
+                <Field
+                  label="MIDI / audio"
+                  value={`${analysis.trackCounts.midi} / ${analysis.trackCounts.audio}`}
+                  mono
+                />
+                <Field label="Scenes" value={analysis.sceneCount || '—'} mono />
+                <Field label="Samples" value={analysis.sampleCount || '—'} mono />
+              </FieldGrid>
 
-            <div className={styles.stackTight}>
-              <span className={styles.sectionLabel}>
-                Plugins {analysis.plugins.length > 0 ? `· ${analysis.plugins.length}` : ''}
-              </span>
-              {analysis.plugins.length === 0 ? (
-                <p className={styles.empty}>
-                  No third-party plugins found. Live&apos;s own devices are not enumerated.
+              <div className={styles.stackTight}>
+                <span className={styles.sectionLabel}>
+                  Plugins {analysis.plugins.length > 0 ? `· ${analysis.plugins.length}` : ''}
+                </span>
+                {analysis.plugins.length === 0 ? (
+                  <p className={styles.empty}>
+                    No third-party plugins found. Live&apos;s own devices are not enumerated.
+                  </p>
+                ) : (
+                  <div className={styles.tokens}>
+                    {analysis.plugins.map((plugin) => (
+                      <span key={plugin} className={styles.token}>
+                        {plugin}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {analysis.missingSamples.length > 0 ? (
+                <p className={styles.warn}>
+                  {analysis.missingSamples.length} referenced sample
+                  {analysis.missingSamples.length === 1 ? '' : 's'} could not be found on disk. See
+                  the FILES tab.
                 </p>
-              ) : (
-                <div className={styles.tokens}>
-                  {analysis.plugins.map((plugin) => (
-                    <span key={plugin} className={styles.token}>
-                      {plugin}
-                    </span>
-                  ))}
-                </div>
-              )}
+              ) : null}
+
+              {analysis.parseError ? (
+                <p className={styles.warn}>
+                  This set could only be read in part: {analysis.parseError}
+                </p>
+              ) : null}
+
+              <p className={styles.hint}>
+                {analysis.creator ?? 'Unknown Live version'}
+                {primary ? ` · ${primary.fileName} · ${formatBytes(primary.sizeBytes)}` : ''}
+              </p>
             </div>
-
-            {analysis.missingSamples.length > 0 ? (
-              <p className={styles.warn}>
-                {analysis.missingSamples.length} referenced sample
-                {analysis.missingSamples.length === 1 ? '' : 's'} could not be found on disk. See
-                the FILES tab.
-              </p>
-            ) : null}
-
-            {analysis.parseError ? (
-              <p className={styles.warn}>
-                This set could only be read in part: {analysis.parseError}
-              </p>
-            ) : null}
-
-            <p className={styles.hint}>
-              {analysis.creator ?? 'Unknown Live version'}
-              {primary ? ` · ${primary.fileName} · ${formatBytes(primary.sizeBytes)}` : ''}
+          ) : (
+            <p className={styles.empty}>
+              No Ableton set was found in this folder, so there is nothing to analyse.
             </p>
+          )}
+
+          {/*
+          The two actions the panel exists to lead to, at the foot of it.
+
+          They started in the dossier's header bar, next to CLOSE, which put the
+          most-used controls in the corner that also holds the way out. Bottom
+          right of the focal panel instead: it is where a reader's eye finishes
+          the set analysis, and where a dialogue puts its commit.
+
+          Marked, and OPEN IN ABLETON carries the accent. Two identical ghost
+          buttons in a row of grey read as chrome and get skipped — the point of
+          this row is that it should be the first thing seen, so it gets the one
+          saturated colour the panel is allowed.
+        */}
+          <div className={styles.openRow}>
+            <Button
+              size="sm"
+              icon={<ArchiveIcon mark="folder" className={styles.openIcon} />}
+              disabled={open.missing}
+              title={open.missing ? 'The folder is not on disk' : 'Open the project folder'}
+              onClick={open.folder}
+            >
+              Open folder
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              icon={<ArchiveIcon mark="project" className={styles.openIcon} />}
+              disabled={open.missing || open.setless}
+              title={
+                open.setless ? 'No Ableton set in this project' : 'Open the set in Ableton Live'
+              }
+              onClick={open.ableton}
+            >
+              Open in Ableton
+            </Button>
           </div>
-        ) : (
-          <p className={styles.empty}>
-            No Ableton set was found in this folder, so there is nothing to analyse.
-          </p>
-        )}
+        </div>
       </Panel>
 
       <Panel label="Record" index="02" className={styles.span2}>

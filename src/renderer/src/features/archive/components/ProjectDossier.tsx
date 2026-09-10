@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { ProjectStage } from '@shared/domain/projects'
 import { PIPELINE_STAGES, evaluateReadiness, getStage } from '@shared/domain/projects.constants'
@@ -62,14 +62,25 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
    * Ableton goes through `projects:open` rather than opening a path directly,
    * because the main process is what knows which of several `.als` files in a
    * project folder is the current set as opposed to a backup.
+   *
+   * Passed to the tabs rather than drawn here: "open this project" belongs to
+   * the dossier, but the header is where the dossier is *dismissed* from, and
+   * the two most-used actions should not share a corner with the way out.
+   * Both are refused while the folder is missing — launching a set that is not
+   * there produces an OS error dialog naming a path, which is a worse way to
+   * learn this than the badge already in the title row.
    */
-  const openFolder = (): void => {
-    if (project) void window.candy.shell.openPath(project.path)
-  }
-
-  const openInAbleton = (): void => {
-    void window.candy.projects.open(projectId)
-  }
+  const open = useMemo(
+    () => ({
+      folder: () => {
+        if (project) void window.candy.shell.openPath(project.path)
+      },
+      ableton: () => void window.candy.projects.open(projectId),
+      missing: project?.missing ?? true,
+      setless: (project?.sets.length ?? 0) === 0
+    }),
+    [project, projectId]
+  )
 
   // Escape closes, as it does for any modal layer in the shell.
   useEffect(() => {
@@ -197,37 +208,6 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                     ◆
                   </button>
 
-                  {/*
-                    The two things anyone opens a dossier to do.
-
-                    They were reachable already — the path line reveals the
-                    folder, the context menu launches the set — but both are
-                    somewhere other than here, and this panel is where a project
-                    is actually being looked at. FOLDER uses `openPath` rather
-                    than `reveal` so Explorer lands *inside* the project instead
-                    of highlighting it from the parent.
-
-                    Both are refused while the folder is missing: launching a
-                    set that is not there produces an OS error dialog naming a
-                    path, which is a worse way to learn this than the badge
-                    already in the title row.
-                  */}
-                  <Button size="sm" disabled={project.missing} onClick={openFolder}>
-                    Folder
-                  </Button>
-                  <Button
-                    size="sm"
-                    disabled={project.missing || project.sets.length === 0}
-                    title={
-                      project.sets.length === 0
-                        ? 'No Ableton set in this project'
-                        : 'Open the set in Ableton Live'
-                    }
-                    onClick={openInAbleton}
-                  >
-                    Ableton
-                  </Button>
-
                   <Button size="sm" onClick={onClose}>
                     Close
                   </Button>
@@ -317,9 +297,11 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
 
               <div className={styles.body}>
                 {tab === 'overview' ? (
-                  <DossierOverview project={project} mutations={mutations} />
+                  <DossierOverview project={project} mutations={mutations} open={open} />
                 ) : null}
-                {tab === 'files' ? <DossierFiles project={project} mutations={mutations} /> : null}
+                {tab === 'files' ? (
+                  <DossierFiles project={project} mutations={mutations} open={open} />
+                ) : null}
               </div>
             </>
           )}

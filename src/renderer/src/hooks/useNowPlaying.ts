@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type {
   NowPlayingConfigPatch,
+  NowPlayingSourceDraft,
   NowPlayingState,
   SpotifySetup
 } from '@shared/domain/nowplaying'
@@ -84,7 +85,12 @@ export function usePlaybackClock(active: boolean): number {
 }
 
 export interface NowPlayingActions {
-  configure(patch: NowPlayingConfigPatch): Promise<void>
+  /** Presentation, addressed to one source. There is no single config. */
+  configure(id: string, patch: NowPlayingConfigPatch): Promise<void>
+  addSource(draft: NowPlayingSourceDraft): Promise<void>
+  renameSource(id: string, name: string, note: string): Promise<void>
+  removeSource(id: string): Promise<void>
+  setPollSeconds(seconds: number): Promise<void>
   link(): Promise<void>
   unlink(): Promise<void>
   pending: string | null
@@ -110,7 +116,14 @@ export function useNowPlayingActions(): NowPlayingActions {
 
   return useMemo<NowPlayingActions>(
     () => ({
-      configure: (patch) => run('config', () => window.candy.nowPlaying.configure(patch)),
+      configure: (id, patch) =>
+        run('config', () => window.candy.nowPlaying.configureSource(id, patch)),
+      addSource: (draft) => run('add', () => window.candy.nowPlaying.addSource(draft)),
+      renameSource: (id, name, note) =>
+        run('rename', () => window.candy.nowPlaying.renameSource(id, name, note)),
+      removeSource: (id) => run('remove', () => window.candy.nowPlaying.removeSource(id)),
+      setPollSeconds: (seconds) =>
+        run('poll', () => window.candy.nowPlaying.setPollSeconds(seconds)),
       link: () => run('link', () => window.candy.nowPlaying.link()),
       unlink: () => run('unlink', () => window.candy.nowPlaying.unlink()),
       pending,

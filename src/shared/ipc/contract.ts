@@ -6,7 +6,9 @@ import { RuntimeInfoSchema, WindowStateSchema } from '../domain/system'
 import { UpdateStatusSchema } from '../domain/update'
 import { TelemetryStateSchema } from '../domain/telemetry'
 import {
-  NowPlayingConfigPatchSchema,
+  NowPlayingSourceConfigSchema,
+  NowPlayingSourceDraftSchema,
+  NowPlayingSourceRenameSchema,
   NowPlayingStateSchema,
   SpotifySetupSchema
 } from '../domain/nowplaying'
@@ -356,7 +358,30 @@ export const IPC_INVOKE = {
   'nowplaying:subscribe': { input: z.void(), output: NowPlayingStateSchema },
   'nowplaying:unsubscribe': { input: z.void(), output: z.void() },
   'nowplaying:state': { input: z.void(), output: NowPlayingStateSchema },
-  'nowplaying:config': { input: NowPlayingConfigPatchSchema, output: NowPlayingStateSchema },
+  /**
+   * Presentation, addressed to one source.
+   *
+   * There is no channel that edits "the" config any more: every OBS scene
+   * points at its own source, so an edit has to name which one it is for.
+   */
+  'nowplaying:source-config': {
+    input: NowPlayingSourceConfigSchema,
+    output: NowPlayingStateSchema
+  },
+  'nowplaying:source-add': { input: NowPlayingSourceDraftSchema, output: NowPlayingStateSchema },
+  'nowplaying:source-rename': {
+    input: NowPlayingSourceRenameSchema,
+    output: NowPlayingStateSchema
+  },
+  'nowplaying:source-remove': {
+    input: z.object({ id: z.string() }),
+    output: NowPlayingStateSchema
+  },
+  /** One poller serves every source, so the interval is one setting. */
+  'nowplaying:poll': {
+    input: z.object({ seconds: z.number() }),
+    output: NowPlayingStateSchema
+  },
   /** Opens the authorisation page in the operator's own browser. */
   'nowplaying:link': { input: z.void(), output: NowPlayingStateSchema },
   'nowplaying:unlink': { input: z.void(), output: NowPlayingStateSchema },

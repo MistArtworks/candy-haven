@@ -8,7 +8,12 @@ import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } fro
 import type { ConcordConfigPatch, ConcordOptionDraft, ConcordState } from '../domain/concord'
 import type { ChatStatus } from '../domain/chat'
 import type { TimerConfigPatch, TimerId, TimerSet, TimerState } from '../domain/timer'
-import type { NowPlayingConfigPatch, NowPlayingState, SpotifySetup } from '../domain/nowplaying'
+import type {
+  NowPlayingConfigPatch,
+  NowPlayingSourceDraft,
+  NowPlayingState,
+  SpotifySetup
+} from '../domain/nowplaying'
 import type {
   NoteDraft,
   ProjectDraft,
@@ -254,7 +259,14 @@ export interface CandyHavenApi {
     subscribe(): Promise<NowPlayingState>
     unsubscribe(): Promise<void>
     state(): Promise<NowPlayingState>
-    configure(patch: NowPlayingConfigPatch): Promise<NowPlayingState>
+    /** Presentation, addressed to one source — there is no single config. */
+    configureSource(id: string, patch: NowPlayingConfigPatch): Promise<NowPlayingState>
+    addSource(draft: NowPlayingSourceDraft): Promise<NowPlayingState>
+    /** The slug deliberately does not follow a rename; see the service. */
+    renameSource(id: string, name: string, note: string): Promise<NowPlayingState>
+    /** Refused for the last remaining source. */
+    removeSource(id: string): Promise<NowPlayingState>
+    setPollSeconds(seconds: number): Promise<NowPlayingState>
     /** Opens the Spotify authorisation page in the operator's browser. */
     link(): Promise<NowPlayingState>
     unlink(): Promise<NowPlayingState>

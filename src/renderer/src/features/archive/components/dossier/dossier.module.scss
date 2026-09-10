@@ -638,3 +638,34 @@ $list-cap: min(#{rem(280px)}, 24vh);
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+// The two open actions, at the bottom right of the focal panel.
+//
+// `margin-top: auto` rather than a fixed gap: this panel is the tallest thing
+// in the grid and its content varies a lot — a set with no plugins leaves a
+// large gap, and the row should sit at the foot in both cases rather than
+// floating in the middle of the empty half.
+//
+// Right-aligned because that is where a reader's eye finishes and where a
+// dialogue puts its commit; a hairline above separates the actions from the
+// figures rather than letting them read as one more row of analysis.
+.openRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: space(2);
+  margin-top: auto;
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+}
+
+.analysisBody {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.openIcon {
+  width: rem(13px);
+  height: rem(11px);
+  flex-shrink: 0;
+}

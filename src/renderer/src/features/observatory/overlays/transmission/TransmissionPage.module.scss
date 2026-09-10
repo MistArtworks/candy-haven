@@ -22,6 +22,12 @@
   grid-column: span 2;
 }
 
+// The source list wants the whole row: each entry carries its address, and an
+// address wrapped over four lines in a third of the width is not quotable.
+.wide {
+  grid-column: span 6;
+}
+
 @include below('lg') {
   .facePanel {
     grid-column: span 6;
@@ -231,4 +237,182 @@
   &:focus-visible {
     @include focus-ring;
   }
+}
+
+// ------------------------------------------------------------------ sources
+
+// Every configured browser source. Scrolls rather than growing past the panel:
+// the kit seeds one per family of music, which is two dozen rows before the
+// operator has added anything of their own.
+.sources {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.sourceList {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: rem(340px);
+  overflow-y: auto;
+}
+
+.sourceRow {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  transition: border-color $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  // The one being edited by the panel below. Marked with a rib rather than a
+  // fill: a filled row in a list of twenty reads as a warning.
+  &[data-selected] {
+    border-color: var(--ch-line-strong);
+    box-shadow: inset 2px 0 0 var(--ch-accent);
+  }
+}
+
+.sourcePick {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.sourceName {
+  @include label(9px, 0.12em);
+  color: var(--ch-text-primary);
+  flex-shrink: 0;
+}
+
+.sourceStyle {
+  @include readout(8px);
+  color: var(--ch-gold-300);
+  flex-shrink: 0;
+}
+
+.sourceNote {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  min-width: 0;
+  @include truncate;
+}
+
+.sourceActions {
+  display: flex;
+  gap: space(1);
+  flex-shrink: 0;
+}
+
+// The address, under its row. Shown for every source rather than only the
+// selected one: setting up a scene collection means pasting a great many of
+// these in one sitting, and hunting for each would make that unbearable.
+.sourceUrl {
+  display: block;
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  padding: space(1) space(3) space(2);
+  word-break: break-all;
+}
+
+.newSource {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  align-items: end;
+  gap: space(3);
+  padding-top: space(3);
+  @include hairline(top, 0.08);
+}
+
+// ------------------------------------------------------------------ identity
+
+.identityBlock {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-bottom: space(4);
+  @include hairline(bottom, 0.08);
+}
+
+.identityFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+}
+
+.identitySlug {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// -------------------------------------------------------------------- accent
+
+// The colour well. Named and labelled, rather than a bare swatch — the ARCHIVE
+// learned that lesson: an unlabelled square reads as a value, not as a door.
+.accentRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3);
+  border: $hairline dashed rgb(255 255 255 / 0.22);
+  cursor: pointer;
+  transition: border-color $duration-fast $ease-out-expo;
+
+  &:hover {
+    border-color: rgb(255 255 255 / 0.4);
+  }
+
+  &:focus-within {
+    @include focus-ring(1px);
+  }
+
+  input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+  }
+}
+
+.accentChip {
+  width: rem(20px);
+  height: rem(20px);
+  @include hairline(all, 0.25);
+  flex-shrink: 0;
+}
+
+.accentLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-secondary);
+  flex: 1;
+}
+
+.accentHex {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  text-transform: uppercase;
 }

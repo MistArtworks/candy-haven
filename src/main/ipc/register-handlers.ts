@@ -267,7 +267,15 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.nowPlaying.unsubscribe()
   })
   router.handle('nowplaying:state', () => services.nowPlaying.current)
-  router.handle('nowplaying:config', (patch) => services.nowPlaying.configure(patch))
+  router.handle('nowplaying:source-config', ({ id, patch }) =>
+    services.nowPlaying.configureSource(id, patch)
+  )
+  router.handle('nowplaying:source-add', (draft) => services.nowPlaying.addSource(draft))
+  router.handle('nowplaying:source-rename', ({ id, name, note }) =>
+    services.nowPlaying.renameSource(id, name, note)
+  )
+  router.handle('nowplaying:source-remove', ({ id }) => services.nowPlaying.removeSource(id))
+  router.handle('nowplaying:poll', ({ seconds }) => services.nowPlaying.setPollSeconds(seconds))
   router.handle('nowplaying:link', () => services.nowPlaying.link())
   router.handle('nowplaying:unlink', () => services.nowPlaying.unlink())
   router.handle('nowplaying:setup', () => services.nowPlaying.setup)
