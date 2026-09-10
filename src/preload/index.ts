@@ -226,6 +226,10 @@ const api: CandyHavenApi = {
     setup: () => invoke('nowplaying:setup'),
     onState: (listener) => subscribe('nowplaying:state', listener)
   },
+  release: {
+    arrival: () => invoke('update:arrival'),
+    acknowledge: () => invoke('update:acknowledge')
+  },
   dispatch: {
     state: () => invoke('dispatch:state'),
     setup: () => invoke('dispatch:setup'),

@@ -3,7 +3,7 @@ import { BootSnapshotSchema } from '../domain/boot'
 import { ArchiveStatusSchema } from '../domain/archive'
 import { SettingsPatchSchema, SettingsSchema } from '../domain/settings'
 import { RuntimeInfoSchema, WindowStateSchema } from '../domain/system'
-import { UpdateStatusSchema } from '../domain/update'
+import { ReleaseArrivalSchema, UpdateStatusSchema } from '../domain/update'
 import { TelemetryStateSchema } from '../domain/telemetry'
 import {
   NowPlayingSourceConfigSchema,
@@ -406,6 +406,16 @@ export const IPC_INVOKE = {
    * optimistically — see the service for why that trade is the right one on a
    * board two people share.
    */
+  /**
+   * What the running version changed, or null when there is nothing to say.
+   *
+   * Answered once per version: acknowledging it is what stops it returning, so
+   * the renderer must call `update:acknowledge` when the operator dismisses it
+   * or the notice comes back on the next launch.
+   */
+  'update:arrival': { input: z.void(), output: ReleaseArrivalSchema.nullable() },
+  'update:acknowledge': { input: z.void(), output: z.void() },
+
   'dispatch:state': { input: z.void(), output: DispatchStateSchema },
   'dispatch:setup': { input: z.void(), output: DispatchSetupSchema },
   /** Accepts the whole snippet the Firebase console shows, not just JSON. */

@@ -5,6 +5,7 @@ import { SECTIONS, getSection, getSectionByPath } from '@shared/domain/navigatio
 import { TimerCues } from '@renderer/app/providers/TimerCues'
 import { ConcordCues } from '@renderer/app/providers/ConcordCues'
 import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
+import { ReleaseNotice } from '@renderer/components/feedback/ReleaseNotice'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
 import { CommandRail } from '@renderer/components/nav/CommandRail'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
@@ -96,6 +97,13 @@ export function ConsoleLayout(): ReactNode {
       */}
       <TimerCues />
       <ConcordCues />
+
+      {/*
+        Mounted in the shell rather than on a page: an update is not a property
+        of wherever the operator happened to be when they launched. Renders
+        nothing until there is a version they have not been told about.
+      */}
+      <ReleaseNotice />
 
       <TitleBar />
 

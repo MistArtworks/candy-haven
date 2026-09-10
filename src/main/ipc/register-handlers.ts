@@ -282,6 +282,9 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
 
   // ------------------------------------------------------------------ dispatch
 
+  router.handle('update:arrival', () => services.updates.notes.arrival())
+  router.handle('update:acknowledge', () => services.updates.notes.acknowledge())
+
   router.handle('dispatch:state', () => services.dispatch.current)
   router.handle('dispatch:setup', () => services.dispatch.setup)
   router.handle('dispatch:configure', ({ source }) => services.dispatch.configure(source))

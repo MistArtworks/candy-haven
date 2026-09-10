@@ -2,7 +2,7 @@ import type { BootSnapshot } from '../domain/boot'
 import type { ArchiveStatus } from '../domain/archive'
 import type { Settings, SettingsPatch } from '../domain/settings'
 import type { RuntimeInfo, WindowState } from '../domain/system'
-import type { UpdateStatus } from '../domain/update'
+import type { ReleaseArrival, UpdateStatus } from '../domain/update'
 import type { TelemetryState } from '../domain/telemetry'
 import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } from '../domain/rite'
 import type { ConcordConfigPatch, ConcordOptionDraft, ConcordState } from '../domain/concord'
@@ -280,6 +280,11 @@ export interface CandyHavenApi {
     unlink(): Promise<NowPlayingState>
     setup(): Promise<SpotifySetup>
     onState(listener: (state: NowPlayingState) => void): Unsubscribe
+  }
+  readonly release: {
+    /** Notes for the running version, or null once acknowledged. */
+    arrival(): Promise<ReleaseArrival | null>
+    acknowledge(): Promise<void>
   }
   readonly dispatch: {
     state(): Promise<DispatchState>

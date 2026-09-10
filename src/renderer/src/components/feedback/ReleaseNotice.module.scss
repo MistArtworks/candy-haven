@@ -1,0 +1,112 @@
+@use 'abstracts' as *;
+
+// What changed, once, after an update lands.
+//
+// Drawn as a record being handed over rather than as a dialogue: an index word,
+// a version, and the entries. The only control is the acknowledgement, because
+// there is nothing here to decide — dismissing it is what marks the version
+// read, and it will not be offered again.
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: z('modal');
+  background: var(--ch-surface-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: space(8);
+}
+
+.sheet {
+  width: min(rem(680px), 100%);
+  max-height: 100%;
+  background: var(--ch-obsidian-800);
+  @include hairline(all, 0.2);
+  box-shadow: var(--ch-shadow-panel);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex-wrap: wrap;
+  padding: space(5) space(6);
+  @include hairline(bottom, 0.1);
+}
+
+.index {
+  @include label(8px, 0.24em);
+  color: var(--ch-accent-bright);
+}
+
+.title {
+  @include label(14px, 0.18em);
+  color: var(--ch-text-primary);
+  margin: 0;
+}
+
+.from {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+// Bounded and scrolled: a release with thirty entries must not push the
+// acknowledgement off the bottom of the window, which would leave the operator
+// with a layer they cannot dismiss except by keyboard.
+.body {
+  padding: space(5) space(6);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.heading {
+  @include label(9px, 0.18em);
+  color: var(--ch-gold-300);
+  margin: space(2) 0 0;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.paragraph {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+// The rib does the work a bullet glyph would, and keeps the left edge of the
+// text aligned with the paragraphs above it rather than indented from them.
+.bullet {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.7;
+  margin: 0;
+  padding-left: space(4);
+  border-left: 2px solid var(--ch-line);
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: space(4) space(6) space(5);
+  @include hairline(top, 0.1);
+}

@@ -5,6 +5,7 @@ import type { UpdateStatus } from '@shared/domain/update'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import { TypedEmitter } from '@main/core/emitter'
+import { ReleaseNotesStore } from './release-notes'
 
 const logger = getLogger('updates')
 
@@ -45,6 +46,15 @@ export class UpdateService extends TypedEmitter<UpdateEvents> {
   }
 
   private readonly supported: boolean
+
+  /**
+   * Notes for whatever version is running, held across the restart.
+   *
+   * On the service because this is the only place that ever sees an update's
+   * notes — the updater hands them over while the *old* version is running, and
+   * that process is gone by the time they are wanted.
+   */
+  readonly notes = new ReleaseNotesStore()
 
   constructor() {
     super()
@@ -189,6 +199,13 @@ export class UpdateService extends TypedEmitter<UpdateEvents> {
 
     autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
       logger.info(`Update downloaded: ${info.version}`)
+      // Kept now, while they are in hand: the next launch is a different
+      // process, and may not have a network to fetch them with.
+      void this.notes.remember(
+        info.version,
+        notesToText(info.releaseNotes),
+        info.releaseDate ?? null
+      )
       this.patch({
         state: 'downloaded',
         version: info.version,
