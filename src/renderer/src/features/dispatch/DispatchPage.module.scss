@@ -29,10 +29,6 @@
   grid-column: span 2;
 }
 
-.setupPanel {
-  grid-column: span 6;
-}
-
 @include below('lg') {
   .boardPanel,
   .threadPanel {
@@ -96,7 +92,10 @@
   justify-content: space-between;
   gap: space(8);
   flex-wrap: wrap;
-  margin-top: space(5);
+  // Space on both sides. The grid follows immediately after, and without a gap
+  // the band reads as the first panel's header rather than as a gate in front
+  // of the whole page.
+  margin: space(5) 0 space(6);
   padding: space(5) space(6);
   background: var(--ch-surface-raised);
   @include hairline(all, 0.18);
@@ -569,6 +568,18 @@
   padding: space(2) space(3);
   word-break: break-all;
   display: block;
+}
+
+// A link inside running prose. Underlined rather than merely coloured: a
+// coloured word in a palette this narrow is not reliably readable as a link.
+.inlineLink {
+  color: var(--ch-gold-300);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
 }
 
 .inline {

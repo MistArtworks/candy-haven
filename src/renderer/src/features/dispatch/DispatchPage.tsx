@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import type { DispatchItem } from '@shared/domain/dispatch'
 import {
@@ -36,7 +37,6 @@ import {
   unreadCount,
   useDispatch,
   useDispatchActions,
-  useDispatchSetup,
   useIdentity
 } from '@renderer/hooks/useDispatch'
 import { ItemCard } from './components/ItemCard'
@@ -69,7 +69,6 @@ const LINK_TONE: Record<string, StatusTone> = {
 export function DispatchPage(): ReactNode {
   const section = getSection('dispatch')
   const state = useDispatch()
-  const setup = useDispatchSetup(state.revision)
   const actions = useDispatchActions()
   const identity = useIdentity(state)
 
@@ -199,6 +198,24 @@ export function DispatchPage(): ReactNode {
           <button type="button" className={styles.dismiss} onClick={actions.dismissError}>
             Dismiss
           </button>
+        </div>
+      ) : null}
+
+      {/*
+        Unconfigured is not something to fix here.
+        The connection moved to REGULATION, because it is set once per machine
+        and this is a working surface — so an unattached board says where to go
+        rather than growing a settings panel back.
+      */}
+      {state.link.state === 'unconfigured' ? (
+        <div className={styles.notice}>
+          <span>
+            The board is not attached to a database yet. Add the Firebase config in{' '}
+            <Link to="/regulation?section=board" className={styles.inlineLink}>
+              REGULATION → BOARD
+            </Link>
+            .
+          </span>
         </div>
       ) : null}
 
@@ -354,28 +371,6 @@ export function DispatchPage(): ReactNode {
           ) : (
             <p className={styles.empty}>Pick something from the board.</p>
           )}
-        </Panel>
-
-        <Panel
-          label="Connection"
-          index="03"
-          className={styles.setupPanel}
-          aside={
-            <StatusDot
-              tone={LINK_TONE[state.link.state] ?? 'pending'}
-              label={setup.configured ? 'Configured' : 'Not configured'}
-            />
-          }
-        >
-          <Setup
-            configured={setup.configured}
-            projectId={setup.projectId}
-            databaseUrl={setup.databaseUrl}
-            configPath={setup.configPath}
-            message={state.link.message}
-            busy={actions.pending === 'configure'}
-            onSubmit={(source) => void actions.configure(source)}
-          />
         </Panel>
       </motion.div>
     </div>
@@ -557,96 +552,6 @@ function Compose({
           File it
         </Button>
       </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------- setup
-
-/**
- * Attaching the board to a database.
- *
- * Accepts the whole snippet the Firebase console shows — unquoted keys, single
- * quotes, `const` and all — because asking someone to convert that to JSON by
- * hand is asking them to make a typo. The parser only has to find the fields it
- * knows.
- */
-function Setup({
-  configured,
-  projectId,
-  databaseUrl,
-  configPath,
-  message,
-  busy,
-  onSubmit
-}: {
-  configured: boolean
-  projectId: string | null
-  databaseUrl: string | null
-  configPath: string
-  message: string
-  busy: boolean
-  onSubmit: (source: string) => void
-}): ReactNode {
-  const [source, setSource] = useState('')
-
-  return (
-    <div className={styles.setup}>
-      {configured ? (
-        <>
-          <p className={styles.hint}>
-            Attached to <strong>{projectId || 'a Firebase project'}</strong>. Both copies of the app
-            read and write the same board, so an item filed on one shows up on the other within a
-            moment.
-          </p>
-          {/*
-            The address is shown rather than merely held, because it may have
-            been *derived* rather than pasted — the console's snippet omits it —
-            and a wrong region produces a board that silently never attaches.
-            Seeing the address is how that gets diagnosed at a glance.
-          */}
-          <code className={styles.url}>{databaseUrl}</code>
-          {message ? <p className={styles.hint}>{message}</p> : null}
-        </>
-      ) : (
-        <p className={styles.hint}>
-          Paste the Firebase config from the console — Project settings, your web app, the
-          <code className={styles.inline}>firebaseConfig</code> block. The whole snippet is fine; it
-          does not need converting. It is saved to{' '}
-          <code className={styles.inline}>{configPath}</code>.
-        </p>
-      )}
-
-      <TextArea
-        label={configured ? 'Replace the config' : 'Firebase config'}
-        value={source}
-        onChange={setSource}
-        rows={6}
-        placeholder={'const firebaseConfig = {\n  apiKey: "…",\n  databaseURL: "…"\n};'}
-        hint="Needs the databaseURL line — the board uses the Realtime Database."
-      />
-
-      <div className={styles.composeActions}>
-        <Button
-          size="sm"
-          variant="primary"
-          disabled={source.trim().length === 0}
-          busy={busy}
-          onClick={() => {
-            onSubmit(source)
-            setSource('')
-          }}
-        >
-          Attach
-        </Button>
-      </div>
-
-      <p className={styles.footnote}>
-        A Firebase web config is not a secret — it ships inside every web app that uses one, and
-        access is governed by the database rules rather than by hiding it. A database created in
-        test mode does stop allowing access after thirty days, and the readout above will say so
-        when that happens.
-      </p>
     </div>
   )
 }

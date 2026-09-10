@@ -10,6 +10,119 @@
   margin: 0 auto;
 }
 
+/*
+ * A rail and the group it selects.
+ *
+ * The rail is fixed-width rather than a fraction: it holds seven short labels
+ * and nothing else, and letting it grow with the window would leave a column of
+ * words in a field of nothing.
+ */
+.shell {
+  display: grid;
+  grid-template-columns: rem(212px) minmax(0, 1fr);
+  gap: space(8);
+  align-items: start;
+}
+
+.content {
+  min-width: 0;
+}
+
+@include below('md') {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: space(6);
+  }
+}
+
+// ------------------------------------------------------------------ the rail
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  // Clears the page's own top padding, so the rail stops rather than sliding
+  // under the header when a long group scrolls.
+  top: space(6);
+}
+
+.navItem {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  width: 100%;
+  padding: space(3) space(3);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  @include hairline(bottom, 0.06);
+  transition: background $duration-fast linear;
+
+  &:hover {
+    background: var(--ch-surface-raised);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  // A rib rather than a fill. The rail sits beside the panels, and a filled
+  // entry would compete with the focal slab it is pointing at.
+  &[data-active] {
+    background: var(--ch-surface-raised);
+    box-shadow: inset 2px 0 0 var(--ch-accent);
+  }
+}
+
+.navIndex {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.navLabel {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+  flex: 1;
+  min-width: 0;
+
+  .navItem[data-active] & {
+    color: var(--ch-gold-200);
+  }
+}
+
+// Why a group is worth opening, when it is. The whole point of hiding six
+// groups is that anything wanting attention must be visible from the rail.
+.navMark {
+  @include readout(8px);
+  color: var(--ch-accent-bright);
+  flex-shrink: 0;
+}
+
+// -------------------------------------------------------------- group header
+
+.categoryHead {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  padding-bottom: space(4);
+  margin-bottom: space(5);
+  @include hairline(bottom, 0.08);
+}
+
+.categoryTitle {
+  @include label(13px, 0.2em);
+  color: var(--ch-text-primary);
+  margin: 0;
+}
+
+.categoryPurpose {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  margin: 0;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -184,4 +297,52 @@
   &:focus-visible {
     @include focus-ring;
   }
+}
+
+// ------------------------------------------------------------------- board
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  max-width: rem(860px);
+}
+
+.url {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+  padding: space(2) space(3);
+  word-break: break-all;
+  display: block;
+}
+
+.inline {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  padding: 0 space(1);
+}
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.warn {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.footnote {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+  opacity: 0.8;
 }
