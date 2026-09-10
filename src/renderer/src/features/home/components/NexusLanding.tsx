@@ -4,8 +4,12 @@ import { SECTIONS } from '@shared/domain/navigation'
 import type { ArchiveState } from '@shared/domain/archive'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import { formatDuration } from '@renderer/lib/format'
-import { FOCUS_Y, GenesisField, type PointerLean } from './GenesisField'
+import { GenesisField, type PointerLean } from './GenesisField'
 import { MandalaRings } from './MandalaRings'
+import { GalaxyScene } from './scenes/GalaxyScene'
+import { VigilScene } from './scenes/VigilScene'
+import { DetonationScene } from './scenes/DetonationScene'
+import { SCENES, SESSION_SCENE } from './scenes/scenes'
 import styles from './NexusLanding.module.scss'
 
 export interface NexusLandingProps {
@@ -128,6 +132,8 @@ export function NexusLanding({
   onDescend
 }: NexusLandingProps): ReactNode {
   const sectionRef = useRef<HTMLElement>(null)
+  /** Which field this run of the application opened on. See `scenes.ts`. */
+  const scene = SCENES[SESSION_SCENE]
   // The project's own hook, not motion's `useReducedMotion`: this one honours
   // the in-app Motion control in Regulation as well as the OS setting.
   const animationsEnabled = useAnimationsEnabled()
@@ -243,14 +249,30 @@ export function NexusLanding({
       className={styles.landing}
       // The focal point is published to CSS from the one place it is defined,
       // so the armature's anchor and the canvas's horizon are the same number.
-      style={{ '--ch-focus-y': `${FOCUS_Y * 100}%` } as CSSProperties}
+      style={{ '--ch-focus-y': `${scene.focusY * 100}%` } as CSSProperties}
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
     >
       {/* ------------------------------------------------------------ layers */}
 
+      {/*
+        One of four fields, chosen when the application started.
+
+        Which one is a module constant rather than state, so navigating away
+        from the NEXUS and back does not reroll it — that would be a slot
+        machine rather than an atmosphere, and it would throw away a field the
+        operator was looking at.
+      */}
       <motion.div className={styles.fieldLayer} style={parallax.field}>
-        <GenesisField tone={tone} leanRef={leanRef} />
+        {SESSION_SCENE === 'galaxy' ? (
+          <GalaxyScene tone={tone} leanRef={leanRef} />
+        ) : SESSION_SCENE === 'vigil' ? (
+          <VigilScene tone={tone} leanRef={leanRef} />
+        ) : SESSION_SCENE === 'detonation' ? (
+          <DetonationScene tone={tone} leanRef={leanRef} />
+        ) : (
+          <GenesisField tone={tone} leanRef={leanRef} />
+        )}
       </motion.div>
 
       {/* Twin slabs. Pure CSS: they are silhouettes, and a silhouette does not
@@ -266,11 +288,20 @@ export function NexusLanding({
         elements is what stops a motion-driven `transform` from clobbering the
         centring translate.
       */}
-      <div className={styles.coreAnchor} aria-hidden="true">
-        <motion.div className={styles.coreLayer} style={parallax.core}>
-          <MandalaRings className={styles.mandala} />
-        </motion.div>
-      </div>
+      {/*
+        The armature, only where there is a single centred object to enclose.
+
+        Over the vigil it would sit on the sky like a watermark, and over the
+        ruin it would ring empty space beside the planet — the brief asks for
+        one focal object, not for the furniture to be applied regardless.
+      */}
+      {scene.mandala ? (
+        <div className={styles.coreAnchor} aria-hidden="true">
+          <motion.div className={styles.coreLayer} style={parallax.core}>
+            <MandalaRings className={styles.mandala} />
+          </motion.div>
+        </div>
+      ) : null}
 
       {/* A cold wash over the lower half, so the type below the orb sits on
           something and the floor does not compete with it. */}

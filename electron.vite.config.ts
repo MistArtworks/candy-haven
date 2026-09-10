@@ -69,6 +69,15 @@ export default defineConfig({
         // needs touching.
         input: {
           index: resolve('src/renderer/index.html'),
+          /*
+           * A contact sheet of the NEXUS landing fields.
+           *
+           * Not reachable from the application and not linked from anywhere —
+           * it exists so the scenes can be looked at side by side without
+           * launching the console and waiting on a database. Composition is
+           * what these are for, and composition is not type-checkable.
+           */
+          'preview-scenes': resolve('src/renderer/preview/scenes.html'),
           ...Object.fromEntries(
             liveOverlayDocuments().map((document) => [
               document,
