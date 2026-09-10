@@ -1,4 +1,5 @@
-import { Menu, Tray, nativeImage } from 'electron'
+import { Menu, Tray, nativeImage, type NativeImage } from 'electron'
+import { readFileSync } from 'node:fs'
 import { APP_NAME, APP_SUBTITLE } from '@shared/constants'
 import type { ArchiveState } from '@shared/domain/archive'
 import { getLogger } from '@main/core/logger'
@@ -37,14 +38,34 @@ export class TrayController {
 
   constructor(private readonly actions: TrayActions) {}
 
+  /**
+   * The application mark, as a native image.
+   *
+   * Read through `fs` and handed over as a buffer rather than given to
+   * `nativeImage.createFromPath`. In a packaged build the mark lives inside
+   * `app.asar`, and Electron's asar support is a patch over the *JavaScript*
+   * file APIs — the native side of `createFromPath` opens the path directly,
+   * finds a directory where it expected a file, and returns an empty image
+   * with no error. `readFileSync` goes through the patched layer and works
+   * from the archive and from the source tree alike.
+   */
+  private readIcon(): NativeImage | null {
+    try {
+      return nativeImage.createFromBuffer(readFileSync(getPaths().appIcon))
+    } catch (error) {
+      logger.error(`Tray icon could not be read from ${getPaths().appIcon}`, error)
+      return null
+    }
+  }
+
   create(): void {
     if (this.tray) return
 
-    const image = nativeImage.createFromPath(getPaths().appIcon)
-    if (image.isEmpty()) {
+    const image = this.readIcon()
+    if (!image || image.isEmpty()) {
       // Not fatal, and not silent: without a tray the close button must not
       // hide the window, so the caller needs to know this failed.
-      logger.error(`Tray icon could not be read from ${getPaths().appIcon}`)
+      logger.error('Tray icon is empty; the tray will not be created')
       return
     }
 
@@ -131,8 +152,11 @@ export class TrayController {
     if (!this.tray) return
 
     try {
+      const icon = this.readIcon()
+      if (!icon) return
+
       this.tray.displayBalloon({
-        icon: nativeImage.createFromPath(getPaths().appIcon),
+        icon,
         title: `${APP_NAME} is still running`,
         content:
           'The console has retired to the tray. Overlays, the archive and chat keep running. Quit from this icon to end the session.'
