@@ -287,7 +287,10 @@ async function main() {
       say(`${path} is not built yet`)
       continue
     }
-    die(`${path} is missing.`, skipBuild ? 'Run without --skip-build.' : 'The build did not make it.')
+    die(
+      `${path} is missing.`,
+      skipBuild ? 'Run without --skip-build.' : 'The build did not make it.'
+    )
   }
 
   for (const [path, type] of assets) {
