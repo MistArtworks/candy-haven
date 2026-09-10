@@ -1,27 +1,18 @@
-The NEXUS opens on a different field every time you launch it, THE CONCORD shows a ballot while you are still writing it, and the chat is easier to read.
+THE MUSTER: put a question to chat, let them fill the roll, then send it to the wheel or to a vote.
 
-## The landing
+## THE MUSTER
 
-- Four fields now, one chosen when the app starts and held for the session: the singularity, a barred spiral galaxy wired with a resonance plexus, a robed observer on a rocky world under a nebula, and a nebula moments after it detonated.
-- All four follow the cursor, and all four are drawn in the house materials — no sixth colour anywhere.
+- A new overlay. Put a question — "give me some songs" — and chat files entries with `!add lean on by dj snake`. The roll fills live on the scene, numbered and credited to whoever filed each one.
+- A settable clock runs the call down, or leave it open until you close it.
+- One entry per citizen by default, and duplicates are refused, so nobody can fill the roll on their own.
+- When the call closes, hand the roll to the ring to be drawn from, to the chamber to be voted on, or both — a roll can be voted down to a shortlist and the shortlist then drawn.
+- Two browser sources off one call: the full scene, and a corner plate showing the question and the latest filings.
+- Strike an entry from the console and the citizen who filed it gets their slot back.
 
-## THE CONCORD
+## Release notes
 
-- A ballot now appears on the browser source while you are typing it, instead of the source saying NO QUESTION HAS BEEN PUT. Filing a ballot and watching it before opening the chamber is the point of having it on screen.
-- The overlay holds its resting composition between polls rather than vanishing, and a settled result returns to rest on its own once it has had its linger.
-
-## The chat widget
-
-- More space between messages, and the name now sits on the same baseline as the message rather than floating above it.
-- CSS only. No need to re-paste the HTML tab.
-
-## Everywhere
-
-- Typing in an overlay's title, question, label or vote command no longer drops characters when you type fast. Every keystroke was making a round trip through the main process, and anything typed during the trip was overwritten.
-- Release notes are shown once, in the app, after an update lands.
-- REGULATION is grouped behind a rail instead of one long grid.
-- The shared board's connection moved to REGULATION → BOARD, and the board is behind a real sign-in now: each account has its own password and the database refuses everyone else.
+- The 1.3.0 notice showed a screen of HTML tags. Notes arrive as Markdown when fetched and as HTML when the updater hands them over, and only one was handled. Both now render.
 
 ## Fixed
 
-- The GPU probe reported its own timeout as a failure, every three seconds.
+- Nothing else changed. This one is the muster.
