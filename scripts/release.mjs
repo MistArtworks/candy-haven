@@ -95,7 +95,17 @@ function capture(command, args) {
  */
 function build() {
   const cli = require.resolve('electron-builder/out/cli/cli.js')
-  run(process.execPath, [cli, '--win'])
+
+  /*
+   * `--publish never`, explicitly.
+   *
+   * electron-builder's default policy is `onTagOrDraft`, and by the time this
+   * runs the commit is tagged *and* a draft exists — so left to itself it
+   * uploads, in parallel, once per artifact. That is precisely the race this
+   * script exists to avoid, and it fails outright without a token in the
+   * environment. The uploads are ours; the build is all that is wanted here.
+   */
+  run(process.execPath, [cli, '--win', '--publish', 'never'])
 }
 
 let TOKEN = ''
