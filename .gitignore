@@ -9,3 +9,11 @@ out
 release/
 *.log
 .env.local
+
+# The Firebase snippet for the DISPATCH board.
+#
+# Not a secret in Firebase's model — a web config ships inside every web app
+# that uses one — but this repository is public and the database's rules are
+# open, so the address in here is effectively the key to the board. Kept out of
+# git and handed to the other operator directly.
+info/firebaseconfig.md

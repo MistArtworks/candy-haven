@@ -121,7 +121,8 @@ function withDatabaseUrl(config: FirebaseConfig): FirebaseConfig | null {
  * 2. `info/firebaseconfig.md` beside the source, in development only — the
  *    operator keeps the snippet there, and having to paste it into the app as
  *    well on a machine that already has the file would be a chore for nothing.
- * 3. `MAIN_VITE_FIREBASE_DATABASE_URL`, for a build that wants it baked in.
+ * 3. `MAIN_VITE_FIREBASE_DATABASE_URL` in the environment, for a launcher that
+ *    wants to point a copy of the app at a different board.
  *
  * Never throws. An unreadable or absent config is the unconfigured state, which
  * the page is built to show.
