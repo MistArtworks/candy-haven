@@ -65,22 +65,26 @@ sit in a public repository.
 
 ## The accounts
 
-| Identity | Address | Rules on items |
+| Identity | UID | Rules on items |
 | --- | --- | --- |
-| `mist` | `mistartworks@gmail.com` | yes |
-| `candy` | `candyheistmusic23@gmail.com` | no |
+| `mist` | `Uc1ZbVbKXmU8cU5iSK3kWtNKXJD2` | yes |
+| `candy` | `u9mDaxAH3MZbgyIPith4lBF4Mn63` | no |
+
+Two Firebase email/password accounts. **Neither address appears anywhere in the
+repository or in the build** — they are typed in at sign-in, and the app
+recognises an account by its UID afterwards. A UID is opaque, is not a
+credential, and grants nothing without the password behind it, which is why the
+same two strings are also the access control in `database.rules.json`.
+
+Those two tables must agree. A UID changed in one and not the other produces an
+account that signs in and is then refused by the database, which reads as the
+board being broken rather than as a misconfiguration.
 
 Only mist resolves or denies. That is a division of labour rather than a
 permission — the rules give both accounts identical access, and candy is not
 prevented from anything by the database, only by the interface not offering it.
 If that ever needs to be a real restriction it belongs in the rules, not in the
 renderer.
-
-**Sign-in takes a password and nothing else.** There are two accounts with one
-password each, so asking who you are before asking for proof would be asking a
-question the answer already contains. The app tries both in a fixed order and
-reports one failure for either — there is nothing useful in telling someone
-which of two accounts they failed to be.
 
 ---
 
@@ -90,15 +94,16 @@ which of two accounts they failed to be.
 2. Open **DISPATCH** (Ctrl+7). The Connection panel will say it is not
    configured.
 3. Paste the `firebaseConfig` snippet from the Firebase console and press
-   **Attach**. It is saved to `userData/firebase.json`; this happens once.
+   **Attach**. It is saved to `userData/firebase.json`; this happens once. The
+   panel lives in REGULATION → BOARD.
    - The console's snippet carries no `databaseURL` — that block is generated
      for Firestore. The app derives the default Realtime Database address from
      the project id and **shows the address it resolved to**, because that
      derivation is a guess about the region: correct for a database created in
      the United States, wrong for one in Europe or Singapore. If it is wrong,
      paste a snippet with a `databaseURL` line in it.
-4. Enter your password. The refresh token is kept in the OS keystore, so this
-   also happens once.
+4. Sign in on DISPATCH with the account's address and password. The refresh
+   token is kept in the OS keystore, so this also happens once.
 
 `info/firebaseconfig.md` is git-ignored and excluded from packaged builds. The
 config is handed over directly rather than shipped.

@@ -92,16 +92,18 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
   // -------------------------------------------------------------------- auth
 
   /**
-   * Exchanges a password for a session and attaches.
+   * Exchanges an address and a password for a session, and attaches.
    *
-   * The password is not kept. It goes to Firebase, comes back as a pair of
-   * tokens, and is dropped — the refresh token is what survives a restart, and
-   * it is encrypted with the OS keystore.
+   * Neither is kept. They go to Firebase and come back as a pair of tokens; the
+   * refresh token is what survives a restart, encrypted with the OS keystore.
+   * The address is asked for rather than held in the build because neither
+   * operator's belongs in a repository — the account is recognised afterwards
+   * by its UID, which is opaque and already public in the database's rules.
    */
-  async signIn(password: string): Promise<DispatchState> {
+  async signIn(email: string, password: string): Promise<DispatchState> {
     const auth = this.requireAuth()
 
-    this.session = await auth.signIn(password)
+    this.session = await auth.signIn(email, password)
     await this.tokens.save({
       identity: this.session.identity,
       uid: this.session.uid,
@@ -154,7 +156,7 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
     if (Date.now() < session.expiresAt - REFRESH_MARGIN_MS) return session.idToken
 
     this.refreshing ??= auth
-      .refresh(session.identity, session.refreshToken)
+      .refresh(session.refreshToken)
       .then(async (next) => {
         this.session = next
         await this.tokens.save({
@@ -228,7 +230,7 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
     }
 
     try {
-      this.session = await this.auth.refresh(stored.identity, stored.refreshToken)
+      this.session = await this.auth.refresh(stored.refreshToken)
       await this.tokens.save({
         identity: this.session.identity,
         uid: this.session.uid,

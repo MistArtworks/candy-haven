@@ -418,7 +418,10 @@ export const IPC_INVOKE = {
    * come back. Which of the two accounts it belongs to is resolved by trying
    * them, so the renderer never has to say who it thinks it is.
    */
-  'dispatch:sign-in': { input: z.object({ password: z.string() }), output: DispatchStateSchema },
+  'dispatch:sign-in': {
+    input: z.object({ email: z.string(), password: z.string() }),
+    output: DispatchStateSchema
+  },
   'dispatch:sign-out': { input: z.void(), output: DispatchStateSchema },
   'dispatch:file': { input: DispatchDraftSchema, output: DispatchStateSchema },
   'dispatch:comment': { input: DispatchCommentDraftSchema, output: DispatchStateSchema },

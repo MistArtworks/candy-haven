@@ -285,7 +285,9 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('dispatch:state', () => services.dispatch.current)
   router.handle('dispatch:setup', () => services.dispatch.setup)
   router.handle('dispatch:configure', ({ source }) => services.dispatch.configure(source))
-  router.handle('dispatch:sign-in', ({ password }) => services.dispatch.signIn(password))
+  router.handle('dispatch:sign-in', ({ email, password }) =>
+    services.dispatch.signIn(email, password)
+  )
   router.handle('dispatch:sign-out', () => services.dispatch.signOut())
   router.handle('dispatch:file', (draft) => services.dispatch.file(draft))
   router.handle('dispatch:comment', (draft) => services.dispatch.comment(draft))

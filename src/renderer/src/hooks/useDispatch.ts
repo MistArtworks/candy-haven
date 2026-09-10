@@ -128,7 +128,7 @@ export function isUnseen(item: DispatchItem, identity: DispatchAuthor | null): b
 
 export interface DispatchActions {
   configure(source: string): Promise<void>
-  signIn(password: string): Promise<void>
+  signIn(email: string, password: string): Promise<void>
   signOut(): Promise<void>
   file(draft: DispatchDraft): Promise<void>
   comment(draft: DispatchCommentDraft): Promise<void>
@@ -160,7 +160,8 @@ export function useDispatchActions(): DispatchActions {
   return useMemo<DispatchActions>(
     () => ({
       configure: (source) => run('configure', () => window.candy.dispatch.configure(source)),
-      signIn: (password) => run('sign-in', () => window.candy.dispatch.signIn(password)),
+      signIn: (email, password) =>
+        run('sign-in', () => window.candy.dispatch.signIn(email, password)),
       signOut: () => run('sign-out', () => window.candy.dispatch.signOut()),
       file: (draft) => run('file', () => window.candy.dispatch.file(draft)),
       comment: (draft) => run('comment', () => window.candy.dispatch.comment(draft)),

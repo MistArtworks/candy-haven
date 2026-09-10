@@ -205,7 +205,7 @@ export function DispatchPage(): ReactNode {
       {identity === null && state.link.state !== 'unconfigured' ? (
         <SignIn
           busy={actions.pending === 'sign-in'}
-          onSubmit={(password) => void actions.signIn(password)}
+          onSubmit={(email, password) => void actions.signIn(email, password)}
         />
       ) : null}
 
@@ -399,15 +399,22 @@ function SignIn({
   onSubmit
 }: {
   busy: boolean
-  onSubmit: (password: string) => void
+  onSubmit: (email: string, password: string) => void
 }): ReactNode {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const submit = (): void => {
-    if (!password.trim() || busy) return
-    onSubmit(password)
-    // Cleared either way. On success it is spent; on failure it was wrong, and
-    // leaving a wrong password in the field invites pressing Enter again.
+    if (!email.trim() || !password.trim() || busy) return
+    onSubmit(email, password)
+    /*
+     * Only the password is cleared.
+     *
+     * On success it is spent; on failure it was wrong, and leaving a wrong one
+     * in the field invites pressing Enter again on the same mistake. The
+     * address almost certainly was not the mistake, and retyping it every
+     * attempt would be the annoying half.
+     */
     setPassword('')
   }
 
@@ -416,13 +423,21 @@ function SignIn({
       <div className={styles.signInCopy}>
         <span className={styles.signInTitle}>Sign in to the board</span>
         <p className={styles.hint}>
-          Your password decides which of you this is. It is exchanged with Firebase for a token and
-          never stored here — the database checks the token on every request, which is what keeps
-          the board yours rather than anyone&apos;s who knows its address.
+          Your account decides which of you this is. Neither the address nor the password is stored
+          here — they are exchanged with Firebase for a token, and the database checks that token on
+          every request. That is what keeps the board yours rather than anyone&apos;s who knows its
+          address.
         </p>
       </div>
 
       <div className={styles.signInForm}>
+        <TextInput
+          label="Account"
+          value={email}
+          onChange={setEmail}
+          placeholder="you@example.com"
+          onEnter={submit}
+        />
         <TextInput
           label="Password"
           value={password}
@@ -434,7 +449,7 @@ function SignIn({
         <Button
           size="sm"
           variant="primary"
-          disabled={!password.trim()}
+          disabled={!email.trim() || !password.trim()}
           busy={busy}
           onClick={submit}
         >

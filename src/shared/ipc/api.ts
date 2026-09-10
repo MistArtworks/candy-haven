@@ -286,8 +286,8 @@ export interface CandyHavenApi {
     setup(): Promise<DispatchSetup>
     /** Accepts the whole Firebase console snippet, not just JSON. */
     configure(source: string): Promise<DispatchState>
-    /** The password is exchanged for a token and never stored. */
-    signIn(password: string): Promise<DispatchState>
+    /** Neither the address nor the password is stored; both are exchanged for a token. */
+    signIn(email: string, password: string): Promise<DispatchState>
     signOut(): Promise<DispatchState>
     file(draft: DispatchDraft): Promise<DispatchState>
     comment(draft: DispatchCommentDraft): Promise<DispatchState>

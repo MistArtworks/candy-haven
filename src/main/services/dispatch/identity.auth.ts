@@ -5,17 +5,27 @@ const SIGN_IN_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:signInWi
 const REFRESH_URL = 'https://securetoken.googleapis.com/v1/token'
 
 /**
- * The two accounts, by identity.
+ * The two accounts, by the identifier Firebase gives them.
  *
- * Firebase's email/password provider is keyed by address. Nothing is ever sent
- * to either of these; they are here so that "who am I" is settled by *the
- * database*, against a credential, rather than by a toggle in the interface
- * that anyone could flip. Real addresses rather than placeholders only so that
- * password recovery through the console is possible if it is ever needed.
+ * A UID rather than an address, deliberately. Addresses are personal and there
+ * is no reason for either operator's to sit in a repository — the account is
+ * typed in at sign-in and the app never needs to know it in advance. A UID is
+ * opaque, is not a credential, and grants nothing without the password behind
+ * it, which is why the same two strings can sit in `database.rules.json` where
+ * they are the actual access control.
+ *
+ * **These must match the rules.** If a UID changes here and not there, the
+ * account signs in and is then refused by the database, which reads as the
+ * board being broken rather than as a misconfiguration.
  */
-export const ACCOUNT_EMAIL: Record<DispatchAuthor, string> = {
-  mist: 'mistartworks@gmail.com',
-  candy: 'candyheistmusic23@gmail.com'
+export const ACCOUNT_UID: Record<DispatchAuthor, string> = {
+  mist: 'Uc1ZbVbKXmU8cU5iSK3kWtNKXJD2',
+  candy: 'u9mDaxAH3MZbgyIPith4lBF4Mn63'
+}
+
+/** Which of the two an account is, or null for anyone else. */
+export function identityForUid(uid: string): DispatchAuthor | null {
+  return DISPATCH_AUTHORS.find((author) => ACCOUNT_UID[author] === uid) ?? null
 }
 
 export interface DispatchSession {
@@ -58,92 +68,48 @@ export class IdentityAuth {
   constructor(private readonly apiKey: string) {}
 
   /**
-   * Signs in with a password alone, resolving which of the two it belongs to.
+   * Signs in, and resolves which of the two the account is.
    *
-   * One field rather than a name and a password, because the password *is* the
-   * name here: there are two accounts and each has one. Tried in a fixed order
-   * so the outcome does not depend on which failed first.
+   * Takes an address as well as a password because neither operator's address
+   * belongs in the source. The account is identified afterwards by its UID,
+   * which is opaque and already public in the database's rules.
    *
-   * A wrong password produces one error for both attempts rather than "no such
-   * account" — there is nothing useful in telling the operator which of two
-   * accounts they failed to be.
+   * An account that is not one of the two is refused *here* as well as by the
+   * rules. The rules are the enforcement — this only means someone who signs in
+   * with the wrong Google account is told so, rather than watching an attached
+   * board return nothing.
    */
-  async signIn(password: string): Promise<DispatchSession> {
-    for (const identity of DISPATCH_AUTHORS) {
-      const session = await this.attempt(identity, password)
-      if (session) return session
-    }
-
-    throw new AppError('That password does not match either account.', {
-      code: ErrorCode.PermissionDenied,
-      hint: 'Check it, or ask whoever set the board up.'
-    })
-  }
-
-  private async attempt(
-    identity: DispatchAuthor,
-    password: string
-  ): Promise<DispatchSession | null> {
+  async signIn(email: string, password: string): Promise<DispatchSession> {
     const response = await fetch(`${SIGN_IN_URL}?key=${encodeURIComponent(this.apiKey)}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        email: ACCOUNT_EMAIL[identity],
-        password,
-        returnSecureToken: true
-      })
+      body: JSON.stringify({ email: email.trim(), password, returnSecureToken: true })
     })
 
-    if (response.ok) {
-      const body = (await response.json()) as {
-        idToken: string
-        refreshToken: string
-        expiresIn: string
-        localId: string
-      }
+    if (!response.ok) throw signInFailure(await errorCode(response), response.status)
 
-      return {
-        identity,
-        uid: body.localId,
-        idToken: body.idToken,
-        refreshToken: body.refreshToken,
-        expiresAt: Date.now() + Number.parseInt(body.expiresIn, 10) * 1000
-      }
+    const body = (await response.json()) as {
+      idToken: string
+      refreshToken: string
+      expiresIn: string
+      localId: string
     }
 
-    const reason = await errorCode(response)
-
-    /*
-     * A wrong password for this account is not a failure of the whole attempt —
-     * it may be the other one's. Anything else is, and is raised immediately so
-     * a misconfigured project does not read as a typo.
-     */
-    if (
-      reason === 'INVALID_PASSWORD' ||
-      reason === 'EMAIL_NOT_FOUND' ||
-      reason === 'INVALID_LOGIN_CREDENTIALS'
-    ) {
-      return null
-    }
-
-    if (reason === 'OPERATION_NOT_ALLOWED') {
-      throw new AppError('The project does not allow password sign-in.', {
+    const identity = identityForUid(body.localId)
+    if (!identity) {
+      throw new AppError('That account is not on the board.', {
         code: ErrorCode.PermissionDenied,
-        hint: 'Enable Email/Password under Authentication → Sign-in method in the Firebase console.'
+        hint: 'Only the two accounts named in the database rules can attach.'
       })
     }
 
-    if (reason === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
-      throw new AppError('Too many attempts. Firebase has paused sign-in for a while.', {
-        code: ErrorCode.PermissionDenied,
-        recoverable: true
-      })
+    return {
+      identity,
+      uid: body.localId,
+      idToken: body.idToken,
+      refreshToken: body.refreshToken,
+      expiresAt: Date.now() + Number.parseInt(body.expiresIn, 10) * 1000
     }
-
-    throw new AppError(`Sign-in failed (${reason || response.status}).`, {
-      code: ErrorCode.Unknown,
-      recoverable: true
-    })
   }
 
   /**
@@ -154,7 +120,7 @@ export class IdentityAuth {
    * refresh token, which has to be kept — ignoring it eventually invalidates
    * the session for no visible reason.
    */
-  async refresh(identity: DispatchAuthor, refreshToken: string): Promise<DispatchSession> {
+  async refresh(refreshToken: string): Promise<DispatchSession> {
     const response = await fetch(`${REFRESH_URL}?key=${encodeURIComponent(this.apiKey)}`, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -176,6 +142,13 @@ export class IdentityAuth {
       user_id: string
     }
 
+    const identity = identityForUid(body.user_id)
+    if (!identity) {
+      throw new AppError('That account is not on the board.', {
+        code: ErrorCode.PermissionDenied
+      })
+    }
+
     return {
       identity,
       uid: body.user_id,
@@ -184,6 +157,48 @@ export class IdentityAuth {
       expiresAt: Date.now() + Number.parseInt(body.expires_in, 10) * 1000
     }
   }
+}
+
+/**
+ * Google's reason, turned into something an operator can act on.
+ *
+ * A wrong address and a wrong password give one message between them — telling
+ * someone which half they got right is a favour to whoever is guessing.
+ */
+function signInFailure(reason: string, status: number): AppError {
+  if (
+    reason === 'INVALID_PASSWORD' ||
+    reason === 'EMAIL_NOT_FOUND' ||
+    reason === 'INVALID_LOGIN_CREDENTIALS' ||
+    reason === 'INVALID_EMAIL'
+  ) {
+    return new AppError('That address and password do not match an account.', {
+      code: ErrorCode.PermissionDenied
+    })
+  }
+
+  if (reason === 'OPERATION_NOT_ALLOWED') {
+    return new AppError('The project does not allow password sign-in.', {
+      code: ErrorCode.PermissionDenied,
+      hint: 'Enable Email/Password under Authentication → Sign-in method in the Firebase console.'
+    })
+  }
+
+  if (reason === 'USER_DISABLED') {
+    return new AppError('That account has been disabled.', { code: ErrorCode.PermissionDenied })
+  }
+
+  if (reason === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
+    return new AppError('Too many attempts. Firebase has paused sign-in for a while.', {
+      code: ErrorCode.PermissionDenied,
+      recoverable: true
+    })
+  }
+
+  return new AppError(`Sign-in failed (${reason || status}).`, {
+    code: ErrorCode.Unknown,
+    recoverable: true
+  })
 }
 
 /** Google's machine-readable reason, or an empty string if it did not give one. */
