@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "candy-haven": {
+      "dispatch": {
+        ".read": "auth != null && (auth.uid === 'Uc1ZbVbKXmU8cU5iSK3kWtNKXJD2' || auth.uid === 'u9mDaxAH3MZbgyIPith4lBF4Mn63')",
+        ".write": "auth != null && (auth.uid === 'Uc1ZbVbKXmU8cU5iSK3kWtNKXJD2' || auth.uid === 'u9mDaxAH3MZbgyIPith4lBF4Mn63')"
+      }
+    }
+  }
+}
