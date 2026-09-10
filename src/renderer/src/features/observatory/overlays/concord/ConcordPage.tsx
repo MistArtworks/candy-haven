@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
+import type { Hotkey } from '@renderer/hotkeys/registry'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { getOverlay, overlayAddressUrl, overlayAddresses } from '@shared/domain/overlays'
@@ -100,6 +102,45 @@ export function ConcordPage(): ReactNode {
   const testMode = settings?.workspace.testMode ?? false
   const configured = (settings?.integrations.twitchChannel ?? '').trim().length > 0
   const canOpen = state.options.length >= 2 && !locked && (configured || testMode)
+
+  /*
+   * Putting the question, and closing it, without reaching for the mouse.
+   *
+   * The same disabled conditions the buttons use, so a chord cannot do what a
+   * click is refused — the cheatsheet greys them rather than hiding them, which
+   * keeps the list in one order however the poll is going.
+   */
+  const hotkeys = useMemo<Hotkey[]>(
+    () => [
+      {
+        chord: 'ctrl+enter',
+        label: 'Put the question',
+        group: 'The Concord',
+        whileTyping: true,
+        disabled: !canOpen,
+        run: () => void actions.open()
+      },
+      {
+        chord: 'ctrl+shift+enter',
+        label: 'Close the chamber',
+        group: 'The Concord',
+        whileTyping: true,
+        disabled: !open,
+        run: () => void actions.close()
+      },
+      {
+        chord: 'ctrl+backspace',
+        label: 'Clear the ballot',
+        group: 'The Concord',
+        whileTyping: true,
+        disabled: casting || (state.phase === 'idle' && !state.result),
+        run: () => void actions.reset()
+      }
+    ],
+    [actions, canOpen, casting, open, state.phase, state.result]
+  )
+
+  useHotkeys(hotkeys)
 
   const addresses = overlayAddresses(overlay)
 

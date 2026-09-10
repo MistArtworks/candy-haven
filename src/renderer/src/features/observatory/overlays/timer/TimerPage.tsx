@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
+import type { Hotkey } from '@renderer/hotkeys/registry'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import type { TimerId } from '@shared/domain/timer'
@@ -52,6 +54,56 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
   const sourceUrl = server.url ? overlaySourceUrl(server.url, overlay) : null
   const running = state.phase === 'running'
   const spent = frame.phase === 'elapsed'
+
+  /*
+   * A countdown is run live, so it is run from the keyboard.
+   *
+   * Space holds and resumes because that is what a space bar does to a clock
+   * everywhere else. The chords are scoped to this page and this timer — the
+   * two countdowns share a component, so registering here means whichever one
+   * is open is the one that answers, and the cheatsheet names it.
+   */
+  const hotkeys = useMemo<Hotkey[]>(
+    () => [
+      {
+        chord: ' ',
+        label: running ? 'Hold the clock' : 'Start the clock',
+        group: overlay.label,
+        run: () => void actions.toggle(timerId)
+      },
+      {
+        chord: 'ctrl+enter',
+        label: 'Restart from the top',
+        group: overlay.label,
+        whileTyping: true,
+        run: () => void actions.restart(timerId)
+      },
+      {
+        chord: 'ctrl+backspace',
+        label: 'Clear the clock',
+        group: overlay.label,
+        whileTyping: true,
+        run: () => void actions.reset(timerId)
+      },
+      {
+        chord: 'ctrl+arrowup',
+        label: 'Add a minute',
+        group: overlay.label,
+        whileTyping: true,
+        run: () => void actions.extend(timerId, 60_000)
+      },
+      {
+        chord: 'ctrl+arrowdown',
+        label: 'Take a minute off',
+        group: overlay.label,
+        whileTyping: true,
+        run: () => void actions.extend(timerId, -60_000)
+      }
+    ],
+    [actions, overlay.label, running, timerId]
+  )
+
+  useHotkeys(hotkeys)
 
   const copyUrl = (): void => {
     if (!sourceUrl) return

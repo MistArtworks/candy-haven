@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type DragEvent,
   type MouseEvent,
@@ -20,6 +21,7 @@ import type { ArchiveFolder } from '@shared/domain/stacks'
 import type { ArchiveLens } from '@shared/domain/stacks.constants'
 import {
   ARCHIVE_LENSES,
+  ARCHIVE_LENS_LABEL,
   FOLDER_KIND_LABEL,
   folderKindAtDepth,
   isFolderLens
@@ -27,7 +29,7 @@ import {
 import type { DeliverableKind } from '@shared/domain/releases'
 import type { VolumeKind, VolumeSummary } from '@shared/domain/volumes'
 import { VOLUME_KIND_LABEL } from '@shared/domain/volumes.constants'
-import { PROJECT_CATEGORY_LABEL } from '@shared/domain/projects.constants'
+import { PROJECT_CATEGORY_LABEL, PROJECT_VIEW_MODES } from '@shared/domain/projects.constants'
 import { getSection } from '@shared/domain/navigation'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
@@ -63,6 +65,8 @@ import {
   readDrag
 } from './components/stacks/dnd'
 import { childCountsOf, childrenOf, trailTo } from './components/stacks/tree'
+import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
+import type { Hotkey } from '@renderer/hotkeys/registry'
 import { formatStamp } from './lib/present'
 import styles from './ArchivePage.module.scss'
 
@@ -689,6 +693,176 @@ export function ArchivePage(): ReactNode {
     [folders, binnedFolders, allVolumes, projects]
   )
 
+  // -------------------------------------------------------------- shortcuts
+
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  /*
+   * Declared as its own callback rather than inline in the list below.
+   *
+   * The lint rule that guards refs cannot tell a closure that will run on a
+   * keystroke from one that runs during render, so a `useRef` read inside a
+   * `useMemo` factory is flagged. An event handler is exactly what this is, and
+   * hoisting it says so.
+   */
+  const focusSearch = useCallback(() => {
+    const field = searchRef.current
+    if (!field) return
+    field.focus()
+    // Selected rather than merely focused, so the next keystroke replaces the
+    // previous search instead of appending to it.
+    field.select()
+  }, [])
+
+  /*
+   * What the department can be driven by from the keyboard.
+   *
+   * Registered rather than bound: the provider owns one document listener and
+   * the cheatsheet is generated from whatever is currently registered, so this
+   * list is the documentation as well as the implementation and the two cannot
+   * drift.
+   *
+   * `whileTyping` is set on all of them because all of them carry Ctrl or Alt,
+   * which no text field wants.
+   *
+   * Lenses take Alt rather than Ctrl because Ctrl+1..6 are the departments, and
+   * a shortcut that means "second department" on five pages and "second lens"
+   * on this one would be worse than no shortcut.
+   */
+  const hotkeys = useMemo<Hotkey[]>(() => {
+    const group = 'Archive'
+
+    const entries: Hotkey[] = [
+      {
+        chord: 'ctrl+f',
+        label: 'Search the register',
+        group,
+        // The exception to the rule below: it has to work *from* the search
+        // field, or the operator cannot get back to it after tabbing away.
+        whileTyping: true,
+        run: focusSearch
+      },
+      {
+        chord: 'escape',
+        label: 'Close what is open',
+        group,
+        // Deliberately not `whileTyping`: Escape in a field should leave the
+        // field, which the browser already does.
+        disabled: selectedId === null && menu === null && notice === null,
+        run: () => {
+          if (menu !== null) {
+            setMenu(null)
+            return
+          }
+          if (selectedId !== null) {
+            selectProject(null)
+            return
+          }
+          setNotice(null)
+        }
+      },
+      {
+        chord: 'ctrl+r',
+        label: 'Scan for changes',
+        group,
+        whileTyping: true,
+        disabled: locked || scanning,
+        run: () => runScan(false)
+      },
+      {
+        chord: 'ctrl+shift+r',
+        label: 'Re-read every project',
+        group,
+        whileTyping: true,
+        disabled: locked || scanning,
+        run: () => runScan(true)
+      },
+      {
+        chord: 'ctrl+n',
+        label: folderId === null ? 'New genre' : 'New folder',
+        group,
+        whileTyping: true,
+        disabled: locked || lens !== 'stacks',
+        run: () => {
+          setDialogError(null)
+          setFolderDialog({ mode: 'create', parentId: folderId })
+        }
+      },
+      {
+        chord: 'ctrl+shift+n',
+        label: 'New project on this shelf',
+        group,
+        whileTyping: true,
+        // A project needs a shelf. At the root there is nowhere to put it.
+        disabled: locked || lens !== 'stacks' || currentFolder === null,
+        run: () => {
+          if (!currentFolder) return
+          setDialogError(null)
+          setProjectDialog(currentFolder)
+        }
+      },
+      {
+        chord: 'ctrl+b',
+        label: 'Favourites only',
+        group,
+        whileTyping: true,
+        run: () =>
+          setFilters((current) => ({ ...current, favouritesOnly: !current.favouritesOnly }))
+      },
+      {
+        chord: 'ctrl+e',
+        label: 'Cycle list, icons, board',
+        group,
+        whileTyping: true,
+        disabled: lens === 'releases',
+        run: () =>
+          setView(
+            (current) =>
+              PROJECT_VIEW_MODES[
+                (PROJECT_VIEW_MODES.indexOf(current) + 1) % PROJECT_VIEW_MODES.length
+              ]
+          )
+      },
+      {
+        chord: 'alt+arrowup',
+        label: 'Up one shelf',
+        group,
+        whileTyping: true,
+        disabled: lens !== 'stacks' || currentFolder === null,
+        run: () => openFolder(currentFolder?.parentId ?? null)
+      }
+    ]
+
+    // Built by mapping rather than by pushing into `entries`: the lint rule
+    // that guards refs reads a mutating closure as something that might run
+    // during render, and there is nothing here worth arguing the point over.
+    const lenses: Hotkey[] = ARCHIVE_LENSES.map((entry, index) => ({
+      chord: `alt+${index + 1}`,
+      label: ARCHIVE_LENS_LABEL[entry],
+      group: 'Archive lenses',
+      whileTyping: true,
+      run: () => changeLens(entry)
+    }))
+
+    return [...entries, ...lenses]
+  }, [
+    changeLens,
+    currentFolder,
+    focusSearch,
+    folderId,
+    lens,
+    locked,
+    menu,
+    notice,
+    openFolder,
+    runScan,
+    scanning,
+    selectProject,
+    selectedId
+  ])
+
+  useHotkeys(hotkeys)
+
   // ----------------------------------------------------------------- tiles
 
   const folderTiles = useMemo<Tile[]>(
@@ -1170,6 +1344,7 @@ export function ArchivePage(): ReactNode {
         // The release board draws tiles and a record, never the register, so a
         // sort order and a stage filter would operate on nothing visible.
         showRegisterControls={lens !== 'releases'}
+        searchRef={searchRef}
       />
 
       <motion.div

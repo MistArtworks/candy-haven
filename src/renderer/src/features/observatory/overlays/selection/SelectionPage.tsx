@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
+import type { Hotkey } from '@renderer/hotkeys/registry'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { getOverlay, overlaySourceUrl } from '@shared/domain/overlays'
@@ -52,6 +54,39 @@ export function SelectionPage(): ReactNode {
   // each overlay in the catalogue is its own browser source and the port stays
   // in one place even when it has been claimed upward from the configured one.
   const sourceUrl = server.url ? overlaySourceUrl(server.url, overlay) : null
+
+  /*
+   * Driven from the keyboard because it is driven live.
+   *
+   * The operator is talking while they do this — Space to draw and Ctrl+Enter
+   * to clear are reachable without looking, which a button in a panel is not.
+   *
+   * Space is bare rather than modified, and therefore not `whileTyping`: the
+   * petition field is right there, and a shortcut that swallowed the space bar
+   * mid-name would be worse than no shortcut at all.
+   */
+  const hotkeys = useMemo<Hotkey[]>(
+    () => [
+      {
+        chord: ' ',
+        label: 'Draw a petition',
+        group: 'Selection',
+        disabled: !canSpin,
+        run: () => void actions.spin()
+      },
+      {
+        chord: 'ctrl+enter',
+        label: 'Clear the ring',
+        group: 'Selection',
+        whileTyping: true,
+        disabled: spinning || (!state.winner && state.phase === 'idle'),
+        run: () => void actions.reset()
+      }
+    ],
+    [actions, canSpin, spinning, state.winner, state.phase]
+  )
+
+  useHotkeys(hotkeys)
 
   const copyUrl = (): void => {
     if (!sourceUrl) return

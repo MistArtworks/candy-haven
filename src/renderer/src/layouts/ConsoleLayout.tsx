@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { SECTIONS, getSectionByPath } from '@shared/domain/navigation'
+import { SECTIONS, getSection, getSectionByPath } from '@shared/domain/navigation'
 import { TimerCues } from '@renderer/app/providers/TimerCues'
 import { ConcordCues } from '@renderer/app/providers/ConcordCues'
 import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
@@ -31,16 +31,35 @@ export function ConsoleLayout(): ReactNode {
    * removed renumbers the shortcuts with it and the cheatsheet cannot drift.
    * Reserved sections are bound too — they are on the rail, and a shortcut that
    * silently skips one would make the numbering stop matching what is on screen.
+   *
+   * All are `whileTyping`: Ctrl is a modifier no text field wants, and someone
+   * naming a project should still be able to leave for another department.
    */
   const navigation = useMemo<Hotkey[]>(
-    () =>
-      SECTIONS.map((entry, index) => ({
+    () => [
+      ...SECTIONS.map((entry, index) => ({
         chord: `ctrl+${index + 1}`,
         label: entry.label,
         group: 'Global',
         whileTyping: true,
         run: () => navigate(entry.path)
       })),
+      {
+        // What every application on this desktop opens its settings with.
+        chord: 'ctrl+,',
+        label: 'Settings',
+        group: 'Global',
+        whileTyping: true,
+        run: () => navigate(getSection('regulation').path)
+      },
+      {
+        chord: 'ctrl+shift+o',
+        label: 'Broadcast kit',
+        group: 'Global',
+        whileTyping: true,
+        run: () => navigate(getSection('observatory').path)
+      }
+    ],
     [navigate]
   )
 

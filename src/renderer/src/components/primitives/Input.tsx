@@ -1,4 +1,11 @@
-import { useId, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react'
+import {
+  useId,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  type Ref
+} from 'react'
 import styles from './Input.module.scss'
 
 /**
@@ -337,16 +344,27 @@ export function TagInput({
 export function SearchInput({
   value,
   onChange,
-  placeholder = 'Search the register'
+  placeholder = 'Search the register',
+  inputRef
 }: {
   value: string
   onChange: (value: string) => void
   placeholder?: string
+  /**
+   * Handed out so a shortcut can put the caret here.
+   *
+   * A search field is the one control a keyboard-driven page has to be able to
+   * reach without the mouse, and threading the ref is honest about who owns the
+   * element — the alternative was a `document.querySelector` from the page,
+   * which works right up until there are two search fields on screen.
+   */
+  inputRef?: Ref<HTMLInputElement>
 }): ReactNode {
   return (
     <div className={styles.search}>
       <span className={styles.searchGlyph} aria-hidden="true" />
       <input
+        ref={inputRef}
         type="search"
         className={styles.searchInput}
         value={value}

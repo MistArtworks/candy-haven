@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type ReactNode, type Ref } from 'react'
 import type { ProjectCategory, ProjectSortMode, ProjectStage } from '@shared/domain/projects'
 import {
   PROJECT_CATEGORIES,
@@ -42,6 +42,8 @@ export interface RegisterControlsProps {
   total: number
   /** RELEASES draws tiles rather than a register, so it hides these controls. */
   showRegisterControls?: boolean
+  /** Passed down to the search field, so a shortcut can put the caret in it. */
+  searchRef?: Ref<HTMLInputElement>
 }
 
 const EMPTY_FILTERS: Omit<RegisterFilters, 'sort'> = {
@@ -84,7 +86,8 @@ export function RegisterControls({
   categoryCounts,
   shown,
   total,
-  showRegisterControls = true
+  showRegisterControls = true,
+  searchRef
 }: RegisterControlsProps): ReactNode {
   const [open, setOpen] = useState(false)
 
@@ -138,6 +141,7 @@ export function RegisterControls({
         <>
           <div className={styles.primary}>
             <SearchInput
+              inputRef={searchRef}
               value={filters.search}
               onChange={(search) => onChange({ ...filters, search })}
               placeholder="Search name, tag or note"
