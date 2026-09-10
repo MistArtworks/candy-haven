@@ -114,242 +114,52 @@ export function formatArtists(artists: readonly string[]): string {
 // -------------------------------------------------------------------- presets
 
 /**
- * A named starting point for a source.
+ * One preset per presentation, and that is the whole list.
  *
- * The operator runs a different scene for a different kind of music and wants
- * the readout to suit each — a lo-fi set and a hardstyle set should not carry
- * the same plate in the same gold. So the kit ships one preset per family, and
- * every one of them is seeded as a real source on first run: the ask was for a
- * source per style with its own settings, and a menu the operator has to work
- * through twenty times is not that.
+ * The four styles are the same information in four shapes — a plate for a lower
+ * band, a monolith for a sidebar, a strip for a thin third, a disc for a corner
+ * — and the operator wants all four *at once*, as four browser sources, so a
+ * scene can be built around whichever shape fits its layout. Before this there
+ * was one source and a style dropdown, which meant choosing a shape for every
+ * scene at the same time.
  *
- * A preset is a *starting point*, not a type. What it seeds is a plain config
- * the operator edits afterwards, and nothing downstream remembers where a
- * source came from — so editing one, or deleting fifteen, costs nothing.
- *
- * The colours are deliberately outside the house palette. That is the same
- * licence the ARCHIVE's folder colours were granted: twenty sources that all
- * look like the same source defeat the point of having twenty.
+ * So the kit ships the four made, and a preset is only a starting point:
+ * nothing downstream remembers which one a source came from, so editing one or
+ * adding a fifth costs nothing.
  */
 export interface NowPlayingPreset {
   id: string
   /** As it appears in the console. */
   label: string
-  /** What the treatment is going for, in a line. */
+  /** What the shape is for, in a line. */
   note: string
   config: Partial<NowPlayingConfig>
 }
 
 export const NOW_PLAYING_PRESETS: readonly NowPlayingPreset[] = [
   {
-    id: 'house',
-    label: 'House',
-    note: 'Warm and square. The default plate, doing what it does well.',
-    config: { style: 'plate', accent: 'gold', label: 'NOW PLAYING' }
+    id: 'plate',
+    label: 'Plate',
+    note: 'Cover slab left, record right, timeline beneath. The lower band.',
+    config: { style: 'plate' }
   },
   {
-    id: 'techno',
-    label: 'Techno',
-    note: 'Industrial strip. No cover, no album — the title and the clock.',
-    config: {
-      style: 'strip',
-      accent: 'custom',
-      accentHex: '#b8b8b0',
-      label: 'TRANSMISSION',
-      showCover: false,
-      showAlbum: false,
-      showExplicit: false
-    }
+    id: 'monolith',
+    label: 'Monolith',
+    note: 'Portrait column, cover above the record. For a sidebar.',
+    config: { style: 'monolith' }
   },
   {
-    id: 'melodic-bass',
-    label: 'Melodic Bass',
-    note: 'Cool plate, cover forward. Room for a long title.',
-    config: { style: 'plate', accent: 'custom', accentHex: '#5f8fd8', label: 'NOW TRANSMITTING' }
+    id: 'strip',
+    label: 'Strip',
+    note: 'Thin lower third on a hairline timeline. Takes almost no height.',
+    config: { style: 'strip', showAlbum: false }
   },
   {
-    id: 'drum-and-bass',
-    label: 'Drum and Bass',
-    note: 'Fast lower third. Crimson, and it counts down.',
-    config: {
-      style: 'strip',
-      accent: 'crimson',
-      label: 'ROLLING',
-      showRemaining: true,
-      showAlbum: false
-    }
-  },
-  {
-    id: 'dubstep',
-    label: 'Dubstep',
-    note: 'Portrait column in crimson. Heavy, and it takes the space.',
-    config: { style: 'monolith', accent: 'crimson', label: 'NOW TRANSMITTING' }
-  },
-  {
-    id: 'hardstyle',
-    label: 'Hardstyle',
-    note: 'Monolith, crimson, remaining. Built to be read across a room.',
-    config: {
-      style: 'monolith',
-      accent: 'crimson',
-      label: 'INCOMING',
-      showRemaining: true,
-      showAlbum: false
-    }
-  },
-  {
-    id: 'trance',
-    label: 'Trance',
-    note: 'The turning disc, in violet. Long tracks want a ring, not a bar.',
-    config: { style: 'disc', accent: 'custom', accentHex: '#8b6fd4', label: 'IN PROGRESS' }
-  },
-  {
-    id: 'lofi',
-    label: 'Lo-fi',
-    note: 'Amber disc, cover turning. Quiet enough to leave up all session.',
-    config: {
-      style: 'disc',
-      accent: 'custom',
-      accentHex: '#c98a4b',
-      label: 'ON THE TURNTABLE',
-      showExplicit: false
-    }
-  },
-  {
-    id: 'hip-hop',
-    label: 'Hip-hop',
-    note: 'Plate with the album and the advisory both showing.',
-    config: { style: 'plate', accent: 'gold', label: 'NOW PLAYING', showExplicit: true }
-  },
-  {
-    id: 'trap',
-    label: 'Trap',
-    note: 'Tight strip, no album line. Titles are the whole message.',
-    config: {
-      style: 'strip',
-      accent: 'custom',
-      accentHex: '#9d5fd0',
-      label: 'NOW PLAYING',
-      showAlbum: false
-    }
-  },
-  {
-    id: 'phonk',
-    label: 'Phonk',
-    note: 'Crimson strip, no cover. Text and a hairline.',
-    config: {
-      style: 'strip',
-      accent: 'crimson',
-      label: 'TRANSMISSION',
-      showCover: false,
-      showAlbum: false
-    }
-  },
-  {
-    id: 'pop',
-    label: 'Pop',
-    note: 'Clean plate. Cover, title, artist, album, timeline.',
-    config: { style: 'plate', accent: 'custom', accentHex: '#d95f8f', label: 'NOW PLAYING' }
-  },
-  {
-    id: 'hyperpop',
-    label: 'Hyperpop',
-    note: 'Monolith in magenta. Loud on purpose.',
-    config: { style: 'monolith', accent: 'custom', accentHex: '#e0479c', label: 'NOW PLAYING' }
-  },
-  {
-    id: 'rnb',
-    label: 'R and B',
-    note: 'Plate in deep amber, album showing.',
-    config: { style: 'plate', accent: 'custom', accentHex: '#b8763a', label: 'NOW PLAYING' }
-  },
-  {
-    id: 'rock',
-    label: 'Rock and Metal',
-    note: 'Monolith, crimson, no advisory. The record-sleeve treatment.',
-    config: { style: 'monolith', accent: 'crimson', label: 'NOW PLAYING', showExplicit: false }
-  },
-  {
-    id: 'indie',
-    label: 'Indie',
-    note: 'Plate in muted green. Album line kept.',
-    config: { style: 'plate', accent: 'custom', accentHex: '#6f9b6a', label: 'NOW PLAYING' }
-  },
-  {
-    id: 'jazz',
-    label: 'Jazz',
-    note: 'Plate, gold, no marquee — a long title truncates rather than moves.',
-    config: {
-      style: 'plate',
-      accent: 'gold',
-      label: 'NOW PLAYING',
-      marquee: false,
-      showExplicit: false
-    }
-  },
-  {
-    id: 'classical',
-    label: 'Classical',
-    note: 'Monolith, gold, album forward. Movements need the whole title.',
-    config: {
-      style: 'monolith',
-      accent: 'gold',
-      label: 'NOW PLAYING',
-      showExplicit: false,
-      showAlbum: true
-    }
-  },
-  {
-    id: 'ambient',
-    label: 'Ambient',
-    note: 'Bare strip. No cover, no album, no advisory. Barely there.',
-    config: {
-      style: 'strip',
-      accent: 'custom',
-      accentHex: '#7d8b93',
-      label: 'SOUNDING',
-      showCover: false,
-      showAlbum: false,
-      showExplicit: false,
-      marquee: false
-    }
-  },
-  {
-    id: 'disco',
-    label: 'Disco and Funk',
-    note: 'Disc, gold, cover turning. The obvious one, done properly.',
-    config: { style: 'disc', accent: 'gold', label: 'ON THE TURNTABLE', spinCover: true }
-  },
-  {
-    id: 'afrobeats',
-    label: 'Afrobeats',
-    note: 'Plate in warm green.',
-    config: { style: 'plate', accent: 'custom', accentHex: '#3f9e78', label: 'NOW PLAYING' }
-  },
-  {
-    id: 'country',
-    label: 'Country',
-    note: 'Plate in tan, album showing, no marquee.',
-    config: {
-      style: 'plate',
-      accent: 'custom',
-      accentHex: '#a8763f',
-      label: 'NOW PLAYING',
-      marquee: false
-    }
-  },
-  {
-    id: 'experimental',
-    label: 'Experimental',
-    note: 'Strip, no label, no album. The track and nothing else.',
-    config: {
-      style: 'strip',
-      accent: 'custom',
-      accentHex: '#9a9a9a',
-      showLabel: false,
-      showAlbum: false,
-      showExplicit: false
-    }
+    id: 'disc',
+    label: 'Disc',
+    note: 'Cover as a turning record inside a timeline ring. For a corner.',
+    config: { style: 'disc', spinCover: true }
   }
 ] as const
 
@@ -446,27 +256,20 @@ export function createDefaultNowPlayingConfig(): NowPlayingConfig {
 }
 
 /**
- * The one source that always exists.
+ * The four shipped sources: one per presentation.
  *
- * Its slug is `main` rather than a generated one so the address stays quotable
- * and, more to the point, so a scene built before sources existed keeps
- * working: the bare `/transmission` resolves here.
+ * PLATE is first, and therefore what the bare `/transmission` resolves to — a
+ * scene built before sources existed keeps drawing what it drew.
  */
-export function createDefaultNowPlayingSource(): NowPlayingSource {
-  return {
-    id: 'nowplaying:main',
-    slug: 'main',
-    name: 'Main',
-    note: 'The house presentation. Every scene that has no reason to differ.',
-    config: createDefaultNowPlayingConfig()
-  }
+export function createDefaultNowPlayingSources(): NowPlayingSource[] {
+  return NOW_PLAYING_PRESETS.map(sourceFromPreset)
 }
 
 export function createNowPlayingState(): NowPlayingState {
   return {
     link: { state: 'unconfigured', message: 'No client id has been entered.', account: null },
     track: null,
-    sources: [createDefaultNowPlayingSource(), ...NOW_PLAYING_PRESETS.map(sourceFromPreset)],
+    sources: createDefaultNowPlayingSources(),
     pollSeconds: POLL_DEFAULT_SECONDS,
     revision: 0
   }

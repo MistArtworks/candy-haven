@@ -48,10 +48,10 @@ const LINK_TONE: Record<string, StatusTone> = {
 /**
  * NOW TRANSMITTING — host surface.
  *
- * Live Spotify playback, presented four ways, across as many browser sources as
- * the operator keeps. One poller and one track; a *source* decides only how it
- * is drawn, and each has its own address — so an OBS scene collection can carry
- * a different readout per kind of music without the operator changing a setting
+ * Live Spotify playback, presented four ways — and all four at once, as four
+ * browser sources with four addresses. One poller and one track; a *source*
+ * decides only how it is drawn, so a scene collection can carry a plate in one
+ * scene and a disc in another without the operator changing a setting
  * mid-broadcast.
  *
  * The console is also where the account is linked: the authorisation page opens
@@ -186,9 +186,10 @@ export function TransmissionPage(): ReactNode {
           }
         >
           <p className={styles.hint}>
-            One browser source per kind of music, each with its own address and its own
-            presentation. Point a scene at whichever one fits — they all draw the same live
-            playback, so switching scenes changes the look and nothing else.
+            The four presentations, as four browser sources — each with its own address and its own
+            settings. Add all of them to OBS and point each scene at whichever shape suits its
+            layout; they draw the same live playback, so switching scenes changes the shape and
+            nothing else.
           </p>
 
           <SourceList

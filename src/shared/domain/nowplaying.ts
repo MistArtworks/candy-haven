@@ -113,15 +113,15 @@ export type NowPlayingConfig = z.infer<typeof NowPlayingConfigSchema>
 /**
  * One browser source: a name, an address, and the settings drawn at it.
  *
- * There used to be a single config, and therefore a single presentation for
- * every scene. The operator runs different scenes for different kinds of music
- * and wants the readout to suit each, which one config cannot express — so a
- * source is now a first-class thing with its own URL, and OBS scenes each point
- * at whichever one fits.
+ * There used to be a single config with a style dropdown, which meant the four
+ * presentations were mutually exclusive: choosing PLATE for one scene chose it
+ * for every scene. The operator wants all four available at once, so a scene
+ * can be built around whichever shape fits its layout — so a source is now a
+ * first-class thing with its own URL, and the four ship already made.
  *
  * They all render the *same* playback. There is one Spotify poller and one
  * `track` on the state; a source decides only how it is drawn. That is why
- * `pollSeconds` moved up to the state: twenty sources must not mean twenty
+ * `pollSeconds` moved up to the state: four sources must not mean four
  * different opinions about how often to ask Spotify what is playing.
  */
 export const NowPlayingSourceSchema = z.object({

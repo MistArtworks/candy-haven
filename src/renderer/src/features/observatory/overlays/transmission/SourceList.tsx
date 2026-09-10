@@ -25,17 +25,15 @@ export interface SourceListProps {
 /**
  * Every configured browser source, and the means to make another.
  *
- * The list is the department's actual unit of work here. One source used to be
- * the whole feature — a single config, and therefore one presentation across
- * every scene — which cannot express what the operator does with it: a lo-fi
- * set and a hardstyle set want different readouts, and OBS switches scenes, not
- * settings. So a source is a first-class thing with its own address, and the
- * kit ships one per family of music already made.
+ * One source used to be the whole feature — a single config with a style
+ * dropdown, which made the four presentations mutually exclusive across every
+ * scene. OBS switches scenes, not settings, so the shape has to be picked by
+ * address. The four ship already made; anything beyond them is the operator's.
  *
  * The address is drawn beside each row rather than only for the selected one.
- * Setting up a scene collection means pasting twenty URLs in one sitting, and
- * having to select a source to see its address would make that twenty extra
- * clicks.
+ * Setting a scene collection up means pasting all of them in one sitting, and
+ * having to select a source to see its address would make that four extra
+ * clicks for no reason.
  */
 export function SourceList({
   sources,
@@ -77,8 +75,8 @@ export function SourceList({
                   <span className={styles.sourceName}>{source.name}</span>
                   <span className={styles.sourceStyle}>
                     {/* Just the word, not the whole descriptive label — the
-                        style table's entries are a sentence each, which is
-                        right in a select and wrong in a list of twenty. */}
+                        style table's entries are a sentence each, which reads
+                        right in a select and wrong in a list row. */}
                     {NOW_PLAYING_STYLE_LABEL[source.config.style].split(' ')[0]}
                   </span>
                   {source.note ? <span className={styles.sourceNote}>{source.note}</span> : null}
@@ -114,7 +112,7 @@ export function SourceList({
           label="Start from"
           value={presetId}
           options={[
-            { value: '', label: 'HOUSE DEFAULT' },
+            { value: '', label: 'BLANK' },
             ...NOW_PLAYING_PRESETS.map((preset) => ({
               value: preset.id,
               label: preset.label.toUpperCase()
