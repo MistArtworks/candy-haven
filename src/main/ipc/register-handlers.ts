@@ -298,6 +298,17 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('dispatch:seen', ({ itemId, author }) => services.dispatch.markSeen(itemId, author))
   router.handle('dispatch:withdraw', ({ id }) => services.dispatch.withdraw(id))
 
+  // -------------------------------------------------------------- the muster
+
+  router.handle('muster:state', () => services.muster.current)
+  router.handle('muster:open', ({ prompt }) => services.muster.open(prompt))
+  router.handle('muster:close', () => services.muster.close())
+  router.handle('muster:reset', () => services.muster.reset())
+  router.handle('muster:config', (patch) => services.muster.updateConfig(patch))
+  router.handle('muster:add', (draft) => services.muster.add(draft))
+  router.handle('muster:remove', ({ id }) => services.muster.remove(id))
+  router.handle('muster:handoff', (request) => services.muster.handoff(request))
+
   router.handle('overlay:info', () => services.overlayServer.info)
   // The port comes from settings rather than the renderer, for the same reason
   // the scan roots do: a compromised renderer should not choose what we bind.
@@ -413,6 +424,7 @@ export function registerEventBridges(deps: {
   services.timers.on('state', (state) => router.broadcast('timer:state', state))
   services.nowPlaying.on('state', (state) => router.broadcast('nowplaying:state', state))
   services.dispatch.on('state', (state) => router.broadcast('dispatch:state', state))
+  services.muster.on('state', (state) => router.broadcast('muster:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

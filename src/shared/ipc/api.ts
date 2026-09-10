@@ -8,6 +8,12 @@ import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } fro
 import type { ConcordConfigPatch, ConcordOptionDraft, ConcordState } from '../domain/concord'
 import type { ChatStatus } from '../domain/chat'
 import type {
+  MusterConfigPatch,
+  MusterEntryDraft,
+  MusterHandoff,
+  MusterState
+} from '../domain/muster'
+import type {
   DispatchCommentDraft,
   DispatchDraft,
   DispatchRuling,
@@ -301,6 +307,18 @@ export interface CandyHavenApi {
     /** Removes the item and its discussion. Denying keeps both. */
     withdraw(id: string): Promise<DispatchState>
     onState(listener: (state: DispatchState) => void): Unsubscribe
+  }
+  readonly muster: {
+    state(): Promise<MusterState>
+    open(prompt: string): Promise<MusterState>
+    close(): Promise<MusterState>
+    reset(): Promise<MusterState>
+    configure(patch: MusterConfigPatch): Promise<MusterState>
+    add(draft: MusterEntryDraft): Promise<MusterState>
+    remove(id: string): Promise<MusterState>
+    /** Reports what fitted: a roll longer than the destination is truncated. */
+    handoff(request: MusterHandoff): Promise<{ sent: number; dropped: number }>
+    onState(listener: (state: MusterState) => void): Unsubscribe
   }
   readonly overlay: {
     info(): Promise<OverlayServerInfo>

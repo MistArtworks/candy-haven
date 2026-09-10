@@ -23,6 +23,7 @@
  * overlays. Removed entries are three lines to reinstate.
  */
 export const OVERLAY_IDS = [
+  'muster',
   'selection',
   'concord',
   'transmission',
@@ -118,12 +119,39 @@ export interface OverlayDefinition {
 
 export const OVERLAYS: readonly OverlayDefinition[] = [
   {
+    id: 'muster',
+    slug: 'muster',
+    label: 'THE MUSTER',
+    purpose: 'An open call: chat files entries against a question, live on the scene',
+    epigraph: 'Choices measured. Deviance erased.',
+    order: 0,
+    implemented: true,
+    scope: [
+      'Operator puts a question; chat files entries with a chat command',
+      'The roll fills on the broadcast, numbered and credited to each citizen',
+      'A settable clock runs the call down, or it stays open until closed',
+      'One entry per citizen by default, and duplicates are refused',
+      'The finished roll is handed to the ring, the chamber, or both'
+    ],
+    canvas: { width: 1920, height: 1080 },
+    addresses: [
+      {
+        slug: 'muster-widget',
+        label: 'THE MUSTER — WIDGET',
+        purpose: 'Corner plate showing the question and the latest filings',
+        canvas: { width: 460, height: 380 },
+        pin: 'widget'
+      }
+    ],
+    form: 'full'
+  },
+  {
     id: 'selection',
     slug: 'selection',
     label: 'RESONANCE SELECTION',
     purpose: 'Weighted draw on a rotating ring — the field chooses one petition',
     epigraph: 'We do not question the shape of the universe.',
-    order: 0,
+    order: 1,
     implemented: true,
     scope: [
       'Operator files petitions; the ring previews them live on the broadcast',
@@ -141,7 +169,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     label: 'THE CONCORD',
     purpose: 'Chat votes on a ballot; a deadlock is settled by casting lots',
     epigraph: 'Harmony decided for all, not by all.',
-    order: 1,
+    order: 2,
     implemented: true,
     scope: [
       'Operator files a ballot; chat votes by typing the numeral',
@@ -178,7 +206,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     label: 'NOW TRANSMITTING',
     purpose: 'Live Spotify playback: track, artist, cover plate and timeline',
     epigraph: 'Sound is not heard. It is structured. It is shaped.',
-    order: 2,
+    order: 3,
     implemented: true,
     scope: [
       'Reads the operator’s current Spotify playback over the Web API',
@@ -196,7 +224,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     label: 'INTERVAL',
     purpose: 'Multi-purpose countdown with a grace period, for breaks and segments',
     epigraph: 'Time itself is constructed, maintained, and policed.',
-    order: 3,
+    order: 4,
     implemented: true,
     document: 'timer',
     scope: [
@@ -215,7 +243,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     label: 'CONVENING',
     purpose: 'Stream-opening countdown that resolves to NOW',
     epigraph: 'A society built on order, where symmetry is worship.',
-    order: 4,
+    order: 5,
     implemented: true,
     document: 'timer',
     scope: [
@@ -234,7 +262,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     label: 'THE DOCKET',
     purpose: 'Standing queue of chat requests and what is being worked next',
     epigraph: 'Mortals reduced to data; choices measured, deviance erased.',
-    order: 5,
+    order: 6,
     implemented: false,
     scope: [
       'Numbered queue of requests, filed by the operator or by chat',

@@ -78,6 +78,7 @@ export default defineConfig({
            * what these are for, and composition is not type-checkable.
            */
           'preview-scenes': resolve('src/renderer/preview/scenes.html'),
+          'preview-muster': resolve('src/renderer/preview/muster.html'),
           ...Object.fromEntries(
             liveOverlayDocuments().map((document) => [
               document,

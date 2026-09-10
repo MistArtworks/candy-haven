@@ -11,6 +11,7 @@ import { ChorusPage } from '@renderer/features/observatory/chorus/ChorusPage'
 import { TimerPage } from '@renderer/features/observatory/overlays/timer/TimerPage'
 // Singular: the NOW TRANSMITTING *overlay's* host page, which survives the
 // removal of the TRANSMISSIONS department it merely shared a word with.
+import { MusterPage } from '@renderer/features/observatory/overlays/muster/MusterPage'
 import { TransmissionPage } from '@renderer/features/observatory/overlays/transmission/TransmissionPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
@@ -45,6 +46,8 @@ import { OVERLAYS, type OverlayId } from '@shared/domain/overlays'
  */
 function overlayElement(id: OverlayId): ReactNode {
   switch (id) {
+    case 'muster':
+      return <MusterPage />
     case 'selection':
       return <SelectionPage />
     case 'concord':

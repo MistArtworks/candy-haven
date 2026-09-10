@@ -226,6 +226,17 @@ const api: CandyHavenApi = {
     setup: () => invoke('nowplaying:setup'),
     onState: (listener) => subscribe('nowplaying:state', listener)
   },
+  muster: {
+    state: () => invoke('muster:state'),
+    open: (prompt) => invoke('muster:open', { prompt }),
+    close: () => invoke('muster:close'),
+    reset: () => invoke('muster:reset'),
+    configure: (patch) => invoke('muster:config', patch),
+    add: (draft) => invoke('muster:add', draft),
+    remove: (id) => invoke('muster:remove', { id }),
+    handoff: (request) => invoke('muster:handoff', request),
+    onState: (listener) => subscribe('muster:state', listener)
+  },
   release: {
     arrival: () => invoke('update:arrival'),
     acknowledge: () => invoke('update:acknowledge')

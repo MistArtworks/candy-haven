@@ -12,6 +12,7 @@ import { TimerService } from './overlay/timer.service'
 import { SpotifyService } from './overlay/spotify.service'
 import { DispatchService } from './dispatch/dispatch.service'
 import { ConcordService } from './overlay/concord.service'
+import { MusterService } from './overlay/muster.service'
 import { TwitchChatService } from './chat/twitch-chat.service'
 import { getLogger } from '@main/core/logger'
 
@@ -62,6 +63,7 @@ export interface ServiceContainer {
   readonly nowPlaying: SpotifyService
   readonly dispatch: DispatchService
   readonly concord: ConcordService
+  readonly muster: MusterService
 }
 
 export function createServiceContainer(): ServiceContainer {
@@ -94,6 +96,17 @@ export function createServiceContainer(): ServiceContainer {
   const volumes = new VolumesService(archive, projects)
   const releases = new ReleasesService(archive, projects, volumes, stacks)
 
+  /*
+   * Hoisted out of the literal because THE MUSTER holds both.
+   *
+   * A finished roll is handed to the ring or to the chamber, so the muster
+   * needs the two services rather than a channel — the hand-off is one call to
+   * each, and routing it back out through IPC only to come in again would put
+   * the renderer in the middle of a main-process concern.
+   */
+  const rite = new RiteService(archive, overlayServer)
+  const concord = new ConcordService(archive, overlayServer, chat, settings)
+
   return {
     settings,
     archive,
@@ -105,11 +118,12 @@ export function createServiceContainer(): ServiceContainer {
     releases,
     overlayServer,
     chat,
-    rite: new RiteService(archive, overlayServer),
+    rite,
     timers: new TimerService(archive, overlayServer),
     nowPlaying: new SpotifyService(archive, overlayServer),
     dispatch: new DispatchService(),
-    concord: new ConcordService(archive, overlayServer, chat, settings)
+    concord,
+    muster: new MusterService(archive, overlayServer, chat, settings, rite, concord)
   }
 }
 
@@ -134,6 +148,7 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
   container.timers.dispose()
   container.nowPlaying.dispose()
   container.dispatch.dispose()
+  container.muster.dispose()
   // Before chat: the poll releases its claim on the way down, and disposing the
   // ingest first would leave that release writing to a cleared emitter.
   container.concord.dispose()

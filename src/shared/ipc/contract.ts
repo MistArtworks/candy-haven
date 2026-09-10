@@ -32,6 +32,13 @@ import {
 } from '../domain/concord'
 import { ChatStatusSchema } from '../domain/chat'
 import {
+  MusterCallSchema,
+  MusterConfigPatchSchema,
+  MusterEntryDraftSchema,
+  MusterHandoffSchema,
+  MusterStateSchema
+} from '../domain/muster'
+import {
   DispatchCommentDraftSchema,
   DispatchDraftSchema,
   DispatchRulingSchema,
@@ -441,6 +448,26 @@ export const IPC_INVOKE = {
   /** Removes the item and its discussion. Distinct from denying it. */
   'dispatch:withdraw': { input: z.object({ id: z.string() }), output: DispatchStateSchema },
 
+  /*
+   * THE MUSTER — the open call.
+   *
+   * No subscribe channel: the service holds chat itself while a call is open
+   * and republishes on a heartbeat, so the console listens on the broadcast
+   * below like every other surface.
+   */
+  'muster:state': { input: z.void(), output: MusterStateSchema },
+  'muster:open': { input: MusterCallSchema, output: MusterStateSchema },
+  'muster:close': { input: z.void(), output: MusterStateSchema },
+  'muster:reset': { input: z.void(), output: MusterStateSchema },
+  'muster:config': { input: MusterConfigPatchSchema, output: MusterStateSchema },
+  'muster:add': { input: MusterEntryDraftSchema, output: MusterStateSchema },
+  'muster:remove': { input: z.object({ id: z.string() }), output: MusterStateSchema },
+  /** Reports what fitted: a roll longer than the destination is truncated. */
+  'muster:handoff': {
+    input: MusterHandoffSchema,
+    output: z.object({ sent: z.number(), dropped: z.number() })
+  },
+
   'overlay:info': { input: z.void(), output: OverlayServerInfoSchema },
   /** Rebinds the server, picking up a changed port from settings. */
   'overlay:restart': { input: z.void(), output: OverlayServerInfoSchema },
@@ -484,6 +511,7 @@ export const IPC_EVENT = {
   'timer:state': TimerStateSchema,
   'nowplaying:state': NowPlayingStateSchema,
   'dispatch:state': DispatchStateSchema,
+  'muster:state': MusterStateSchema,
   'overlay:info': OverlayServerInfoSchema,
   'window:state': WindowStateSchema
 } satisfies Record<string, z.ZodType>
