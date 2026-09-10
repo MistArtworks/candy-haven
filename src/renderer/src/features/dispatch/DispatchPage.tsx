@@ -166,7 +166,12 @@ export function DispatchPage(): ReactNode {
               this page means what it says, and it is a per-machine choice that
               either of them may need to change on a shared desk.
             */}
-            <div className={styles.identity} role="group" aria-label="Who you are">
+            <div
+              className={styles.identity}
+              data-unset={identity === null || undefined}
+              role="group"
+              aria-label="Who you are"
+            >
               <span className={styles.identityLabel}>You are</span>
               {DISPATCH_AUTHORS.map((author) => (
                 <button

@@ -54,33 +54,56 @@
   gap: space(5);
 }
 
-// Who is at the keyboard. Leads the header because it is the one thing that has
-// to be right before anything else on the page means what it says.
+/*
+ * Who is at the keyboard.
+ *
+ * Drawn at the weight of a control rather than a caption, which is a
+ * correction: it was a pair of 9px chips in the corner, and the operator could
+ * not find it. Every line on this page is attributed to whoever this says you
+ * are, and half the controls appear or vanish on it, so it cannot be the
+ * quietest thing in the header.
+ *
+ * The selected one is a solid fill with near-black text — the only place in the
+ * application that inverts like this. That is deliberate: it has to be readable
+ * as a *state* from across the desk, not as one of two similar buttons, and
+ * choosing the wrong one silently misattributes everything that follows.
+ */
 .identity {
   display: flex;
   align-items: center;
-  gap: space(1);
+  gap: space(2);
+  padding: space(1) space(2);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.14);
+
+  // Nothing here means what it says until this is set, so an unset control asks
+  // rather than waiting to be noticed.
+  &[data-unset] {
+    border-color: var(--ch-accent);
+    background: var(--ch-accent-dim);
+  }
 }
 
 .identityLabel {
   @include label(8px, 0.18em);
   color: var(--ch-text-faint);
-  margin-right: space(2);
+  padding-left: space(2);
 }
 
 .identityPick {
-  @include label(9px, 0.14em);
-  color: var(--ch-text-faint);
+  @include label(10px, 0.16em);
+  color: var(--ch-text-secondary);
   background: none;
-  @include hairline(all, 0.12);
-  padding: space(1) space(3);
+  border: 0;
+  padding: space(2) space(4);
   cursor: pointer;
   transition:
     color $duration-fast linear,
-    border-color $duration-fast linear;
+    background $duration-fast linear;
 
   &:hover {
-    color: var(--ch-text-secondary);
+    color: var(--ch-text-primary);
+    background: var(--ch-surface-overlay);
   }
 
   &:focus-visible {
@@ -88,9 +111,8 @@
   }
 
   &[data-on] {
-    color: var(--ch-gold-200);
-    border-color: var(--ch-gold-500);
-    background: var(--ch-surface-raised);
+    color: var(--ch-obsidian-900);
+    background: var(--ch-gold-300);
   }
 }
 
@@ -220,15 +242,18 @@
 .markNew {
   @include label(7px, 0.18em);
   color: var(--ch-gold-200);
-  background: var(--ch-gold-900, var(--ch-surface-overlay));
+  background: var(--ch-surface-overlay);
   @include hairline(all, 0.2);
   padding: 1px space(2);
 }
 
+// Filled rather than outlined, and the one place the accent appears on this
+// page. It is the answer to the only question the board has to settle at a
+// glance: has anything happened since I last looked.
 .markUnread {
   @include readout(9px);
-  color: var(--ch-alabaster-100);
-  background: var(--ch-accent);
+  color: var(--ch-obsidian-900);
+  background: var(--ch-accent-bright);
   padding: 1px space(2);
   min-width: rem(16px);
   text-align: center;
