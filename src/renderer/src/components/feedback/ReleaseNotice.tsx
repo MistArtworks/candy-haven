@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { ReleaseArrival } from '@shared/domain/update'
 import { Portal } from '@renderer/components/primitives/Portal'
@@ -100,51 +100,124 @@ export function ReleaseNotice(): ReactNode {
   )
 }
 
+/** One line of the notes, already reduced to what it is. */
+interface Block {
+  kind: 'heading' | 'bullet' | 'paragraph'
+  text: string
+}
+
 /**
- * Release notes, rendered without a Markdown library.
+ * Release notes, rendered without a Markdown library — or an HTML one.
  *
- * Only three shapes are recognised — a `##` heading, a `-` bullet, and a
- * paragraph — because those are the only three the release notes are written
- * in, and pulling in a Markdown parser and its sanitiser to render a changelog
- * this application also authors would be a dependency for nothing.
+ * The notes arrive in **two different formats** depending on where they came
+ * from, which is the bug this function was rewritten to fix. Fetched from the
+ * GitHub API they are the raw Markdown that was written. Handed over by
+ * electron-updater they are *HTML*: the GitHub provider renders the release
+ * body before putting it on `UpdateInfo`. The first version of this understood
+ * only Markdown, so an updated client showed a screen of `<p>` and `<li>` tags.
  *
- * Anything unrecognised falls through as a paragraph rather than being dropped,
- * so a note written in some other shape is still legible.
+ * Both are reduced to the same three shapes — heading, bullet, paragraph —
+ * because those are the only three the notes are ever written in, and pulling
+ * in a Markdown parser plus an HTML sanitiser to render a changelog this
+ * application also authors would be two dependencies for nothing.
  */
 function Notes({ source }: { source: string }): ReactNode {
-  const lines = source.replace(/\r\n/g, '\n').split('\n')
+  const blocks = useMemo(() => parseNotes(source), [source])
 
   return (
     <div className={styles.notes}>
-      {lines.map((raw, index) => {
-        const line = raw.trim()
-        // A blank line is the space between paragraphs, which the gap provides.
-        if (!line) return null
+      {blocks.map((block, index) => {
+        const key = `${index}-${block.text.slice(0, 24)}`
 
-        const key = `${index}-${line.slice(0, 24)}`
-
-        if (line.startsWith('#')) {
+        if (block.kind === 'heading') {
           return (
             <h3 key={key} className={styles.heading}>
-              {line.replace(/^#+\s*/, '')}
+              {block.text}
             </h3>
           )
         }
 
-        if (line.startsWith('- ') || line.startsWith('* ')) {
-          return (
-            <p key={key} className={styles.bullet}>
-              {line.slice(2)}
-            </p>
-          )
-        }
-
         return (
-          <p key={key} className={styles.paragraph}>
-            {line}
+          <p key={key} className={block.kind === 'bullet' ? styles.bullet : styles.paragraph}>
+            {block.text}
           </p>
         )
       })}
     </div>
   )
+}
+
+function parseNotes(source: string): Block[] {
+  return /<(p|h[1-6]|ul|ol|li|br|div)[ >/]/i.test(source) ? fromHtml(source) : fromMarkdown(source)
+}
+
+/**
+ * HTML notes, reduced to text.
+ *
+ * Parsed with `DOMParser` and read through `textContent` — never assigned to
+ * `innerHTML`. `DOMParser` builds an inert document that runs no script and
+ * loads no resource, and taking only the text means nothing from the release
+ * body can reach the DOM as markup even in principle. The notes are fetched
+ * over the network from a repository, so that guarantee is worth having
+ * cheaply rather than reasoning about who can write a release.
+ */
+function fromHtml(source: string): Block[] {
+  const blocks: Block[] = []
+
+  try {
+    const document_ = new DOMParser().parseFromString(source, 'text/html')
+
+    // Walked rather than queried, so the order of the document is the order on
+    // screen — a `querySelectorAll` per tag would group every heading first.
+    const visit = (node: Element): void => {
+      for (const child of Array.from(node.children)) {
+        const tag = child.tagName.toLowerCase()
+
+        if (/^h[1-6]$/.test(tag)) {
+          push(blocks, 'heading', child.textContent)
+        } else if (tag === 'li') {
+          push(blocks, 'bullet', child.textContent)
+        } else if (tag === 'ul' || tag === 'ol' || tag === 'div' || tag === 'blockquote') {
+          visit(child)
+        } else if (tag === 'p') {
+          push(blocks, 'paragraph', child.textContent)
+        } else {
+          // Anything unrecognised still contributes its text rather than being
+          // dropped: notes written in some other shape stay legible.
+          push(blocks, 'paragraph', child.textContent)
+        }
+      }
+    }
+
+    visit(document_.body)
+  } catch {
+    // A parser failure falls back to the line reader, which cannot fail.
+    return fromMarkdown(source)
+  }
+
+  return blocks.length > 0 ? blocks : fromMarkdown(source)
+}
+
+/** Markdown notes: three shapes, matched on the first characters of a line. */
+function fromMarkdown(source: string): Block[] {
+  const blocks: Block[] = []
+
+  for (const raw of source.replace(/\r\n/g, '\n').split('\n')) {
+    const line = raw.trim()
+    // A blank line is the space between paragraphs, which the gap provides.
+    if (!line) continue
+
+    if (line.startsWith('#')) push(blocks, 'heading', line.replace(/^#+\s*/, ''))
+    else if (line.startsWith('- ') || line.startsWith('* ')) push(blocks, 'bullet', line.slice(2))
+    else push(blocks, 'paragraph', line)
+  }
+
+  return blocks
+}
+
+function push(blocks: Block[], kind: Block['kind'], text: string | null): void {
+  // Collapsed: HTML notes carry the source document's line breaks inside a
+  // paragraph, and those are not the author's line breaks.
+  const clean = (text ?? '').replace(/\s+/g, ' ').trim()
+  if (clean) blocks.push({ kind, text: clean })
 }
