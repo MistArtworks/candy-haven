@@ -198,6 +198,23 @@ export async function readGpuAdapters(): Promise<GpuAdapter[]> {
   })
 }
 
+/** Latched so an unavailable counter set is reported once, not once per tick. */
+let countersReported = false
+
+/**
+ * The script's output as a ratio.
+ *
+ * `-1` is its sentinel for "every counter sample was invalid", which is a real
+ * state on a partly-idle hybrid GPU and is reported as unknown rather than as
+ * zero load. Anything unparseable lands in the same place.
+ */
+function parseUtilisation(stdout: string): number | null {
+  const percent = Number.parseFloat(stdout.trim())
+  if (!Number.isFinite(percent) || percent < 0) return null
+
+  return Math.min(Math.max(percent / 100, 0), 1)
+}
+
 /**
  * System-wide GPU utilisation from Windows performance counters.
  *
@@ -248,23 +265,54 @@ export async function readGpuUtilisation(): Promise<number | null> {
       "$g=$s | Group-Object { ($_.InstanceName -split 'engtype_')[-1] } |",
       'ForEach-Object { ($_.Group | Measure-Object CookedValue -Sum).Sum };',
       '$v=($g | Measure-Object -Maximum).Maximum;',
-      'if ($null -eq $v) { -1 } else { [Math]::Round($v,2) } }'
+      'if ($null -eq $v) { -1 } else { [Math]::Round($v,2) } };',
+      /*
+       * The exit code is ours, not PowerShell's.
+       *
+       * `powershell.exe -Command` exits 1 whenever `$?` is false at the end,
+       * and `Get-Counter` sets that from a *non-terminating* error even with
+       * `SilentlyContinue` — so the sentinel path printed `-1` correctly and
+       * then the process still reported failure, `execFile` rejected, and the
+       * probe logged a stack trace on every poll for a state it already
+       * handles. The script decides the answer; the exit code is noise.
+       */
+      'exit 0'
     ].join(' ')
 
+    /*
+     * Generous, because the cost here is startup rather than steady state.
+     *
+     * A cold `Get-Counter` has to spin up powershell.exe and then enumerate
+     * every PDH instance under `\GPU Engine`, of which there is one per engine
+     * per process — on a loaded machine that is hundreds, and the first call of
+     * a session can run for several seconds. At six the probe was being killed
+     * mid-flight and the timeout surfaced as `Command failed`, which reads like
+     * the script broke when it had simply not finished.
+     *
+     * Overlap is not the risk it would otherwise be: the caller holds an
+     * in-flight guard, so a slow probe skips ticks rather than stacking up.
+     */
     const { stdout } = await execFileAsync('powershell.exe', [...POWERSHELL_ARGS, script], {
-      timeout: 6_000,
+      timeout: 15_000,
       windowsHide: true
     })
 
-    const percent = Number.parseFloat(stdout.trim())
-    // -1 is the script's sentinel for "every counter sample was invalid", which
-    // is a real state on a partly-idle hybrid GPU and is reported as unknown
-    // rather than as zero load.
-    if (!Number.isFinite(percent) || percent < 0) return null
-
-    return Math.min(Math.max(percent / 100, 0), 1)
+    return parseUtilisation(stdout)
   } catch (error) {
-    logger.warn('GPU utilisation counters unavailable', error)
+    /*
+     * A rejection still carries whatever the child managed to print, and with
+     * the sentinel that is usually a perfectly good reading. Belt and braces
+     * against the exit code coming back non-zero by some other route.
+     */
+    const salvaged = parseUtilisation((error as { stdout?: string }).stdout ?? '')
+    if (salvaged !== null) return salvaged
+
+    // Once per run. Counters being unavailable is a machine property, not an
+    // event, and this probe runs on a timer — warning each time buries the log.
+    if (!countersReported) {
+      countersReported = true
+      logger.warn('GPU utilisation counters unavailable; reporting no system figure', error)
+    }
     return null
   }
 }
