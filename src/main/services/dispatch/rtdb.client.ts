@@ -14,7 +14,18 @@ export interface RtdbStreamHandlers {
   onEvent: (event: RtdbEvent) => void
   onOpen: () => void
   onError: (error: Error) => void
+  /**
+   * The stream's token has expired.
+   *
+   * Firebase does not renew a stream's credential in place — it sends
+   * `auth_revoked` and stops sending data. Distinct from an error because the
+   * remedy is different: a fresh token and a reconnect, not a backoff.
+   */
+  onAuthRevoked: () => void
 }
+
+/** Supplies a current ID token, refreshing it if it is about to expire. */
+export type TokenProvider = () => Promise<string | null>
 
 /**
  * The Realtime Database, over its REST interface.
@@ -26,24 +37,37 @@ export interface RtdbStreamHandlers {
  * lives, rather than punching a hole in the renderer's content-security policy
  * — that policy is `connect-src 'self'` and it is worth keeping.
  *
- * Everything here assumes the database's rules permit unauthenticated access,
- * which is what Firebase's *test mode* grants. Test mode expires: when it does,
- * writes start failing with 401 and the console will say so rather than
- * silently dropping them. Locking it down properly means either signing in or
- * writing rules that admit these two, and both are a later decision.
+ * Every request carries an ID token as `?auth=`, which is what the database's
+ * rules check. That is where the security actually lives: a password verified
+ * inside the application would stop nobody, because an attacker reaching the
+ * database does not run the application. The rules run on Google's servers and
+ * every request goes through them, including one made with curl.
+ *
+ * The token is fetched per request rather than held, so a refresh that happens
+ * between two calls is picked up by the second without anything having to tell
+ * this object about it.
  */
 export class RtdbClient {
-  constructor(private readonly databaseUrl: string) {}
+  constructor(
+    private readonly databaseUrl: string,
+    private readonly token: TokenProvider
+  ) {}
 
-  private url(path: string, query = ''): string {
+  private async url(path: string, extra?: Record<string, string>): Promise<string> {
     const base = this.databaseUrl.replace(/\/+$/, '')
     const clean = path.replace(/^\/+/, '')
-    return `${base}/${clean}.json${query}`
+
+    const query = new URLSearchParams(extra)
+    const token = await this.token()
+    if (token) query.set('auth', token)
+
+    const suffix = query.toString()
+    return `${base}/${clean}.json${suffix ? `?${suffix}` : ''}`
   }
 
   /** The whole subtree at `path`, or null when there is nothing there. */
   async get<T>(path: string): Promise<T | null> {
-    const response = await fetch(this.url(path))
+    const response = await fetch(await this.url(path))
     if (!response.ok) throw await failure(response, 'read')
 
     return (await response.json()) as T | null
@@ -51,7 +75,7 @@ export class RtdbClient {
 
   /** Replaces the value at `path`. */
   async put(path: string, value: unknown): Promise<void> {
-    const response = await fetch(this.url(path), {
+    const response = await fetch(await this.url(path), {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(value)
@@ -61,7 +85,7 @@ export class RtdbClient {
 
   /** Merges the given keys into the value at `path`, leaving the rest alone. */
   async patch(path: string, value: Record<string, unknown>): Promise<void> {
-    const response = await fetch(this.url(path), {
+    const response = await fetch(await this.url(path), {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(value)
@@ -70,7 +94,7 @@ export class RtdbClient {
   }
 
   async remove(path: string): Promise<void> {
-    const response = await fetch(this.url(path), { method: 'DELETE' })
+    const response = await fetch(await this.url(path), { method: 'DELETE' })
     if (!response.ok) throw await failure(response, 'delete')
   }
 
@@ -93,7 +117,7 @@ export class RtdbClient {
     let stopped = false
 
     const run = async (): Promise<void> => {
-      const response = await fetch(this.url(path), {
+      const response = await fetch(await this.url(path), {
         headers: { accept: 'text/event-stream' },
         signal: controller.signal
       })
@@ -124,7 +148,7 @@ export class RtdbClient {
         while (split !== -1) {
           const chunk = buffer.slice(0, split)
           buffer = buffer.slice(split + 2)
-          emit(chunk, handlers.onEvent)
+          emit(chunk, handlers)
           split = buffer.indexOf('\n\n')
         }
       }
@@ -147,10 +171,13 @@ export class RtdbClient {
  * One server-sent event, if it is one worth passing on.
  *
  * Firebase sends `keep-alive`, `auth_revoked` and `cancel` alongside the two
- * that carry data. Only `put` and `patch` are forwarded; a keep-alive that
- * reached the service would look like an empty board.
+ * that carry data. Only `put` and `patch` are forwarded as changes; a keep-alive
+ * that reached the service would look like an empty board.
+ *
+ * `auth_revoked` gets its own callback. It is not an error — it is the hour
+ * being up — and it needs a new token rather than a backoff.
  */
-function emit(chunk: string, onEvent: (event: RtdbEvent) => void): void {
+function emit(chunk: string, handlers: RtdbStreamHandlers): void {
   let name = ''
   const dataLines: string[] = []
 
@@ -159,11 +186,16 @@ function emit(chunk: string, onEvent: (event: RtdbEvent) => void): void {
     else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())
   }
 
+  if (name === 'auth_revoked') {
+    handlers.onAuthRevoked()
+    return
+  }
+
   if (name !== 'put' && name !== 'patch') return
 
   try {
     const payload = JSON.parse(dataLines.join('\n')) as { path?: string; data?: unknown }
-    onEvent({ kind: name, path: payload.path ?? '/', data: payload.data ?? null })
+    handlers.onEvent({ kind: name, path: payload.path ?? '/', data: payload.data ?? null })
   } catch (cause) {
     // One unreadable frame must not end the stream: the next one is very likely
     // sound, and dropping the connection would take the board offline for it.
@@ -178,8 +210,8 @@ async function failure(response: Response, verb: string): Promise<Error> {
 
   if (response.status === 401 || response.status === 403) {
     return new Error(
-      `The database refused the ${verb} (${response.status}). Its rules may have expired — ` +
-        'a Firebase database created in test mode stops allowing access after thirty days.'
+      `The database refused the ${verb} (${response.status}). ` +
+        'Either the sign-in is no longer valid, or the rules do not admit this account.'
     )
   }
 

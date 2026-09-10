@@ -93,6 +93,14 @@ export const DispatchLinkSchema = z.object({
   message: z.string().default(''),
   /** The project the board is attached to, once known. */
   projectId: z.string().nullable().default(null),
+  /**
+   * Who is signed in, decided by the credential rather than by the interface.
+   *
+   * Null when signed out, which is also the state in which nothing is fetched:
+   * the rules would refuse an unauthenticated stream, so there is no point
+   * opening one.
+   */
+  identity: DispatchAuthorSchema.nullable().default(null),
   /** When the last frame arrived from the database. */
   syncedAt: z.number().nullable().default(null)
 })

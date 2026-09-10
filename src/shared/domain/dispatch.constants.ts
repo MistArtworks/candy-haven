@@ -12,11 +12,15 @@
 /**
  * Both of them, by name.
  *
- * Deliberately a closed list rather than accounts. There is no login and there
- * will not be one: two people share a board, and a password on it would be
- * ceremony protecting nothing. Identity is chosen on the page before filing,
- * remembered per machine, and changeable at any time — it labels an item, it
- * does not authorise anything.
+ * A closed list, and now a closed list of *accounts*: each signs in with their
+ * own password, and identity is whichever account the credential resolved to
+ * rather than a toggle in the interface.
+ *
+ * That began as a toggle, on the reasoning that a password between two people
+ * protects nothing. It was the wrong reasoning — not because either of them
+ * would misattribute an item, but because the database has to refuse everyone
+ * *else*, and it can only do that against a credential. The login is how the
+ * credential is obtained; the database's rules are what enforce it.
  */
 export const DISPATCH_AUTHORS = ['mist', 'candy'] as const
 export type DispatchAuthor = (typeof DISPATCH_AUTHORS)[number]
@@ -135,9 +139,11 @@ export const DISPATCH_ROOT_PATH = 'candy-haven/dispatch'
 export const DISPATCH_LINK_STATES = [
   /** No Firebase config has been supplied yet. */
   'unconfigured',
+  /** Configured, but nobody has signed in. Nothing is fetched in this state. */
+  'signed-out',
   'connecting',
   'online',
-  /** Configured, but the last attempt failed. The board still reads locally. */
+  /** Signed in, but the last attempt failed. Retried on a backoff. */
   'error'
 ] as const
 export type DispatchLinkState = (typeof DISPATCH_LINK_STATES)[number]

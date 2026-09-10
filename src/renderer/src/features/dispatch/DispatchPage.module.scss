@@ -55,65 +55,71 @@
 }
 
 /*
- * Who is at the keyboard.
+ * Who is signed in.
  *
- * Drawn at the weight of a control rather than a caption, which is a
- * correction: it was a pair of 9px chips in the corner, and the operator could
- * not find it. Every line on this page is attributed to whoever this says you
- * are, and half the controls appear or vanish on it, so it cannot be the
- * quietest thing in the header.
- *
- * The selected one is a solid fill with near-black text — the only place in the
- * application that inverts like this. That is deliberate: it has to be readable
- * as a *state* from across the desk, not as one of two similar buttons, and
- * choosing the wrong one silently misattributes everything that follows.
+ * A readout now, not a switch. It was a pair of chips the operator flipped to
+ * say who they were, which settled attribution and nothing else — the database
+ * had no way to refuse anyone, because there was no credential to refuse. The
+ * name here is whichever account a password resolved to.
  */
 .identity {
   display: flex;
   align-items: center;
-  gap: space(2);
-  padding: space(1) space(2);
+  gap: space(3);
+  padding: space(2) space(3);
   background: var(--ch-surface-raised);
   @include hairline(all, 0.14);
-
-  // Nothing here means what it says until this is set, so an unset control asks
-  // rather than waiting to be noticed.
-  &[data-unset] {
-    border-color: var(--ch-accent);
-    background: var(--ch-accent-dim);
-  }
 }
 
 .identityLabel {
   @include label(8px, 0.18em);
   color: var(--ch-text-faint);
-  padding-left: space(2);
 }
 
-.identityPick {
+.identityName {
   @include label(10px, 0.16em);
-  color: var(--ch-text-secondary);
-  background: none;
-  border: 0;
-  padding: space(2) space(4);
-  cursor: pointer;
-  transition:
-    color $duration-fast linear,
-    background $duration-fast linear;
+  color: var(--ch-gold-200);
+}
 
-  &:hover {
-    color: var(--ch-text-primary);
-    background: var(--ch-surface-overlay);
-  }
+// ------------------------------------------------------------------ sign-in
 
-  &:focus-visible {
-    @include focus-ring(0);
-  }
+/*
+ * The door, as a band rather than a modal.
+ *
+ * A modal would imply the board is behind it and merely covered. It is not: an
+ * unauthenticated stream is refused by the database's rules, so nothing has
+ * been fetched and there is nothing underneath to hide.
+ */
+.signIn {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: space(8);
+  flex-wrap: wrap;
+  margin-top: space(5);
+  padding: space(5) space(6);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.18);
+  border-left: 2px solid var(--ch-accent);
+}
 
-  &[data-on] {
-    color: var(--ch-obsidian-900);
-    background: var(--ch-gold-300);
-  }
+.signInCopy {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: rem(620px);
+}
+
+.signInTitle {
+  @include label(11px, 0.16em);
+  color: var(--ch-text-primary);
+}
+
+.signInForm {
+  display: flex;
+  align-items: flex-end;
+  gap: space(3);
+  min-width: rem(280px);
 }
 
 // ------------------------------------------------------------------ notices
@@ -168,7 +174,9 @@
 
 .controls {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  // Three, all of them narrowing the list. The one control that *creates*
+  // something is in the panel header, where it cannot be mistaken for a filter.
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
   align-items: end;
   gap: space(3);
   padding-bottom: space(4);
@@ -177,6 +185,13 @@
 
 .searchField {
   min-width: 0;
+}
+
+// The one action on this side of the page, on its own line beneath the filters.
+.boardActions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: space(3);
 }
 
 .board {

@@ -410,6 +410,16 @@ export const IPC_INVOKE = {
   'dispatch:setup': { input: z.void(), output: DispatchSetupSchema },
   /** Accepts the whole snippet the Firebase console shows, not just JSON. */
   'dispatch:configure': { input: z.object({ source: z.string() }), output: DispatchStateSchema },
+  /**
+   * Exchanges a password for a session.
+   *
+   * The password crosses this boundary once and is not stored on either side of
+   * it — the main process hands it to Firebase and keeps only the tokens that
+   * come back. Which of the two accounts it belongs to is resolved by trying
+   * them, so the renderer never has to say who it thinks it is.
+   */
+  'dispatch:sign-in': { input: z.object({ password: z.string() }), output: DispatchStateSchema },
+  'dispatch:sign-out': { input: z.void(), output: DispatchStateSchema },
   'dispatch:file': { input: DispatchDraftSchema, output: DispatchStateSchema },
   'dispatch:comment': { input: DispatchCommentDraftSchema, output: DispatchStateSchema },
   /** Resolve, deny with a reason, or put an item back to pending. */

@@ -21,6 +21,8 @@ import {
   saveFirebaseConfig
 } from './firebase-config'
 import { RtdbClient } from './rtdb.client'
+import { IdentityAuth, REFRESH_MARGIN_MS, type DispatchSession } from './identity.auth'
+import { DispatchTokenStore } from './dispatch.tokens'
 
 const logger = getLogger('dispatch')
 
@@ -56,6 +58,7 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
       state: 'unconfigured',
       message: 'No Firebase config has been supplied.',
       projectId: null,
+      identity: null,
       syncedAt: null
     },
     items: [],
@@ -63,6 +66,11 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
   }
 
   private config: FirebaseConfig | null = null
+  private auth: IdentityAuth | null = null
+  private readonly tokens = new DispatchTokenStore()
+  private session: DispatchSession | null = null
+  /** Serialises refreshes, so five concurrent writes do not mint five tokens. */
+  private refreshing: Promise<DispatchSession> | null = null
   private client: RtdbClient | null = null
   private stop: (() => void) | null = null
   private retryTimer: NodeJS.Timeout | null = null
@@ -79,6 +87,110 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
       databaseUrl: this.config?.databaseURL || null,
       configPath: firebaseConfigPath()
     }
+  }
+
+  // -------------------------------------------------------------------- auth
+
+  /**
+   * Exchanges a password for a session and attaches.
+   *
+   * The password is not kept. It goes to Firebase, comes back as a pair of
+   * tokens, and is dropped — the refresh token is what survives a restart, and
+   * it is encrypted with the OS keystore.
+   */
+  async signIn(password: string): Promise<DispatchState> {
+    const auth = this.requireAuth()
+
+    this.session = await auth.signIn(password)
+    await this.tokens.save({
+      identity: this.session.identity,
+      uid: this.session.uid,
+      refreshToken: this.session.refreshToken
+    })
+
+    this.detach()
+    this.attach()
+
+    return this.state
+  }
+
+  /**
+   * Drops the session and the stored token, and detaches.
+   *
+   * The board is emptied with it. Leaving the last-read items on screen after
+   * signing out would leave one operator's board visible to whoever signs in
+   * next, which is the one thing signing out is for.
+   */
+  async signOut(): Promise<DispatchState> {
+    this.detach()
+    this.session = null
+    await this.tokens.clear()
+
+    this.state = { ...this.state, items: [] }
+    this.patchLink({
+      state: this.config ? 'signed-out' : 'unconfigured',
+      message: this.config ? 'Sign in to see the board.' : 'No Firebase config has been supplied.',
+      identity: null
+    })
+
+    return this.state
+  }
+
+  /**
+   * A currently valid ID token, refreshed if it is close to expiring.
+   *
+   * Handed to `RtdbClient` as a provider rather than a value, so a refresh
+   * between two requests is picked up by the second without anything having to
+   * be told. Concurrent callers share one refresh: five writes landing together
+   * on an expired token should produce one round trip, not five, and Firebase
+   * rotates the refresh token on use — five parallel exchanges would invalidate
+   * four of the results.
+   */
+  private async token(): Promise<string | null> {
+    const session = this.session
+    const auth = this.auth
+    if (!session || !auth) return null
+
+    if (Date.now() < session.expiresAt - REFRESH_MARGIN_MS) return session.idToken
+
+    this.refreshing ??= auth
+      .refresh(session.identity, session.refreshToken)
+      .then(async (next) => {
+        this.session = next
+        await this.tokens.save({
+          identity: next.identity,
+          uid: next.uid,
+          refreshToken: next.refreshToken
+        })
+        return next
+      })
+      .finally(() => {
+        this.refreshing = null
+      })
+
+    try {
+      return (await this.refreshing).idToken
+    } catch (cause) {
+      logger.warn('Could not refresh the board sign-in', cause)
+      this.session = null
+      await this.tokens.clear()
+      this.patchLink({
+        state: 'signed-out',
+        message: 'The sign-in expired. Sign in again.',
+        identity: null
+      })
+      return null
+    }
+  }
+
+  private requireAuth(): IdentityAuth {
+    if (!this.auth) {
+      throw new AppError('The board has no Firebase config yet.', {
+        code: ErrorCode.Unavailable,
+        hint: 'Paste the config in the panel below first.'
+      })
+    }
+    return this.auth
   }
 
   /**
@@ -99,7 +211,35 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
       return
     }
 
-    this.attach()
+    this.auth = new IdentityAuth(this.config.apiKey)
+
+    /*
+     * Restore the session before attaching.
+     *
+     * The stream carries the token in its URL, so opening one without a session
+     * would be refused by the rules and then retried on a backoff — an
+     * unattached board and a log full of 401s, when the honest state is simply
+     * that nobody has signed in yet.
+     */
+    const stored = await this.tokens.load()
+    if (!stored) {
+      this.patchLink({ state: 'signed-out', message: 'Sign in to see the board.' })
+      return
+    }
+
+    try {
+      this.session = await this.auth.refresh(stored.identity, stored.refreshToken)
+      await this.tokens.save({
+        identity: this.session.identity,
+        uid: this.session.uid,
+        refreshToken: this.session.refreshToken
+      })
+      this.attach()
+    } catch (cause) {
+      logger.warn('The stored board sign-in is no longer valid', cause)
+      await this.tokens.clear()
+      this.patchLink({ state: 'signed-out', message: 'The sign-in expired. Sign in again.' })
+    }
   }
 
   /** Accepts a pasted console snippet, saves it, and reattaches. */
@@ -114,8 +254,11 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
 
     await saveFirebaseConfig(parsed)
     this.config = parsed
+    this.auth = new IdentityAuth(parsed.apiKey)
+
     this.detach()
-    this.attach()
+    if (this.session) this.attach()
+    else this.patchLink({ state: 'signed-out', message: 'Sign in to see the board.' })
 
     return this.state
   }
@@ -239,9 +382,11 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
 
   private require(): RtdbClient {
     if (!this.client) {
-      throw new AppError('The board is not connected.', {
+      throw new AppError(this.session ? 'The board is not connected.' : 'Sign in first.', {
         code: ErrorCode.Unavailable,
-        hint: 'Add a Firebase config in the panel below, then try again.',
+        hint: this.session
+          ? 'It will reattach on its own; try again in a moment.'
+          : 'Enter your password at the top of the page.',
         recoverable: true
       })
     }
@@ -256,13 +401,14 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
    * whole subtree. There is no separate fetch to keep in step with it.
    */
   private attach(): void {
-    if (!this.config) return
+    if (!this.config || !this.session) return
 
-    this.client = new RtdbClient(this.config.databaseURL)
+    this.client = new RtdbClient(this.config.databaseURL, () => this.token())
     this.patchLink({
       state: 'connecting',
       message: 'Attaching to the board…',
-      projectId: this.config.projectId || null
+      projectId: this.config.projectId || null,
+      identity: this.session.identity
     })
 
     this.stop = this.client.stream(DISPATCH_ROOT_PATH, {
@@ -271,6 +417,19 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
         this.patchLink({ state: 'online', message: 'Attached.' })
       },
       onEvent: (event) => this.applyRemote(event.kind, event.path, event.data),
+      /*
+       * The hour is up, not a failure.
+       *
+       * Firebase cannot renew a stream's credential in place, so it revokes and
+       * stops sending. Reconnecting immediately is right — `attach` builds a
+       * fresh URL and the provider will have refreshed the token by then — and
+       * going through the backoff would leave the board stale for no reason.
+       */
+      onAuthRevoked: () => {
+        this.stop?.()
+        this.stop = null
+        this.attach()
+      },
       onError: (error) => {
         logger.warn('The board stream dropped', error)
         this.patchLink({ state: 'error', message: error.message })

@@ -4,7 +4,6 @@ import type { DispatchItem } from '@shared/domain/dispatch'
 import {
   DISPATCH_AREAS,
   DISPATCH_AREA_LABEL,
-  DISPATCH_AUTHORS,
   DISPATCH_AUTHOR_LABEL,
   DISPATCH_BODY_MAX,
   DISPATCH_KINDS,
@@ -72,7 +71,7 @@ export function DispatchPage(): ReactNode {
   const state = useDispatch()
   const setup = useDispatchSetup(state.revision)
   const actions = useDispatchActions()
-  const [identity, chooseIdentity] = useIdentity()
+  const identity = useIdentity(state)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<DispatchStatus | 'all'>('all')
@@ -161,31 +160,25 @@ export function DispatchPage(): ReactNode {
         actions={
           <div className={styles.headerActions}>
             {/*
-              Identity leads the header rather than sitting in a settings panel.
-              It is the one thing that has to be right before anything else on
-              this page means what it says, and it is a per-machine choice that
-              either of them may need to change on a shared desk.
+              Signed in, or the way to be. It leads the header because nothing
+              else on this page means what it says until it is answered — and
+              because the credential behind it is what the database checks, so
+              this is not a preference, it is the door.
             */}
-            <div
-              className={styles.identity}
-              data-unset={identity === null || undefined}
-              role="group"
-              aria-label="Who you are"
-            >
-              <span className={styles.identityLabel}>You are</span>
-              {DISPATCH_AUTHORS.map((author) => (
+            {identity ? (
+              <div className={styles.identity}>
+                <span className={styles.identityLabel}>Signed in as</span>
+                <span className={styles.identityName}>{DISPATCH_AUTHOR_LABEL[identity]}</span>
                 <button
-                  key={author}
                   type="button"
-                  className={styles.identityPick}
-                  data-on={identity === author || undefined}
-                  aria-pressed={identity === author}
-                  onClick={() => chooseIdentity(author)}
+                  className={styles.dismiss}
+                  disabled={actions.pending === 'sign-out'}
+                  onClick={() => void actions.signOut()}
                 >
-                  {DISPATCH_AUTHOR_LABEL[author]}
+                  Sign out
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : null}
 
             <StatusDot
               tone={LINK_TONE[state.link.state] ?? 'pending'}
@@ -209,10 +202,11 @@ export function DispatchPage(): ReactNode {
         </div>
       ) : null}
 
-      {identity === null ? (
-        <div className={styles.notice}>
-          <span>Choose whether you are MIST or CANDY before filing anything.</span>
-        </div>
+      {identity === null && state.link.state !== 'unconfigured' ? (
+        <SignIn
+          busy={actions.pending === 'sign-in'}
+          onSubmit={(password) => void actions.signIn(password)}
+        />
       ) : null}
 
       <motion.div
@@ -262,14 +256,33 @@ export function DispatchPage(): ReactNode {
               }))}
               onChange={setSort}
             />
+          </div>
+
+          {/*
+            Its own line, under the filters and to the right.
+
+            It was at the end of the search-and-sort strip labelled FILE, where
+            the word reads as a noun sitting among three controls that all
+            narrow a list — so it looked like a fourth filter rather than the
+            one thing on this page that creates something. Below the strip it is
+            plainly not part of it, and right-aligned it lands where the eye
+            finishes the row above.
+          */}
+          <div className={styles.boardActions}>
             <Button
               size="sm"
               variant="primary"
               disabled={identity === null || state.link.state !== 'online'}
-              title={identity === null ? 'Choose who you are first' : 'File a new item'}
+              title={
+                identity === null
+                  ? 'Choose who you are first'
+                  : state.link.state !== 'online'
+                    ? 'The board is not attached'
+                    : 'File a new item'
+              }
               onClick={() => setComposing(true)}
             >
-              File
+              New item
             </Button>
           </div>
 
@@ -365,6 +378,69 @@ export function DispatchPage(): ReactNode {
           />
         </Panel>
       </motion.div>
+    </div>
+  )
+}
+
+/**
+ * The door.
+ *
+ * One field, because the password *is* the name: there are two accounts and one
+ * password each, so asking who you are before asking for proof would be asking
+ * a question the answer already contains.
+ *
+ * Drawn as a band across the page rather than a modal. A modal would imply the
+ * board is behind it and merely hidden — it is not, it has not been fetched at
+ * all, because an unauthenticated stream is refused by the database's rules.
+ * There is nothing underneath to cover.
+ */
+function SignIn({
+  busy,
+  onSubmit
+}: {
+  busy: boolean
+  onSubmit: (password: string) => void
+}): ReactNode {
+  const [password, setPassword] = useState('')
+
+  const submit = (): void => {
+    if (!password.trim() || busy) return
+    onSubmit(password)
+    // Cleared either way. On success it is spent; on failure it was wrong, and
+    // leaving a wrong password in the field invites pressing Enter again.
+    setPassword('')
+  }
+
+  return (
+    <div className={styles.signIn}>
+      <div className={styles.signInCopy}>
+        <span className={styles.signInTitle}>Sign in to the board</span>
+        <p className={styles.hint}>
+          Your password decides which of you this is. It is exchanged with Firebase for a token and
+          never stored here — the database checks the token on every request, which is what keeps
+          the board yours rather than anyone&apos;s who knows its address.
+        </p>
+      </div>
+
+      <div className={styles.signInForm}>
+        <TextInput
+          label="Password"
+          value={password}
+          onChange={setPassword}
+          password
+          placeholder="••••••••"
+          onEnter={submit}
+        />
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={!password.trim()}
+          busy={busy}
+          onClick={submit}
+        >
+          Sign in
+        </Button>
+      </div>
     </div>
   )
 }

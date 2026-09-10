@@ -7,17 +7,14 @@ import type {
   DispatchSetup,
   DispatchState
 } from '@shared/domain/dispatch'
-import {
-  DISPATCH_ADJUDICATOR,
-  DISPATCH_AUTHORS,
-  type DispatchAuthor
-} from '@shared/domain/dispatch.constants'
+import { DISPATCH_ADJUDICATOR, type DispatchAuthor } from '@shared/domain/dispatch.constants'
 
 const EMPTY: DispatchState = {
   link: {
     state: 'unconfigured',
     message: 'No Firebase config has been supplied.',
     projectId: null,
+    identity: null,
     syncedAt: null
   },
   items: [],
@@ -78,31 +75,18 @@ export function useDispatchSetup(revision: number): DispatchSetup {
 
 // -------------------------------------------------------------------- identity
 
-const IDENTITY_KEY = 'candy-haven.dispatch.identity'
-
 /**
- * Which of the two people is at this keyboard.
+ * Who is signed in.
  *
- * In `localStorage` rather than in settings, deliberately. It is a property of
- * the machine, not of the workspace — the whole point is that mist's copy and
- * candy's copy answer differently — and settings are synchronised, validated
- * and versioned, which is a lot of machinery for one of two strings.
- *
- * Null until chosen. The page refuses to file anything until it is, because an
- * item attributed to the wrong person is worse than one nobody filed.
+ * Read off the link rather than held locally. It used to be a `localStorage`
+ * toggle on the reasoning that a password between two people protects nothing —
+ * which was the wrong reasoning, because the point is not to keep them apart
+ * but to give the *database* something to check so it can refuse everyone else.
+ * Identity is now whichever account the credential resolved to, and the main
+ * process is the only thing that knows.
  */
-export function useIdentity(): [DispatchAuthor | null, (author: DispatchAuthor) => void] {
-  const [identity, setIdentity] = useState<DispatchAuthor | null>(() => {
-    const stored = window.localStorage.getItem(IDENTITY_KEY)
-    return DISPATCH_AUTHORS.includes(stored as DispatchAuthor) ? (stored as DispatchAuthor) : null
-  })
-
-  const choose = useCallback((author: DispatchAuthor) => {
-    window.localStorage.setItem(IDENTITY_KEY, author)
-    setIdentity(author)
-  }, [])
-
-  return [identity, choose]
+export function useIdentity(state: DispatchState): DispatchAuthor | null {
+  return state.link.identity
 }
 
 /** Only one of them rules on items. The other files and comments. */
@@ -144,6 +128,8 @@ export function isUnseen(item: DispatchItem, identity: DispatchAuthor | null): b
 
 export interface DispatchActions {
   configure(source: string): Promise<void>
+  signIn(password: string): Promise<void>
+  signOut(): Promise<void>
   file(draft: DispatchDraft): Promise<void>
   comment(draft: DispatchCommentDraft): Promise<void>
   rule(ruling: DispatchRuling): Promise<void>
@@ -174,6 +160,8 @@ export function useDispatchActions(): DispatchActions {
   return useMemo<DispatchActions>(
     () => ({
       configure: (source) => run('configure', () => window.candy.dispatch.configure(source)),
+      signIn: (password) => run('sign-in', () => window.candy.dispatch.signIn(password)),
+      signOut: () => run('sign-out', () => window.candy.dispatch.signOut()),
       file: (draft) => run('file', () => window.candy.dispatch.file(draft)),
       comment: (draft) => run('comment', () => window.candy.dispatch.comment(draft)),
       rule: (ruling) => run('rule', () => window.candy.dispatch.rule(ruling)),

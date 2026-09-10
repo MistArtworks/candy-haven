@@ -59,6 +59,17 @@ export interface TextInputProps {
   aside?: ReactNode
   /** Monospace entry — use for identifiers like ISRC and UPC codes. */
   mono?: boolean
+  /** Masks the entry. Also stops the field being read by autofill heuristics. */
+  password?: boolean
+  /**
+   * Commits on Enter.
+   *
+   * Set only where the field *is* the form — a lone password or a search — and
+   * a keyboard-driven operator should not have to reach for a button. A field
+   * that carries this also marks itself `data-enter="own"`, so a dialog binding
+   * Enter to its own commit leaves this one alone; see `useDialogKeys`.
+   */
+  onEnter?: () => void
   maxLength?: number
   disabled?: boolean
   className?: string
@@ -72,6 +83,8 @@ export function TextInput({
   hint,
   aside,
   mono = false,
+  password = false,
+  onEnter,
   maxLength,
   disabled = false,
   className
@@ -82,13 +95,19 @@ export function TextInput({
     <ControlShell label={label} htmlFor={id} hint={hint} aside={aside} className={className}>
       <input
         id={id}
-        type="text"
-        className={`${styles.input} ${mono ? styles.mono : ''}`}
+        type={password ? 'password' : 'text'}
+        className={`${styles.input} ${mono || password ? styles.mono : ''}`}
         value={value}
         placeholder={placeholder}
         maxLength={maxLength}
         disabled={disabled}
+        data-enter={onEnter ? 'own' : undefined}
         onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
+        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+          if (event.key !== 'Enter' || !onEnter) return
+          event.preventDefault()
+          onEnter()
+        }}
       />
     </ControlShell>
   )
