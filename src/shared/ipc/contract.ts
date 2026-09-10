@@ -31,6 +31,7 @@ import {
   ConcordStateSchema
 } from '../domain/concord'
 import { ChatStatusSchema } from '../domain/chat'
+import { AntechamberConfigPatchSchema, AntechamberStateSchema } from '../domain/antechamber'
 import {
   DispatchCommentDraftSchema,
   DispatchDraftSchema,
@@ -441,6 +442,20 @@ export const IPC_INVOKE = {
   /** Removes the item and its discussion. Distinct from denying it. */
   'dispatch:withdraw': { input: z.object({ id: z.string() }), output: DispatchStateSchema },
 
+  /*
+   * THE ANTECHAMBER — the waiting field.
+   *
+   * No subscribe channel: there is nothing live to poll for. The configuration
+   * is the whole state, and a change is broadcast so the browser source
+   * repaints without being reloaded.
+   */
+  'antechamber:state': { input: z.void(), output: AntechamberStateSchema },
+  'antechamber:config': {
+    input: AntechamberConfigPatchSchema,
+    output: AntechamberStateSchema
+  },
+  'antechamber:reset': { input: z.void(), output: AntechamberStateSchema },
+
   'overlay:info': { input: z.void(), output: OverlayServerInfoSchema },
   /** Rebinds the server, picking up a changed port from settings. */
   'overlay:restart': { input: z.void(), output: OverlayServerInfoSchema },
@@ -484,6 +499,7 @@ export const IPC_EVENT = {
   'timer:state': TimerStateSchema,
   'nowplaying:state': NowPlayingStateSchema,
   'dispatch:state': DispatchStateSchema,
+  'antechamber:state': AntechamberStateSchema,
   'overlay:info': OverlayServerInfoSchema,
   'window:state': WindowStateSchema
 } satisfies Record<string, z.ZodType>

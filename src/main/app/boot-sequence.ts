@@ -172,6 +172,7 @@ export class BootSequence extends TypedEmitter<BootEvents> {
       nowPlaying,
       concord,
       dispatch,
+      antechamber,
       overlayServer
     } = this.services
 
@@ -282,6 +283,7 @@ export class BootSequence extends TypedEmitter<BootEvents> {
         await rite.initialize()
         await timers.initialize()
         await concord.initialize()
+        await antechamber.initialize()
         await nowPlaying.initialize(settings.snapshot.integrations.spotifyClientId)
 
         // The shared board attaches to a database over the network. Same rule

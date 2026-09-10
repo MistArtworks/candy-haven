@@ -1,0 +1,34 @@
+@use 'abstracts' as *;
+@use 'base/theme';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /*
+   * Transparent here, and painted by the canvas instead.
+   *
+   * Unlike the rest of the kit this overlay usually *is* opaque — it is the
+   * bottom of a scene rather than furniture over one. But the backdrop is a
+   * config option, so the decision belongs to the thing that can see the
+   * config: the canvas fills itself when `transparent` is off, and leaves the
+   * page showing through when it is on.
+   */
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+#face {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

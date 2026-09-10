@@ -194,7 +194,19 @@ export function clampResultLinger(ms: number): number {
  * schedule instead of hanging on screen forever.
  */
 export function concordAtRest(state: ConcordState, now: number): boolean {
-  if (state.phase === 'idle') return true
+  /*
+   * A filed ballot is not rest.
+   *
+   * Idle alone used to be enough, and that was wrong in a way that only shows
+   * up while the operator is working: options are published as they are typed,
+   * so a ballot being *prepared* is an idle state with options in it. Treating
+   * that as rest cleared them, and the browser source showed NO QUESTION HAS
+   * BEEN PUT while the question was visibly being put.
+   *
+   * Preparing a ballot on the source is the point — it is how the operator sees
+   * what the audience will see before the chamber opens.
+   */
+  if (state.phase === 'idle') return state.options.length === 0
   if (state.phase !== 'resolved') return false
   if (state.resolvedAt === null) return false
 

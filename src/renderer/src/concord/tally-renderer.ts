@@ -1323,6 +1323,14 @@ export class ConcordFace {
 
     if (state.config.showStatus) {
       ctx.fillStyle = withAlpha(palette.textFaint, 0.7)
+      /*
+       * Idle splits in two.
+       *
+       * Idle with a ballot on it is the question being prepared and the chamber
+       * not yet sitting, which is a different thing to say than idle with
+       * nothing filed — and the operator watching the source while they type
+       * needs to be told which of the two they are looking at.
+       */
       const phase =
         state.phase === 'open'
           ? 'ATTENDING'
@@ -1330,7 +1338,9 @@ export class ConcordFace {
             ? 'CASTING LOTS'
             : state.phase === 'resolved'
               ? 'ENTERED INTO THE RECORD'
-              : 'AWAITING THE QUESTION'
+              : state.options.length > 0
+                ? 'THE CHAMBER IS NOT YET SITTING'
+                : 'AWAITING THE QUESTION'
       this.tracked(phase, x, cursor, unit * 0.82, 0.24, 'display')
       cursor -= unit * 1.9
     }

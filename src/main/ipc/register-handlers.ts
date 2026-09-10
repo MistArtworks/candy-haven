@@ -298,6 +298,10 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('dispatch:seen', ({ itemId, author }) => services.dispatch.markSeen(itemId, author))
   router.handle('dispatch:withdraw', ({ id }) => services.dispatch.withdraw(id))
 
+  router.handle('antechamber:state', () => services.antechamber.current)
+  router.handle('antechamber:config', (patch) => services.antechamber.configure(patch))
+  router.handle('antechamber:reset', () => services.antechamber.reset())
+
   router.handle('overlay:info', () => services.overlayServer.info)
   // The port comes from settings rather than the renderer, for the same reason
   // the scan roots do: a compromised renderer should not choose what we bind.
@@ -413,6 +417,7 @@ export function registerEventBridges(deps: {
   services.timers.on('state', (state) => router.broadcast('timer:state', state))
   services.nowPlaying.on('state', (state) => router.broadcast('nowplaying:state', state))
   services.dispatch.on('state', (state) => router.broadcast('dispatch:state', state))
+  services.antechamber.on('state', (state) => router.broadcast('antechamber:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

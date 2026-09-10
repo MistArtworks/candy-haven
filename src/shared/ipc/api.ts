@@ -7,6 +7,7 @@ import type { TelemetryState } from '../domain/telemetry'
 import type { OverlayServerInfo, PetitionDraft, RiteConfigPatch, RiteState } from '../domain/rite'
 import type { ConcordConfigPatch, ConcordOptionDraft, ConcordState } from '../domain/concord'
 import type { ChatStatus } from '../domain/chat'
+import type { AntechamberConfigPatch, AntechamberState } from '../domain/antechamber'
 import type {
   DispatchCommentDraft,
   DispatchDraft,
@@ -301,6 +302,12 @@ export interface CandyHavenApi {
     /** Removes the item and its discussion. Denying keeps both. */
     withdraw(id: string): Promise<DispatchState>
     onState(listener: (state: DispatchState) => void): Unsubscribe
+  }
+  readonly antechamber: {
+    state(): Promise<AntechamberState>
+    configure(patch: AntechamberConfigPatch): Promise<AntechamberState>
+    reset(): Promise<AntechamberState>
+    onState(listener: (state: AntechamberState) => void): Unsubscribe
   }
   readonly overlay: {
     info(): Promise<OverlayServerInfo>

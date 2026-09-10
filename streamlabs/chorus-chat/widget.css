@@ -272,12 +272,23 @@ html:not([data-masthead='off']) #log {
   display: table-row;
 }
 
+/*
+ * Row spacing, set on the cells rather than with `border-spacing`.
+ *
+ * `border-spacing` would apply between the *columns* as well, opening a gap
+ * between the numeral, the name and the message that the hairline rule is
+ * already responsible for. Padding on the cells only separates the rows.
+ *
+ * Widened from 0.34em on a reading of the widget at size: at a hundred-odd
+ * messages an hour the log is the busiest thing on the scene, and the lines
+ * were tight enough that a two-line message ran into the next name.
+ */
 #log .index,
 #log .meta,
 #log .message {
   display: table-cell;
   vertical-align: top;
-  padding-bottom: 0.34em;
+  padding-bottom: 0.62em;
 }
 
 /* ------------------------------------------------------------- the numeral

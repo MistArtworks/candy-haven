@@ -23,6 +23,7 @@
  * overlays. Removed entries are three lines to reinstate.
  */
 export const OVERLAY_IDS = [
+  'antechamber',
   'selection',
   'concord',
   'transmission',
@@ -117,6 +118,26 @@ export interface OverlayDefinition {
 }
 
 export const OVERLAYS: readonly OverlayDefinition[] = [
+  {
+    id: 'antechamber',
+    slug: 'antechamber',
+    label: 'THE ANTECHAMBER',
+    purpose: 'The waiting field a broadcast opens on — visual only, no readout',
+    epigraph: 'Before the first note, the field is already sounding.',
+    order: 0,
+    implemented: true,
+    scope: [
+      'Fills the frame: wash, ribbons, a plexus field, expanding rings, grain',
+      'Carries no text, no clock and no chat — those are their own sources',
+      'Four palettes, all inside the house materials',
+      'Intensity, speed and density are dials, so it can sit under a camera',
+      'Composes at any aspect; everything scales off the shorter side'
+    ],
+    canvas: { width: 1920, height: 1080 },
+    // The most `full` thing in the kit: it *is* the scene, not something over
+    // one. Everything else in the layout is composited on top of it in OBS.
+    form: 'full'
+  },
   {
     id: 'selection',
     slug: 'selection',
