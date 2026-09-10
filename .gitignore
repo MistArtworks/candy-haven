@@ -17,3 +17,7 @@ release/
 # open, so the address in here is effectively the key to the board. Kept out of
 # git and handed to the other operator directly.
 info/firebaseconfig.md
+
+# Windows shortcuts. They point at paths on one machine and mean nothing on
+# another, and one left in `info/` blocks the release script's clean-tree check.
+*.lnk

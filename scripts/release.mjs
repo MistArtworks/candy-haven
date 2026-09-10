@@ -125,8 +125,9 @@ function ensureTag(version) {
   const dirty = capture('git', ['status', '--porcelain'])
   if (dirty) {
     die(
-      'The working tree has uncommitted changes.',
-      'Commit or stash them: a release must be reproducible from the tag.'
+      `The working tree is not clean:\n${dirty}`,
+      'Commit, stash or ignore these. A release must be reproducible from the tag,' +
+        ' and an untracked file may be a build input.'
     )
   }
 
