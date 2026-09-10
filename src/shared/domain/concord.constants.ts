@@ -159,18 +159,11 @@ export const CONCORD_FINAL_CALL_MS = 10_000
 
 // ---------------------------------------------------------------- appearance
 
-/**
- * How long the overlay takes to arrive, and to leave.
- *
- * Asymmetric because the two moments are not alike: the poll opening is news and
- * wants to be quick, while its departure should not yank the result off screen
- * while someone is still reading it.
- */
+/** How long a ballot takes to arrive. Opening a poll is news; it is quick. */
 export const REVEAL_MS = 420
-export const CONCEAL_MS = 700
 
 /**
- * How long a settled result stays up before the overlay withdraws.
+ * How long a settled result holds before the chamber returns to rest.
  *
  * Operator-settable because it depends entirely on what they do next — a poll
  * they immediately talk through wants a long linger, one that gates a scene
@@ -187,44 +180,70 @@ export function clampResultLinger(ms: number): number {
   return Math.min(Math.max(Math.round(ms), RESULT_LINGER_MIN_MS), RESULT_LINGER_MAX_MS)
 }
 
-export interface ConcordVisibility {
-  /** Opacity for the whole composition, 0..1. */
-  opacity: number
-  /** True when nothing should be painted at all. */
-  hidden: boolean
+/**
+ * Whether the chamber is at rest — no question currently before it.
+ *
+ * True while idle, and true again once a settled result has held for its
+ * linger. Derived from the state and the clock rather than pushed, which is the
+ * rule every timed thing here follows: a browser source that OBS rebuilds after
+ * a poll has expired resolves to the resting composition on its first frame
+ * instead of flashing a stale tally.
+ *
+ * `resolvedAt` is used rather than `result.at` because a poll can settle with no
+ * result — nobody voted — and that case has to return to rest on the same
+ * schedule instead of hanging on screen forever.
+ */
+export function concordAtRest(state: ConcordState, now: number): boolean {
+  if (state.phase === 'idle') return true
+  if (state.phase !== 'resolved') return false
+  if (state.resolvedAt === null) return false
+
+  return now - state.resolvedAt > clampResultLinger(state.config.resultLingerMs)
 }
 
 /**
- * Whether the overlay should be on screen, and how strongly.
+ * The state as the overlay should draw it while at rest.
  *
- * Derived from the state and the clock rather than pushed, which is the rule
- * every timed thing in this app follows — and here it buys something specific:
- * a browser source that OBS rebuilds mid-poll fades in correctly instead of
- * appearing at full opacity, and one that attaches after a result has expired
- * paints nothing at all rather than flashing a stale tally.
+ * The ballot is cleared rather than left standing: a resolved poll's options
+ * with their final bars is a *result*, and once the result has had its linger
+ * the scene should read as "nothing is being decided", not as a tally nobody
+ * has cleared. Everything the composition is built from otherwise — the
+ * masthead, the theme, the reserve — comes from the config and survives.
  *
- * `resolvedAt` is used rather than `result.at` because a poll can settle with no
- * result — nobody voted — and that case has to withdraw on the same schedule
- * instead of hanging on screen forever.
+ * A projection for drawing only. Nothing writes this back: the service still
+ * holds the resolved poll, so the result stays in the record and in the
+ * console.
  */
-export function concordVisibilityAt(state: ConcordState, now: number): ConcordVisibility {
-  if (!state.config.autoHide) return { opacity: 1, hidden: false }
-
-  if (state.phase === 'idle') return { opacity: 0, hidden: true }
-
-  if (state.phase === 'open' || state.phase === 'casting') {
-    const since = state.openedAt === null ? REVEAL_MS : now - state.openedAt
-    const opacity = clamp01(since / REVEAL_MS)
-    return { opacity, hidden: opacity <= 0 }
+export function concordRestingProjection(state: ConcordState): ConcordState {
+  return {
+    ...state,
+    phase: 'idle',
+    options: [],
+    totalVotes: 0,
+    voters: 0,
+    voteRate: 0,
+    openedAt: null,
+    closesAt: null,
+    resolvedAt: null,
+    cast: null,
+    result: null
   }
+}
 
-  // Resolved.
-  if (state.resolvedAt === null) return { opacity: 1, hidden: false }
-  const since = now - state.resolvedAt
-  const linger = clampResultLinger(state.config.resultLingerMs)
-  if (since <= linger) return { opacity: 1, hidden: false }
-  const opacity = 1 - clamp01((since - linger) / CONCEAL_MS)
-  return { opacity, hidden: opacity <= 0 }
+/**
+ * How strongly the composition is painted, 0..1.
+ *
+ * Only the reveal ramp remains. There is no conceal ramp and no hidden state:
+ * THE CONCORD is present in its scene at all times, and what changes when a
+ * question is put is what it *shows*, not whether it is there. The ramp still
+ * earns its place — a source rebuilt mid-poll fades its ballot in rather than
+ * snapping it on.
+ */
+export function concordRevealAt(state: ConcordState, now: number): number {
+  if (state.phase !== 'open' && state.phase !== 'casting') return 1
+  if (state.openedAt === null) return 1
+
+  return clamp01((now - state.openedAt) / REVEAL_MS)
 }
 
 export function clampPollDuration(ms: number): number {
@@ -665,7 +684,6 @@ export function createDefaultConcordConfig(): ConcordConfig {
     title: 'THE CONCORD',
     prompt: 'THE CHAMBER WILL DECIDE',
     presentation: 'tally',
-    autoHide: true,
     resultLingerMs: DEFAULT_RESULT_LINGER_MS,
     durationMs: DEFAULT_POLL_DURATION_MS,
     voteSyntax: 'both',

@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { useDialogKeys } from '@renderer/hooks/useDialogKeys'
 import { motion } from 'motion/react'
 import { DEFAULT_FOLDER_COLOUR, validateFolderName } from '@shared/domain/stacks.constants'
 import { Portal } from '@renderer/components/primitives/Portal'
@@ -53,44 +54,14 @@ export function FolderDialog({
   const [name, setName] = useState(initialName)
   const [colour, setColour] = useState(initialColour)
 
-  // Escape closes, as it does for the dossier. Bound on the document because
-  // the dialog may not hold focus when the operator reaches for it.
-  useEffect(() => {
-    /*
-     * Enter commits, Escape cancels.
-     *
-     * Bound on the document because the dialog may not hold focus when the
-     * operator reaches for a key, and a dialog whose only route out is the
-     * mouse is a dialog that gets in the way of typing a name and moving on.
-     *
-     * A textarea is excluded: Enter there is a newline, not a decision. So is
-     * anything that has claimed the key for itself, which the hex field in the
-     * swatch picker does — see `data-enter`.
-     */
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        onCancel()
-        return
-      }
-
-      if (event.key !== 'Enter') return
-
-      const target = event.target as HTMLElement | null
-      if (target?.tagName === 'TEXTAREA' || target?.dataset.enter === 'own') return
-
-      event.preventDefault()
-      if (canSubmit) submit()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onCancel])
-
   const verdict = validateFolderName(name, topLevel)
   const canSubmit = verdict.ok && !busy
 
   const submit = (): void => {
     if (canSubmit) onSubmit(name.trim(), colour)
   }
+
+  useDialogKeys({ onCommit: submit, onCancel, canCommit: canSubmit })
 
   return (
     <Portal>

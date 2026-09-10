@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { useDialogKeys } from '@renderer/hooks/useDialogKeys'
 import { motion } from 'motion/react'
 import { DEFAULT_FOLDER_COLOUR } from '@shared/domain/stacks.constants'
 import type { VolumeKind } from '@shared/domain/volumes'
@@ -57,39 +58,15 @@ export function VolumeDialog({
   const [artist, setArtist] = useState(initialArtist)
   const [colour, setColour] = useState(initialColour)
 
-  useEffect(() => {
-    /*
-     * Enter commits, Escape cancels.
-     *
-     * Bound on the document because the dialog may not hold focus when the
-     * operator reaches for a key, and a dialog whose only route out is the
-     * mouse is a dialog that gets in the way of typing a name and moving on.
-     *
-     * A textarea is excluded: Enter there is a newline, not a decision. So is
-     * anything that has claimed the key for itself, which the hex field in the
-     * swatch picker does — see `data-enter`.
-     */
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        onCancel()
-        return
-      }
-
-      if (event.key !== 'Enter') return
-
-      const target = event.target as HTMLElement | null
-      if (target?.tagName === 'TEXTAREA' || target?.dataset.enter === 'own') return
-
-      event.preventDefault()
-      if (canSubmit) onSubmit({ kind, title: title.trim(), artist: artist.trim(), colour })
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onCancel])
-
   const verdict = validateVolumeTitle(title)
   const canSubmit = verdict.ok && !busy
   const recategorising = mode === 'edit' && kind !== initialKind && trackCount > 0
+
+  const submit = (): void => {
+    if (canSubmit) onSubmit({ kind, title: title.trim(), artist: artist.trim(), colour })
+  }
+
+  useDialogKeys({ onCommit: submit, onCancel, canCommit: canSubmit })
 
   return (
     <Portal>

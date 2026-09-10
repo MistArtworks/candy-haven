@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { useDialogKeys } from '@renderer/hooks/useDialogKeys'
 import { motion } from 'motion/react'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
@@ -36,35 +37,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel
 }: ConfirmDialogProps): ReactNode {
-  useEffect(() => {
-    /*
-     * Enter commits, Escape cancels.
-     *
-     * Bound on the document because the dialog may not hold focus when the
-     * operator reaches for a key, and a dialog whose only route out is the
-     * mouse is a dialog that gets in the way of typing a name and moving on.
-     *
-     * A textarea is excluded: Enter there is a newline, not a decision. So is
-     * anything that has claimed the key for itself, which the hex field in the
-     * swatch picker does — see `data-enter`.
-     */
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        onCancel()
-        return
-      }
-
-      if (event.key !== 'Enter') return
-
-      const target = event.target as HTMLElement | null
-      if (target?.tagName === 'TEXTAREA' || target?.dataset.enter === 'own') return
-
-      event.preventDefault()
-      onConfirm()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onCancel])
+  useDialogKeys({ onCommit: onConfirm, onCancel, canCommit: true })
 
   return (
     <Portal>

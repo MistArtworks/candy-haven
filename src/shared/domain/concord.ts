@@ -148,15 +148,14 @@ export const ConcordConfigSchema = z.object({
    */
   presentation: z.enum(CONCORD_PRESENTATIONS).default('tally').catch('tally'),
   /**
-   * Withdraw the overlay when no poll is running.
+   * How long a settled result holds before the chamber returns to rest.
    *
-   * The reason a widget can live permanently in a scene: it is absent until the
-   * question is put, and leaves once the result has been read. Without this the
-   * operator has to remember to toggle a source's visibility twice per poll,
-   * mid-broadcast, which is exactly the sort of thing that gets forgotten.
+   * It used to be how long the overlay held before *withdrawing* — there was an
+   * `autoHide` beside it that took the source off screen between polls
+   * entirely. That is gone: the operator wants THE CONCORD present in a scene
+   * the way the rest of the kit is, so it now returns to its resting
+   * composition rather than to nothing. See `concordAtRest`.
    */
-  autoHide: z.boolean().default(true),
-  /** How long a settled result stays up before withdrawing. */
   resultLingerMs: z
     .number()
     .int()

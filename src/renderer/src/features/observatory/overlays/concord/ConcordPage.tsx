@@ -447,30 +447,22 @@ export function ConcordPage(): ReactNode {
             />
 
             {/*
-              The reason a widget can live permanently in an OBS scene: it is
-              absent until the question is put and withdraws once the result has
-              been read, so the operator never has to toggle a source's
-              visibility twice per poll mid-broadcast.
+              There is no "appear and withdraw" any more. The source used to be
+              absent between polls, on the reasoning that a widget living
+              permanently in a scene should not show an empty ballot — but the
+              rest of the kit holds its resting state, and an overlay that
+              vanishes reads as a broken source rather than as an idle one.
             */}
-            <Checkbox
-              label="Appear and withdraw automatically"
-              checked={state.config.autoHide}
-              onChange={(autoHide) => void actions.configure({ autoHide })}
-              hint="Hidden until a poll opens, and hidden again once the result has been up for the time below."
+            <Slider
+              label="Hold the result"
+              min={RESULT_LINGER_MIN_MS}
+              max={RESULT_LINGER_MAX_MS}
+              step={1_000}
+              value={state.config.resultLingerMs}
+              readout={`${Math.round(state.config.resultLingerMs / 1000)}s`}
+              onChange={(resultLingerMs) => void actions.configure({ resultLingerMs })}
+              hint="How long the settled result stays up before the chamber returns to rest."
             />
-
-            {state.config.autoHide ? (
-              <Slider
-                label="Hold the result"
-                min={RESULT_LINGER_MIN_MS}
-                max={RESULT_LINGER_MAX_MS}
-                step={1_000}
-                value={state.config.resultLingerMs}
-                readout={`${Math.round(state.config.resultLingerMs / 1000)}s`}
-                onChange={(resultLingerMs) => void actions.configure({ resultLingerMs })}
-                hint="How long the settled result stays on screen before the overlay withdraws."
-              />
-            ) : null}
 
             <Checkbox
               label="Composite over the scene"

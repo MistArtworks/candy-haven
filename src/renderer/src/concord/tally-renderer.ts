@@ -5,7 +5,9 @@ import {
   agitationFor,
   castFrameAt,
   concordFrameAt,
-  concordVisibilityAt,
+  concordAtRest,
+  concordRestingProjection,
+  concordRevealAt,
   leadingOptions,
   lotPosition,
   optionShare,
@@ -292,23 +294,28 @@ export class ConcordFace {
     if (this.width <= 0 || this.height <= 0) return
     ctx.clearRect(0, 0, this.width, this.height)
 
-    const state = this.state
-    if (!state) return
+    const live = this.state
+    if (!live) return
 
     const wall = Date.now()
-    this.resolvedAt = state.resolvedAt
 
     /*
-     * Withdrawal, derived rather than pushed.
+     * The resting composition, derived rather than pushed.
      *
-     * Painting nothing at all — rather than painting at zero opacity — is the
-     * point: a browser source left permanently in a scene has to be genuinely
-     * absent between polls, not a transparent rectangle sitting on top of
-     * whatever is underneath it.
+     * THE CONCORD is present in its scene at all times — the operator asked for
+     * it to behave like the rest of the kit, which does not appear and vanish
+     * around the operator's actions. Between polls it draws its masthead over
+     * an empty ballot rather than painting nothing.
+     *
+     * A settled poll returns here on its own once the result has had its
+     * linger, so the last tally does not stand indefinitely. The projection is
+     * for drawing only: the service still holds the resolved poll, and the
+     * console still shows it.
      */
-    const visibility = concordVisibilityAt(state, wall)
-    if (visibility.hidden) return
-    ctx.globalAlpha = visibility.opacity
+    const state = concordAtRest(live, wall) ? concordRestingProjection(live) : live
+
+    this.resolvedAt = state.resolvedAt
+    ctx.globalAlpha = concordRevealAt(state, wall)
     const cast = state.cast
     const castFrame = cast ? castFrameAt(cast, this.castClock(cast)) : null
 

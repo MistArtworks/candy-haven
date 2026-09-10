@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { useDialogKeys } from '@renderer/hooks/useDialogKeys'
 import { motion } from 'motion/react'
 import type { ProjectCategory } from '@shared/domain/projects'
 import {
@@ -62,36 +63,6 @@ export function ProjectDialog({
   const [volumeId, setVolumeId] = useState<string | null>(null)
   const [colour, setColour] = useState(DEFAULT_FOLDER_COLOUR)
 
-  useEffect(() => {
-    /*
-     * Enter commits, Escape cancels.
-     *
-     * Bound on the document because the dialog may not hold focus when the
-     * operator reaches for a key, and a dialog whose only route out is the
-     * mouse is a dialog that gets in the way of typing a name and moving on.
-     *
-     * A textarea is excluded: Enter there is a newline, not a decision. So is
-     * anything that has claimed the key for itself, which the hex field in the
-     * swatch picker does — see `data-enter`.
-     */
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        onCancel()
-        return
-      }
-
-      if (event.key !== 'Enter') return
-
-      const target = event.target as HTMLElement | null
-      if (target?.tagName === 'TEXTAREA' || target?.dataset.enter === 'own') return
-
-      event.preventDefault()
-      if (canSubmit) submit()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onCancel])
-
   const needsVolume = requiresVolume(category)
 
   // Only volumes of the matching kind: an EP track cannot belong to an album,
@@ -124,6 +95,8 @@ export function ProjectDialog({
       onSubmit({ name: name.trim(), category, volumeId: resolvedVolumeId, colour })
     }
   }
+
+  useDialogKeys({ onCommit: submit, onCancel, canCommit: canSubmit })
 
   return (
     <Portal>
