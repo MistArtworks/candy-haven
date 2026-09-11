@@ -29,8 +29,6 @@ export const PROJECT_STAGE_IDS = [
   'mix',
   'master',
   'ready',
-  'scheduled',
-  'released',
   'shelved'
 ] as const
 
@@ -67,25 +65,22 @@ export const PROJECT_STAGES: readonly ProjectStageDefinition[] = [
     purpose: 'Mixdown bounced; mastering passes in progress.',
     order: 4
   },
+  /*
+   * The end of the pipeline, and terminal on purpose.
+   *
+   * SCHEDULED and RELEASED followed this and have been removed: what happens
+   * after a track is finished — scheduling it, wrapping it, putting it out —
+   * is being respecified, and a pipeline that claims stages the app no longer
+   * acts on is worse than one that stops where the work stops.
+   *
+   * `requiresMaster` stays, so a project cannot claim to be ready without the
+   * operator having said which file ships.
+   */
   {
     id: 'ready',
-    label: 'READY FOR RELEASE',
+    label: 'TRACK READY',
     purpose: 'Final mix and master chosen, and filed where it belongs.',
     order: 5,
-    requiresMaster: true
-  },
-  {
-    id: 'scheduled',
-    label: 'SCHEDULED',
-    purpose: 'Attached to a release with a date set.',
-    order: 6,
-    requiresMaster: true
-  },
-  {
-    id: 'released',
-    label: 'RELEASED',
-    purpose: 'Out in the world.',
-    order: 7,
     requiresMaster: true,
     terminal: true
   },
@@ -93,7 +88,7 @@ export const PROJECT_STAGES: readonly ProjectStageDefinition[] = [
     id: 'shelved',
     label: 'SHELVED',
     purpose: 'Parked indefinitely. Kept for parts, not for release.',
-    order: 8,
+    order: 6,
     offPipeline: true,
     terminal: true
   }

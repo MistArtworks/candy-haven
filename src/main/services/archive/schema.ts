@@ -198,7 +198,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 3
+const SCHEMA_VERSION = 4
 
 /**
  * Collections dropped by the version 2 migration.
@@ -276,6 +276,53 @@ async function applyMigrations(db: Db): Promise<void> {
       .updateMany({}, { $unset: { tags: '' }, $set: { tagIds: [] } })
 
     logger.info(`Moved ${result.modifiedCount} projects onto tag ids`)
+  }
+
+  if (from < 4) {
+    logger.warn(`Migrating archive schema ${from} -> 4: the pipeline ends at TRACK READY`)
+
+    /*
+     * `scheduled` and `released` are gone from `PROJECT_STAGE_IDS`, and this
+     * has to run before anything reads a record again.
+     *
+     * Not cosmetic, and not optional. `ProjectStageSchema` is a zod enum over
+     * that list, `stageHistory[].stage` uses it too, and `toRecord()` *skips*
+     * any document that fails to parse. So a project left sitting in a removed
+     * stage does not merely lose its stage — it vanishes from the register
+     * entirely.
+     *
+     * And it does not come back. The comment on `toRecord()` reasons that "a
+     * rescan rewrites it", which held for the failure that comment was written
+     * for but not for this one: the skipped record is absent from `existing`,
+     * so `reconcile()` takes the *new project* branch and issues an insert —
+     * against a path the orphaned document still holds, on a unique index. The
+     * insert collides and the project is unreadable for good, taking its stage
+     * history, notes, tags and filing with it.
+     *
+     * Both values map to `ready`: a project that was scheduled or out in the
+     * world is, at minimum, finished. History entries are rewritten in place
+     * rather than dropped, so the timeline stays continuous and the dates the
+     * operator accumulated survive.
+     */
+    const REMOVED = ['scheduled', 'released']
+    const projects = db.collection(Collections.Projects)
+
+    const current = await projects.updateMany(
+      { stage: { $in: REMOVED } },
+      { $set: { stage: 'ready' } }
+    )
+
+    // Positional-filtered update: one pass over the array rather than one
+    // write per entry, and it touches only the entries that name a dead stage.
+    const history = await projects.updateMany(
+      { 'stageHistory.stage': { $in: REMOVED } },
+      { $set: { 'stageHistory.$[entry].stage': 'ready' } },
+      { arrayFilters: [{ 'entry.stage': { $in: REMOVED } }] }
+    )
+
+    logger.info(
+      `Moved ${current.modifiedCount} projects and ${history.modifiedCount} stage histories onto TRACK READY`
+    )
   }
 
   await collection.updateOne(

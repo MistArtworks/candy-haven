@@ -20,9 +20,10 @@ const STAGE_TONE: Record<ProjectStage, StageTone> = {
   arrangement: 'neutral',
   mix: 'neutral',
   master: 'neutral',
-  ready: 'approaching',
-  scheduled: 'approaching',
-  released: 'live',
+  // TRACK READY takes `live` now that it ends the pipeline. It was
+  // `approaching` while SCHEDULED and RELEASED sat beyond it and the badge was
+  // saying "nearly"; with nothing after it, arriving here is the finish.
+  ready: 'live',
   shelved: 'dormant'
 }
 
