@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { ScanState } from '@shared/domain/projects'
 import { Button } from '@renderer/components/primitives/Button'
@@ -54,6 +54,32 @@ export interface ScanPanelProps {
  */
 export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): ReactNode {
   const settings = useSettings()
+  const [conforming, setConforming] = useState(false)
+  const [conformed, setConformed] = useState<string | null>(null)
+
+  /*
+   * Sited here rather than on a project's own menu because it is a maintenance
+   * pass over the whole archive, and this is where the archive's maintenance
+   * verbs already live. It reports a count rather than a success: "nothing
+   * needed it" and "twelve folders fixed" are different answers and the
+   * operator cannot tell them apart by looking at Explorer.
+   */
+  const conform = async (): Promise<void> => {
+    setConforming(true)
+    setConformed(null)
+    try {
+      const { stamped, total } = await window.candy.projects.conform()
+      setConformed(
+        stamped === 0
+          ? `All ${total} projects already carry the icon.`
+          : `Stamped ${stamped} of ${total} projects.`
+      )
+    } catch {
+      setConformed('Could not conform the archive.')
+    } finally {
+      setConforming(false)
+    }
+  }
 
   // `settings` is null until the first hydration completes. Treating that as
   // "no roots" made the panel assert there were none configured — and disabled
@@ -156,7 +182,18 @@ export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): Rea
             Full re-read
           </Button>
         )}
+        <Button
+          size="sm"
+          onClick={() => void conform()}
+          busy={conforming}
+          disabled={!loaded || running}
+          title="Stamp Ableton's project icon onto any project folder missing it"
+        >
+          Conform
+        </Button>
       </div>
+
+      {conformed ? <p className={styles.conformed}>{conformed}</p> : null}
 
       {scan.log.length > 0 ? (
         <ol className={styles.log}>

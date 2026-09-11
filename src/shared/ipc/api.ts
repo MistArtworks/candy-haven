@@ -121,6 +121,8 @@ export interface CandyHavenApi {
     scan(force?: boolean): Promise<ScanState>
     cancelScan(): Promise<ScanState>
     scanState(): Promise<ScanState>
+    /** Stamps Live's project icon onto every project folder missing it. */
+    conform(): Promise<{ stamped: number; total: number }>
     addNote(id: string, draft: NoteDraft): Promise<ProjectRecord>
     updateNote(id: string, noteId: string, draft: NoteDraft): Promise<ProjectRecord>
     deleteNote(id: string, noteId: string): Promise<ProjectRecord>

@@ -170,6 +170,7 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.projects.runScan(settings.scanRoots, input?.force ?? false)
   )
   router.handle('projects:scan-cancel', () => services.projects.cancelScan())
+  router.handle('projects:conform', () => services.projects.conformIcons())
   router.handle('projects:scan-state', () => services.projects.scan)
 
   router.handle('projects:note-add', ({ id, draft }) => services.projects.addNote(id, draft))

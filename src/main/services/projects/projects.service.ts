@@ -34,6 +34,7 @@ import type { ArchiveService } from '@main/services/archive/archive.service'
 import { isAtOrUnder, rewritePath } from '@main/services/stacks/filesystem'
 import { ProjectsRepository, type ProjectDocument } from './projects.repository'
 import { cleanProjectName, scanRoots, type ScannedProject } from './scanner'
+import { hasProjectIcon, stampProjectIcon } from './project-icon'
 
 const logger = getLogger('projects')
 
@@ -552,6 +553,37 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       ...discoveredFields(project, now),
       path: project.path
     }
+  }
+
+  /**
+   * Brings every project folder up to the shape a created one has.
+   *
+   * With the scaffold folders gone there is exactly one difference left between
+   * a project Candy Haven made and one migrated in: whether Explorer draws
+   * Live's project icon on it. Live writes that itself on first save, so a
+   * migrated project usually arrives with it already — what needs this pass is
+   * a project created before the app stamped icons, or one Live has never
+   * opened.
+   *
+   * Idempotent and non-destructive. Nothing is renamed, nothing is moved and no
+   * file the operator put there is touched; a project that already has the icon
+   * is skipped without a write. That is what makes it safe to offer as a verb
+   * over the whole archive rather than only at the moment of migration.
+   */
+  async conformIcons(): Promise<{ stamped: number; total: number }> {
+    const records = await this.repository.listAll()
+    const live = records.filter((record) => !record.missing && record.trashedAt === null)
+    const sources = live.map((record) => record.path)
+
+    let stamped = 0
+
+    for (const record of live) {
+      if (await hasProjectIcon(record.path)) continue
+      if (await stampProjectIcon(record.path, sources)) stamped += 1
+    }
+
+    logger.info(`Conformed ${stamped} of ${live.length} projects`)
+    return { stamped, total: live.length }
   }
 
   /**

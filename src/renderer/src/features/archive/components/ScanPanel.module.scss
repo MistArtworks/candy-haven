@@ -75,6 +75,15 @@
   flex-wrap: wrap;
 }
 
+// What the last conform pass did. Transient, and only after it has run — a
+// line that is always there would read as a status the panel is reporting
+// rather than an answer to something the operator just asked for.
+.conformed {
+  @include readout(10px);
+  color: var(--ch-text-muted);
+  line-height: 1.5;
+}
+
 // ----------------------------------------------------------------------- log
 
 /*

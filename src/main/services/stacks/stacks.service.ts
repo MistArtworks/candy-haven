@@ -32,6 +32,7 @@ import { getLogger } from '@main/core/logger'
 import type { ArchiveService } from '@main/services/archive/archive.service'
 import { provisionProject } from '@main/services/projects/project-provisioner'
 import { indexProject } from '@main/services/projects/scanner'
+import { stampProjectIcon } from '@main/services/projects/project-icon'
 import type { ProjectsService } from '@main/services/projects/projects.service'
 import type { SettingsService } from '@main/services/settings/settings.service'
 import { StacksRepository } from './stacks.repository'
@@ -343,7 +344,10 @@ export class StacksService {
     const { path } = await provisionProject({
       parentPath: folder.path,
       name,
-      templatePath: setup.templatePath as string
+      templatePath: setup.templatePath as string,
+      // Every project already on disk is a place Live may have left a copy of
+      // its icon, for the case where Live is installed somewhere non-standard.
+      iconSources: (await this.projects.listRecords()).map((record) => record.path)
     })
 
     const scanned = await indexProject(path)
@@ -710,6 +714,18 @@ export class StacksService {
     if (!samePath(destination, record.path)) {
       await moveDirectory(record.path, destination)
       logger.info(`Filed ${record.name}: ${record.path} -> ${destination}`)
+
+      /*
+       * Conformed as it lands, so a project brought in from outside looks like
+       * one made here rather than staying visibly foreign on the shelf.
+       *
+       * A no-op for the common case: Live wrote the icon the first time it
+       * saved, so the stamp finds all three parts already present and returns.
+       * It earns its place on the projects Live has never opened, and on a
+       * cross-volume move, where the ReadOnly attribute that switches folder
+       * customisation on does not reliably survive the copy.
+       */
+      await stampProjectIcon(destination, [record.path])
     }
 
     return this.projects.applyFiling(projectId, {

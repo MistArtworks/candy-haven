@@ -130,6 +130,7 @@ const api: CandyHavenApi = {
     patch: (id, patch) => invoke('projects:patch', { id, patch }),
     scan: (force) => invoke('projects:scan', force ? { force } : undefined),
     cancelScan: () => invoke('projects:scan-cancel'),
+    conform: () => invoke('projects:conform'),
     scanState: () => invoke('projects:scan-state'),
     addNote: (id, draft) => invoke('projects:note-add', { id, draft }),
     updateNote: (id, noteId, draft) => invoke('projects:note-update', { id, noteId, draft }),

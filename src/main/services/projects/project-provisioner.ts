@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import { createDirectory, pathExists } from '@main/services/stacks/filesystem'
+import { stampProjectIcon } from './project-icon'
 
 const logger = getLogger('projects:provisioner')
 
@@ -36,6 +37,11 @@ export interface ProvisionRequest {
   name: string
   /** Absolute path of the operator's template `.als`. */
   templatePath: string
+  /**
+   * Project folders to harvest Live's icon from if it cannot be found in
+   * Live's own installation. Any project Live has saved carries a copy.
+   */
+  iconSources?: readonly string[]
 }
 
 export interface ProvisionResult {
@@ -55,7 +61,7 @@ export interface ProvisionResult {
  * project with no set in it — the one outcome worse than a plain failure.
  */
 export async function provisionProject(request: ProvisionRequest): Promise<ProvisionResult> {
-  const { parentPath, name, templatePath } = request
+  const { parentPath, name, templatePath, iconSources = [] } = request
 
   if (!(await pathExists(templatePath))) {
     throw new AppError('The project template could not be found.', {
@@ -98,6 +104,17 @@ export async function provisionProject(request: ProvisionRequest): Promise<Provi
       recoverable: true
     })
   }
+
+  /*
+   * Last, and allowed to fail.
+   *
+   * Live writes its icon when it first saves a project; doing it here is what
+   * makes a folder we made look right in Explorer before that happens. It is
+   * cosmetic, so a failure is logged inside `stampProjectIcon` and the project
+   * is still returned — refusing to create a project because the shell would
+   * draw the wrong icon would be the wrong trade.
+   */
+  await stampProjectIcon(path, iconSources)
 
   logger.info(`Provisioned project ${path}`)
   return { path, setPath }

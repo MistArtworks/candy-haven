@@ -152,6 +152,22 @@ export const IPC_INVOKE = {
     output: ScanStateSchema
   },
   'projects:scan-cancel': { input: z.void(), output: ScanStateSchema },
+
+  /**
+   * Brings every project folder up to the shape a created one has.
+   *
+   * In practice that is one thing: stamping Live's project icon onto folders
+   * that lack it. Idempotent, and it neither renames nor moves anything, which
+   * is why it is safe to offer as a verb over the whole archive. Returns how
+   * many needed it so the readout can say so rather than claim success.
+   */
+  'projects:conform': {
+    input: z.void(),
+    output: z.object({
+      stamped: z.number().int().min(0),
+      total: z.number().int().min(0)
+    })
+  },
   'projects:scan-state': { input: z.void(), output: ScanStateSchema },
   'projects:note-add': {
     input: z.object({ id: z.string(), draft: NoteDraftSchema }),
