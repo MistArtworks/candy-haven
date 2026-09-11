@@ -1,5 +1,7 @@
-import type { ProjectRecord } from '@shared/domain/projects'
+import type { ProjectRecord, ProjectStage } from '@shared/domain/projects'
+import type { TagSummary } from '@shared/domain/tags'
 import type { useProjectMutations } from '@renderer/hooks/useProjects'
+import type { useTagMutations } from '@renderer/hooks/useTags'
 
 /**
  * Every dossier tab receives the whole record and the shared mutation set.
@@ -12,6 +14,27 @@ import type { useProjectMutations } from '@renderer/hooks/useProjects'
 export interface DossierTabProps {
   project: ProjectRecord
   mutations: ReturnType<typeof useProjectMutations>
+  /**
+   * The tag library and the writes against it.
+   *
+   * Held by the shell for the same reason the project mutations are: creating
+   * a tag can be refused — a name already taken, most obviously — and that
+   * refusal has to surface in the one notice bar the dossier draws, not in a
+   * second one owned by whichever tab happens to be open.
+   */
+  tags: {
+    library: TagSummary[]
+    mutations: ReturnType<typeof useTagMutations>
+  }
+  /**
+   * Moves the project along the pipeline.
+   *
+   * Owned by the shell rather than left to the tab, because a refused stage
+   * change — the gates on SCHEDULED and RELEASED — has to clear the notice
+   * bar's dismissal before it fires, and that bar belongs to the dossier.
+   * Only OVERVIEW draws a control for it; see `StageStrip`.
+   */
+  setStage: (stage: ProjectStage) => void
   /**
    * Opening the project on disk, and opening its set.
    *

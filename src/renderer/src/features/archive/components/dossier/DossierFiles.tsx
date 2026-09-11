@@ -8,6 +8,7 @@ import {
 import { Panel } from '@renderer/components/primitives/Panel'
 import { formatBytes } from '@renderer/lib/format'
 import { formatStamp } from '../../lib/present'
+import { ArchiveGlyph } from '../icons/ArchiveGlyph'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
 import styles from './dossier.module.scss'
@@ -53,7 +54,13 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
         READY, SCHEDULED and RELEASED, so an operator who opens FILES to move a
         project forward should not have to look for it.
       */}
-      <Panel label="Mix and master" index="01" className={styles.span6} focal>
+      <Panel
+        label="Mix and master"
+        index="01"
+        icon={<ArchiveGlyph name="master" />}
+        className={styles.span6}
+        focal
+      >
         {project.audio.length === 0 ? (
           <p className={styles.empty}>
             No audio outside the Samples folder yet. Bounce a mixdown into the project and rescan,
@@ -117,6 +124,7 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
       <Panel
         label="Ableton sets"
         index="02"
+        icon={<ArchiveGlyph name="set" />}
         className={styles.span3}
         aside={String(project.sets.length)}
       >
@@ -170,6 +178,7 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
       <Panel
         label="Backup revisions"
         index="03"
+        icon={<ArchiveGlyph name="layers" />}
         className={styles.span3}
         aside={String(project.revisions.length)}
       >
@@ -200,6 +209,7 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
       <Panel
         label="Bounces and renders"
         index="04"
+        icon={<ArchiveGlyph name="waveform" />}
         className={styles.span3}
         aside={String(project.audio.length)}
       >
@@ -219,6 +229,7 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
       <Panel
         label="Images and video"
         index="05"
+        icon={<ArchiveGlyph name="image" />}
         className={styles.span3}
         aside={String(project.images.length + project.videos.length)}
       >
@@ -247,6 +258,7 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
         <Panel
           label="Missing samples"
           index="06"
+          icon={<ArchiveGlyph name="alert" />}
           className={styles.span6}
           aside={String(project.missingSamples.length)}
         >

@@ -55,6 +55,39 @@ export function childCountsOf(folders: readonly ArchiveFolder[]): Record<string,
 }
 
 /**
+ * A folder and every folder beneath it, by id.
+ *
+ * For searching a genre rather than browsing one. Opening Dubstep lists what
+ * is filed *directly* in it, which is the right answer while navigating — but
+ * "find everything in Dubstep tagged Dark" plainly means the whole shelf,
+ * sub-folders and all, and an operator who has subdivided a genre would
+ * otherwise get a confidently empty result.
+ *
+ * Bounded by the folder count rather than recursive, for the reason recorded
+ * on `trailTo`: a corrupt parent chain that loops must not hang the render.
+ */
+export function subtreeOf(folders: readonly ArchiveFolder[], id: string): string[] {
+  const ids = new Set([id])
+
+  // Each pass adopts the children of everything already claimed. The tree
+  // cannot be deeper than it has folders, so that many passes always suffice.
+  for (let depth = 0; depth < folders.length; depth += 1) {
+    let grew = false
+
+    for (const folder of folders) {
+      if (folder.parentId && ids.has(folder.parentId) && !ids.has(folder.id)) {
+        ids.add(folder.id)
+        grew = true
+      }
+    }
+
+    if (!grew) break
+  }
+
+  return [...ids]
+}
+
+/**
  * Every folder in reading order, for the "File to…" menu.
  *
  * Sorted by full path so a folder always follows its parent, which is the

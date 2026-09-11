@@ -1,31 +1,51 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { ProjectStage } from '@shared/domain/projects'
-import { PIPELINE_STAGES, evaluateReadiness, getStage } from '@shared/domain/projects.constants'
+import { evaluateReadiness, getStage } from '@shared/domain/projects.constants'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
-import { formatBytes } from '@renderer/lib/format'
+import { ArchiveGlyph } from './icons/ArchiveGlyph'
 import { useProject, useProjectMutations } from '@renderer/hooks/useProjects'
-import { StageBadge } from './StageBadge'
+import { useTagMutations, useTags } from '@renderer/hooks/useTags'
 import { DossierOverview } from './dossier/DossierOverview'
+import { DossierRecord } from './dossier/DossierRecord'
 import { DossierFiles } from './dossier/DossierFiles'
-import { formatStamp } from '../lib/present'
+import { formatKey, formatLength, formatTempo } from '../lib/present'
 import styles from './ProjectDossier.module.scss'
 
 /**
- * Two tabs, down from five.
+ * Three tabs — and OVERVIEW is deliberately the thinnest of them.
  *
- * RELEASE, PROMOTION and PLATFORMS were removed with the release rework: a
- * release is its own object now, kept in its own lens, and a project that has
- * not been raised for release has nothing to say about ISRCs or platform
- * links. What is left is the work itself — what it is, and what is in the
- * folder — which is what the dossier was always for.
+ * It used to carry four panels: the full set analysis down to scene counts and
+ * plugin names, the complete record, every note, and the stage history. All of
+ * it true, all of it at once, and the operator opening a project to check its
+ * tempo had to find that figure among thirty others. An overview that contains
+ * everything is not an overview.
+ *
+ * So the split is by *question asked*, not by subject:
+ *
+ * - **OVERVIEW** — what is this and what do I want to do about it. Tempo, key,
+ *   length; the two open actions; the operator's own notes and tags.
+ * - **RECORD** — the rest of the facts, for when they are actually wanted.
+ *   Full analysis, the register's own fields, the stage history.
+ * - **FILES** — what is in the folder, and the master picks settled there.
+ *
+ * The **stage is read in the masthead and set in OVERVIEW** — see
+ * `StageStrip` for why it took four attempts to stop treating it as chrome.
+ * It is legible from every tab either way, which is why dropping the RECORD
+ * panel out of OVERVIEW cost nothing.
+ *
+ * RELEASE, PROMOTION and PLATFORMS were removed earlier with the release
+ * rework: a release is its own object now, kept in its own lens, and a project
+ * that has not been raised for release has nothing to say about ISRCs or
+ * platform links.
  */
-const TABS = ['overview', 'files'] as const
+const TABS = ['overview', 'record', 'files'] as const
 type DossierTab = (typeof TABS)[number]
 
 const TAB_LABEL: Record<DossierTab, string> = {
   overview: 'OVERVIEW',
+  record: 'RECORD',
   files: 'FILES'
 }
 
@@ -49,6 +69,20 @@ export interface ProjectDossierProps {
 export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): ReactNode {
   const { data: project, isLoading, error } = useProject(projectId)
   const mutations = useProjectMutations()
+
+  /*
+   * The tag library, fetched by the shell and handed down.
+   *
+   * One query for the dossier rather than one per tab: OVERVIEW draws the
+   * picker and RECORD may well grow a tag column, and two components asking
+   * for the same list would take two copies of it into two caches.
+   */
+  const { data: tagLibrary } = useTags()
+  const tagMutations = useTagMutations()
+  const tags = useMemo(
+    () => ({ library: tagLibrary ?? [], mutations: tagMutations }),
+    [tagLibrary, tagMutations]
+  )
   const [tab, setTab] = useState<DossierTab>('overview')
   const [dismissed, setDismissed] = useState<string | null>(null)
 
@@ -98,9 +132,16 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
    * effect: the mutations already hold the error, and duplicating it would mean
    * a second render pass every time one failed.
    */
-  const failure = [mutations.patch.error, mutations.addNote.error].find(
-    (value): value is Error => value instanceof Error
-  ) as (Error & { hint?: string | null }) | undefined
+  const failure = [
+    mutations.patch.error,
+    mutations.addNote.error,
+    // A tag name already taken is refused by the service, and this notice bar
+    // is the only place in the dossier that can say so.
+    tagMutations.create.error,
+    tagMutations.update.error,
+    tagMutations.remove.error
+  ].find((value): value is Error => value instanceof Error) as
+    (Error & { hint?: string | null }) | undefined
 
   const failureText = failure
     ? failure.hint
@@ -113,6 +154,30 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
   const notice = failureText && failureText !== dismissed ? failureText : null
 
   const readiness = project ? evaluateReadiness(project) : []
+
+  /*
+   * The figures under the title.
+   *
+   * These used to be a SET panel on OVERVIEW, and before that they shared it
+   * with eight more. The panel is gone: three or four numbers do not need a
+   * slab, a heading and an index to be read, and giving them one pushed the
+   * only thing on the tab the operator actually *writes* into — their notes —
+   * into a column beside it.
+   *
+   * Sited where the folder path, byte size, set count and revision count used
+   * to be. Those were true and nobody wanted them at a glance; they now live
+   * in RECORD, under ON DISK, which is the tab for exactly that.
+   *
+   * A fourth figure, WORKED ON, was here briefly and has been removed. It
+   * could only ever report elapsed calendar time between the oldest and
+   * newest save — nothing on disk records hours at the desk — so a track
+   * touched twice a fortnight apart claimed two weeks of work. A figure that
+   * needs a caveat to avoid being read as a lie does not belong in a masthead.
+   */
+  const primary = project
+    ? (project.sets.find((set) => set.isPrimary) ?? project.sets[0] ?? null)
+    : null
+  const analysis = primary?.analysis ?? null
 
   const setStage = (stage: ProjectStage): void => {
     setDismissed(failureText)
@@ -160,102 +225,114 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
           ) : (
             <>
               <header className={styles.header}>
-                <div className={styles.identity}>
+                <div className={styles.headerTop}>
+                  {/*
+                    The two things you do *to* this project lead the title,
+                    as a pair: what it is, and whether it is one you care
+                    about. Both are state rather than navigation, which is
+                    why they are here and not in the corner with CLOSE — the
+                    way out should not share a hit area with the record's own
+                    controls.
+                  */}
                   <div className={styles.titleRow}>
+                    <button
+                      type="button"
+                      className={styles.favourite}
+                      data-on={project.favourite || undefined}
+                      aria-pressed={project.favourite}
+                      aria-label="Favourite"
+                      title={project.favourite ? 'Remove from favourites' : 'Mark as a favourite'}
+                      onClick={() =>
+                        mutations.patch.mutate({
+                          id: projectId,
+                          patch: { favourite: !project.favourite }
+                        })
+                      }
+                    >
+                      <ArchiveGlyph name="favourite" className={styles.favouriteGlyph} />
+                    </button>
+
                     <h2 className={styles.title}>{project.name}</h2>
-                    <StageBadge stage={project.stage} size="md" describe />
                     {project.missing ? (
                       <span className={styles.missing}>FOLDER MISSING</span>
                     ) : null}
                   </div>
 
-                  <div className={styles.metaRow}>
-                    <button
-                      type="button"
-                      className={styles.path}
-                      title={`Open ${project.path}`}
-                      onClick={() => void window.candy.shell.reveal(project.path)}
-                    >
-                      {project.path}
-                    </button>
-                    <span className={styles.metaFigure}>{formatBytes(project.sizeBytes)}</span>
-                    <span className={styles.metaFigure}>
-                      {project.sets.length} set{project.sets.length === 1 ? '' : 's'}
-                    </span>
-                    <span className={styles.metaFigure}>
-                      {project.revisions.length} revision{project.revisions.length === 1 ? '' : 's'}
-                    </span>
-                    <span className={styles.metaFigure}>
-                      Indexed {formatStamp(project.scannedAt)}
-                    </span>
+                  <div className={styles.headerActions}>
+                    <Button size="sm" onClick={onClose}>
+                      Close
+                    </Button>
                   </div>
                 </div>
 
-                <div className={styles.headerActions}>
-                  <button
-                    type="button"
-                    className={styles.favourite}
-                    data-on={project.favourite || undefined}
-                    aria-pressed={project.favourite}
-                    aria-label="Favourite"
-                    onClick={() =>
-                      mutations.patch.mutate({
-                        id: projectId,
-                        patch: { favourite: !project.favourite }
-                      })
-                    }
-                  >
-                    ◆
-                  </button>
+                {/*
+                  The readings. Values only — no TEMPO / KEY / LENGTH
+                  captions above them.
 
-                  <Button size="sm" onClick={onClose}>
-                    Close
-                  </Button>
+                  The captions were there to make each reading
+                  self-describing, and on a row of four they were also the
+                  thing making it congested: eight lines of type where three
+                  numbers were wanted. They are not needed. `140 BPM` is a
+                  tempo, `B Minor` is a key and `1:36` is a duration to
+                  anyone who would be reading this window at all, and each
+                  still carries its caption as a title for anyone who is
+                  not — including a screen reader.
+
+                  Each figure is dropped rather than shown as a dash when it
+                  is absent. A labelled column can carry an em dash and still
+                  mean something; an unlabelled one is just a stray mark.
+                */}
+                <div className={styles.figures}>
+                  {/*
+                    The stage, read rather than set.
+
+                    It leads the row because it is the first thing worth
+                    knowing about a project. Setting it happens in OVERVIEW,
+                    under a heading — a stage is the operator's own statement
+                    about the work, the same kind of thing as a tag or a note,
+                    and it belongs with those rather than loose in the chrome.
+                    Four attempts at siting a dropdown up here failed for
+                    exactly that reason; see `StageStrip`.
+                  */}
+                  <span className={styles.figure} title={getStage(project.stage).purpose}>
+                    <span className={styles.figureStage}>{getStage(project.stage).label}</span>
+                  </span>
+
+                  {analysis?.tempo != null ? (
+                    <span className={styles.figure} title="Tempo">
+                      <span className={styles.figureValue}>{formatTempo(analysis.tempo)}</span>
+                      <span className={styles.figureUnit}>BPM</span>
+                    </span>
+                  ) : null}
+
+                  {analysis?.key ? (
+                    <span className={styles.figure} title="Song key">
+                      <span className={styles.figureValue}>{formatKey(analysis.key)}</span>
+                    </span>
+                  ) : null}
+
+                  {/*
+                    The one figure that needed a cue.
+
+                    Tempo can carry BPM and a key names itself, but `1:36` is
+                    only obviously a duration once you have decided it is one
+                    — it could as easily be a bar count or a revision number.
+                    There is no two-letter unit for a duration that is not
+                    worse than the dial, so the dial it is.
+                  */}
+                  {analysis?.arrangementSeconds ? (
+                    <span
+                      className={styles.figure}
+                      title="Length, estimated from the furthest clip"
+                    >
+                      <ArchiveGlyph name="duration" className={styles.figureGlyph} />
+                      <span className={styles.figureValue}>
+                        {formatLength(analysis.arrangementSeconds)}
+                      </span>
+                    </span>
+                  ) : null}
                 </div>
               </header>
-
-              {/*
-              The stage stepper. Every stage is reachable directly rather than
-              only one step at a time: work does not always advance linearly,
-              and a mislabelled stage should be correctable in one action. The
-              gates on SCHEDULED and RELEASED are enforced in the main process,
-              so the buttons stay live and the refusal explains itself.
-            */}
-              <div className={styles.stepper} role="group" aria-label="Production stage">
-                {PIPELINE_STAGES.map((stage) => (
-                  <button
-                    key={stage.id}
-                    type="button"
-                    className={styles.step}
-                    data-current={project.stage === stage.id || undefined}
-                    data-passed={
-                      !getStage(project.stage).offPipeline &&
-                      stage.order < getStage(project.stage).order
-                        ? true
-                        : undefined
-                    }
-                    title={stage.purpose}
-                    disabled={mutations.patch.isPending}
-                    onClick={() => setStage(stage.id)}
-                  >
-                    <span className={styles.stepIndex}>
-                      {String(stage.order + 1).padStart(2, '0')}
-                    </span>
-                    <span className={styles.stepLabel}>{stage.label}</span>
-                  </button>
-                ))}
-
-                <button
-                  type="button"
-                  className={`${styles.step} ${styles.shelve}`}
-                  data-current={project.stage === 'shelved' || undefined}
-                  title={getStage('shelved').purpose}
-                  disabled={mutations.patch.isPending}
-                  onClick={() => setStage('shelved')}
-                >
-                  <span className={styles.stepLabel}>SHELVE</span>
-                </button>
-              </div>
 
               {notice ? (
                 <div className={styles.notice} role="alert">
@@ -293,14 +370,88 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                     ) : null}
                   </button>
                 ))}
+
+                {/*
+                  The two actions the whole record leads to, at the trailing
+                  end of the tab strip.
+
+                  They have moved twice, and both moves were for the same
+                  reason. They began beside CLOSE, which put the most-used
+                  controls in the corner that also holds the way out. They
+                  then went to the foot of OVERVIEW's set panel, which read
+                  well but made them reachable from one tab in three — and
+                  that panel has since been removed outright.
+
+                  Here they cost no vertical space, sit on every tab, and are
+                  a full row away from CLOSE. OPEN IN ABLETON keeps the accent:
+                  two identical ghost buttons read as chrome and get skipped.
+
+                  Both are refused while the folder is missing. Launching a set
+                  that is not there produces an OS error dialog naming a path,
+                  which is a worse way to learn this than the badge already in
+                  the title row.
+
+                  The marks are `ArchiveGlyph`, not the `ArchiveIcon` tile
+                  family they started as. That artwork is drawn for a 72px
+                  tile, and at button size the project mark's six arrangement
+                  bars and clipped corner collapsed into a grey smudge that
+                  read as a floppy disk. The small family exists for exactly
+                  this size, and `Button` sizes it.
+                */}
+                <div className={styles.tabActions}>
+                  <Button
+                    size="sm"
+                    icon={<ArchiveGlyph name="shelf" />}
+                    disabled={open.missing}
+                    title={open.missing ? 'The folder is not on disk' : 'Open the project folder'}
+                    onClick={open.folder}
+                  >
+                    Open folder
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    icon={<ArchiveGlyph name="set" />}
+                    disabled={open.missing || open.setless}
+                    title={
+                      open.setless
+                        ? 'No Ableton set in this project'
+                        : 'Open the set in Ableton Live'
+                    }
+                    onClick={open.ableton}
+                  >
+                    Open in Ableton
+                  </Button>
+                </div>
               </nav>
 
               <div className={styles.body}>
                 {tab === 'overview' ? (
-                  <DossierOverview project={project} mutations={mutations} open={open} />
+                  <DossierOverview
+                    project={project}
+                    mutations={mutations}
+                    tags={tags}
+                    open={open}
+                    setStage={setStage}
+                  />
+                ) : null}
+                {tab === 'record' ? (
+                  <DossierRecord
+                    project={project}
+                    mutations={mutations}
+                    tags={tags}
+                    open={open}
+                    setStage={setStage}
+                  />
                 ) : null}
                 {tab === 'files' ? (
-                  <DossierFiles project={project} mutations={mutations} open={open} />
+                  <DossierFiles
+                    project={project}
+                    mutations={mutations}
+                    tags={tags}
+                    open={open}
+                    setStage={setStage}
+                  />
                 ) : null}
               </div>
             </>

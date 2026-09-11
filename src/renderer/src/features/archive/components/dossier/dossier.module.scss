@@ -315,21 +315,74 @@ $list-cap: min(#{rem(280px)}, 24vh);
 .noteFoot {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: space(3);
-  @include label(7px, 0.16em);
+  @include label(8px, 0.16em);
   color: var(--ch-text-faint);
 }
 
+.noteStamp {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// The note's controls, held at the trailing edge away from its timestamps.
+.noteActions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  margin-left: auto;
+}
+
+// Marks on the note row's verbs — a cue beside the word, never instead of it.
+.noteActionGlyph {
+  width: rem(12px);
+  height: rem(12px);
+  flex-shrink: 0;
+}
+
+/*
+ * Boxed, because nothing else made them look pressable.
+ *
+ * They were bare 7px labels in the same grey as the timestamp beside them —
+ * indistinguishable from the metadata they sat in, so the row read as five
+ * captions rather than a date and three controls. Three things fixed that
+ * and all three were needed: a hairline box giving each a hit area you can
+ * see, a size that beats the timestamp rather than losing to it, and a hover
+ * that lifts the border as well as the text.
+ *
+ * Still text with a mark beside it, never a bare icon. An unlabelled bin is
+ * a guess; DELETE is not.
+ */
 .noteAction {
-  @include label(7px, 0.16em);
+  @include label(9px, 0.14em);
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(1) space(2);
   color: var(--ch-text-muted);
+  background: none;
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
 
   &:hover {
     color: var(--ch-text-primary);
+    border-color: var(--ch-line-gold);
+    background: rgba(182, 158, 124, 0.06);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
   }
 
   &[data-danger]:hover {
     color: var(--ch-accent-bright);
+    border-color: color-mix(in srgb, var(--ch-accent-bright) 45%, transparent);
+    background: var(--ch-accent-dim);
   }
 }
 
@@ -658,14 +711,18 @@ $list-cap: min(#{rem(280px)}, 24vh);
   @include hairline(top, 0.08);
 }
 
+// The two figure rows are separated by a rule rather than by space alone:
+// they answer different questions — what the set *is*, and how long it has
+// been worked on — and an unmarked six-field block reads as one list whose
+// second half happens to be about dates.
 .analysisBody {
   display: flex;
   flex-direction: column;
+  gap: space(4);
   height: 100%;
-}
 
-.openIcon {
-  width: rem(13px);
-  height: rem(11px);
-  flex-shrink: 0;
+  > :nth-child(2) {
+    @include hairline(top, 0.08);
+    padding-top: space(4);
+  }
 }

@@ -39,12 +39,15 @@ import { gridVariants } from '@renderer/motion/transitions'
 import { useProjectMutations, useProjectRegistry, useScanState } from '@renderer/hooks/useProjects'
 import { useArchiveSetup, useStacksMutations, useStacksTree } from '@renderer/hooks/useStacks'
 import { useVolumeMutations, useVolumes } from '@renderer/hooks/useVolumes'
+import { useTagMutations } from '@renderer/hooks/useTags'
 import { useReleaseMutations, useReleases } from '@renderer/hooks/useReleases'
 import { RegisterControls, type RegisterFilters } from './components/RegisterControls'
 import { ProjectListView } from './components/ProjectListView'
 import { ProjectBoardView } from './components/ProjectBoardView'
 import { ProjectDossier } from './components/ProjectDossier'
 import { ScanPanel } from './components/ScanPanel'
+import { TagManagerDialog } from './components/tags/TagManagerDialog'
+import { ArchiveGlyph, type ArchiveGlyphName } from './components/icons/ArchiveGlyph'
 import { ViewToggle } from './components/ViewToggle'
 import { SetupGate } from './components/setup/SetupGate'
 import { TileGrid, type Tile } from './components/tiles/TileGrid'
@@ -64,7 +67,7 @@ import {
   isDragging,
   readDrag
 } from './components/stacks/dnd'
-import { childCountsOf, childrenOf, trailTo } from './components/stacks/tree'
+import { childCountsOf, childrenOf, subtreeOf, trailTo } from './components/stacks/tree'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { formatStamp } from './lib/present'
@@ -144,6 +147,7 @@ export function ArchivePage(): ReactNode {
    */
   const [view, setView] = useState<ProjectViewMode>('grid')
   const [notice, setNotice] = useState<string | null>(null)
+  const [managingTags, setManagingTags] = useState(false)
   const [folderDialog, setFolderDialog] = useState<FolderDialogState | null>(null)
   const [projectDialog, setProjectDialog] = useState<ArchiveFolder | null>(null)
   const [volumeDialog, setVolumeDialog] = useState<VolumeDialogState | null>(null)
@@ -241,15 +245,41 @@ export function ArchivePage(): ReactNode {
    */
   const locked = !ready
 
+  /*
+   * Read before the query is assembled, not alongside it: the register's
+   * folder scope now depends on the shape of the tree. See `subtree` below.
+   */
+  const { data: stacksTree } = useStacksTree(ready)
+
   const search = useDebounced(filters.search, 180)
   const browsing = isFolderLens(lens)
+
+  /*
+   * Filtering a genre searches the whole shelf; browsing one does not.
+   *
+   * The distinction is the tag filter. With none on, STACKS is a file
+   * browser and should list exactly what is filed at this level. The moment a
+   * tag is on, the operator is asking a question of the shelf — "what in
+   * Dubstep is Dark" — and answering it about one level only would report
+   * nothing for any genre that has been subdivided, which is precisely the
+   * library large enough to need tags in the first place.
+   *
+   * `stacks` is read below, so this reaches for the raw tree rather than the
+   * memoised `folders`; the tree is tens of entries and this recomputes only
+   * when the open folder or the filter changes.
+   */
+  const scoped = browsing && folderId !== null && filters.tags.length > 0
+  const subtree = useMemo(
+    () => (scoped ? subtreeOf(stacksTree?.folders ?? [], folderId) : null),
+    [scoped, stacksTree?.folders, folderId]
+  )
 
   const query = useMemo<ProjectQuery>(
     () => ({
       search: search || undefined,
       stages: filters.stages.length > 0 ? filters.stages : undefined,
       categories: filters.categories.length > 0 ? filters.categories : undefined,
-      tags: filters.tags.length > 0 ? filters.tags : undefined,
+      tagIds: filters.tags.length > 0 ? filters.tags : undefined,
       favouritesOnly: filters.favouritesOnly || undefined,
       includeMissing: filters.includeMissing || undefined,
       sort: filters.sort,
@@ -260,7 +290,9 @@ export function ArchivePage(): ReactNode {
        * register is not rendered at all (see below), because "filed nowhere" is
        * exactly what the UNORGANISED panel already shows.
        */
-      ...(browsing ? { folderId } : {}),
+      // A subtree search replaces the single-level scope rather than adding
+      // to it — see `subtree` above and `ProjectQuery.folderIds`.
+      ...(browsing ? (subtree ? { folderIds: subtree } : { folderId }) : {}),
       // VOLUMES lists one volume's tracks once opened.
       ...(lens === 'volumes' && volumeId !== null ? { volumeId } : {}),
       // UNFILED is everything on no shelf at all — `null`, not absent.
@@ -268,16 +300,17 @@ export function ArchivePage(): ReactNode {
       // The bin is a place, not a filter — see `ProjectQuerySchema.trashed`.
       ...(lens === 'bin' ? { trashed: true } : {})
     }),
-    [search, filters, browsing, folderId, lens, volumeId]
+    [search, filters, browsing, folderId, subtree, lens, volumeId]
   )
 
   const { data: registry, isLoading } = useProjectRegistry(query)
-  const { data: stacks } = useStacksTree(ready)
+  const stacks = stacksTree
   const { data: volumes } = useVolumes(ready)
   const { data: releases } = useReleases(ready)
   const scan = useScanState()
 
   const mutations = useProjectMutations()
+  const tagMutations = useTagMutations()
   const stackMutations = useStacksMutations()
   const volumeMutations = useVolumeMutations()
   const releaseMutations = useReleaseMutations()
@@ -1337,6 +1370,7 @@ export function ArchivePage(): ReactNode {
         lens={lens}
         onLensChange={changeLens}
         availableTags={registry?.tags ?? []}
+        onManageTags={() => setManagingTags(true)}
         stageCounts={registry?.stageCounts ?? ({} as Record<ProjectStage, number>)}
         categoryCounts={registry?.categoryCounts ?? ({} as Record<ProjectCategory, number>)}
         shown={projects.length}
@@ -1356,6 +1390,7 @@ export function ArchivePage(): ReactNode {
         <Panel
           label={PANEL_LABEL[lens]}
           index="01"
+          icon={<ArchiveGlyph name={PANEL_GLYPH[lens]} />}
           className={styles.browserCell}
           focal
           flush
@@ -1389,6 +1424,7 @@ export function ArchivePage(): ReactNode {
         <Panel
           label="Unfiled"
           index="02"
+          icon={<ArchiveGlyph name="loose" />}
           className={styles.span3}
           aside={String(registry?.unfiledCount ?? 0)}
         >
@@ -1400,7 +1436,12 @@ export function ArchivePage(): ReactNode {
           />
         </Panel>
 
-        <Panel label="Indexing" index="03" className={styles.span3}>
+        <Panel
+          label="Indexing"
+          index="03"
+          icon={<ArchiveGlyph name="scan" />}
+          className={styles.indexingCell}
+        >
           <ScanPanel scan={scan} onScan={runScan} onCancel={cancelScan} busy={false} />
         </Panel>
 
@@ -1578,6 +1619,25 @@ export function ArchivePage(): ReactNode {
         />
       ) : null}
 
+      {/*
+        Reachable from the filter row as well as from a project's record.
+
+        A tag's *shape* — a misspelling, two colours too close to tell apart —
+        is noticed while filtering by it rather than while applying it, so the
+        library has to be openable from where that happens.
+      */}
+      {managingTags ? (
+        <TagManagerDialog
+          library={registry?.tags ?? []}
+          busy={tagMutations.update.isPending || tagMutations.remove.isPending}
+          error={(tagMutations.update.error ?? tagMutations.remove.error)?.message ?? null}
+          onRename={(id, name) => tagMutations.update.mutate({ id, patch: { name } })}
+          onRecolour={(id, colour) => tagMutations.update.mutate({ id, patch: { colour } })}
+          onDelete={(id) => tagMutations.remove.mutate(id)}
+          onClose={() => setManagingTags(false)}
+        />
+      ) : null}
+
       <AnimatePresence>
         {selectedId ? (
           <ProjectDossier
@@ -1599,6 +1659,23 @@ const PANEL_LABEL: Record<ArchiveLens, string> = {
   releases: 'Releases',
   all: 'Register',
   bin: 'Recycle bin'
+}
+
+/**
+ * And so does its mark.
+ *
+ * Drawn from the same family as the tiles beneath it — a shelf heading over
+ * shelf tiles, a plate over volume tiles — so the panel and its contents are
+ * plainly about one thing. See `ArchiveGlyph` for why these are a separate
+ * set from the 64×48 marks the tiles themselves use.
+ */
+const PANEL_GLYPH: Record<ArchiveLens, ArchiveGlyphName> = {
+  stacks: 'shelf',
+  unfiled: 'loose',
+  volumes: 'master',
+  releases: 'seal',
+  all: 'index',
+  bin: 'bin'
 }
 
 /**

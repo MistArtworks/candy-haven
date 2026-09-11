@@ -1,47 +1,69 @@
-import { useState, type ReactNode } from 'react'
-import { PROJECT_CATEGORY_LABEL, getStage } from '@shared/domain/projects.constants'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Button } from '@renderer/components/primitives/Button'
-import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Panel } from '@renderer/components/primitives/Panel'
-import { ArchiveIcon } from '../icons/ArchiveIcon'
 import { TextArea } from '@renderer/components/primitives/Input'
-import { formatBytes } from '@renderer/lib/format'
-import { formatKey, formatLength, formatStamp, formatTempo } from '../../lib/present'
+import { useStacksTree } from '@renderer/hooks/useStacks'
+import { useResolvedTags } from '@renderer/hooks/useTags'
+import { formatStamp } from '../../lib/present'
+import { ArchiveGlyph } from '../icons/ArchiveGlyph'
+import { StageStrip } from '../StageStrip'
+import { TagPicker } from '../tags/TagPicker'
+import { TagManagerDialog } from '../tags/TagManagerDialog'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
 import styles from './dossier.module.scss'
 
-/** Stage-history rows drawn before the rest are summarised. See `recentHistory`. */
-const HISTORY_SHOWN = 6
-
 /**
- * What the project *is*: the facts read out of the set, the operator's notes,
- * and how it arrived at its current stage.
+ * What the operator has said about this project — and nothing else.
+ *
+ * One panel, down from four. The tab used to carry the complete set analysis,
+ * the complete register entry, the notes and the stage history, so opening a
+ * project to check its tempo presented about thirty figures with that one
+ * somewhere among them.
+ *
+ * It then carried two, after the detail moved to RECORD: a SET panel holding
+ * tempo, key and length, beside this one. That panel is now gone too, and the
+ * reasoning is worth keeping. Three numbers do not need a slab, a heading and
+ * an index to be read — they are headline facts and now sit under the title
+ * where the folder path used to be. Giving them a panel of their own cost
+ * half the tab's width, which pushed the only thing on it the operator
+ * actually *writes* into down a narrow column.
+ *
+ * So OVERVIEW is a working surface rather than a summary. What is read at a
+ * glance lives in the masthead; what is read deliberately lives in RECORD;
+ * what is *written* lives here.
+ *
+ * Which is why the stage came here too. It spent four attempts as a control
+ * in the masthead and never looked at home in any of them, because the
+ * masthead is for reading and a stage is something the operator *states* —
+ * the same kind of mark as a tag or a note, and now filed beside them.
  */
-export function DossierOverview({ project, mutations, open }: DossierTabProps): ReactNode {
+export function DossierOverview({
+  project,
+  mutations,
+  tags,
+  setStage
+}: DossierTabProps): ReactNode {
   const [draft, setDraft] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
-
-  const primary = project.sets.find((set) => set.isPrimary) ?? project.sets[0] ?? null
-  const analysis = primary?.analysis ?? null
+  const [managing, setManaging] = useState(false)
 
   /*
-   * The history is trimmed for display, not scrolled.
+   * The shelf this project is filed on, by name.
    *
-   * It grows on every stage change and never shrinks, so it has to be bounded
-   * somehow. Giving the list its own scrollbar was the obvious answer and the
-   * wrong one: the dossier body scrolls too, so a long history put two
-   * scrollbars on screen a few pixels apart, which reads as broken however
-   * carefully the cap is tuned. Rendering a fixed number of rows bounds the
-   * panel without ever introducing a second scroller.
-   *
-   * Six covers the recent past — the pipeline is eight stages, and what matters
-   * here is what happened lately. The remainder is counted rather than hidden
-   * silently, and the record itself stays complete in the database.
+   * Only for the picker: it groups that shelf's own tags first and becomes the
+   * home shelf of anything created from here. A project filed nowhere simply
+   * gets no group heading — tags are global, so nothing is unreachable either
+   * way. See tags.constants.ts for why the link is advisory.
    */
-  const recentHistory = [...project.stageHistory].reverse().slice(0, HISTORY_SHOWN)
-  const earlierCount = Math.max(project.stageHistory.length - HISTORY_SHOWN, 0)
+  const { data: tree } = useStacksTree()
+  const homeFolderName = useMemo(() => {
+    if (project.folderId === null) return null
+    return tree?.folders.find((folder) => folder.id === project.folderId)?.name ?? null
+  }, [tree, project.folderId])
+
+  const carried = useResolvedTags(project.tagIds, tags.library)
 
   const submitNote = (): void => {
     if (!draft.trim()) return
@@ -49,161 +71,84 @@ export function DossierOverview({ project, mutations, open }: DossierTabProps): 
     setDraft('')
   }
 
+  const toggleTag = (tagId: string, next: boolean): void => {
+    const tagIds = next ? [...project.tagIds, tagId] : project.tagIds.filter((id) => id !== tagId)
+    mutations.patch.mutate({ id: project.id, patch: { tagIds } })
+  }
+
+  /*
+   * Creating attaches in the same call rather than creating and then patching.
+   * Two round trips would leave a tag in the library attached to nothing
+   * whenever the second failed. See `TagDraft.attachTo`.
+   */
+  const createTag = (name: string, colour: string | null): void => {
+    tags.mutations.create.mutate({
+      name,
+      // Omitted rather than nulled when the operator chose ANY: the draft
+      // treats an absent colour as "roll one", and sending null would fail
+      // the schema's hex check.
+      ...(colour ? { colour } : {}),
+      folderId: project.folderId,
+      attachTo: project.id
+    })
+  }
+
+  const tagsBusy =
+    mutations.patch.isPending || tags.mutations.create.isPending || tags.mutations.remove.isPending
+
   return (
     <DossierGrid>
-      <Panel label="Set analysis" index="01" className={styles.span4} focal>
-        {/*
-          A column filling the panel, so the open row below can be pushed to the
-          foot with `margin-top: auto`. The Panel's own body is `flex: 1` but is
-          not itself a flex container, and it is shared by every panel in the
-          app — giving it a direction here would move the furniture everywhere.
-        */}
-        <div className={styles.analysisBody}>
-          {analysis ? (
-            <div className={styles.stack}>
-              <FieldGrid columns={4}>
-                <Field label="Tempo" value={formatTempo(analysis.tempo)} mono />
-                <Field
-                  label="Signature"
-                  value={
-                    analysis.timeSignature
-                      ? `${analysis.timeSignature.numerator}/${analysis.timeSignature.denominator}`
-                      : '—'
-                  }
-                  mono
-                />
-                <Field
-                  label="Key"
-                  value={formatKey(analysis.key)}
-                  mono
-                  hint={
-                    analysis.key
-                      ? analysis.inKey
-                        ? undefined
-                        : "Live's In Key filter is off for this set"
-                      : 'Sets saved before Live 12 carry no song key'
-                  }
-                />
-                <Field
-                  label="Length"
-                  value={formatLength(analysis.arrangementSeconds)}
-                  mono
-                  hint="Estimated from the furthest clip"
-                />
-                <Field label="Tracks" value={analysis.trackCounts.total || '—'} mono />
-                <Field
-                  label="MIDI / audio"
-                  value={`${analysis.trackCounts.midi} / ${analysis.trackCounts.audio}`}
-                  mono
-                />
-                <Field label="Scenes" value={analysis.sceneCount || '—'} mono />
-                <Field label="Samples" value={analysis.sampleCount || '—'} mono />
-              </FieldGrid>
+      {/*
+        Two panels rather than one, and they are the pair the tab exists for:
+        everything here is the operator's own mark on the record, as against
+        everything the scanner read off disk. They are the only two fields in
+        the whole dossier a rescan can never overwrite.
 
-              <div className={styles.stackTight}>
-                <span className={styles.sectionLabel}>
-                  Plugins {analysis.plugins.length > 0 ? `· ${analysis.plugins.length}` : ''}
-                </span>
-                {analysis.plugins.length === 0 ? (
-                  <p className={styles.empty}>
-                    No third-party plugins found. Live&apos;s own devices are not enumerated.
-                  </p>
-                ) : (
-                  <div className={styles.tokens}>
-                    {analysis.plugins.map((plugin) => (
-                      <span key={plugin} className={styles.token}>
-                        {plugin}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {analysis.missingSamples.length > 0 ? (
-                <p className={styles.warn}>
-                  {analysis.missingSamples.length} referenced sample
-                  {analysis.missingSamples.length === 1 ? '' : 's'} could not be found on disk. See
-                  the FILES tab.
-                </p>
-              ) : null}
-
-              {analysis.parseError ? (
-                <p className={styles.warn}>
-                  This set could only be read in part: {analysis.parseError}
-                </p>
-              ) : null}
-
-              <p className={styles.hint}>
-                {analysis.creator ?? 'Unknown Live version'}
-                {primary ? ` · ${primary.fileName} · ${formatBytes(primary.sizeBytes)}` : ''}
-              </p>
-            </div>
-          ) : (
-            <p className={styles.empty}>
-              No Ableton set was found in this folder, so there is nothing to analyse.
-            </p>
-          )}
-
-          {/*
-          The two actions the panel exists to lead to, at the foot of it.
-
-          They started in the dossier's header bar, next to CLOSE, which put the
-          most-used controls in the corner that also holds the way out. Bottom
-          right of the focal panel instead: it is where a reader's eye finishes
-          the set analysis, and where a dialogue puts its commit.
-
-          Marked, and OPEN IN ABLETON carries the accent. Two identical ghost
-          buttons in a row of grey read as chrome and get skipped — the point of
-          this row is that it should be the first thing seen, so it gets the one
-          saturated colour the panel is allowed.
-        */}
-          <div className={styles.openRow}>
-            <Button
-              size="sm"
-              icon={<ArchiveIcon mark="folder" className={styles.openIcon} />}
-              disabled={open.missing}
-              title={open.missing ? 'The folder is not on disk' : 'Open the project folder'}
-              onClick={open.folder}
-            >
-              Open folder
-            </Button>
-            <Button
-              size="sm"
-              variant="primary"
-              icon={<ArchiveIcon mark="project" className={styles.openIcon} />}
-              disabled={open.missing || open.setless}
-              title={
-                open.setless ? 'No Ableton set in this project' : 'Open the set in Ableton Live'
-              }
-              onClick={open.ableton}
-            >
-              Open in Ableton
-            </Button>
-          </div>
-        </div>
+        They were briefly one panel called MARGINALIA holding both — stacked
+        at first, then in two columns. The columns were right about the
+        layout and wrong about the object: a shared heading implied tags and
+        notes were one thing being shown two ways, when they are two things
+        that happen to belong to the same hand. Separate panels say that, and
+        each gets its own count in its own corner.
+      */}
+      {/*
+        First, and spanning the tab, because it is the one thing here that
+        says where the work has got to. The masthead reads the stage out;
+        this is where it is set.
+      */}
+      <Panel
+        label="Stage"
+        index="01"
+        icon={<ArchiveGlyph name="history" />}
+        className={styles.span6}
+      >
+        <StageStrip stage={project.stage} busy={mutations.patch.isPending} onChange={setStage} />
       </Panel>
 
-      <Panel label="Record" index="02" className={styles.span2}>
-        <FieldGrid columns={1}>
-          <Field label="Stage" value={getStage(project.stage).label} />
-          <Field label="Purpose" value={getStage(project.stage).purpose} />
-          <Field label="Category" value={PROJECT_CATEGORY_LABEL[project.category]} />
-          <Field label="Last touched" value={formatStamp(project.lastTouchedAt)} mono />
-          <Field label="Indexed" value={formatStamp(project.scannedAt)} mono />
-          <Field label="Folder size" value={formatBytes(project.sizeBytes)} mono />
-          <Field
-            label="Imported samples"
-            value={project.sampleFileCount || '—'}
-            mono
-            hint="Files under the project's Samples folder"
-          />
-        </FieldGrid>
+      <Panel
+        label="Tags"
+        index="02"
+        icon={<ArchiveGlyph name="tag" />}
+        className={styles.span3}
+        aside={carried.length > 0 ? String(carried.length) : undefined}
+      >
+        <TagPicker
+          tags={carried}
+          library={tags.library}
+          homeFolderId={project.folderId}
+          homeFolderName={homeFolderName}
+          busy={tagsBusy}
+          onToggle={toggleTag}
+          onCreate={createTag}
+          onManage={() => setManaging(true)}
+        />
       </Panel>
 
       <Panel
         label="Notes"
         index="03"
-        className={styles.span4}
+        icon={<ArchiveGlyph name="note" />}
+        className={styles.span3}
         aside={project.notes.length > 0 ? String(project.notes.length) : undefined}
       >
         <div className={styles.stack}>
@@ -219,6 +164,7 @@ export function DossierOverview({ project, mutations, open }: DossierTabProps): 
               <Button
                 variant="primary"
                 size="sm"
+                icon={<ArchiveGlyph name="note" />}
                 onClick={submitNote}
                 busy={mutations.addNote.isPending}
                 disabled={draft.trim().length === 0}
@@ -262,41 +208,55 @@ export function DossierOverview({ project, mutations, open }: DossierTabProps): 
                     <>
                       <p className={styles.noteBody}>{note.body}</p>
                       <div className={styles.noteFoot}>
-                        <span>{formatStamp(note.createdAt)}</span>
-                        {note.updatedAt !== note.createdAt ? <span>EDITED</span> : null}
-                        <button
-                          type="button"
-                          className={styles.noteAction}
-                          onClick={() =>
-                            mutations.updateNote.mutate({
-                              id: project.id,
-                              noteId: note.id,
-                              draft: { body: note.body, pinned: !note.pinned }
-                            })
-                          }
-                        >
-                          {note.pinned ? 'UNPIN' : 'PIN'}
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.noteAction}
-                          onClick={() => {
-                            setEditing(note.id)
-                            setEditDraft(note.body)
-                          }}
-                        >
-                          EDIT
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.noteAction}
-                          data-danger
-                          onClick={() =>
-                            mutations.deleteNote.mutate({ id: project.id, noteId: note.id })
-                          }
-                        >
-                          DELETE
-                        </button>
+                        <span className={styles.noteStamp}>{formatStamp(note.createdAt)}</span>
+                        {note.updatedAt !== note.createdAt ? (
+                          <span className={styles.noteStamp}>EDITED</span>
+                        ) : null}
+
+                        {/*
+                          Pushed to the trailing edge and boxed. Left of the
+                          timestamp and unboxed they were three more scraps of
+                          grey caption in a row that already had two, and
+                          nothing about them said they could be pressed.
+                        */}
+                        <div className={styles.noteActions}>
+                          <button
+                            type="button"
+                            className={styles.noteAction}
+                            onClick={() =>
+                              mutations.updateNote.mutate({
+                                id: project.id,
+                                noteId: note.id,
+                                draft: { body: note.body, pinned: !note.pinned }
+                              })
+                            }
+                          >
+                            <ArchiveGlyph name="pin" className={styles.noteActionGlyph} />
+                            {note.pinned ? 'UNPIN' : 'PIN'}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.noteAction}
+                            onClick={() => {
+                              setEditing(note.id)
+                              setEditDraft(note.body)
+                            }}
+                          >
+                            <ArchiveGlyph name="edit" className={styles.noteActionGlyph} />
+                            EDIT
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.noteAction}
+                            data-danger
+                            onClick={() =>
+                              mutations.deleteNote.mutate({ id: project.id, noteId: note.id })
+                            }
+                          >
+                            <ArchiveGlyph name="cross" className={styles.noteActionGlyph} />
+                            DELETE
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}
@@ -307,29 +267,16 @@ export function DossierOverview({ project, mutations, open }: DossierTabProps): 
         </div>
       </Panel>
 
-      <Panel label="Stage history" index="04" className={styles.span2}>
-        {project.stageHistory.length === 0 ? (
-          <p className={styles.empty}>No stage changes recorded.</p>
-        ) : (
-          <div className={styles.history}>
-            {recentHistory.map((event, index) => (
-              <div key={`${event.at}-${index}`} className={styles.event}>
-                <span className={styles.eventStamp}>{formatStamp(event.at)}</span>
-                <span>
-                  {getStage(event.stage).label}
-                  {event.note ? <span className={styles.eventNote}> — {event.note}</span> : null}
-                </span>
-              </div>
-            ))}
-
-            {earlierCount > 0 ? (
-              <p className={styles.historyMore}>
-                + {earlierCount} earlier change{earlierCount === 1 ? '' : 's'}
-              </p>
-            ) : null}
-          </div>
-        )}
-      </Panel>
+      {managing ? (
+        <TagManagerDialog
+          library={tags.library}
+          busy={tags.mutations.update.isPending || tags.mutations.remove.isPending}
+          onRename={(id, name) => tags.mutations.update.mutate({ id, patch: { name } })}
+          onRecolour={(id, colour) => tags.mutations.update.mutate({ id, patch: { colour } })}
+          onDelete={(id) => tags.mutations.remove.mutate(id)}
+          onClose={() => setManaging(false)}
+        />
+      ) : null}
     </DossierGrid>
   )
 }

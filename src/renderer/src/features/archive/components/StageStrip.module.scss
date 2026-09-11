@@ -1,0 +1,96 @@
+@use 'abstracts' as *;
+
+// The pipeline strip inside OVERVIEW's STAGE panel.
+//
+// Carried over from the full-width band this replaced — the drawing was never
+// the problem, its permanence was. See `StageStrip` for the argument.
+
+.strip {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  flex-wrap: wrap;
+}
+
+.step {
+  position: relative;
+  flex: 1 1 rem(92px);
+  min-width: rem(92px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: space(2) space(3);
+  background: var(--ch-surface-sunken);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color $duration-fast linear,
+    color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    background: rgba(182, 158, 124, 0.05);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &:disabled {
+    cursor: progress;
+  }
+
+  // Stages already passed carry a gold underline; the current stage carries
+  // the accent and a lifted fill. Position is therefore legible without
+  // relying on colour alone.
+  &[data-passed]::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 2px;
+    background: var(--ch-brass-600);
+  }
+
+  &[data-current] {
+    background: rgba(182, 158, 124, 0.08);
+
+    .label {
+      color: var(--ch-accent-bright);
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
+}
+
+.index {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+}
+
+.label {
+  @include label(8px, 0.12em);
+  color: var(--ch-text-secondary);
+  line-height: 1.3;
+}
+
+// Off the pipeline and drawn that way: a gap before it, and no index, since
+// it has no position in the run.
+.shelve {
+  flex: 0 0 auto;
+  min-width: rem(84px);
+  justify-content: center;
+  margin-left: space(4);
+  background: none;
+  @include hairline(all, 0.1);
+
+  &[data-current] {
+    background: rgba(182, 158, 124, 0.08);
+  }
+}
