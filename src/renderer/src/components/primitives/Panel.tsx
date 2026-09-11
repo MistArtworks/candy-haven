@@ -8,6 +8,14 @@ export interface PanelProps {
   label?: string
   /** Zero-padded index shown before the label, e.g. `03`. */
   index?: string
+  /**
+   * A mark drawn in the header rule, between the index and the label.
+   *
+   * Optional and absent by default, so no existing panel changes. Where it is
+   * used it should be used across a whole view — one iconed panel among five
+   * plain ones reads as an oversight rather than as emphasis.
+   */
+  icon?: ReactNode
   /** Right-aligned header slot: status dots, counts, actions. */
   aside?: ReactNode
   children: ReactNode
@@ -30,6 +38,7 @@ export interface PanelProps {
 export function Panel({
   label,
   index,
+  icon,
   aside,
   children,
   className,
@@ -52,6 +61,7 @@ export function Panel({
         <header className={styles.header}>
           <span className={styles.headerLabel}>
             {index ? <span className={styles.index}>{index}</span> : null}
+            {icon ? <span className={styles.icon}>{icon}</span> : null}
             {label}
           </span>
           <span className={styles.rule} aria-hidden="true" />

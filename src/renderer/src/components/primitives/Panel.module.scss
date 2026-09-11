@@ -68,10 +68,25 @@
 .headerLabel {
   @include label(10px, 0.2em);
   display: inline-flex;
-  align-items: baseline;
+  // Centred rather than baseline-aligned once a mark can sit in this row: an
+  // SVG has no baseline of its own and drops to the bottom of the line box.
+  align-items: center;
   gap: space(2);
   color: var(--ch-text-secondary);
   flex-shrink: 0;
+}
+
+// Dimmer than the label it precedes. The mark is there to be recognised in
+// peripheral vision, not read — at full label weight a row of panels turns
+// into a row of icons with captions.
+.icon {
+  display: inline-flex;
+  color: var(--ch-text-muted);
+
+  svg {
+    width: rem(13px);
+    height: rem(13px);
+  }
 }
 
 .index {

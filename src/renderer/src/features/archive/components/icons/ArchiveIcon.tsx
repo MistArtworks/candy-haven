@@ -1,7 +1,13 @@
 import type { ReactNode } from 'react'
 
 /**
- * Every mark the ARCHIVE draws for a thing you can open.
+ * Every mark the ARCHIVE draws for a thing you can open, at tile size.
+ *
+ * **Tiles only.** These are drawn for a 72px cell and they stop working well
+ * below about 40px — the project mark's six arrangement bars and clipped
+ * corner collapse into a grey block that reads as a floppy disk. Anything
+ * smaller takes an `ArchiveGlyph`, which is the same vocabulary redrawn on a
+ * 16×16 field for exactly that reason.
  *
  * Drawn here rather than pulled from an icon set, for the same reason the
  * console ships no icon library anywhere else: every set on offer is drawn with
@@ -39,8 +45,17 @@ export interface ArchiveIconProps {
   className?: string
 }
 
-/** The folder body every shelf mark is built on. Spans y 9–45, centred on x 32. */
-const FOLDER_BODY = 'M2 9 H22 L27 15 H62 V45 H2 Z'
+/**
+ * The folder body every shelf mark is built on. Spans y 6–42 on x 2–62.
+ *
+ * Centred in the field on both axes. It used to sit at y 9–45, which put its
+ * optical centre three units below the box's — invisible in a tile, where the
+ * icon is the only thing in its cell, and plainly wrong in a button, where it
+ * has a line of text to sit level with. The disc marks were already centred,
+ * so this also stops a folder tile and a volume tile riding at different
+ * heights in the same grid.
+ */
+const FOLDER_BODY = 'M2 6 H22 L27 12 H62 V42 H2 Z'
 
 /**
  * The document body behind both project marks.
@@ -50,11 +65,11 @@ const FOLDER_BODY = 'M2 9 H22 L27 15 H62 V45 H2 Z'
  * project tile beside a folder tile looked smaller and slightly lifted — which
  * reads as "not centred" even though both were centred in their own tiles.
  */
-const DOCUMENT_BODY = 'M16 8 H40 L48 16 V45 H16 Z'
-const DOCUMENT_FOLD = 'M40 8 V16 H48'
+const DOCUMENT_BODY = 'M16 5.5 H40 L48 13.5 V42.5 H16 Z'
+const DOCUMENT_FOLD = 'M40 5.5 V13.5 H48'
 
 /** Centre of both bodies, where every plus mark sits. */
-const PLUS = 'M32 20 V34 M25 27 H39'
+const PLUS = 'M32 17 V31 M25 24 H39'
 
 export function ArchiveIcon({ mark, open = false, className }: ArchiveIconProps): ReactNode {
   return (
@@ -135,14 +150,14 @@ function renderMark(mark: ArchiveMark, open: boolean): ReactNode {
           <path d={DOCUMENT_FOLD} stroke="currentColor" strokeWidth="1.5" opacity="0.7" />
           {/* Arrangement bars, growing then falling — a set with a shape. */}
           <path
-            d="M22 37 V31 M26 37 V25 M30 37 V28 M34 37 V22 M38 37 V30 M42 37 V34"
+            d="M22 34.5 V28.5 M26 34.5 V22.5 M30 34.5 V25.5 M34 34.5 V19.5 M38 34.5 V27.5 M42 34.5 V31.5"
             stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="butt"
           />
           {/* The baseline they sit on, so the bars read as a track rather than
               as a scattering of ticks. */}
-          <path d="M20 39 H44" stroke="currentColor" strokeWidth="1.5" opacity="0.55" />
+          <path d="M20 36.5 H44" stroke="currentColor" strokeWidth="1.5" opacity="0.55" />
         </>
       )
 
@@ -197,10 +212,10 @@ function renderMark(mark: ArchiveMark, open: boolean): ReactNode {
             stroke="currentColor"
             strokeWidth="1.5"
           />
-          <path d="M2 21 H62" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+          <path d="M2 18 H62" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
           <circle
             cx="32"
-            cy="30"
+            cy="27"
             r="9"
             fill="currentColor"
             fillOpacity="0.9"
@@ -232,14 +247,14 @@ function Folder({ open, rib }: { open: boolean; rib: number }): ReactNode {
         strokeWidth="1.5"
       />
       <path
-        d={open ? 'M2 15 H62' : 'M2 21 H62'}
+        d={open ? 'M2 12 H62' : 'M2 18 H62'}
         stroke="currentColor"
         strokeWidth={open ? 1.5 : rib}
         opacity={open ? 0.5 : 1}
       />
       {open ? (
         // An open folder loses its lid: the shelf the browser is standing in.
-        <path d="M8 45 L14 21 H62 L56 45 Z" fill="currentColor" fillOpacity="0.28" />
+        <path d="M8 42 L14 18 H62 L56 42 Z" fill="currentColor" fillOpacity="0.28" />
       ) : null}
     </>
   )
