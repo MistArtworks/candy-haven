@@ -565,13 +565,24 @@ than unpacking 800 MB.
 ### Collections (`src/main/services/archive/schema.ts`)
 
 `projects` · `project_versions` · `archive_folders` · `archive_volumes` ·
-`releases` · `overlays` · `command_history` · `events` · `migrations`
+`archive_tags` · `releases` · `overlays` · `command_history` · `events` ·
+`migrations`
 
 **Schema version 2** (`applyMigrations`) drops `projects`, `archive_folders`,
 `releases`, `release_assets`, `transmission_tasks` and `unlinked_media` once, on
 first boot of a build newer than the ARCHIVE rework. Files on disk are never
 touched — only the database — and the register rebuilds from a rescan in
-seconds. Bump `SCHEMA_VERSION` and add a branch there for the next such change.
+seconds.
+
+**Schema version 3** moves projects from `tags: string[]` to
+`tagIds: string[]`, and loses nothing: tags were in the record, in `INDEX_PLAN`
+and in the register's filter row from the first build, but no screen could ever
+write one, so every stored array was empty. It is a rewrite rather than a
+best-effort conversion because inventing tag documents from strings during a
+boot migration would create a library the operator never chose, coloured at
+random. Unlike version 2 it drops nothing and rescans nothing.
+
+Bump `SCHEMA_VERSION` and add a branch there for the next such change.
 
 Indexes are declared declaratively in `INDEX_PLAN` and reconciled every boot
 (`createIndexes` is idempotent). Index failures are logged but **do not abort
@@ -675,13 +686,14 @@ earlier build named depth 1 a SUB-GENRE and required every project to sit in
 one; the client rejected that as needless complexity, so `MIN_PROJECT_DEPTH` and
 `canHoldProjects` are gone. Do not reintroduce a mandatory level.
 
-**Four objects, three of which touch disk.**
+**Five objects, three of which touch disk.**
 
 | Object     | Directory?          | Owner                 |
 | ---------- | ------------------- | --------------------- |
 | Folder     | yes, real           | `stacks.service.ts`   |
 | Project    | yes, real           | `projects.service.ts` |
 | **Volume** | **no — metadata**   | `volumes.service.ts`  |
+| **Tag**    | **no — metadata**   | `tags.service.ts`     |
 | Release    | yes, under RELEASES | `releases.service.ts` |
 
 A VOLUME (album / EP / compilation) deliberately owns no directory. A track's
@@ -692,6 +704,143 @@ volume — one source of truth.
 
 _Invariant:_ `category ∈ {album, ep, compilation}` ⟺ attached to a volume of
 that same kind. Enforced in `reconcileCategory`, not only in the UI.
+
+**TAGS are what the tree cannot say.** The filing tree gives a project exactly
+one place, deliberately — the client rejected even a single extra mandatory
+level. So a folder can say `Dubstep` and nothing else. `140`, `Deep` and `Dark`
+are three more facts about the same track, and no hierarchy holds all four
+without either nesting them in an arbitrary order or duplicating the work. Tags
+are the flat answer.
+
+A tag is `{ name, colour, folderId }`, and **`folderId` is advisory** — exactly
+as on a volume, and for the same reason. It records the shelf the tag was made
+under, which lifts that shelf's tags to the top of the picker and the filter
+row while it is being browsed. It never restricts which projects may carry the
+tag. Hard genre ownership was considered and rejected: it would mean a
+project's labels silently going invalid as a side effect of dragging it to
+another shelf, which is a surprising amount of destruction to hang off a move.
+
+Membership lives on the _project_, in `tagIds` — **ids, not names**, so
+renaming a tag propagates everywhere at once instead of requiring a pass over
+the register. The cost is that a bare record cannot draw its own chips: the
+registry ships the library alongside and the renderer resolves against it. An
+id whose tag has been deleted resolves to nothing and is simply not drawn,
+which is cheaper and less surprising than refusing an otherwise valid patch.
+
+_Filter semantics:_ tags are matched with **AND** — a project must carry every
+selected tag. Not OR, because the operator narrows a shelf by adding labels,
+and a second chip producing _more_ results would be the opposite of what
+adding it looks like it should do.
+
+_Scope:_ browsing a genre lists what is filed directly in it; **filtering one
+searches its whole subtree** (`ProjectQuery.folderIds`). Without that, a tag
+filter inside any subdivided genre would confidently report nothing — and a
+library large enough to need tags is exactly the one with sub-folders.
+
+**The dossier is three tabs, split by altitude of attention.** It was one tab
+carrying four panels — full set analysis down to scene counts and plugin
+names, the complete register entry, the notes, the stage history — so opening
+a project to check its tempo presented about thirty figures with that one
+somewhere among them.
+
+The rule that came out of it:
+
+| Where        | What                                                     |
+| ------------ | -------------------------------------------------------- |
+| **Masthead** | Read at a glance — stage, tempo, key, length             |
+| **OVERVIEW** | _Written_ — STAGE, TAGS and NOTES, and nothing else      |
+| **RECORD**   | Read deliberately — analysis, register, on disk, history |
+| **FILES**    | What is in the folder, and the master picks              |
+
+The masthead used to hold the folder path, byte size, set count, revision
+count and index time. All true, none of them wanted at a glance — the client's
+words were that they did not care about them, which is not the same as not
+wanting them recorded, so they moved to RECORD's **ON DISK** panel.
+
+The figures that replaced them carry **no captions**. TEMPO / KEY / LENGTH
+above each value doubled the row's line count to make readings
+self-describing that already were, and read as one congested clump. A figure
+is dropped entirely when absent rather than shown as a dash: a labelled column
+can carry an em dash and still mean something, an unlabelled one is a stray
+mark. Tempo keeps a `BPM` unit, which is part of the reading rather than a
+caption for it.
+
+**WORKED ON was added and then removed.** It could only ever report elapsed
+calendar time between the oldest and newest save — neither Ableton nor this
+app records hours at the desk — so a track touched twice a fortnight apart
+claimed two weeks of work. A figure needing a caveat to avoid being read as a
+lie does not belong in a masthead, and the caveat is longer than the figure.
+
+OVERVIEW briefly had a SET panel holding tempo, key and length alongside the
+operator's own fields. It is gone: three numbers do not need a slab, a
+heading and an index to be read, and giving them one cost a third of the
+tab's width, crowding the only things on it the operator actually writes
+into.
+
+**Two icon families, split by scale.** `ArchiveIcon` draws the 64×48 tile
+marks — folders, documents, discs, the release seal. `ArchiveGlyph` draws the
+16×16 marks used in panel headings and inline actions, and the split is
+arithmetic rather than taste: a 1.5 stroke on a 64-unit field resolves to
+about a third of a pixel at heading size and disappears. The family rule is
+"hairline at 1.5 _in field units_", not a fixed device width.
+
+Everything else is shared, because the brief governs both: square corners,
+structure as ribbing, one solid element carrying the emphasis, and
+`currentColor` throughout so a mark inherits whatever text sits beside it. No
+icon set is imported — every set on offer is drawn with rounded corners, and
+one soft object would be the only thing on the page the eye caught.
+
+`Panel` grew an optional `icon` slot for this. Use it **across a whole view
+or not at all**: one iconed panel among five plain ones reads as an oversight
+rather than as emphasis.
+
+OVERVIEW is **TAGS and NOTES, side by side**. Both are the operator's own
+mark on the record as against everything the scanner read off disk — the only
+two fields in the dossier a rescan can never overwrite, and the only two that
+say something the files do not.
+
+They were briefly one panel called MARGINALIA holding both, stacked and then
+in two columns. The columns were right about the layout and wrong about the
+object: a shared heading implied tags and notes were one thing shown two
+ways, when they are two things that happen to belong to the same hand. Two
+panels say that, and each carries its own count in its own corner.
+
+Stacking them was the worse failure and is worth recording: the note composer
+then spanned the panel's full width, which is far wider than anyone writes a
+note, and it pushed the existing notes out of sight while you typed.
+
+**The stage is read in the masthead and set in OVERVIEW**, and getting there
+took five attempts, four of which failed for the same reason.
+
+It began as a full-width band of nine double-height cells between the header
+and the tabs — legible, and about a seventh of the sheet's height,
+permanently, for a control most visits never touch. That became a dropdown,
+sited in turn beside the title (it read as a subtitle of the project's
+_name_), leading the readings row (a control at the head of a list of
+readouts invites the eye to press the rest), trailing the readings row, and
+paired with the favourite ahead of the title. None looked like it belonged.
+
+The mistake all four shared was treating the stage as **chrome**. It is not —
+it is the operator's own statement about the work, exactly like a tag or a
+note, and it belongs where those live. So the masthead _reads_ the stage as
+the first of its figures, and `StageStrip` in OVERVIEW _sets_ it: the same
+altitude rule the rest of the dossier already follows, applied to the one
+thing that had been exempt from it.
+
+Inside a panel the original band's design costs nothing it did not earn —
+one tab instead of three, a heading saying what it is, and space the tab has.
+It keeps every stage reachable in one action (work does not always advance
+linearly, and a mislabelled stage should be correctable directly), position
+legible without colour, and live cells on the gated stages so a refusal can
+explain itself rather than a dead control teaching nothing.
+
+**OPEN FOLDER and OPEN IN ABLETON live at the trailing end of the tab strip.**
+They have moved twice, both times for the same reason. They began beside
+CLOSE, which put the most-used controls in the corner that also holds the way
+out; they then went to the foot of OVERVIEW's set panel, which read well but
+made them reachable from one tab in three — and that panel is now gone. In the
+tab strip they cost no vertical space, sit on every tab, and are a full row
+away from CLOSE.
 
 **Releases copy, never move.** The project stays filed under its genre; the
 master, cover and canvas are duplicated into `RELEASES/<title>/`. Moving them
