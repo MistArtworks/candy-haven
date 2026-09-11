@@ -9,6 +9,7 @@ import { useSettingsDraft } from '@renderer/hooks/useSettings'
 import { ScaleDialog } from './components/ScaleDialog'
 import { SettingsNav } from './components/SettingsNav'
 import { BoardPanel } from './components/BoardPanel'
+import { FilingPanel } from './components/FilingPanel'
 import { REGULATION_CATEGORY, isRegulationCategory, type RegulationCategory } from './categories'
 import { useDispatch } from '@renderer/hooks/useDispatch'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
@@ -356,9 +357,9 @@ export function RegulationPage(): ReactNode {
                       <span className={styles.toggleThumb} />
                     </button>
                     <p className={styles.controlHint}>
-                      Registers the console to start when you sign in to Windows. The point is
-                      not the window — it is that the archive, the overlay server and the chat
-                      ingest are already up before OBS asks for them.
+                      Registers the console to start when you sign in to Windows. The point is not
+                      the window — it is that the archive, the overlay server and the chat ingest
+                      are already up before OBS asks for them.
                     </p>
                   </div>
 
@@ -380,9 +381,8 @@ export function RegulationPage(): ReactNode {
                       <span className={styles.toggleThumb} />
                     </button>
                     <p className={styles.controlHint}>
-                      A sign-in launch comes up in the tray rather than on screen. Only applies
-                      when the console is launched by the sign-in; opening it yourself always
-                      shows it.
+                      A sign-in launch comes up in the tray rather than on screen. Only applies when
+                      the console is launched by the sign-in; opening it yourself always shows it.
                     </p>
                   </div>
 
@@ -404,19 +404,21 @@ export function RegulationPage(): ReactNode {
                     </button>
                     <p className={styles.controlHint}>
                       The console&apos;s own close button puts it in the tray and leaves the
-                      overlays serving. <strong>Alt+F4 always quits</strong>, whatever this is
-                      set to, as does Quit on the tray icon — an application that refuses the
-                      operating system&apos;s own close is one you cannot get rid of.
+                      overlays serving. <strong>Alt+F4 always quits</strong>, whatever this is set
+                      to, as does Quit on the tray icon — an application that refuses the operating
+                      system&apos;s own close is one you cannot get rid of.
                     </p>
                   </div>
                 </div>
               </Panel>
             ) : null}
 
+            {category === 'archive' ? <FilingPanel index="01" /> : null}
+
             {category === 'archive' ? (
               <Panel
                 label="Archive"
-                index="01"
+                index="02"
                 aside={archive.state.toUpperCase()}
                 className={styles.wide}
               >

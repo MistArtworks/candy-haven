@@ -346,3 +346,64 @@
   margin: 0;
   opacity: 0.8;
 }
+
+// ------------------------------------------------------------------- filing
+
+// A labelled block whose value is a list of paths rather than a single
+// control. Distinct from `.control` because that centres on its own content,
+// and a path needs the full width of the panel or it has nowhere to truncate.
+.filingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+}
+
+.filingHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+}
+
+.pathList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.path {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  background: var(--ch-surface-sunken);
+  padding: space(1) space(2);
+  min-width: 0;
+}
+
+// Reveals the location in the file manager. Underlined on hover, because a
+// path that opens something has to say so before it is clicked.
+.pathOpen {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+
+  &:hover {
+    color: var(--ch-gold-300);
+    text-decoration: underline;
+  }
+}
+
+.pathRemove {
+  @include readout(12px);
+  line-height: 1;
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-accent-bright);
+  }
+}

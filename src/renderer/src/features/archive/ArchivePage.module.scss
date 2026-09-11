@@ -37,6 +37,21 @@
 }
 
 /*
+ * INDEXING ends where its readout ends, rather than matching UNFILED beside it.
+ *
+ * Everything else in this grid stretches, and should: a panel holding a list
+ * wants every pixel of the row. INDEXING holds a fixed set of figures and a
+ * short log, so stretching it to the height of a list of two dozen projects put
+ * a hand's width of empty card under the last thing in it — and there is
+ * nothing to put there. A row that is honestly ragged reads better than a panel
+ * that is mostly nothing.
+ */
+.indexingCell {
+  grid-column: span 3;
+  align-self: start;
+}
+
+/*
  * The browser takes the whole row; UNFILED and INDEXING split the one below.
  *
  * It was previously four columns wide and two rows tall, with the other two
@@ -95,7 +110,8 @@
   }
 
   .span2,
-  .span3 {
+  .span3,
+  .indexingCell {
     grid-column: span 6;
   }
 

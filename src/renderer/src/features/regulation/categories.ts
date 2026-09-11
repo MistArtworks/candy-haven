@@ -45,7 +45,7 @@ export const REGULATION_CATEGORY: Record<RegulationCategory, RegulationCategoryD
   archive: {
     id: 'archive',
     label: 'ARCHIVE',
-    purpose: 'The local database that holds the register.'
+    purpose: 'Where projects are filed, and the local database that holds the register.'
   },
   integrations: {
     id: 'integrations',
