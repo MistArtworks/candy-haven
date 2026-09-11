@@ -185,40 +185,6 @@ export function requiresVolume(category: ProjectCategory): boolean {
   return VOLUME_BOUND_CATEGORIES.includes(category)
 }
 
-// ----------------------------------------------------------------- scaffold
-
-/**
- * The folders created inside every new project.
- *
- * These sit *beside* Ableton's own `Samples/` and `Backup/` rather than around
- * them: the project folder we create is the Ableton project folder, so the
- * template set lands at its root and Live resolves everything from there
- * without being told anything.
- *
- * `MIX & MASTER` is one folder rather than two because a mixdown and the master
- * cut from it are the same conversation, and an ampersand is legal on Windows
- * where the obvious `MIX/MASTER` is not.
- */
-export const PROJECT_SCAFFOLD_FOLDERS = [
-  'WIPS',
-  'MIX & MASTER',
-  'STEMS',
-  'GRAPHICS',
-  'MARKETING',
-  'REFERENCES'
-] as const
-
-export type ScaffoldFolder = (typeof PROJECT_SCAFFOLD_FOLDERS)[number]
-
-export const SCAFFOLD_FOLDER_PURPOSE: Record<ScaffoldFolder, string> = {
-  WIPS: 'Rough bounces as the arrangement moves.',
-  'MIX & MASTER': 'Mixdowns and the masters cut from them.',
-  STEMS: 'Exported stems, for collaborators and for live.',
-  GRAPHICS: 'Cover art, canvases, source files.',
-  MARKETING: 'Clips, copy, anything promotional.',
-  REFERENCES: 'Tracks being A/B-ed against.'
-}
-
 // ------------------------------------------------------------------ masters
 
 /**

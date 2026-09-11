@@ -6,7 +6,6 @@ import {
   RELEASES_DIRECTORY_NAME,
   WRAPPER_DIRECTORY_NAME
 } from '@shared/domain/stacks.constants'
-import { PROJECT_SCAFFOLD_FOLDERS } from '@shared/domain/projects.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import styles from './SetupGate.module.scss'
 
@@ -276,7 +275,7 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
         </pre>
         <p className={styles.previewNote}>
           Genres, folders and projects are created inside as you make them. A new project gets a
-          copy of your template plus {PROJECT_SCAFFOLD_FOLDERS.join(', ')}.
+          copy of your template, and nothing else.
         </p>
       </div>
 

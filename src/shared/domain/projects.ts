@@ -25,8 +25,7 @@ export type {
   ProjectCategory,
   ProjectSortMode,
   ProjectStage,
-  ProjectViewMode,
-  ScaffoldFolder
+  ProjectViewMode
 } from './projects.constants'
 
 export {
@@ -41,14 +40,12 @@ export {
   PROJECT_CATEGORIES,
   PROJECT_CATEGORY_LABEL,
   PROJECT_CATEGORY_PURPOSE,
-  PROJECT_SCAFFOLD_FOLDERS,
   PROJECT_SORT_LABEL,
   PROJECT_SORT_MODES,
   PROJECT_STAGES,
   PROJECT_STAGE_IDS,
   PROJECT_VIEW_LABEL,
   PROJECT_VIEW_MODES,
-  SCAFFOLD_FOLDER_PURPOSE,
   SCAN_LOG_LIMIT,
   VIDEO_EXTENSIONS,
   VOLUME_BOUND_CATEGORIES,

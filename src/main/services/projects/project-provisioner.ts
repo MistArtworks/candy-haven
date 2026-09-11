@@ -1,9 +1,8 @@
 import { copyFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { PROJECT_SCAFFOLD_FOLDERS } from '@shared/domain/projects.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
-import { createDirectory, ensureDirectory, pathExists } from '@main/services/stacks/filesystem'
+import { createDirectory, pathExists } from '@main/services/stacks/filesystem'
 
 const logger = getLogger('projects:provisioner')
 
@@ -18,7 +17,10 @@ const logger = getLogger('projects:provisioner')
  * The shape it creates is the decision recorded in the plan: **the project
  * folder is the Ableton project folder**. The template set lands at its root,
  * beside the `Samples/` and `Backup/` directories Live will create on first
- * save, and our own folders sit alongside them. Nothing wraps anything.
+ * save. Nothing wraps anything, and nothing of ours sits inside it — the six
+ * scaffold folders this used to make are gone. They were a filing convention
+ * the app never actually read: a bounce is a WIP or a master because the
+ * operator says so on the record, not because of which folder it landed in.
  *
  * The alternative — an outer folder of ours containing Live's — was rejected
  * because it costs a level of nesting on the path the operator actually opens,
@@ -95,12 +97,6 @@ export async function provisionProject(request: ProvisionRequest): Promise<Provi
       hint: message,
       recoverable: true
     })
-  }
-
-  for (const folder of PROJECT_SCAFFOLD_FOLDERS) {
-    // `ensureDirectory`, not `createDirectory`: a scaffold folder that somehow
-    // exists is not a reason to fail a project that is otherwise made.
-    await ensureDirectory(join(path, folder))
   }
 
   logger.info(`Provisioned project ${path}`)

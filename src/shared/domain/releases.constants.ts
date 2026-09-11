@@ -14,22 +14,6 @@
 export const RELEASE_SUBJECTS = ['project', 'volume'] as const
 export type ReleaseSubject = (typeof RELEASE_SUBJECTS)[number]
 
-/**
- * The folders created inside every release directory.
- *
- * Three, and deliberately few. This is a hand-off package, not a workspace: the
- * work happened in the project folder, and what lands here is the small set of
- * finished files a distributor asks for.
- */
-export const RELEASE_SCAFFOLD_FOLDERS = ['MASTER', 'ART', 'COPY'] as const
-export type ReleaseScaffoldFolder = (typeof RELEASE_SCAFFOLD_FOLDERS)[number]
-
-export const RELEASE_SCAFFOLD_PURPOSE: Record<ReleaseScaffoldFolder, string> = {
-  MASTER: 'The audio that ships.',
-  ART: 'Cover art and canvas.',
-  COPY: 'Titles, credits, anything written.'
-}
-
 /** The three files a release carries, chosen from what the scan already found. */
 export const DELIVERABLE_KINDS = ['master', 'cover', 'canvas'] as const
 export type DeliverableKind = (typeof DELIVERABLE_KINDS)[number]
@@ -44,13 +28,6 @@ export const DELIVERABLE_HINT: Record<DeliverableKind, string> = {
   master: 'The exact audio file that ships.',
   cover: 'Square artwork, 3000×3000 or larger.',
   canvas: 'Looping vertical video, 9:16, 3–8 seconds.'
-}
-
-/** Which scaffold folder each deliverable is copied into. */
-export const DELIVERABLE_DESTINATION: Record<DeliverableKind, ReleaseScaffoldFolder> = {
-  master: 'MASTER',
-  cover: 'ART',
-  canvas: 'ART'
 }
 
 export const MAX_RELEASE_TITLE_LENGTH = 120

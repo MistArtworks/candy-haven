@@ -6,7 +6,6 @@ import {
   PROJECT_CATEGORIES,
   PROJECT_CATEGORY_LABEL,
   PROJECT_CATEGORY_PURPOSE,
-  PROJECT_SCAFFOLD_FOLDERS,
   requiresVolume
 } from '@shared/domain/projects.constants'
 import { DEFAULT_FOLDER_COLOUR, validateFolderName } from '@shared/domain/stacks.constants'
@@ -207,8 +206,8 @@ export function ProjectDialog({
             <SwatchPicker value={colour} onChange={setColour} subject="Project" />
 
             <p className={styles.dialogWhere}>
-              Creates the folder, copies your template set into it, and adds{' '}
-              {PROJECT_SCAFFOLD_FOLDERS.join(', ')}.
+              Creates the folder and copies your template set into it. Nothing else — Ableton makes
+              its own folders the first time you save.
             </p>
 
             {error ? (
