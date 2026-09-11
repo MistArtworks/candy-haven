@@ -936,16 +936,49 @@ export class StacksService {
    * leave the project in a different corner of the app's own directory.
    */
   private async unfiledDestination(record: ProjectRecord): Promise<string> {
-    const root = this.resolveFilingRoot()
     const wrapper = this.resolveWrapper()
 
     // A project that was never inside the wrapper is already unfiled as far as
     // the disk is concerned; leave it exactly where the operator keeps it.
-    if (!root || !wrapper || !isAtOrUnder(record.path, wrapper)) {
+    if (!wrapper || !isAtOrUnder(record.path, wrapper)) {
       return dirname(record.path)
     }
 
-    return root
+    /*
+     * Home is where the register first found it.
+     *
+     * This used to return the filing root, which is not anywhere the operator
+     * ever put anything — a project discovered on an external drive, filed
+     * into a genre, then taken off the shelf, landed beside `Candy Haven`
+     * rather than back where it came from. The record now remembers, so it can
+     * go home.
+     */
+    const origin = record.originPath ? dirname(record.originPath) : null
+
+    if (!origin) {
+      throw new AppError(`There is no recorded original location for “${record.name}”.`, {
+        code: ErrorCode.Validation,
+        hint: 'It was either created inside the archive, or filed before origins were recorded. Use File to… to choose where it should go.',
+        recoverable: false
+      })
+    }
+
+    /*
+     * A refusal rather than a fallback when the original location is gone —
+     * an unplugged drive, a folder deleted in Explorer, a root removed from
+     * settings. Quietly putting it somewhere else is the behaviour this whole
+     * change exists to remove, and an unplugged drive is recoverable: plug it
+     * in and the same gesture works.
+     */
+    if (!(await directoryExists(origin))) {
+      throw new AppError(`“${record.name}” came from a location that is no longer reachable.`, {
+        code: ErrorCode.NotFound,
+        hint: `Expected ${origin}. Reconnect it and try again, or use File to… to choose somewhere else.`,
+        recoverable: true
+      })
+    }
+
+    return origin
   }
 
   /**

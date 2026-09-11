@@ -549,6 +549,10 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       // `reconcileFiling` resolves that from the path a moment later, which is
       // the one place that rule is expressed.
       folderId: null,
+      // Where the scan found it, recorded once. This is the only moment it can
+      // be known — every later read sees wherever the project has since been
+      // filed to.
+      originPath: project.path,
       createdAt: now,
       ...discoveredFields(project, now),
       path: project.path
@@ -1267,6 +1271,10 @@ function discoveredFields(
   // Where a project is filed is the operator's decision, not the scanner's.
   // Listing it here is what stops a rescan emptying the shelves.
   | 'folderId'
+  // Where the project was first found never changes, by definition. A rescan
+  // finds it at its current path; writing that back would redefine home as
+  // wherever it happens to be now.
+  | 'originPath'
   | 'createdAt'
 > {
   return {

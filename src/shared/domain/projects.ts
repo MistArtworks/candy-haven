@@ -287,6 +287,25 @@ export const ProjectRecordSchema = z.object({
   masters: MasterSelectionSchema.prefault({}),
 
   /**
+   * Where this project was when the register first found it.
+   *
+   * Set once, on the record's creation, and never rewritten — which is what
+   * makes it an origin rather than a second copy of `path`. Taking a project
+   * off the shelf sends it back here; without it, unfiling could only guess,
+   * and it guessed the filing root, which is nowhere the operator ever put
+   * anything.
+   *
+   * Null on a project created inside the archive: it has no elsewhere to
+   * return to, and its folder is where it has always been.
+   *
+   * Deliberately not in `discoveredFields()`. A rescan finds the project at
+   * its *current* path, and letting that overwrite the origin would quietly
+   * redefine home as wherever it is now — the exact thing this exists to
+   * prevent. The bin's `trashedFrom` is the same shape for the same reason.
+   */
+  originPath: z.string().nullable().default(null),
+
+  /**
    * The stacks folder this project is filed in, or null for unfiled.
    *
    * Operator-owned despite describing a location on disk, so it is absent from

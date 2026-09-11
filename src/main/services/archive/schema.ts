@@ -199,7 +199,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 5
+const SCHEMA_VERSION = 6
 
 /**
  * Collections dropped by the version 2 migration.
@@ -359,6 +359,34 @@ async function applyMigrations(db: Db): Promise<void> {
     // idempotent by inspection rather than by flag: a half-finished run is
     // fixed by running it again.
     await migrateToProjectsLayout(db)
+  }
+
+  if (from < 6) {
+    logger.warn(`Migrating archive schema ${from} -> 6: projects remember where they came from`)
+
+    /*
+     * Backfilling `originPath` for projects that are still outside the wrapper.
+     *
+     * For those the answer is exact: they have never been filed, so where they
+     * are *is* where the register found them. A project already inside the
+     * wrapper is deliberately left null — its current path is where it was
+     * filed to, not where it came from, and writing that would define home as
+     * the shelf it is already on, making "take off the shelf" a move to the
+     * place it is leaving.
+     *
+     * A null origin is not a broken record. Unfiling refuses and offers the
+     * File to… picker instead, which is the honest answer when nothing in the
+     * database knows where the project started.
+     */
+    const result = await db.collection(Collections.Projects).updateMany(
+      {
+        originPath: { $exists: false },
+        path: { $not: { $regex: '\\Candy Haven\\', $options: 'i' } }
+      },
+      [{ $set: { originPath: '$path' } }]
+    )
+
+    logger.info(`Recorded an origin for ${result.modifiedCount} unfiled projects`)
   }
 
   await collection.updateOne(

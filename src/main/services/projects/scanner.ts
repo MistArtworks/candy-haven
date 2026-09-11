@@ -261,9 +261,32 @@ async function walk(directory: string, depth: number, context: WalkContext): Pro
 
   context.filesSeen += files.length
 
-  if (files.some((entry) => classifyExtension(entry.name) === 'set')) {
-    context.projectDirectories.push(directory)
-    return
+  const sets = files.filter((entry) => classifyExtension(entry.name) === 'set')
+
+  if (sets.length > 0) {
+    /*
+     * A configured root is never itself a project, however many sets are
+     * sitting loose in it.
+     *
+     * `walk` is entered at the root with depth 0, and the test below used to
+     * apply there too. One stray `.als` at the top of a root therefore made
+     * the *root* the project folder — and because discovery stops descending
+     * at a project, every real project underneath it disappeared from the
+     * register. Filing that "project" would then have moved the entire root
+     * into a genre.
+     *
+     * Skipping the test at depth 0 and carrying on down is the whole fix. The
+     * stray file is named in the log rather than passed over in silence: a set
+     * outside any project folder is nearly always a mistake, and it is not
+     * otherwise visible anywhere in the app.
+     */
+    if (depth === 0) {
+      const names = sets.map((entry) => entry.name).join(', ')
+      context.options.onWarning?.(`Loose set outside any project folder: ${names}`)
+    } else {
+      context.projectDirectories.push(directory)
+      return
+    }
   }
 
   /*
