@@ -1,13 +1,24 @@
 @use 'abstracts' as *;
 
 .button {
+  /*
+   * What the two sizes differ by, held as properties rather than restated.
+   *
+   * Tracking is read back by `.label` and the glyph size by the rule below,
+   * both of which have to subtract from the number in order to centre what
+   * is actually visible. Restating either in `.sm` is how they drift apart.
+   */
+  --button-tracking: 0.16em;
+  --button-glyph: 1.2em;
+
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: space(2);
   border-radius: $radius-control;
-  @include label(10px, 0.16em);
+  @include label(9px, 0.16em);
+  letter-spacing: var(--button-tracking);
   color: var(--ch-text-secondary);
   transition:
     color $duration-fast $ease-out-expo,
@@ -23,17 +34,44 @@
     opacity: 0.4;
     pointer-events: none;
   }
+
+  /*
+   * The glyph is sized here, and its drawing margin is taken back off.
+   *
+   * Sized here because the callers were each picking their own — 11px, 12px
+   * and 13px for the same `sm` button — and three marks that should have
+   * been one size were simply never seen side by side.
+   *
+   * The negative margins are the part that matters for centring. Flex
+   * centres *boxes*, and `ArchiveGlyph` draws on a 16-unit field with about
+   * a 2-unit margin around the ink so a 1.5 stroke has somewhere to sit. The
+   * label opposite it has no such margin — its trailing space is pulled off
+   * below — so the group's leading edge is padded and its trailing edge is
+   * not, and the whole of it drifts right by half the difference. Two of
+   * sixteen is an eighth; off both sides, so the residue stays even for the
+   * glyphs drawn a little tighter than the field allows.
+   */
+  > svg {
+    width: var(--button-glyph);
+    height: var(--button-glyph);
+    flex-shrink: 0;
+    margin-inline: calc(var(--button-glyph) * -0.125);
+  }
 }
 
 .md {
-  height: space(9);
+  height: space(8);
   padding: 0 space(4);
 }
 
+// Only the numbers that change. The face, weight and transform are the
+// button's, and `--button-tracking` is the one place the tracking is set.
 .sm {
-  height: space(7);
+  --button-tracking: 0.14em;
+
+  height: space(6);
   padding: 0 space(3);
-  @include label(9px, 0.14em);
+  font-size: 8px;
 }
 
 // Ghost: the default. A hairline slab that fills on hover.
@@ -75,14 +113,46 @@
   }
 }
 
+/*
+ * Two things sit between a centred box and centred text. Both are taken out
+ * here rather than nudged back by eye.
+ *
+ * Across: `letter-spacing` adds its space *after* every character including
+ * the last, so a centred label carries a phantom column of tracking on its
+ * right and the glyphs sit half that distance left of true centre. On an 8px
+ * label at 0.14em it is about half a pixel — and half a pixel is exactly the
+ * amount that reads as "not quite centred" without being nameable. Pulling
+ * the trailing space back out of the layout box is the fix, and it has to
+ * come off the label rather than the button, because with an icon present
+ * the flex centring works on the icon and label together.
+ *
+ * Down: a line box reserves descender space that uppercase text never uses,
+ * so centring the box leaves the visible capitals about a pixel high — the
+ * same half-a-pixel problem on the other axis, and in the same direction for
+ * every label in the console. `text-box` trims the box to the band the
+ * capitals actually occupy, cap height down to the baseline, so
+ * `align-items: center` is centring the letters instead of the space around
+ * them. This is also why the glyph beside it no longer carries a hand-cut
+ * `margin-top` to meet text that sat high: there is nothing left to meet.
+ */
 .label {
   white-space: nowrap;
+  text-box: trim-both cap alphabetic;
+  margin-right: calc(var(--button-tracking) * -1);
 }
 
-// A rotating quarter-arc: mechanical rather than a bouncing dot loader.
+/*
+ * A rotating quarter-arc: mechanical rather than a bouncing dot loader.
+ *
+ * Sized to the glyph's *ink* rather than its box — three quarters of the
+ * 16-unit field, the same fraction the rule above trims to. It is standing in
+ * for the mark, so matching the drawn circle to the drawn mark keeps both the
+ * button's width and the weight beside the label steady when work starts. It
+ * was a flat 10px, which was wider than the mark at every size.
+ */
 .spinner {
-  width: 10px;
-  height: 10px;
+  width: calc(var(--button-glyph) * 0.75);
+  height: calc(var(--button-glyph) * 0.75);
   flex-shrink: 0;
   border: 1px solid transparent;
   border-top-color: currentColor;
