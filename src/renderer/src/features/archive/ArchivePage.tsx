@@ -20,7 +20,7 @@ import type {
 import type { ArchiveFolder } from '@shared/domain/stacks'
 import type { ArchiveLens } from '@shared/domain/stacks.constants'
 import {
-  ARCHIVE_LENSES,
+  VISIBLE_ARCHIVE_LENSES,
   ARCHIVE_LENS_LABEL,
   FOLDER_KIND_LABEL,
   folderKindAtDepth,
@@ -180,7 +180,13 @@ export function ArchivePage(): ReactNode {
   const volumeId = searchParams.get('volume')
   const releaseId = searchParams.get('release')
   const rawLens = searchParams.get('lens')
-  const lens: ArchiveLens = ARCHIVE_LENSES.includes(rawLens as ArchiveLens)
+  /*
+   * A hidden lens in the URL falls back to the default rather than being
+   * honoured. RELEASES is stood down (see HIDDEN_ARCHIVE_LENSES) and an old
+   * bookmark or a back gesture would otherwise open a lens with no way off it
+   * — the rail no longer draws a button to leave by.
+   */
+  const lens: ArchiveLens = VISIBLE_ARCHIVE_LENSES.includes(rawLens as ArchiveLens)
     ? (rawLens as ArchiveLens)
     : 'stacks'
 
@@ -869,7 +875,7 @@ export function ArchivePage(): ReactNode {
     // Built by mapping rather than by pushing into `entries`: the lint rule
     // that guards refs reads a mutating closure as something that might run
     // during render, and there is nothing here worth arguing the point over.
-    const lenses: Hotkey[] = ARCHIVE_LENSES.map((entry, index) => ({
+    const lenses: Hotkey[] = VISIBLE_ARCHIVE_LENSES.map((entry, index) => ({
       chord: `alt+${index + 1}`,
       label: ARCHIVE_LENS_LABEL[entry],
       group: 'Archive lenses',

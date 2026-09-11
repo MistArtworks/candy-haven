@@ -35,6 +35,26 @@ import type { FolderSwatch } from './stacks'
 export const ARCHIVE_LENSES = ['all', 'stacks', 'unfiled', 'volumes', 'releases', 'bin'] as const
 export type ArchiveLens = (typeof ARCHIVE_LENSES)[number]
 
+/**
+ * Lenses that are not offered at the moment.
+ *
+ * `releases` is stood down rather than removed. What happens after a track is
+ * finished — scheduling it, wrapping it, putting it out — is being
+ * respecified, and in the meantime the final mix and master lives in
+ * `Release Mastered Tracks`. Leaving RELEASES on the rail would give the
+ * operator two places that both claim to answer "what is going out".
+ *
+ * Hidden rather than deleted, and the distinction is the point: the service,
+ * the collection and every release the operator has already raised are intact.
+ * Putting the lens back is a one-line change here, not a rebuild.
+ */
+export const HIDDEN_ARCHIVE_LENSES: readonly ArchiveLens[] = ['releases']
+
+/** The lenses actually offered on the rail, in order. */
+export const VISIBLE_ARCHIVE_LENSES: readonly ArchiveLens[] = ARCHIVE_LENSES.filter(
+  (lens) => !HIDDEN_ARCHIVE_LENSES.includes(lens)
+)
+
 export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
   stacks: 'GENRES',
   unfiled: 'UNFILED',

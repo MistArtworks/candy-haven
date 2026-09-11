@@ -10,9 +10,9 @@ import {
 } from '@shared/domain/projects.constants'
 import type { ArchiveLens } from '@shared/domain/stacks.constants'
 import {
-  ARCHIVE_LENSES,
   ARCHIVE_LENS_LABEL,
-  ARCHIVE_LENS_PURPOSE
+  ARCHIVE_LENS_PURPOSE,
+  VISIBLE_ARCHIVE_LENSES
 } from '@shared/domain/stacks.constants'
 import type { TagSummary } from '@shared/domain/tags'
 import { SearchInput } from '@renderer/components/primitives/Input'
@@ -139,7 +139,7 @@ export function RegisterControls({
         role="group"
         aria-label="Register lens"
       >
-        {ARCHIVE_LENSES.map((mode) => (
+        {VISIBLE_ARCHIVE_LENSES.map((mode) => (
           <button
             key={mode}
             type="button"
