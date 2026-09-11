@@ -18,12 +18,12 @@ import type {
   ProjectViewMode
 } from '@shared/domain/projects'
 import type { ArchiveFolder } from '@shared/domain/stacks'
-import type { ArchiveLens } from '@shared/domain/stacks.constants'
+import type { ArchiveLens, FolderKind } from '@shared/domain/stacks.constants'
 import {
   VISIBLE_ARCHIVE_LENSES,
   ARCHIVE_LENS_LABEL,
   FOLDER_KIND_LABEL,
-  folderKindAtDepth,
+  allowedChildKinds,
   isFolderLens
 } from '@shared/domain/stacks.constants'
 import type { DeliverableKind } from '@shared/domain/releases'
@@ -335,7 +335,6 @@ export function ArchivePage(): ReactNode {
   // Memoised so the empty fallback is not a new array on every render, which
   // would defeat every derivation below it.
   const folders = useMemo(() => stacks?.folders ?? [], [stacks?.folders])
-  const depths = useMemo(() => stacks?.depths ?? {}, [stacks?.depths])
   const allVolumes = useMemo(() => volumes ?? [], [volumes])
   const allReleases = useMemo(() => releases ?? [], [releases])
 
@@ -371,8 +370,21 @@ export function ArchivePage(): ReactNode {
     (browsing && folderId !== null)
 
   const currentFolder = trail.at(-1) ?? null
-  const currentDepth = currentFolder ? (depths[currentFolder.id] ?? 0) : -1
-  // Standing inside any folder is enough; only the wrapper root is not a folder.
+
+  /*
+   * What the add tile offers is named after what may actually be made here.
+   *
+   * A category holds genres *and* artists, so at that level the tile cannot
+   * name one — it says "New shelf" and the dialog asks which. Everywhere else
+   * exactly one kind is legal and the tile says so outright.
+   */
+  const addableKinds = allowedChildKinds(currentFolder?.kind ?? null)
+  const addFolderLabel =
+    addableKinds.length === 1
+      ? `New ${FOLDER_KIND_LABEL[addableKinds[0]].toLowerCase()}`
+      : 'New shelf'
+
+  // Standing inside any folder is enough; only the tree root is not a folder.
   const canCreateProjectHere = currentFolder !== null
 
   // ------------------------------------------------------------- reporting
@@ -480,13 +492,13 @@ export function ArchivePage(): ReactNode {
   // --------------------------------------------------------------- dialogs
 
   const submitFolder = useCallback(
-    (name: string, colour: string) => {
+    (name: string, colour: string, kind: FolderKind) => {
       setDialogError(null)
       const done = (): void => setFolderDialog(null)
 
       if (folderDialog?.mode === 'create') {
         stackMutations.create.mutate(
-          { parentId: folderDialog.parentId, name, colour },
+          { parentId: folderDialog.parentId, name, colour, kind },
           { onSuccess: done, onError: reportToDialog }
         )
         return
@@ -818,7 +830,7 @@ export function ArchivePage(): ReactNode {
       },
       {
         chord: 'ctrl+n',
-        label: folderId === null ? 'New genre' : 'New folder',
+        label: addFolderLabel,
         group,
         whileTyping: true,
         disabled: locked || lens !== 'stacks',
@@ -885,6 +897,7 @@ export function ArchivePage(): ReactNode {
 
     return [...entries, ...lenses]
   }, [
+    addFolderLabel,
     changeLens,
     currentFolder,
     focusSearch,
@@ -909,7 +922,7 @@ export function ArchivePage(): ReactNode {
       visibleFolders.map((folder) => {
         return {
           id: folder.id,
-          mark: folderKindAtDepth(depths[folder.id] ?? 0),
+          mark: folder.kind,
           name: folder.name,
           detail: describeFolder(stacks?.counts[folder.id] ?? 0, childCounts[folder.id] ?? 0),
           colour: folder.colour,
@@ -920,7 +933,7 @@ export function ArchivePage(): ReactNode {
           draggableAs: 'folder'
         }
       }),
-    [visibleFolders, depths, stacks?.counts, childCounts]
+    [visibleFolders, stacks?.counts, childCounts]
   )
 
   /**
@@ -1285,7 +1298,7 @@ export function ArchivePage(): ReactNode {
             disabled={scanning || locked}
             adds={[
               {
-                label: folderId === null ? 'New genre' : 'New folder',
+                label: addFolderLabel,
                 mark: 'add',
                 onClick: () => {
                   setDialogError(null)
@@ -1550,9 +1563,18 @@ export function ArchivePage(): ReactNode {
               ? folderDialog.parentId === null
               : folderDialog.folder.parentId === null
           }
-          kindLabel={
+          /*
+           * What may be made here is read off the parent's kind rather than
+           * off depth. The dialog states it when there is one answer and asks
+           * when there are two — a category holds genres and artists both.
+           */
+          kinds={
             folderDialog.mode === 'create'
-              ? FOLDER_KIND_LABEL[folderKindAtDepth(currentDepth + 1)]
+              ? allowedChildKinds(
+                  folderDialog.parentId
+                    ? (folders.find((entry) => entry.id === folderDialog.parentId)?.kind ?? null)
+                    : null
+                )
               : undefined
           }
           where={

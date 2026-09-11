@@ -8,16 +8,22 @@ import type {
   ArchiveSetupDraft,
   ArchiveSetupState,
   FolderDraft,
+  FolderKind,
   FolderPatch,
   StacksTree
 } from '@shared/domain/stacks'
 import {
   DEFAULT_FOLDER_COLOUR,
   MAX_FOLDER_DEPTH,
+  FOLDER_KIND_LABEL,
+  PROJECTS_DIRECTORY_NAME,
+  allowedChildKinds,
   RECYCLE_BIN_DIRECTORY_NAME,
-  RELEASES_DIRECTORY_NAME,
+  RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
   WRAPPER_DIRECTORY_NAME,
+  RELEASES_DIRECTORY_NAME,
   isHexColour,
+  isValidChildKind,
   normaliseHex,
   validateFolderName
 } from '@shared/domain/stacks.constants'
@@ -93,7 +99,7 @@ export class StacksService {
     return root ? join(root, WRAPPER_DIRECTORY_NAME) : null
   }
 
-  /** `<wrapper>/RELEASES`, where finished packages are assembled. */
+  /** `<wrapper>/RELEASES`. Nothing creates this now; kept for archives that have one. */
   resolveReleasesRoot(): string | null {
     const wrapper = this.resolveWrapper()
     return wrapper ? join(wrapper, RELEASES_DIRECTORY_NAME) : null
@@ -103,6 +109,25 @@ export class StacksService {
   resolveRecycleBin(): string | null {
     const wrapper = this.resolveWrapper()
     return wrapper ? join(wrapper, RECYCLE_BIN_DIRECTORY_NAME) : null
+  }
+
+  /** `<wrapper>/Projects`, the root of the filing tree. */
+  resolveProjectsRoot(): string | null {
+    const wrapper = this.resolveWrapper()
+    return wrapper ? join(wrapper, PROJECTS_DIRECTORY_NAME) : null
+  }
+
+  /** `<wrapper>/Release Mastered Tracks`, where finished tracks are kept. */
+  resolveMasteredTracksRoot(): string | null {
+    const wrapper = this.resolveWrapper()
+    return wrapper ? join(wrapper, RELEASE_MASTERED_TRACKS_DIRECTORY_NAME) : null
+  }
+
+  /** The projects root, created if needed. */
+  private async requireProjectsRoot(): Promise<string> {
+    const root = join(await this.requireWrapper(), PROJECTS_DIRECTORY_NAME)
+    await ensureDirectory(root)
+    return root
   }
 
   /** The wrapper, created if needed, or a refusal explaining what is missing. */
@@ -192,7 +217,16 @@ export class StacksService {
     // and the operator back at the gate, rather than configured but broken.
     const wrapper = join(draft.filingRoot, WRAPPER_DIRECTORY_NAME)
     await ensureDirectory(wrapper)
-    await ensureDirectory(join(wrapper, RELEASES_DIRECTORY_NAME))
+    /*
+     * Three primitives, and the wrapper holds nothing else the app made.
+     *
+     * `RELEASES` is no longer among them. Nothing creates it now that the lens
+     * is stood down, and an operator who already has one keeps it — it stays
+     * reserved by name so a category cannot shadow it, but it is not made
+     * afresh for anybody.
+     */
+    await ensureDirectory(join(wrapper, PROJECTS_DIRECTORY_NAME))
+    await ensureDirectory(join(wrapper, RELEASE_MASTERED_TRACKS_DIRECTORY_NAME))
     await ensureDirectory(join(wrapper, RECYCLE_BIN_DIRECTORY_NAME))
 
     /*
@@ -237,9 +271,6 @@ export class StacksService {
     const counts: Record<string, number> = Object.fromEntries(
       folders.map((folder) => [folder.id, 0])
     )
-    const depths: Record<string, number> = Object.fromEntries(
-      folders.map((folder) => [folder.id, depthOf(folder, folders)])
-    )
     let unfiledCount = 0
 
     for (const record of records) {
@@ -252,7 +283,6 @@ export class StacksService {
     return {
       folders,
       setup: await this.getSetupState(),
-      depths,
       counts,
       unfiledCount,
       trashed
@@ -332,13 +362,16 @@ export class StacksService {
   async createFolder(draft: FolderDraft): Promise<StacksTree> {
     this.refuseDuringScan()
 
-    const wrapper = await this.requireWrapper()
+    const projectsRoot = await this.requireProjectsRoot()
     const folders = await this.repository.listAll()
 
     const parent = draft.parentId ? this.requireFolder(folders, draft.parentId) : null
-    // Top-level names are checked against RELEASES as well: that directory is
-    // the app's own and a genre beside it must not collide with it.
+    // Top-level names are checked against the reserved wrapper directories as
+    // well: those are the app's own and a category beside them must not
+    // collide, even though the tree now sits one level down inside `Projects`.
     const name = this.requireValidName(draft.name, parent === null)
+
+    this.requireValidKind(parent, draft.kind)
 
     if (parent && depthOf(parent, folders) + 1 >= MAX_FOLDER_DEPTH) {
       throw new AppError(`Folders can only be nested ${MAX_FOLDER_DEPTH} deep.`, {
@@ -349,7 +382,7 @@ export class StacksService {
 
     this.refuseDuplicateSibling(folders, draft.parentId, name, null)
 
-    const parentPath = parent ? parent.path : wrapper
+    const parentPath = parent ? parent.path : projectsRoot
     const path = join(parentPath, name)
     const now = Date.now()
 
@@ -360,6 +393,7 @@ export class StacksService {
       id: randomUUID(),
       parentId: draft.parentId,
       name,
+      kind: draft.kind,
       path,
       colour: this.resolveColour(draft.colour),
       order: siblingsOf(folders, draft.parentId).length,
@@ -408,8 +442,13 @@ export class StacksService {
     const moved = name !== folder.name || parentId !== folder.parentId
 
     if (moved) {
-      const wrapper = await this.requireWrapper()
+      const projectsRoot = await this.requireProjectsRoot()
       const parent = parentId ? this.requireFolder(folders, parentId) : null
+
+      // Re-parenting is held to the same rule as creating. A genre that could
+      // not be *made* inside another genre must not be able to arrive there by
+      // being dragged, or the stored kind stops meaning anything.
+      this.requireValidKind(parent, folder.kind)
 
       if (parent) {
         if (parent.id === folder.id || isDescendantOf(parent, folder, folders)) {
@@ -431,7 +470,7 @@ export class StacksService {
 
       this.refuseDuplicateSibling(folders, parentId, name, folder.id)
 
-      const destination = join(parent ? parent.path : wrapper, name)
+      const destination = join(parent ? parent.path : projectsRoot, name)
       await moveDirectory(folder.path, destination)
       logger.info(`Moved folder ${folder.path} -> ${destination}`)
 
@@ -988,6 +1027,34 @@ export class StacksService {
       })
     }
     return folder
+  }
+
+  /**
+   * Refuses a folder kind that may not sit where it is being put.
+   *
+   * This is what keeps a *stored* kind honest. Kind used to be read off depth,
+   * so it could not disagree with position; now that the operator chooses it,
+   * the guarantee has to come from the other direction — position is
+   * constrained to the kinds that are legal there, and an illegal arrangement
+   * is refused rather than silently reinterpreted.
+   *
+   * Applied on create and on re-parent alike, which is the part that matters:
+   * a genre that could not be created inside another genre must not be able to
+   * arrive there by being dragged.
+   */
+  private requireValidKind(parent: ArchiveFolder | null, kind: FolderKind): void {
+    if (isValidChildKind(parent?.kind ?? null, kind)) return
+
+    const where = parent ? `a ${FOLDER_KIND_LABEL[parent.kind].toLowerCase()}` : 'the top level'
+    const allowed = allowedChildKinds(parent?.kind ?? null)
+      .map((entry) => FOLDER_KIND_LABEL[entry])
+      .join(' or ')
+
+    throw new AppError(`A ${FOLDER_KIND_LABEL[kind].toLowerCase()} cannot go inside ${where}.`, {
+      code: ErrorCode.Validation,
+      hint: `${where[0].toUpperCase()}${where.slice(1)} holds ${allowed}.`,
+      recoverable: false
+    })
   }
 
   private requireValidName(name: string, topLevel = false): string {

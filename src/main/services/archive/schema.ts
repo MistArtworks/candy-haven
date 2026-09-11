@@ -1,5 +1,6 @@
 import type { Db, IndexDescription } from 'mongodb'
 import { getLogger } from '@main/core/logger'
+import { migrateToProjectsLayout } from '@main/services/stacks/layout-migration'
 
 const logger = getLogger('archive:schema')
 
@@ -198,7 +199,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 4
+const SCHEMA_VERSION = 5
 
 /**
  * Collections dropped by the version 2 migration.
@@ -323,6 +324,41 @@ async function applyMigrations(db: Db): Promise<void> {
     logger.info(
       `Moved ${current.modifiedCount} projects and ${history.modifiedCount} stage histories onto TRACK READY`
     )
+  }
+
+  if (from < 5) {
+    logger.warn(`Migrating archive schema ${from} -> 5: the tree moves inside Projects`)
+
+    /*
+     * Folder kind stops being derived from depth and starts being stored, so
+     * every existing record needs one. The rule mirrors what `folderKindAtDepth`
+     * would have said: a folder sitting at the top of the tree was a genre,
+     * everything below it was a plain folder.
+     *
+     * Written before the layout move below, which re-points and re-kinds as it
+     * goes — this pass exists so that a record is readable even if the move
+     * cannot complete. `ArchiveFolderSchema.kind` defaults rather than requires
+     * for the same reason, and for the reason recorded on the v4 step above: a
+     * folder that fails validation is skipped on read, and a skipped folder
+     * takes its whole subtree out of the tree with it.
+     */
+    const folders = db.collection(Collections.ArchiveFolders)
+
+    const tops = await folders.updateMany(
+      { kind: { $exists: false }, parentId: null },
+      { $set: { kind: 'genre' } }
+    )
+    const rest = await folders.updateMany(
+      { kind: { $exists: false } },
+      { $set: { kind: 'folder' } }
+    )
+
+    logger.info(`Kinded ${tops.modifiedCount} shelves and ${rest.modifiedCount} folders`)
+
+    // Moves real directories, so it lives beside the filesystem helpers. It is
+    // idempotent by inspection rather than by flag: a half-finished run is
+    // fixed by running it again.
+    await migrateToProjectsLayout(db)
   }
 
   await collection.updateOne(

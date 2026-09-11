@@ -346,6 +346,65 @@
   padding: space(5);
 }
 
+/*
+ * What a folder is going to be, when there is more than one answer.
+ *
+ * Two slabs side by side rather than a select: the choice between a genre and
+ * an artist is made once per folder and each option needs its line of
+ * explanation, which a dropdown cannot carry. Drawn as a radio group so the
+ * two read as one decision.
+ */
+.kindChoice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+}
+
+.kindOption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: space(1);
+  padding: space(3);
+  text-align: left;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.05);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-accent);
+    background: rgba(163, 43, 35, 0.1);
+  }
+}
+
+.kindLabel {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+
+  .kindOption[data-selected] & {
+    color: var(--ch-text-primary);
+  }
+}
+
+.kindPurpose {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+}
+
 .dialogError {
   @include readout(10px);
   color: var(--ch-crimson-400);
