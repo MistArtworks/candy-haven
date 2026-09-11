@@ -28,6 +28,14 @@ export const Collections = {
    */
   ArchiveVolumes: 'archive_volumes',
   /**
+   * TAGS — the operator's own labels on a project (ARCHIVE section).
+   *
+   * Like volumes, no filesystem counterpart: a tag is metadata, and which
+   * projects carry one is held by `tagIds` on the project rather than by a
+   * list here. See shared/domain/tags.constants.ts.
+   */
+  ArchiveTags: 'archive_tags',
+  /**
    * THE STACKS — the filing tree projects are sorted into (ARCHIVE section).
    *
    * Each document describes a real directory on disk, so this collection and
@@ -62,7 +70,7 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
     { key: { path: 1 }, unique: true, name: 'project_path_unique' },
     { key: { name: 1 }, name: 'project_name' },
     { key: { updatedAt: -1 }, name: 'project_recent' },
-    { key: { tags: 1 }, name: 'project_tags' },
+    { key: { tagIds: 1 }, name: 'project_tag_ids' },
     // The board groups by stage and the register sorts by last touched; both
     // are the default reads of the ARCHIVE section.
     { key: { stage: 1, lastTouchedAt: -1 }, name: 'project_pipeline' },
@@ -98,6 +106,14 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
     { key: { title: 1 }, name: 'volume_title' },
     { key: { kind: 1, title: 1 }, name: 'volume_by_kind' }
   ],
+  [Collections.ArchiveTags]: [
+    // Two tags cannot share a name; `nameKey` is the case-folded form the
+    // service compares on, so `Deep` and `deep` collide here as intended. The
+    // unique index is the last line of defence behind the service's own check.
+    { key: { nameKey: 1 }, unique: true, name: 'tag_name_unique' },
+    // The picker and the filter row both group by home shelf before ordering.
+    { key: { folderId: 1, nameKey: 1 }, name: 'tag_by_folder' }
+  ],
   [Collections.Overlays]: [
     { key: { name: 1 }, unique: true, name: 'overlay_name_unique' },
     { key: { active: 1 }, name: 'overlay_active' }
@@ -111,6 +127,26 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
     { key: { occurredAt: -1 }, name: 'event_recent' },
     { key: { kind: 1, occurredAt: -1 }, name: 'event_by_kind' }
   ]
+}
+
+/**
+ * Indexes that used to be declared here and no longer are.
+ *
+ * Reconciled every boot like `INDEX_PLAN` itself, rather than dropped in a
+ * migration, because an index is not document state: it is derived, the plan
+ * above is already declarative, and a version-gated drop would never reach a
+ * database that had passed that version before the drop was written — which
+ * is exactly what happened to `project_tags`.
+ *
+ * That one is the cautionary tale. `tags` became `tagIds`, and the new index
+ * was declared under the *same name* with a different key — which
+ * `createIndexes` refuses, and it refuses the **whole batch** rather than the
+ * one entry, so the projects collection quietly lost every other index it
+ * declares. Renaming to `project_tag_ids` stops the collision; this list is
+ * what clears the orphan left behind.
+ */
+const RETIRED_INDEXES: Record<string, string[]> = {
+  [Collections.Projects]: ['project_tags']
 }
 
 /**
@@ -132,6 +168,20 @@ export async function applySchema(db: Db): Promise<void> {
     }
   }
 
+  // Before the plan is applied, so a retired name can be reused by a new
+  // index in the same boot rather than only in the one after it.
+  for (const [collection, names] of Object.entries(RETIRED_INDEXES)) {
+    for (const name of names) {
+      try {
+        await db.collection(collection).dropIndex(name)
+        logger.info(`Dropped retired index ${name} on ${collection}`)
+      } catch {
+        // Absent already, which is the desired end state. `dropIndex` throws
+        // rather than no-oping, and this runs on every boot.
+      }
+    }
+  }
+
   for (const [collection, indexes] of Object.entries(INDEX_PLAN)) {
     try {
       await db.collection(collection).createIndexes(indexes)
@@ -148,7 +198,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 /**
  * Collections dropped by the version 2 migration.
@@ -202,6 +252,30 @@ async function applyMigrations(db: Db): Promise<void> {
         // collection, and a missing one is exactly the desired end state.
       }
     }
+  }
+
+  if (from < 3) {
+    logger.warn(`Migrating archive schema ${from} -> 3: projects carry tag ids`)
+
+    /*
+     * `tags: string[]` becomes `tagIds: string[]`, and **nothing is lost**.
+     *
+     * Tags were in the record, in this file's index plan and in the register's
+     * filter row from the first build, but no screen could ever write one — so
+     * every stored array is empty, and there is no name-to-id translation to
+     * do. A project that somehow did carry names would lose them here, which
+     * is why this is a rewrite rather than a best-effort conversion: inventing
+     * tag documents from strings during a boot migration would create a
+     * library the operator never chose, coloured at random.
+     *
+     * Contrast the version 2 migration above, which dropped whole collections.
+     * This one touches one field and rescans nothing.
+     */
+    const result = await db
+      .collection(Collections.Projects)
+      .updateMany({}, { $unset: { tags: '' }, $set: { tagIds: [] } })
+
+    logger.info(`Moved ${result.modifiedCount} projects onto tag ids`)
   }
 
   await collection.updateOne(

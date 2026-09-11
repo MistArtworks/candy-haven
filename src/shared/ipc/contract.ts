@@ -75,6 +75,7 @@ import {
   VolumePatchSchema,
   VolumeSummarySchema
 } from '../domain/volumes'
+import { TagDraftSchema, TagPatchSchema, TagSummarySchema } from '../domain/tags'
 import {
   ArchiveReleaseSchema,
   DeliverableAttachSchema,
@@ -271,6 +272,33 @@ export const IPC_INVOKE = {
   'volumes:reorder': {
     input: z.object({ id: z.string(), projectIds: z.array(z.string()) }),
     output: z.array(VolumeSummarySchema)
+  },
+
+  /**
+   * TAGS (ARCHIVE section) — the operator's own labels.
+   *
+   * Metadata only, like volumes: no channel here touches the filesystem.
+   * Which projects carry a tag is written through `projects:patch` on the
+   * *project*, not here, because the project is what holds `tagIds` — the one
+   * exception being `tags:create`, whose `attachTo` exists so that the
+   * picker's "create and apply" cannot half-succeed and strand a new tag on
+   * nothing.
+   */
+  'tags:list': { input: z.void(), output: z.array(TagSummarySchema) },
+  'tags:create': { input: TagDraftSchema, output: TagSummarySchema },
+  'tags:update': {
+    input: z.object({ id: z.string(), patch: TagPatchSchema }),
+    output: TagSummarySchema
+  },
+  /**
+   * Detaches the tag from every project that carries it, then drops it.
+   *
+   * Returns how many projects were touched so the confirmation can say it out
+   * loud — deleting a tag is the one tag action that reaches beyond the tag.
+   */
+  'tags:delete': {
+    input: z.object({ id: z.string() }),
+    output: z.object({ detached: z.number().int().min(0) })
   },
 
   /**

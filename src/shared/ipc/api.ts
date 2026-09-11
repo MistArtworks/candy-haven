@@ -47,6 +47,7 @@ import type {
   StacksTree
 } from '../domain/stacks'
 import type { ArchiveVolume, VolumeDraft, VolumePatch, VolumeSummary } from '../domain/volumes'
+import type { TagDraft, TagPatch, TagSummary } from '../domain/tags'
 import type {
   ArchiveRelease,
   DeliverableKind,
@@ -180,6 +181,23 @@ export interface CandyHavenApi {
     remove(id: string): Promise<void>
     /** Ids in their new order; writes each track's `trackNumber`. */
     reorder(id: string, projectIds: string[]): Promise<VolumeSummary[]>
+  }
+  /**
+   * TAGS — the operator's own labels on a project.
+   *
+   * Metadata only; nothing here touches disk. A project gains a tag through
+   * `projects.patch`, not through this interface, because the project is what
+   * holds `tagIds` — the one exception being `create`, whose `attachTo` makes
+   * "create and apply" a single call that cannot half-succeed.
+   */
+  readonly tags: {
+    list(): Promise<TagSummary[]>
+    /** An existing name is returned rather than refused. See `TagsService`. */
+    create(draft: TagDraft): Promise<TagSummary>
+    /** Renaming propagates everywhere at once; projects hold ids, not names. */
+    update(id: string, patch: TagPatch): Promise<TagSummary>
+    /** Detaches from every project first, and reports how many. */
+    remove(id: string): Promise<{ detached: number }>
   }
   /**
    * RELEASES — what is going out, and the files that go with it.

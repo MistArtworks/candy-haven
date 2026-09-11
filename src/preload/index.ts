@@ -162,6 +162,12 @@ const api: CandyHavenApi = {
     remove: (id) => invoke('volumes:delete', { id }),
     reorder: (id, projectIds) => invoke('volumes:reorder', { id, projectIds })
   },
+  tags: {
+    list: () => invoke('tags:list'),
+    create: (draft) => invoke('tags:create', draft),
+    update: (id, patch) => invoke('tags:update', { id, patch }),
+    remove: (id) => invoke('tags:delete', { id })
+  },
   releases: {
     list: () => invoke('releases:list'),
     get: (id) => invoke('releases:get', { id }),

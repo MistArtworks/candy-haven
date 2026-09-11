@@ -5,6 +5,7 @@ import { TelemetryService } from './telemetry/telemetry.service'
 import { ProjectsService } from './projects/projects.service'
 import { StacksService } from './stacks/stacks.service'
 import { VolumesService } from './volumes/volumes.service'
+import { TagsService } from './tags/tags.service'
 import { ReleasesService } from './releases/releases.service'
 import { CalendarService } from './calendar/calendar.service'
 import { OverlayServer } from './overlay/overlay-server'
@@ -44,6 +45,12 @@ export interface ServiceContainer {
    * ownership split survives.
    */
   readonly volumes: VolumesService
+  /**
+   * TAGS — the operator's own labels. Metadata only, like volumes, and wired
+   * the same way: membership lives on the project and is read and written
+   * through the projects service.
+   */
+  readonly tags: TagsService
   /**
    * RELEASES. Owns a directory under the stacks wrapper, so it takes the stacks
    * service to resolve where that is rather than reading settings itself.
@@ -103,6 +110,12 @@ export function createServiceContainer(): ServiceContainer {
   const volumes = new VolumesService(archive, projects)
   const releases = new ReleasesService(archive, projects, volumes, stacks)
 
+  // Tags are the second mutual dependency in this section, resolved the same
+  // way as filing: the tags service counts usage by reading the register, so
+  // the register gets the library back as a callback. See `TagResolver`.
+  const tags = new TagsService(archive, projects)
+  projects.setTagResolver(() => tags.listPlain())
+
   /*
    * Hoisted out of the literal because THE MUSTER holds both.
    *
@@ -122,6 +135,7 @@ export function createServiceContainer(): ServiceContainer {
     projects,
     stacks,
     volumes,
+    tags,
     releases,
     calendar: new CalendarService(archive),
     overlayServer,

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { DEFAULT_FOLDER_COLOUR, MAX_FOLDER_NAME_LENGTH, isHexColour } from './stacks.constants'
+import { TagSummarySchema } from './tags'
 import {
   MASTER_PICKS,
   PROJECT_CATEGORIES,
@@ -256,7 +257,18 @@ export const ProjectRecordSchema = z.object({
   folderName: z.string(),
   stage: ProjectStageSchema,
   stageHistory: z.array(StageEventSchema),
-  tags: z.array(z.string()),
+  /**
+   * Tags carried by this project, as ids into the tag library.
+   *
+   * Ids rather than names, so renaming a tag propagates everywhere at once
+   * instead of requiring every project that carries it to be rewritten. The
+   * cost is that a bare record cannot draw its own chips — the registry ships
+   * the library alongside, and the renderer resolves against it.
+   *
+   * An id whose tag has been deleted is dropped on the next read rather than
+   * kept as a dangling reference; see `TagsService.delete`.
+   */
+  tagIds: z.array(z.string()).default([]),
   favourite: z.boolean(),
   notes: z.array(ProjectNoteSchema),
 
@@ -337,7 +349,7 @@ export const ProjectSummarySchema = z.object({
   path: z.string(),
   name: z.string(),
   stage: ProjectStageSchema,
-  tags: z.array(z.string()),
+  tagIds: z.array(z.string()).default([]),
   favourite: z.boolean(),
   colour: z.string().default(DEFAULT_FOLDER_COLOUR),
   /** Which stacks folder holds this project, for the folder browser. */
@@ -448,7 +460,8 @@ export const ProjectPatchSchema = z.object({
   stage: ProjectStageSchema.optional(),
   /** Recorded against the stage change in the project's history. */
   stageNote: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+  /** Replaces the whole set, as every patch field does. Ids, not names. */
+  tagIds: z.array(z.string()).optional(),
   favourite: z.boolean().optional(),
   colour: ColourSchema.optional(),
   category: ProjectCategorySchema.optional(),
@@ -477,7 +490,14 @@ export const ProjectQuerySchema = z.object({
   /** Matched against name and tags. */
   search: z.string().optional(),
   stages: z.array(ProjectStageSchema).optional(),
-  tags: z.array(z.string()).optional(),
+  /**
+   * Tag ids, matched with AND — a project must carry every one of them.
+   *
+   * Deliberately not OR. The operator narrows a shelf by adding labels, and
+   * "140 plus Dark" meaning *more* results than "140" alone would be the
+   * opposite of what adding a second chip looks like it should do.
+   */
+  tagIds: z.array(z.string()).optional(),
   categories: z.array(ProjectCategorySchema).optional(),
   favouritesOnly: z.boolean().optional(),
   sort: ProjectSortModeSchema.optional(),
@@ -501,6 +521,21 @@ export const ProjectQuerySchema = z.object({
    */
   folderId: z.string().nullable().optional(),
   /**
+   * Restrict to a set of folders — a whole subtree, rather than one level.
+   *
+   * Set *instead of* `folderId`, never alongside it, and only when the
+   * register is being searched rather than browsed. Browsing a genre should
+   * list what is filed in that genre and not its sub-folders' contents;
+   * filtering by a tag inside one plainly means the whole shelf, and a genre
+   * the operator has subdivided would otherwise answer "nothing" with
+   * complete confidence.
+   *
+   * Empty is not the same as absent and is treated as absent, so a caller
+   * that computes a subtree and gets nothing back does not accidentally
+   * select the entire register.
+   */
+  folderIds: z.array(z.string()).optional(),
+  /**
    * Restrict to one volume. Same three states as `folderId`: `null` is the
    * LOOSE lens — everything belonging to no volume at all.
    */
@@ -512,8 +547,14 @@ export type ProjectQuery = z.infer<typeof ProjectQuerySchema>
 export const ProjectRegistrySchema = z.object({
   projects: z.array(ProjectSummarySchema),
   scan: ScanStateSchema,
-  /** Distinct tags across the registry, for the filter row. */
-  tags: z.array(z.string()),
+  /**
+   * The whole tag library, with usage counts, for the filter row and picker.
+   *
+   * Shipped in full rather than as the distinct set in use, because the picker
+   * has to offer tags nothing carries yet — a tag created and then removed
+   * from its last project must not silently vanish from the library.
+   */
+  tags: z.array(TagSummarySchema),
   /** Per-stage counts, including stages with none — the board needs empties. */
   stageCounts: z.record(ProjectStageSchema, z.number().int().min(0)),
   /** Per-category counts, for the chip row. */

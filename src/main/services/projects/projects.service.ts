@@ -24,6 +24,8 @@ import {
   getStage,
   requiresVolume
 } from '@shared/domain/projects.constants'
+import type { ArchiveTag, TagSummary } from '@shared/domain/tags'
+import { tagKey } from '@shared/domain/tags.constants'
 import { DEFAULT_FOLDER_COLOUR, normaliseHex } from '@shared/domain/stacks.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { TypedEmitter } from '@main/core/emitter'
@@ -82,6 +84,16 @@ export type FilingResolver = (
 ) => Promise<Map<string, string | null>>
 
 /**
+ * Hands over the tag library so the registry can resolve `tagIds`.
+ *
+ * Inverted into a callback for the same reason as `FilingResolver`, and it is
+ * the same cycle: the tags service reads the register through *this* service
+ * to count usage, so this one cannot import it back. The registry is the only
+ * place that needs the library — everything else takes ids at face value.
+ */
+export type TagResolver = () => Promise<ArchiveTag[]>
+
+/**
  * Owns the project registry: what exists on disk, what the operator has said
  * about it, and where each project sits in the production pipeline.
  *
@@ -97,6 +109,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   private lastProgressAt = 0
   private readonly thumbnails = new Map<string, { modifiedAt: number; dataUrl: string }>()
   private filingResolver: FilingResolver | null = null
+  private tagResolver: TagResolver | null = null
 
   constructor(private readonly archive: ArchiveService) {
     super()
@@ -109,6 +122,11 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   /** Wired by the container once the stacks service exists. See `FilingResolver`. */
   setFilingResolver(resolver: FilingResolver): void {
     this.filingResolver = resolver
+  }
+
+  /** Wired by the container once the tags service exists. See `TagResolver`. */
+  setTagResolver(resolver: TagResolver): void {
+    this.tagResolver = resolver
   }
 
   private get repository(): ProjectsRepository {
@@ -128,7 +146,13 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       PROJECT_CATEGORIES.map((category) => [category, 0])
     ) as Record<ProjectCategory, number>
 
-    const tags = new Set<string>()
+    /*
+     * Tag usage is tallied here rather than asked of the tags service, which
+     * would read the whole register a second time to count what this loop is
+     * already walking past. The library itself still comes from there — this
+     * service knows ids and nothing about names or colours.
+     */
+    const tagUsage = new Map<string, number>()
     let unfiledCount = 0
     let trashedCount = 0
 
@@ -145,19 +169,36 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       // column headers should not change as the operator types in the search.
       stageCounts[record.stage] += 1
       categoryCounts[record.category] += 1
-      for (const tag of record.tags) tags.add(tag)
+      for (const tagId of record.tagIds) {
+        tagUsage.set(tagId, (tagUsage.get(tagId) ?? 0) + 1)
+      }
       if (!record.missing && record.folderId === null) unfiledCount += 1
     }
 
+    const library = this.tagResolver ? await this.tagResolver() : []
+
+    /*
+     * Names, for the search box alone.
+     *
+     * Typing "dark" into the register should find projects tagged `Dark`, and
+     * a record holds only ids — so the lookup is built once here and handed to
+     * `matches`, rather than every predicate call resolving the library again.
+     */
+    const tagNames = new Map(library.map((tag) => [tag.id, tag.name]))
+
     const projects = sortSummaries(
-      records.filter((record) => matches(record, query)).map(toSummary),
+      records.filter((record) => matches(record, query, tagNames)).map(toSummary),
       query.sort ?? 'recent'
     )
+
+    const tags: TagSummary[] = library
+      .map((tag) => ({ ...tag, usageCount: tagUsage.get(tag.id) ?? 0 }))
+      .sort((a, b) => tagKey(a.name).localeCompare(tagKey(b.name)))
 
     return {
       projects,
       scan: this.scanState,
-      tags: [...tags].sort((a, b) => a.localeCompare(b)),
+      tags,
       stageCounts,
       categoryCounts,
       unfiledCount,
@@ -493,7 +534,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       id: randomUUID(),
       stage: 'idea',
       stageHistory: [{ stage: 'idea', at: now, note: 'Registered by scan' }],
-      tags: [],
+      tagIds: [],
       favourite: false,
       notes: [],
       category: 'single',
@@ -604,7 +645,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
     const current = await this.get(id)
     let next: ProjectRecord = { ...current, updatedAt: Date.now() }
 
-    if (patch.tags) next.tags = normaliseTags(patch.tags)
+    if (patch.tagIds) next.tagIds = normaliseTagIds(patch.tagIds)
     if (patch.favourite !== undefined) next.favourite = patch.favourite
     if (patch.colour !== undefined) next.colour = normaliseHex(patch.colour)
     if (patch.trackNumber !== undefined) next.trackNumber = patch.trackNumber
@@ -687,6 +728,40 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
               volumeId: null,
               trackNumber: null,
               category: 'single' as ProjectCategory,
+              updatedAt: now
+            }
+          }
+        }
+      }))
+    )
+
+    return affected.length
+  }
+
+  /**
+   * Strips a tag that is going away from everything carrying it.
+   *
+   * Called by the tags service rather than reaching into the collection
+   * itself, so projects keep one owner — the same arrangement as
+   * `detachFromVolume` directly above.
+   *
+   * Binned projects are swept as well, which is why this filters on `tagIds`
+   * alone and not on `trashedAt`. A project restored from the bin holding an
+   * id that resolves to nothing would be carrying an invisible label.
+   */
+  async detachTag(tagId: string): Promise<number> {
+    const repository = this.repository
+    const affected = (await repository.listAll()).filter((record) => record.tagIds.includes(tagId))
+    if (affected.length === 0) return 0
+
+    const now = Date.now()
+    await repository.writeMany(
+      affected.map((record) => ({
+        updateOne: {
+          filter: { _id: record.id },
+          update: {
+            $set: {
+              tagIds: record.tagIds.filter((id) => id !== tagId),
               updatedAt: now
             }
           }
@@ -1147,7 +1222,7 @@ function discoveredFields(
   | 'path'
   | 'stage'
   | 'stageHistory'
-  | 'tags'
+  | 'tagIds'
   | 'favourite'
   | 'notes'
   | 'category'
@@ -1208,17 +1283,26 @@ function findRelinked(
   })
 }
 
-function normaliseTags(tags: readonly string[]): string[] {
-  const seen = new Map<string, string>()
-  for (const raw of tags) {
-    const tag = raw.trim()
-    if (!tag) continue
-    // Case-insensitive dedupe, first spelling wins — so "Techno" and "techno"
-    // do not both end up in the filter row.
-    const key = tag.toLowerCase()
-    if (!seen.has(key)) seen.set(key, tag)
+/**
+ * Deduplicates a patch's tag ids, keeping the order they were given in.
+ *
+ * No case folding and no sorting any more, both of which the string version of
+ * this had to do: ids are opaque and already unique per name, and the chip row
+ * is ordered by the *library* so that it reads the same on every project
+ * rather than in whatever sequence each one happened to be labelled.
+ *
+ * Ids are not checked against the library here. A patch naming a tag that has
+ * since been deleted writes a dangling id, which the registry then resolves to
+ * nothing and simply does not draw — cheaper and less surprising than refusing
+ * an otherwise valid edit because of a tag the operator cannot see.
+ */
+function normaliseTagIds(tagIds: readonly string[]): string[] {
+  const seen = new Set<string>()
+  for (const raw of tagIds) {
+    const id = raw.trim()
+    if (id) seen.add(id)
   }
-  return [...seen.values()].sort((a, b) => a.localeCompare(b))
+  return [...seen]
 }
 
 function toSummary(record: ProjectRecord): ProjectSummary {
@@ -1230,7 +1314,7 @@ function toSummary(record: ProjectRecord): ProjectSummary {
     path: record.path,
     name: record.name,
     stage: record.stage,
-    tags: record.tags,
+    tagIds: record.tagIds,
     favourite: record.favourite,
     colour: record.colour,
     folderId: record.folderId,
@@ -1260,7 +1344,11 @@ function toSummary(record: ProjectRecord): ProjectSummary {
   }
 }
 
-function matches(record: ProjectRecord, query: ProjectQuery): boolean {
+function matches(
+  record: ProjectRecord,
+  query: ProjectQuery,
+  tagNames: ReadonlyMap<string, string>
+): boolean {
   /*
    * The bin is a separate place, not a filter.
    *
@@ -1275,12 +1363,19 @@ function matches(record: ProjectRecord, query: ProjectQuery): boolean {
   if (query.favouritesOnly && !record.favourite) return false
   if (query.stages?.length && !query.stages.includes(record.stage)) return false
   if (query.categories?.length && !query.categories.includes(record.category)) return false
-  if (query.tags?.length && !query.tags.every((tag) => record.tags.includes(tag))) return false
+  // AND, not OR: adding a second chip narrows the shelf. See `ProjectQuery`.
+  if (query.tagIds?.length && !query.tagIds.every((id) => record.tagIds.includes(id))) return false
 
   // Three states, not two: absent does not filter, `null` selects the unfiled.
   // `undefined` and `null` mean genuinely different things here, so both of
   // these test for the former explicitly rather than for truthiness.
   if (query.folderId !== undefined && record.folderId !== query.folderId) return false
+
+  // A subtree search. Mutually exclusive with `folderId` by convention rather
+  // than by refusal — both set would simply intersect, which is harmless.
+  if (query.folderIds?.length) {
+    if (record.folderId === null || !query.folderIds.includes(record.folderId)) return false
+  }
   if (query.volumeId !== undefined && record.volumeId !== query.volumeId) return false
 
   const search = query.search?.trim().toLowerCase()
@@ -1289,7 +1384,9 @@ function matches(record: ProjectRecord, query: ProjectQuery): boolean {
   const haystack = [
     record.name,
     record.folderName,
-    ...record.tags,
+    // Resolved rather than stored, so a renamed tag is searchable under its
+    // new name immediately and never under its old one.
+    ...record.tagIds.map((id) => tagNames.get(id) ?? ''),
     ...record.notes.map((note) => note.body)
   ]
     .join(' ')

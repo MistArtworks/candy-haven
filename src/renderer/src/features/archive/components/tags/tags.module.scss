@@ -1,0 +1,524 @@
+@use 'abstracts' as *;
+
+// TAGS — the operator's own labels, in the operator's own colours.
+//
+// Every colour here resolves through `--tag-colour`, set inline from the
+// stored hex, or through an existing `--ch-*` token. No literal hex appears in
+// this file. The licence for an out-of-palette colour is the same one granted
+// to folder swatches — see `SwatchPicker` for the argument that carried it.
+
+// -------------------------------------------------------------------- chip
+
+.chip {
+  --tag-colour: var(--ch-concrete-500);
+
+  display: inline-flex;
+  align-items: center;
+  // A tint and a rule, never a solid fill. Eight saturated blocks in a row
+  // would out-shout the one accent the surrounding panel is allowed.
+  background: color-mix(in srgb, var(--tag-colour) 12%, transparent);
+  border: $hairline solid color-mix(in srgb, var(--tag-colour) 40%, transparent);
+  max-width: 100%;
+
+  &[data-selected] {
+    background: color-mix(in srgb, var(--tag-colour) 26%, transparent);
+    border-color: var(--tag-colour);
+  }
+}
+
+.chipBody {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: 3px space(3);
+  background: none;
+  border: 0;
+  min-width: 0;
+  color: inherit;
+  font: inherit;
+
+  // The chip body is a button when the chip is clickable and a span when it
+  // is not, so the cursor has to be conditional on the element rather than
+  // set outright.
+  &:is(button) {
+    cursor: pointer;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.chipDot {
+  width: rem(7px);
+  height: rem(7px);
+  flex: none;
+  background: var(--tag-colour);
+}
+
+.chipName {
+  @include label(10px, 0.12em);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.chipCount {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.chipRemove {
+  @include label(12px, 0);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  padding: 0 space(2) 0 0;
+  line-height: 1;
+  cursor: pointer;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-accent-bright);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// ------------------------------------------------------------------ picker
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+// Actions only, pushed to the trailing edge — the panel above carries the
+// heading these used to sit beside.
+.pickerHead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: space(3);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.pickerBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  @include hairline(top, 0.08);
+  padding-top: space(3);
+}
+
+.search {
+  @include readout(11px);
+  width: 100%;
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid color-mix(in srgb, var(--ch-alabaster-300) 12%, transparent);
+  padding: space(2) space(3);
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.create {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  @include label(9px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-accent-dim);
+  border: $hairline solid color-mix(in srgb, var(--ch-accent-bright) 35%, transparent);
+  padding: space(2) space(3);
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// The create button and its colour strip share a line while there is room,
+// and wrap rather than squeeze on a narrow panel.
+.createRow {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+.create {
+  flex: 1 1 auto;
+  min-width: rem(180px);
+}
+
+.swatchRow {
+  display: flex;
+  align-items: center;
+  gap: space(1);
+}
+
+.swatch {
+  --tag-colour: var(--ch-concrete-500);
+
+  width: rem(16px);
+  height: rem(16px);
+  flex: none;
+  background: var(--tag-colour);
+  border: $hairline solid transparent;
+  cursor: pointer;
+  transition: transform $duration-fast $ease-out-expo;
+
+  &:hover {
+    @include motion-safe {
+      transform: translateY(-1px);
+    }
+  }
+
+  // Marked with an outset rule rather than a tick: the swatch is 16px and a
+  // glyph inside it would obscure the very thing being chosen.
+  &[data-selected] {
+    outline: $hairline solid var(--ch-text-primary);
+    outline-offset: 2px;
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.swatchAny {
+  @include label(8px, 0.12em);
+  height: rem(16px);
+  padding: 0 space(2);
+  color: var(--ch-text-faint);
+  background: none;
+  border: $hairline solid color-mix(in srgb, var(--ch-alabaster-300) 18%, transparent);
+  cursor: pointer;
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-text-secondary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.createName {
+  color: var(--ch-accent-bright);
+}
+
+.createWhere {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  margin-left: auto;
+}
+
+// The list is bounded and scrolls on its own. Unlike the stage history in the
+// dossier — which is rendered truncated precisely to avoid a second scrollbar
+// — this one is a search result: cutting it off would hide the very tag being
+// searched for, so the scrollbar is the lesser evil here.
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  max-height: rem(200px);
+  overflow-y: auto;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.groupLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.groupBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.option {
+  --tag-colour: var(--ch-concrete-500);
+
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: 3px space(3);
+  background: none;
+  border: $hairline solid color-mix(in srgb, var(--ch-alabaster-300) 10%, transparent);
+  cursor: pointer;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--tag-colour) 50%, transparent);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  // Already on this project. Left in the list rather than removed from it so
+  // the same click that added a tag takes it off again.
+  &[data-on] {
+    background: color-mix(in srgb, var(--tag-colour) 20%, transparent);
+    border-color: var(--tag-colour);
+  }
+}
+
+.optionDot {
+  width: rem(7px);
+  height: rem(7px);
+  flex: none;
+  background: var(--tag-colour);
+}
+
+.optionName {
+  @include label(10px, 0.12em);
+  color: var(--ch-text-primary);
+}
+
+.optionCount {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// The mark is a recognition cue, not the label — it inherits the text
+// colour and fades with it, so a row of actions never reads as a row of
+// icons with captions attached.
+.actionGlyph {
+  width: rem(12px);
+  height: rem(12px);
+  flex-shrink: 0;
+}
+
+.dialogGlyph {
+  width: rem(13px);
+  height: rem(13px);
+  flex-shrink: 0;
+  color: var(--ch-text-muted);
+}
+
+/*
+ * Row actions inside the tag library dialog — EDIT and DELETE on each tag.
+ *
+ * Deliberately matched to `.noteAction` in the dossier rather than to the
+ * `Button` primitive: these sit inside a list row, where a full button per
+ * row per tag would turn the library into a wall of chrome. MANAGE used to
+ * share this style and no longer does — it stands beside ADD TAG doing
+ * equally weighted work, so it takes the same primitive ADD TAG does.
+ */
+.linkAction {
+  @include label(9px, 0.14em);
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(1) space(2);
+  color: var(--ch-text-muted);
+  background: none;
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-gold);
+    background: rgba(182, 158, 124, 0.06);
+  }
+
+  &[data-danger]:hover {
+    color: var(--ch-accent-bright);
+    border-color: color-mix(in srgb, var(--ch-accent-bright) 45%, transparent);
+    background: var(--ch-accent-dim);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.empty {
+  @include readout(10px);
+  line-height: 1.6;
+  color: var(--ch-text-faint);
+
+  em {
+    color: var(--ch-text-secondary);
+    font-style: normal;
+  }
+}
+
+.hint {
+  @include readout(10px);
+  line-height: 1.6;
+  color: var(--ch-accent-bright);
+}
+
+// ------------------------------------------------------------------ dialog
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: z('modal');
+  background: var(--ch-surface-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: space(6);
+}
+
+.dialog {
+  width: min(rem(520px), 100%);
+  max-height: 100%;
+  background: var(--ch-surface);
+  @include hairline(all, 0.18);
+  box-shadow: var(--ch-shadow-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+.dialogHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+  padding: space(4) space(5);
+  @include hairline(bottom, 0.1);
+}
+
+.dialogTitle {
+  @include label(11px, 0.18em);
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  color: var(--ch-text-primary);
+}
+
+.dialogWhere {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  padding: space(4) space(5);
+  overflow-y: auto;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: space(2);
+  padding: space(4) space(5);
+  @include hairline(top, 0.1);
+}
+
+.dialogError {
+  @include readout(10px);
+  line-height: 1.6;
+  color: var(--ch-accent-bright);
+}
+
+.manageList {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.manageRow {
+  @include hairline(bottom, 0.06);
+  padding: space(3) 0;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.manageMain {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+}
+
+.manageDot {
+  --tag-colour: var(--ch-concrete-500);
+
+  width: rem(10px);
+  height: rem(10px);
+  flex: none;
+  background: var(--tag-colour);
+}
+
+.manageName {
+  @include label(11px, 0.12em);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.manageCount {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  margin-left: auto;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: space(2);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.confirmText {
+  @include readout(11px);
+  line-height: 1.6;
+  color: var(--ch-text-secondary);
+
+  strong {
+    color: var(--ch-text-primary);
+    font-weight: inherit;
+  }
+}

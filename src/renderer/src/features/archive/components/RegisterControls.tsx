@@ -14,13 +14,16 @@ import {
   ARCHIVE_LENS_LABEL,
   ARCHIVE_LENS_PURPOSE
 } from '@shared/domain/stacks.constants'
+import type { TagSummary } from '@shared/domain/tags'
 import { SearchInput } from '@renderer/components/primitives/Input'
+import { TagChip } from './tags/TagChip'
 import styles from './RegisterControls.module.scss'
 
 export interface RegisterFilters {
   search: string
   stages: ProjectStage[]
   categories: ProjectCategory[]
+  /** Tag *ids*, matched with AND. See `ProjectQuery.tagIds`. */
   tags: string[]
   favouritesOnly: boolean
   includeMissing: boolean
@@ -33,8 +36,21 @@ export interface RegisterControlsProps {
   /** Which lens is in scope: the folder tree, or one of the projections. */
   lens: ArchiveLens
   onLensChange: (lens: ArchiveLens) => void
-  /** Tags present across the registry. */
-  availableTags: readonly string[]
+  /**
+   * The whole tag library, in the operator's own colours.
+   *
+   * Every tag, not only those in use: a tag whose last project was untagged
+   * must stay reachable, or filtering would quietly delete it from the row.
+   */
+  availableTags: readonly TagSummary[]
+  /**
+   * Opens the tag library for renaming, recolouring and deleting.
+   *
+   * Sited here as well as in the dossier because this is where a tag's
+   * *shape* becomes a problem — a misspelling or two indistinguishable
+   * colours are noticed while filtering by them, not while applying them.
+   */
+  onManageTags?: () => void
   stageCounts: Record<ProjectStage, number>
   categoryCounts: Record<ProjectCategory, number>
   /** Count after filtering, shown against the registry total. */
@@ -82,6 +98,7 @@ export function RegisterControls({
   lens,
   onLensChange,
   availableTags,
+  onManageTags,
   stageCounts,
   categoryCounts,
   shown,
@@ -268,19 +285,29 @@ export function RegisterControls({
               {availableTags.length > 0 ? (
                 <>
                   <span className={styles.axisRule} aria-hidden="true" />
+                  {/*
+                    Coloured, unlike every other chip in this row.
+
+                    The stage and category chips are a fixed vocabulary the
+                    application defines and can style; tags are the operator's
+                    own, and their colour is the thing that makes a filtered
+                    shelf readable at a glance rather than word by word.
+                  */}
                   <div className={styles.chipRow} role="group" aria-label="Filter by tag">
                     {availableTags.map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        className={`${styles.filterChip} ${styles.tagChip}`}
-                        data-selected={filters.tags.includes(tag) || undefined}
-                        aria-pressed={filters.tags.includes(tag)}
-                        onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag) })}
-                      >
-                        {tag}
-                      </button>
+                      <TagChip
+                        key={tag.id}
+                        tag={tag}
+                        count
+                        selected={filters.tags.includes(tag.id)}
+                        onClick={() => onChange({ ...filters, tags: toggle(filters.tags, tag.id) })}
+                      />
                     ))}
+                    {onManageTags ? (
+                      <button type="button" className={styles.clear} onClick={onManageTags}>
+                        Manage
+                      </button>
+                    ) : null}
                   </div>
                 </>
               ) : null}

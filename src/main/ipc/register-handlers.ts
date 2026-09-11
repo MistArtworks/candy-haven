@@ -215,6 +215,13 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('volumes:delete', ({ id }) => services.volumes.remove(id))
   router.handle('volumes:reorder', ({ id, projectIds }) => services.volumes.reorder(id, projectIds))
 
+  // --------------------------------------------------------------------- tags
+
+  router.handle('tags:list', () => services.tags.list())
+  router.handle('tags:create', (draft) => services.tags.create(draft))
+  router.handle('tags:update', ({ id, patch }) => services.tags.update(id, patch))
+  router.handle('tags:delete', ({ id }) => services.tags.delete(id))
+
   // ----------------------------------------------------------------- releases
 
   router.handle('releases:list', () => services.releases.list())
