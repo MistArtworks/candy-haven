@@ -131,6 +131,7 @@ const api: CandyHavenApi = {
     scan: (force) => invoke('projects:scan', force ? { force } : undefined),
     cancelScan: () => invoke('projects:scan-cancel'),
     conform: () => invoke('projects:conform'),
+    browse: (path) => invoke('projects:browse', { path }),
     fileMany: (projectIds, folderIds, folderId) =>
       invoke('projects:file-many', { projectIds, folderIds, folderId }),
     setFinal: (id, sourcePath, name) => invoke('projects:set-final', { id, sourcePath, name }),

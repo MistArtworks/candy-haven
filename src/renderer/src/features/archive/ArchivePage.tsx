@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { useSettings } from '@renderer/hooks/useSettings'
 import { AnimatePresence, motion } from 'motion/react'
 import type {
   ProjectCategory,
@@ -47,6 +48,7 @@ import { ProjectListView } from './components/ProjectListView'
 import { ProjectBoardView } from './components/ProjectBoardView'
 import { ProjectDossier } from './components/ProjectDossier'
 import { ScanPanel } from './components/ScanPanel'
+import { MigrationView } from './components/MigrationView'
 import { TagManagerDialog } from './components/tags/TagManagerDialog'
 import { ArchiveGlyph, type ArchiveGlyphName } from './components/icons/ArchiveGlyph'
 import { ViewToggle } from './components/ViewToggle'
@@ -165,6 +167,24 @@ export function ArchivePage(): ReactNode {
    * putting it in history would make the back gesture step through highlights.
    */
   const queryClient = useQueryClient()
+  const settings = useSettings()
+
+  /*
+   * Where the migration view browses from.
+   *
+   * The configured source locations, plus the filing root — a project sitting
+   * loose in the filing root but outside the wrapper is unfiled in every sense
+   * that matters, and leaving it unreachable would mean the one place the
+   * ARCHIVE is pointed at could not be browsed.
+   */
+  const migrationRoots = useMemo(() => {
+    const workspace = settings?.workspace
+    if (!workspace) return []
+    return [
+      ...new Set([workspace.filingRoot, ...workspace.satelliteRoots].filter(Boolean))
+    ] as string[]
+  }, [settings?.workspace])
+
   const [tileSelection, setTileSelection] = useState<string | null>(null)
 
   /*
@@ -1151,6 +1171,27 @@ export function ArchivePage(): ReactNode {
   // ----------------------------------------------------------------- panels
 
   const mainPanel = (): ReactNode => {
+    /*
+     * UNFILED is the migration surface, not a second project list.
+     *
+     * The lens has always meant "everything found on disk that is not on a
+     * shelf yet", which is precisely the set of work migration is *about* — so
+     * rather than inventing a mode the operator has to go and find, the lens
+     * that already asks the question now shows the answer side by side with
+     * somewhere to put it.
+     */
+    if (lens === 'unfiled') {
+      return (
+        <MigrationView
+          roots={migrationRoots}
+          folders={folders}
+          projects={projects}
+          onFile={fileMany}
+          disabled={scanning || locked}
+        />
+      )
+    }
+
     if (lens === 'releases') {
       return (
         <ReleaseBoard

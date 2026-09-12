@@ -123,6 +123,10 @@ export interface CandyHavenApi {
     scanState(): Promise<ScanState>
     /** Stamps Live's project icon onto every project folder missing it. */
     conform(): Promise<{ stamped: number; total: number }>
+    /** Lists one directory on disk, for the migration view. */
+    browse(
+      path: string
+    ): Promise<{ path: string; name: string; isProject: boolean; hasChildren: boolean }[]>
     /** Files several projects and folders at once; reports what did not move. */
     fileMany(
       projectIds: string[],

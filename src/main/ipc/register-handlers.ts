@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { basename, extname } from 'node:path'
 import { is } from '@electron-toolkit/utils'
 import { APP_NAME } from '@shared/constants'
+import { browseDirectory } from '@main/services/projects/scanner'
 import { AUDIO_EXTENSIONS, MAX_AUDIO_BYTES } from '@shared/domain/auditorium'
 import type { RuntimeInfo } from '@shared/domain/system'
 import { AppError, ErrorCode } from '@main/core/errors'
@@ -170,6 +171,7 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.projects.runScan(settings.scanRoots, input?.force ?? false)
   )
   router.handle('projects:scan-cancel', () => services.projects.cancelScan())
+  router.handle('projects:browse', ({ path }) => browseDirectory(path))
   router.handle('projects:file-many', ({ projectIds, folderIds, folderId }) =>
     services.stacks.fileMany(projectIds, folderIds, folderId)
   )

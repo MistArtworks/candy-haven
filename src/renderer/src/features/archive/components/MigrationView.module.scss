@@ -1,0 +1,200 @@
+@use 'abstracts' as *;
+
+/*
+ * Two panes of equal weight.
+ *
+ * Not a browser with a sidebar: neither side is subordinate here. The operator
+ * is comparing where work is against where it should go, and giving one pane
+ * more room would say one of those questions mattered more.
+ */
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space(5);
+  align-items: start;
+}
+
+@include below('md') {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  min-width: 0;
+}
+
+.hint {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+.empty {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+// ---------------------------------------------------------------- the disk
+
+// Only drawn with more than one configured location, since a rail of one is a
+// label pretending to be a control.
+.roots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+}
+
+.root {
+  @include label(8px, 0.14em);
+  padding: space(1) space(3);
+  color: var(--ch-text-muted);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-accent);
+  }
+}
+
+.trail {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  min-width: 0;
+}
+
+.trailPath {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.up {
+  @include readout(11px);
+  line-height: 1;
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+  padding: space(1) space(2);
+  @include hairline(all, 0.12);
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+}
+
+.list,
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: rem(420px);
+  overflow-y: auto;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+  cursor: pointer;
+  min-width: 0;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  // A project is the thing that moves; a container is the thing you walk
+  // through. The two need to be distinguishable before the mark is read.
+  &[data-project] {
+    background: transparent;
+  }
+
+  &[data-marked] {
+    border-color: var(--ch-accent);
+    background: rgba(163, 43, 35, 0.1);
+  }
+}
+
+.entryMark {
+  width: rem(13px);
+  height: rem(13px);
+  flex-shrink: 0;
+  color: var(--ch-text-muted);
+}
+
+.entryName {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  flex: 1;
+  min-width: 0;
+  @include truncate;
+}
+
+.entryNote {
+  @include label(7px, 0.14em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+// ------------------------------------------------------------- the archive
+
+.shelf {
+  --folder-colour: var(--ch-concrete-500);
+
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  width: 100%;
+  padding: space(2) space(3);
+  text-align: left;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+  border-left: 2px solid var(--folder-colour);
+  transition:
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.05);
+  }
+
+  // Louder than hover on purpose: this is the moment the operator is about to
+  // move somebody's files, and the target should be unmistakable.
+  &[data-drop] {
+    border-color: var(--ch-accent);
+    background: rgba(163, 43, 35, 0.14);
+    box-shadow: 0 0 16px var(--ch-accent-glow);
+  }
+}
+
+.shelfKind {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+  width: rem(52px);
+}
+
+.shelfName {
+  @include label(10px, 0.12em);
+  color: var(--ch-text-secondary);
+  min-width: 0;
+  @include truncate;
+}

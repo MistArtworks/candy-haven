@@ -176,6 +176,25 @@ export const IPC_INVOKE = {
    * refusal — see `StacksService.fileMany`. A bulk move cannot be atomic
    * across a filesystem, so this reports honestly instead of pretending.
    */
+  /**
+   * Lists one directory, for the side-by-side migration view.
+   *
+   * Reads the filesystem directly rather than the register, which is the
+   * point: the left pane shows where work actually lives, including folders
+   * that hold no projects and have never been indexed.
+   */
+  'projects:browse': {
+    input: z.object({ path: z.string() }),
+    output: z.array(
+      z.object({
+        path: z.string(),
+        name: z.string(),
+        isProject: z.boolean(),
+        hasChildren: z.boolean()
+      })
+    )
+  },
+
   'projects:file-many': {
     input: z.object({
       projectIds: z.array(z.string()),

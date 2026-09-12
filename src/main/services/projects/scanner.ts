@@ -303,6 +303,66 @@ async function walk(directory: string, depth: number, context: WalkContext): Pro
   }
 }
 
+/** One directory as the migration view draws it. */
+export interface BrowsedEntry {
+  path: string
+  name: string
+  /** Holds a `.als` directly, so it is a project rather than a container. */
+  isProject: boolean
+  /** Holds sub-directories worth walking into. */
+  hasChildren: boolean
+}
+
+/**
+ * Lists one directory for the side-by-side migration view.
+ *
+ * One level, on demand, rather than reusing `scanRoots`. The view is a browser
+ * — the operator opens a folder, looks, and either goes deeper or drags
+ * something out of it — and walking an entire drive to render one pane would
+ * cost seconds for a list that is thrown away as soon as they navigate.
+ *
+ * The same ignore rules as the scan, so the two agree about what is even
+ * there: no `Backup`, no `Ableton Project Info`, and none of the app's own
+ * wrapper directories.
+ */
+export async function browseDirectory(directory: string): Promise<BrowsedEntry[]> {
+  const entries = await readdir(directory, { withFileTypes: true })
+  const directories = entries.filter(
+    (entry) => entry.isDirectory() && !IGNORED.has(entry.name.toLowerCase())
+  )
+
+  const results = await mapWithConcurrency(directories, 8, async (entry) => {
+    const path = join(directory, entry.name)
+
+    let children: Dirent[] = []
+    try {
+      children = await readdir(path, { withFileTypes: true })
+    } catch {
+      // Unreadable is reported as empty rather than fatal: one locked folder
+      // must not blank the pane it is sitting in.
+      return { path, name: entry.name, isProject: false, hasChildren: false }
+    }
+
+    return {
+      path,
+      name: entry.name,
+      isProject: children.some(
+        (child) => child.isFile() && classifyExtension(child.name) === 'set'
+      ),
+      hasChildren: children.some(
+        (child) => child.isDirectory() && !IGNORED.has(child.name.toLowerCase())
+      )
+    }
+  })
+
+  // Projects last: the containers are what the operator is navigating through,
+  // and burying them under a long list of projects makes the pane a dead end.
+  return results.sort((a, b) => {
+    if (a.isProject !== b.isProject) return a.isProject ? 1 : -1
+    return a.name.localeCompare(b.name)
+  })
+}
+
 // ----------------------------------------------------------------- inventory
 
 interface SetStats {
