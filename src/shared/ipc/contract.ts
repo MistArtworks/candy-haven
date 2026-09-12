@@ -190,7 +190,8 @@ export const IPC_INVOKE = {
         path: z.string(),
         name: z.string(),
         isProject: z.boolean(),
-        hasChildren: z.boolean()
+        projects: z.number().int().min(0),
+        children: z.number().int().min(0)
       })
     )
   },

@@ -126,7 +126,9 @@ export interface CandyHavenApi {
     /** Lists one directory on disk, for the migration view. */
     browse(
       path: string
-    ): Promise<{ path: string; name: string; isProject: boolean; hasChildren: boolean }[]>
+    ): Promise<
+      { path: string; name: string; isProject: boolean; projects: number; children: number }[]
+    >
     /** Files several projects and folders at once; reports what did not move. */
     fileMany(
       projectIds: string[],

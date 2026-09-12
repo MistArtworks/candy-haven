@@ -1,48 +1,62 @@
 @use 'abstracts' as *;
 
 /*
- * Two panes of equal weight.
+ * Two panes of equal weight, on the house grid.
  *
- * Not a browser with a sidebar: neither side is subordinate here. The operator
- * is comparing where work is against where it should go, and giving one pane
- * more room would say one of those questions mattered more.
+ * `repeat(6, minmax(0, 1fr))` with explicit span classes is the convention
+ * everywhere else in the app — see §7.4 — so this uses it rather than a local
+ * two-column rule that happens to look the same. Equal spans because neither
+ * side is subordinate: the operator is comparing where work is against where
+ * it should go, and giving one pane more room would say one of those questions
+ * mattered more.
+ *
+ * Neither pane is `focal`. One focal object per view, and this sits inside the
+ * department's focal panel already.
  */
 .split {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: space(5);
-  align-items: start;
-}
-
-@include below('md') {
-  .split {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  align-items: stretch;
 }
 
 .pane {
-  display: flex;
-  flex-direction: column;
-  gap: space(3);
+  grid-column: span 3;
   min-width: 0;
 }
 
-.hint {
-  font-size: rem(11px);
-  color: var(--ch-text-faint);
-  line-height: 1.6;
+@include below('md') {
+  .pane {
+    grid-column: span 6;
+  }
 }
 
-.empty {
-  font-size: rem(11px);
-  color: var(--ch-text-faint);
-  line-height: 1.6;
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  min-width: 0;
+  height: 100%;
 }
 
-// ---------------------------------------------------------------- the disk
+/*
+ * Both grids scroll inside their pane rather than growing it.
+ *
+ * A source folder of thirty projects would otherwise push the destination pane
+ * off the bottom of the page, and the whole point of the view is having both
+ * on screen at once.
+ */
+.scroll {
+  min-height: 0;
+  max-height: rem(460px);
+  overflow-y: auto;
+  padding-right: space(1);
+}
 
-// Only drawn with more than one configured location, since a rail of one is a
-// label pretending to be a control.
+// ------------------------------------------------------------------- roots
+
+// Only drawn with more than one configured location: a rail of one is a label
+// pretending to be a control.
 .roots {
   display: flex;
   flex-wrap: wrap;
@@ -55,9 +69,17 @@
   color: var(--ch-text-muted);
   background: var(--ch-surface-sunken);
   @include hairline(all, 0.12);
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
 
   &:hover {
     color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
   }
 
   &[data-selected] {
@@ -66,17 +88,18 @@
   }
 }
 
+// ------------------------------------------------------------------- trail
+
+// Deliberately the same shape as the shelves' own breadcrumb — a rule beneath,
+// the location on the left, a count on the right — so the two panes read as one
+// view rather than two widgets that happen to sit together.
 .trail {
   display: flex;
   align-items: center;
-  gap: space(2);
+  gap: space(3);
+  padding-bottom: space(2);
+  @include hairline(bottom, 0.1);
   min-width: 0;
-}
-
-.trailPath {
-  @include readout(9px);
-  color: var(--ch-text-faint);
-  @include truncate;
 }
 
 .up {
@@ -84,163 +107,83 @@
   line-height: 1;
   color: var(--ch-text-muted);
   flex-shrink: 0;
-  padding: space(1) space(2);
-  @include hairline(all, 0.12);
+  padding: 0 space(2);
 
   &:hover:not(:disabled) {
-    color: var(--ch-text-primary);
-    border-color: var(--ch-line-strong);
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
   }
 
   &:disabled {
-    opacity: 0.35;
+    opacity: 0.3;
     pointer-events: none;
   }
 }
 
-.list,
-.tree {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  max-height: rem(420px);
-  overflow-y: auto;
-}
-
-/*
- * The same entries as tiles.
- *
- * A grid rather than rows for the same reason the shelves have one: a folder
- * of thirty projects is a wall of near-identical names in a list, and the eye
- * reads position and shape faster than it reads text. The list stays the
- * default because it shows the most in the least height, which is what a pane
- * half the width of the page usually needs.
- *
- * Only the container changes. Every handler on an entry is written once and
- * applies in both, so a drag cannot behave differently depending on how the
- * operator happens to be looking at the folder.
- */
-.list[data-view='grid'] {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(rem(120px), 1fr));
-  gap: space(2);
-
-  .entry {
-    flex-direction: column;
-    align-items: center;
-    gap: space(2);
-    padding: space(3) space(2);
-    text-align: center;
-  }
-
-  .entryMark {
-    width: rem(28px);
-    height: rem(28px);
-  }
-
-  .entryName {
-    flex: none;
-    width: 100%;
-    text-align: center;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    // Two lines, then clipped. A project called "color bass idea hopefulluy
-    // Project" would otherwise set the height of every tile in its row.
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-}
-
-.entry {
-  display: flex;
-  align-items: center;
-  gap: space(2);
-  padding: space(2) space(3);
-  background: var(--ch-surface-sunken);
-  @include hairline(all, 0.08);
-  cursor: pointer;
-  min-width: 0;
-
-  &:hover {
-    border-color: var(--ch-line-strong);
-  }
-
-  // A project is the thing that moves; a container is the thing you walk
-  // through. The two need to be distinguishable before the mark is read.
-  &[data-project] {
-    background: transparent;
-  }
-
-  &[data-marked] {
-    border-color: var(--ch-accent);
-    background: rgba(163, 43, 35, 0.1);
-  }
-}
-
-.entryMark {
-  width: rem(13px);
-  height: rem(13px);
-  flex-shrink: 0;
-  color: var(--ch-text-muted);
-}
-
-.entryName {
-  @include readout(10px);
-  color: var(--ch-text-secondary);
+.trailPath {
+  @include readout(9px);
+  color: var(--ch-text-faint);
   flex: 1;
   min-width: 0;
   @include truncate;
 }
 
-.entryNote {
-  @include label(7px, 0.14em);
+.trailCount {
+  @include label(8px, 0.16em);
   color: var(--ch-text-faint);
   flex-shrink: 0;
 }
 
-// ------------------------------------------------------------- the archive
+// ------------------------------------------------------------------ drop here
 
-.shelf {
-  --folder-colour: var(--ch-concrete-500);
-
-  display: flex;
-  align-items: baseline;
-  gap: space(3);
-  width: 100%;
-  padding: space(2) space(3);
-  text-align: left;
-  background: var(--ch-surface-sunken);
-  @include hairline(all, 0.1);
-  border-left: 2px solid var(--folder-colour);
+/*
+ * Filing into the shelf currently open.
+ *
+ * Dashed until a drag is over it, which is the same language the "new folder"
+ * tile uses for a thing that does not exist yet — here, a placement that has
+ * not happened yet. It fills with the accent on hover because this is the
+ * moment the operator is about to move real directories.
+ */
+.here {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  text-align: center;
+  padding: space(3);
+  border: $hairline dashed var(--ch-line);
   transition:
+    color $duration-fast linear,
     border-color $duration-fast linear,
     background-color $duration-fast linear;
 
-  &:hover {
-    background: rgba(182, 158, 124, 0.05);
-  }
-
-  // Louder than hover on purpose: this is the moment the operator is about to
-  // move somebody's files, and the target should be unmistakable.
   &[data-drop] {
+    color: var(--ch-text-primary);
+    border-style: solid;
     border-color: var(--ch-accent);
     background: rgba(163, 43, 35, 0.14);
     box-shadow: 0 0 16px var(--ch-accent-glow);
   }
 }
 
-.shelfKind {
-  @include label(7px, 0.16em);
-  color: var(--ch-text-faint);
-  flex-shrink: 0;
-  width: rem(52px);
+// ------------------------------------------------------------------- empty
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(4) 0;
+  max-width: rem(520px);
 }
 
-.shelfName {
-  @include label(10px, 0.12em);
+.emptyTitle {
+  @include label(11px, 0.14em);
   color: var(--ch-text-secondary);
-  min-width: 0;
-  @include truncate;
+}
+
+.emptyHint {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
 }

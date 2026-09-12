@@ -107,6 +107,15 @@ export interface TileGridProps {
    * a list of one.
    */
   onDropMany?: (projectIds: readonly string[], folderIds: readonly string[], tileId: string) => void
+  /**
+   * Tiles as a grid of squares, or as a single column of rows.
+   *
+   * The tiles themselves are identical either way — same marks, same swatch,
+   * same drop and drag behaviour — and only the grid's own layout changes.
+   * That is the point: INTAKE offers both, and a drag must not behave
+   * differently depending on which the operator is looking at.
+   */
+  layout?: 'grid' | 'rows'
   /** Trailing "new …" tiles. Omitted draws none. */
   adds?: readonly AddTile[]
   /** Omitted leaves the corner mark passive rather than clickable. */
@@ -137,6 +146,7 @@ export function TileGrid({
   onDropMany,
   marked,
   onMark,
+  layout = 'grid',
   adds,
   onToggleFavourite,
   disabled = false
@@ -181,7 +191,13 @@ export function TileGrid({
     (tile.acceptsFolders === true && isDragging(event, FOLDER_DRAG_TYPE))
 
   return (
-    <motion.div className={styles.grid} variants={gridVariants} initial="initial" animate="animate">
+    <motion.div
+      className={styles.grid}
+      data-layout={layout}
+      variants={gridVariants}
+      initial="initial"
+      animate="animate"
+    >
       {tiles.map((tile) => (
         <motion.article
           key={tile.id}

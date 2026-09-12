@@ -312,8 +312,10 @@ export interface BrowsedEntry {
   name: string
   /** Holds a `.als` directly, so it is a project rather than a container. */
   isProject: boolean
-  /** Holds sub-directories worth walking into. */
-  hasChildren: boolean
+  /** Projects directly inside, for the tile's caption. */
+  projects: number
+  /** Sub-directories directly inside, for the tile's caption. */
+  children: number
 }
 
 /**
@@ -352,8 +354,28 @@ export async function browseDirectory(directory: string): Promise<BrowsedEntry[]
     } catch {
       // Unreadable is reported as empty rather than fatal: one locked folder
       // must not blank the pane it is sitting in.
-      return { path, name: entry.name, isProject: false, hasChildren: false }
+      return { path, name: entry.name, isProject: false, projects: 0, children: 0 }
     }
+
+    /*
+     * Counted rather than merely detected, so a tile can say what a shelf tile
+     * says — "3 projects · 1 folder" — instead of only whether it is worth
+     * clicking. The readdir is already done; counting what came back is free.
+     */
+    const inside = children.filter(
+      (child) => child.isDirectory() && !IGNORED.has(child.name.toLowerCase())
+    )
+
+    const holdsSets = await mapWithConcurrency(inside, 8, async (child) => {
+      try {
+        const grandchildren = await readdir(join(path, child.name), { withFileTypes: true })
+        return grandchildren.some((file) => file.isFile() && classifyExtension(file.name) === 'set')
+      } catch {
+        return false
+      }
+    })
+
+    const projects = holdsSets.filter(Boolean).length
 
     return {
       path,
@@ -361,9 +383,8 @@ export async function browseDirectory(directory: string): Promise<BrowsedEntry[]
       isProject: children.some(
         (child) => child.isFile() && classifyExtension(child.name) === 'set'
       ),
-      hasChildren: children.some(
-        (child) => child.isDirectory() && !IGNORED.has(child.name.toLowerCase())
-      )
+      projects,
+      children: inside.length - projects
     }
   })
 
