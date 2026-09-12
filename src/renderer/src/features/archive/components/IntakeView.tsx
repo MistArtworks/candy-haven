@@ -235,11 +235,39 @@ export function IntakeView({
     [folders, destination, projects]
   )
 
-  /** Projects filed at the level the destination pane is standing on. */
-  const filedHere = useMemo(
-    () => projects.filter((project) => project.folderId === destination).length,
+  /*
+   * What is already on the shelf being looked at.
+   *
+   * The pane drew only shelves, so a project filed successfully vanished from
+   * the view that filed it — INTAKE could put work somewhere and then show
+   * nothing there, which reads as the move having failed. The shelves lens has
+   * always drawn folders and projects in one grid; this does the same.
+   *
+   * Draggable, so a project put on the wrong shelf can be moved to the right
+   * one without leaving the view. Dropping it back on the pane it is already
+   * filed in is a no-op the service resolves.
+   */
+  const filed = useMemo<Tile[]>(
+    () =>
+      destination === null
+        ? []
+        : projects
+            .filter((project) => project.folderId === destination)
+            .map((project) => ({
+              id: project.id,
+              mark: 'project' as const,
+              name: project.name,
+              detail: getStage(project.stage).label,
+              colour: project.colour,
+              favourite: project.favourite,
+              title: project.path,
+              coverPath: project.coverPath,
+              draggableAs: 'project' as const
+            })),
     [projects, destination]
   )
+
+  const filedHere = filed.length
 
   const fileHere = (projectIds: readonly string[], folderId: string | null): void => {
     if (disabled || projectIds.length === 0) return
@@ -389,9 +417,9 @@ export function IntakeView({
             shown={filedHere}
           />
 
-          {shelves.length === 0 ? (
+          {shelves.length === 0 && filed.length === 0 ? (
             <Empty
-              title={destination === null ? 'No categories yet.' : 'Nothing on this shelf.'}
+              title={destination === null ? 'No categories yet.' : 'Nothing on this shelf yet.'}
               hint={
                 destination === null
                   ? 'Build the tree in STACKS first — a category, then the genres and artists inside it.'
@@ -400,10 +428,22 @@ export function IntakeView({
             />
           ) : (
             <div className={styles.scroll}>
+              {/*
+                Shelves first, then what is filed on this one — the same order
+                the STACKS lens draws, so walking into a genre shows the same
+                arrangement in both places.
+              */}
               <TileGrid
-                tiles={shelves}
-                onOpen={setDestination}
-                onDropMany={(projectIds, _folderIds, tileId) => fileHere(projectIds, tileId)}
+                tiles={[...shelves, ...filed]}
+                onOpen={(id) => {
+                  // Only a shelf opens. A project tile here is a readout of
+                  // what landed, and opening its dossier would take the
+                  // operator out of the view they are filing in.
+                  if (shelves.some((shelf) => shelf.id === id)) setDestination(id)
+                }}
+                onDropMany={(projectIds, _folderIds, tileId) => {
+                  if (shelves.some((shelf) => shelf.id === tileId)) fileHere(projectIds, tileId)
+                }}
                 disabled={disabled}
               />
             </div>
