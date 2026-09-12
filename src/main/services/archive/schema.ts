@@ -1,4 +1,5 @@
 import type { Db, IndexDescription } from 'mongodb'
+import { WRAPPER_DIRECTORY_NAME } from '@shared/domain/stacks.constants'
 import { getLogger } from '@main/core/logger'
 import { migrateToProjectsLayout } from '@main/services/stacks/layout-migration'
 
@@ -378,15 +379,39 @@ async function applyMigrations(db: Db): Promise<void> {
      * File to… picker instead, which is the honest answer when nothing in the
      * database knows where the project started.
      */
-    const result = await db.collection(Collections.Projects).updateMany(
-      {
-        originPath: { $exists: false },
-        path: { $not: { $regex: '\\Candy Haven\\', $options: 'i' } }
-      },
-      [{ $set: { originPath: '$path' } }]
-    )
+    /*
+     * Substring test rather than a regex.
+     *
+     * The first version matched on `$regex` and had to express a Windows path
+     * separator through two layers of escaping — TypeScript's string literal,
+     * then the regex engine. It reached the driver as a pattern ending in a
+     * lone backslash, which is not a regex at all, and took the whole boot
+     * sequence down with it. `$indexOfCP` compares plain strings and has
+     * nothing to escape.
+     *
+     * Both sides are lowercased because these are Windows paths: the same
+     * directory can be stored with different casing than it was walked with.
+     */
+    // Built from a character code rather than written as an escape. A path
+    // separator in this file has to survive a TypeScript string literal on its
+    // way to the driver, and getting that wrong is what broke the previous
+    // version — there is nothing to get wrong if no backslash is typed.
+    const separator = String.fromCharCode(92)
+    const marker = separator + WRAPPER_DIRECTORY_NAME.toLowerCase() + separator
 
-    logger.info(`Recorded an origin for ${result.modifiedCount} unfiled projects`)
+    const result = await db
+      .collection(Collections.Projects)
+      .updateMany({ originPath: { $exists: false } }, [
+        {
+          $set: {
+            originPath: {
+              $cond: [{ $gte: [{ $indexOfCP: [{ $toLower: '$path' }, marker] }, 0] }, null, '$path']
+            }
+          }
+        }
+      ])
+
+    logger.info(`Recorded an origin for ${result.modifiedCount} projects`)
   }
 
   if (from < 7) {

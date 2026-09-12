@@ -2,7 +2,8 @@ import { dirname, join } from 'node:path'
 import type { Db } from 'mongodb'
 import {
   PROJECTS_DIRECTORY_NAME,
-  RELEASE_MASTERED_TRACKS_DIRECTORY_NAME
+  RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
+  WRAPPER_DIRECTORY_NAME
 } from '@shared/domain/stacks.constants'
 import { Collections } from '@main/services/archive/schema'
 import { getLogger } from '@main/core/logger'
@@ -49,9 +50,13 @@ interface FolderDocument {
  * Disk first, database second, as everywhere else in this service: a move that
  * fails leaves the records describing where the directories actually still are.
  *
- * Idempotent by inspection rather than by flag. If every live top-level folder
- * already sits inside `Projects`, there is nothing to do and this returns
- * without touching anything — so a half-finished run can simply be run again.
+ * Idempotent by inspection rather than by flag: if every live top-level folder
+ * already sits directly inside `Projects`, this returns without touching
+ * anything. That matters more than it sounds — the schema version is only
+ * recorded once the *whole* migration chain succeeds, so a later step failing
+ * means this one runs again on the next launch. It did exactly that during
+ * development, and the first version of it was not in fact idempotent; see the
+ * note on deriving the wrapper below.
  */
 export async function migrateToProjectsLayout(db: Db): Promise<void> {
   const folders = db.collection<FolderDocument>(Collections.ArchiveFolders)
@@ -68,17 +73,37 @@ export async function migrateToProjectsLayout(db: Db): Promise<void> {
   }
 
   /*
-   * The wrapper is derived from the records rather than from settings.
+   * The wrapper is the ancestor actually *named* `Candy Haven`.
    *
-   * A top-level folder sat directly inside the wrapper by definition, so its
-   * parent directory *is* the wrapper. Reading it from here means the migration
-   * does not depend on the settings service having hydrated, and works on an
-   * archive whose filing root has since been re-pointed.
+   * The first version of this took `dirname(roots[0].path)`, reasoning that a
+   * top-level folder sat directly inside the wrapper by definition. True before
+   * this migration has run, and false immediately after: a top-level folder
+   * then sits inside `Projects`, so a second run derived the wrapper as
+   * `Candy Haven\Projects`, built `Projects\Projects` beneath it, and filed
+   * the category it had just made into a fresh one. The claim of idempotency
+   * was wrong in exactly the case idempotency is for — a re-run after an
+   * interrupted first attempt.
+   *
+   * Naming the segment cannot drift that way: however deep a folder has been
+   * pushed, the wrapper is the `Candy Haven` in its path. Reading it from the
+   * records rather than from settings is still deliberate, so this does not
+   * depend on the settings service having hydrated and works on an archive
+   * whose filing root has since been re-pointed.
    */
-  const wrapper = dirname(roots[0].path)
+  const wrapper = wrapperOf(roots[0].path)
+
+  if (!wrapper) {
+    logger.warn(`Cannot locate the wrapper from ${roots[0].path}; leaving the tree alone`)
+    return
+  }
+
   const projectsRoot = join(wrapper, PROJECTS_DIRECTORY_NAME)
 
-  const stranded = roots.filter((folder) => dirname(folder.path) !== projectsRoot)
+  // Case-insensitive: Windows, and a path stored with different casing than the
+  // one derived here is the same directory.
+  const stranded = roots.filter(
+    (folder) => dirname(folder.path).toLowerCase() !== projectsRoot.toLowerCase()
+  )
   if (stranded.length === 0) {
     logger.info('Shelves are already inside Projects')
     return
@@ -178,4 +203,20 @@ export async function migrateToProjectsLayout(db: Db): Promise<void> {
 /** Escapes a literal path for use inside a Mongo `$regex`. */
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * The `Candy Haven` ancestor of a path, or null if there is not one.
+ *
+ * Matched case-insensitively: these are Windows paths, and the same directory
+ * can be stored with different casing than it was walked with.
+ */
+function wrapperOf(path: string): string | null {
+  const separator = String.fromCharCode(92)
+  const parts = path.split(separator)
+  const index = parts.findIndex(
+    (part) => part.toLowerCase() === WRAPPER_DIRECTORY_NAME.toLowerCase()
+  )
+
+  return index < 0 ? null : parts.slice(0, index + 1).join(separator)
 }
