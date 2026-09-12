@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import type { AudioMark } from '@shared/domain/projects'
 import {
   AUDIO_MARKS,
@@ -93,6 +93,45 @@ export function MixAndMaster({ project, mutations }: MixAndMasterProps): ReactNo
     await window.candy.auditorium.announce(path)
   }
 
+  /*
+   * One click reveals, two play — which needs the first to wait for the second.
+   *
+   * A double click fires two `click` events before `dblclick`, so a reveal
+   * wired straight to `onClick` would open Explorer *and then* the listening
+   * room on every double click. The single-click action is therefore deferred
+   * by the system's double-click interval and cancelled if the second click
+   * arrives.
+   *
+   * 250ms rather than a shorter guess: Windows' default is 500ms and the
+   * platform offers no way to read it here, so this is a compromise between
+   * feeling responsive and not firing under a deliberate double click. The
+   * cost of being wrong is an Explorer window, not a lost action.
+   */
+  const pending = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const cancelPending = (): void => {
+    if (pending.current === null) return
+    clearTimeout(pending.current)
+    pending.current = null
+  }
+
+  // A timer that outlives the panel would reveal a folder for a dossier the
+  // operator has already closed.
+  useEffect(() => cancelPending, [])
+
+  const onSingleClick = (path: string): void => {
+    cancelPending()
+    pending.current = setTimeout(() => {
+      pending.current = null
+      void window.candy.shell.reveal(path)
+    }, 250)
+  }
+
+  const onDoubleClick = (path: string): void => {
+    cancelPending()
+    void play(path)
+  }
+
   return (
     <Panel
       label="Mix and master"
@@ -119,8 +158,9 @@ export function MixAndMaster({ project, mutations }: MixAndMasterProps): ReactNo
             className={styles.file}
             data-chosen
             data-playable
-            onDoubleClick={() => void play(project.masters.final as string)}
-            title={`${project.masters.final} — double-click to play`}
+            onClick={() => onSingleClick(project.masters.final as string)}
+            onDoubleClick={() => onDoubleClick(project.masters.final as string)}
+            title={`${project.masters.final} — click to show, double-click to play`}
           >
             <span className={styles.fileName}>{finalName}</span>
             <span className={styles.fileMeta}>RELEASE MASTERED TRACKS</span>
@@ -162,8 +202,9 @@ export function MixAndMaster({ project, mutations }: MixAndMasterProps): ReactNo
                   // fire every time the operator went for a mark and missed by
                   // a few pixels.
                   data-playable
-                  onDoubleClick={() => void play(file.path)}
-                  title={`${file.path} — double-click to play`}
+                  onClick={() => onSingleClick(file.path)}
+                  onDoubleClick={() => onDoubleClick(file.path)}
+                  title={`${file.path} — click to show, double-click to play`}
                 >
                   <span className={styles.fileName}>{file.relativePath}</span>
                   <span className={styles.fileMeta}>{formatBytes(file.sizeBytes)}</span>
@@ -179,6 +220,12 @@ export function MixAndMaster({ project, mutations }: MixAndMasterProps): ReactNo
                     className={styles.marks}
                     role="radiogroup"
                     aria-label={`What ${file.relativePath} is`}
+                    // The switch sits inside a row that reveals on click and
+                    // plays on double click. Without this, marking a bounce
+                    // would also open Explorer — and marking twice quickly
+                    // would play it.
+                    onClick={(event) => event.stopPropagation()}
+                    onDoubleClick={(event) => event.stopPropagation()}
                   >
                     {AUDIO_MARKS.map((entry) => (
                       <button
