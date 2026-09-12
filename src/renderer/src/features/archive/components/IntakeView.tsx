@@ -224,9 +224,27 @@ export function IntakeView({
     setMarked(new Set())
   }
 
+  /*
+   * The whole pane is the drop target for the shelf currently open.
+   *
+   * It was a strip along the foot reading FILE INTO <shelf>, which made the
+   * commonest action in the view — put this on the shelf I am standing in —
+   * the one needing the most aim. The pane *is* the destination; asking the
+   * operator to hit a band inside it was asking them to hit the label rather
+   * than the thing it labelled.
+   *
+   * Shelf tiles still win over the pane beneath them: `TileGrid` stops a tile
+   * drop from bubbling, so aiming at a shelf files into that shelf and aiming
+   * anywhere else files into the open one.
+   *
+   * Not offered at the root, where no shelf is open — "file into all
+   * categories" would mean unfiling, which is where these projects already are.
+   */
+  const acceptsDrop = !disabled && destination !== null
+
   const onDropIntoOpen = (event: DragEvent<HTMLElement>): void => {
     setDropping(false)
-    if (disabled || destination === null) return
+    if (!acceptsDrop) return
     if (!isDragging(event, PROJECT_DRAG_TYPE)) return
 
     event.preventDefault()
@@ -307,7 +325,20 @@ export function IntakeView({
         aside={trail.at(-1)?.name.toUpperCase() ?? 'ALL CATEGORIES'}
         flush
       >
-        <div className={styles.body}>
+        <div
+          className={styles.body}
+          data-drop={dropping || undefined}
+          onDragOver={(event) => {
+            if (!acceptsDrop || !isDragging(event, PROJECT_DRAG_TYPE)) return
+            event.preventDefault()
+            event.dataTransfer.dropEffect = 'move'
+            setDropping(true)
+          }}
+          onDragLeave={(event) => {
+            if (hasLeftElement(event)) setDropping(false)
+          }}
+          onDrop={onDropIntoOpen}
+        >
           {/*
             The same breadcrumb the shelves use, and for the same reason: every
             crumb is a drop target, so a project can be filed at any level of
@@ -341,27 +372,15 @@ export function IntakeView({
           )}
 
           {/*
-            The open shelf is a drop target in its own right, which is what
-            makes "file into the folder I am standing in" possible when it has
-            no sub-shelves to aim at.
+            Says what releasing will do, and is not itself a target —
+            `pointer-events: none`, so it cannot intercept the drop it is
+            describing. Drawn only while a drag is over the pane: standing
+            instructions are chrome, where this is an answer.
           */}
-          {destination !== null ? (
-            <div
-              className={styles.here}
-              data-drop={dropping || undefined}
-              onDragOver={(event) => {
-                if (disabled || !isDragging(event, PROJECT_DRAG_TYPE)) return
-                event.preventDefault()
-                event.dataTransfer.dropEffect = 'move'
-                setDropping(true)
-              }}
-              onDragLeave={(event) => {
-                if (hasLeftElement(event)) setDropping(false)
-              }}
-              onDrop={onDropIntoOpen}
-            >
+          {dropping ? (
+            <p className={styles.dropHint} aria-hidden="true">
               File into {trail.at(-1)?.name}
-            </div>
+            </p>
           ) : null}
         </div>
       </Panel>

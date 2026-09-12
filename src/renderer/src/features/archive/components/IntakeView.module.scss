@@ -48,12 +48,17 @@
   min-width: 0;
   height: 100%;
   padding-bottom: space(5);
+  // Anchors `.dropHint`, and the transition is what stops the fill snapping on
+  // as the pointer crosses the boundary.
+  position: relative;
+  transition:
+    background-color $duration-fast linear,
+    box-shadow $duration-fast linear;
 }
 
 .roots,
 .trail,
-.empty,
-.here {
+.empty {
   margin-left: space(5);
   margin-right: space(5);
 }
@@ -167,31 +172,37 @@
 // ------------------------------------------------------------------ drop here
 
 /*
- * Filing into the shelf currently open.
+ * The whole pane lights up, rather than a band inside it.
  *
- * Dashed until a drag is over it, which is the same language the "new folder"
- * tile uses for a thing that does not exist yet — here, a placement that has
- * not happened yet. It fills with the accent on hover because this is the
- * moment the operator is about to move real directories.
+ * An inset ring rather than a border, so the pane does not change size at the
+ * moment the operator is trying to hit it — a target that moves when you
+ * approach it is the one thing a drop target must never do.
  */
-.here {
-  @include label(9px, 0.16em);
-  color: var(--ch-text-muted);
-  text-align: center;
-  padding: space(3);
-  border: $hairline dashed var(--ch-line);
-  transition:
-    color $duration-fast linear,
-    border-color $duration-fast linear,
-    background-color $duration-fast linear;
+.body[data-drop] {
+  background: rgba(163, 43, 35, 0.07);
+  box-shadow: inset 0 0 0 $hairline var(--ch-accent);
+}
 
-  &[data-drop] {
-    color: var(--ch-text-primary);
-    border-style: solid;
-    border-color: var(--ch-accent);
-    background: rgba(163, 43, 35, 0.14);
-    box-shadow: 0 0 16px var(--ch-accent-glow);
-  }
+/*
+ * What releasing here will do.
+ *
+ * Pinned to the foot of the pane and out of the flow, so appearing mid-drag
+ * cannot reflow the tiles the operator is aiming past. `pointer-events: none`
+ * is the load-bearing part: a caption that swallowed the drop it describes
+ * would be the same fault as the strip this replaced.
+ */
+.dropHint {
+  position: absolute;
+  left: space(5);
+  right: space(5);
+  bottom: space(4);
+  pointer-events: none;
+  @include label(9px, 0.16em);
+  color: var(--ch-text-primary);
+  text-align: center;
+  padding: space(2);
+  background: var(--ch-accent-dim);
+  border: $hairline solid var(--ch-accent);
 }
 
 // ------------------------------------------------------------------- empty
