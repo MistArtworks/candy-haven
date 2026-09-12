@@ -636,6 +636,40 @@ precedent for exactly this kind of field rewrite at v3 (`tags` → `tagIds`). A
 v4 step must rewrite `stage` and every `stageHistory[].stage` off the removed
 values — presumably onto `ready` — **before** the enum shrinks. See Q22.
 
+### 3.7 Audio selection follows the stage — refinement, 2026-09-12
+
+> "Once we are on mix or master stage, we get a button or section in OVERVIEW
+> where it is represented as icons of all the audios in the project folder. We
+> select the mix and masters files at their respective stages. And when we do
+> ready for release, that's when we select the final master or mix from the
+> things we have selected, and then it is moved to the final master directory
+> (with file rename before moving)."
+
+**This revises §3.5 and reverses D13.** As built, the three buckets live on the
+FILES tab, are available at every stage, and the final may be any audio file in
+the project. The proposal ties the whole thing to the pipeline:
+
+| | As built | Proposed |
+| --- | --- | --- |
+| Where | FILES tab, panel 01 | OVERVIEW, at MIX and MASTER stages |
+| What is marked | WIPs, masters | Mixes at MIX, masters at MASTER |
+| Drawn as | Rows with mark buttons | Icons of the project's audio |
+| The final | Any audio file (D13) | Chosen **from what was marked** |
+| When the final is set | Any time; gates TRACK READY | On moving to TRACK READY |
+| The move + rename | Already as described | Unchanged |
+
+The shape of it is coherent: the operator marks what they produced at the stage
+they produced it, and the last step chooses among those rather than starting
+from the whole folder again. It also answers the question that prompted it —
+"where do I select my final mix and master" — by putting the selection on the
+tab the operator is already looking at, at the moment the stage makes it
+relevant.
+
+Open: whether the buckets are renamed to match the stages, whether the final
+may come from mixes as well as masters, whether the picker is part of the
+TRACK READY transition or merely gates it, and whether the section is hidden
+before MIX. See Q24–Q27.
+
 ---
 
 ## Open questions
