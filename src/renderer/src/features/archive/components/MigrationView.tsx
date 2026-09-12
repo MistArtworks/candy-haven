@@ -8,6 +8,48 @@ import { ArchiveGlyph } from './icons/ArchiveGlyph'
 import { PROJECT_DRAG_TYPE, beginDrag, hasLeftElement, isDragging, readDragAll } from './stacks/dnd'
 import styles from './MigrationView.module.scss'
 
+const SEPARATOR = String.fromCharCode(92)
+
+/**
+ * Whether `path` is `root` or sits beneath it.
+ *
+ * Compared on a segment boundary rather than with a bare `startsWith`, which
+ * would call `C:\MusicOld` a child of `C:\Music` and light up the wrong tab.
+ */
+function isUnder(path: string | null, root: string): boolean {
+  if (!path) return false
+  const target = path.toLowerCase()
+  const parent = root.toLowerCase().replace(/\+$/, '')
+  return target === parent || target.startsWith(parent + SEPARATOR)
+}
+
+/** The shortest trailing segments that tell each root apart from the others. */
+function labelRoots(roots: readonly string[]): Record<string, string> {
+  const parts = new Map(roots.map((root) => [root, root.split(SEPARATOR).filter(Boolean)]))
+  const labels: Record<string, string> = {}
+
+  for (const root of roots) {
+    const own = parts.get(root) as string[]
+
+    for (let depth = 1; depth <= own.length; depth += 1) {
+      const candidate = own.slice(-depth).join(SEPARATOR)
+      const clashes = roots.some(
+        (other) =>
+          other !== root &&
+          (parts.get(other) as string[]).slice(-depth).join(SEPARATOR).toLowerCase() ===
+            candidate.toLowerCase()
+      )
+
+      if (!clashes || depth === own.length) {
+        labels[root] = candidate
+        break
+      }
+    }
+  }
+
+  return labels
+}
+
 interface BrowsedEntry {
   path: string
   name: string
@@ -100,6 +142,19 @@ export function MigrationView({
   const isRoot =
     source !== null && roots.some((root) => root.toLowerCase() === source.toLowerCase())
 
+  /*
+   * Labels short enough to read, long enough to tell apart.
+   *
+   * The last segment alone is usually the whole answer. But two configured
+   * locations very often end in the same word — a filing root at
+   * `C:\Users\hanee\Music` beside a source at `C:\Users\hanee\Desktop\Music`
+   * gave two tabs both saying MUSIC, which is worse than no label: it reads as
+   * a duplicate rather than a choice. Each label grows by one more trailing
+   * segment until it is unique, so only the ones that actually collide get
+   * longer.
+   */
+  const labels = labelRoots(roots)
+
   const up = (): void => {
     if (!source || isRoot) return
     setSource(source.slice(0, source.lastIndexOf('\\')) || null)
@@ -132,10 +187,11 @@ export function MigrationView({
                   key={root}
                   type="button"
                   className={styles.root}
-                  data-selected={source?.startsWith(root) || undefined}
+                  data-selected={isUnder(source, root) || undefined}
+                  title={root}
                   onClick={() => setSource(root)}
                 >
-                  {root.split('\\').filter(Boolean).pop() ?? root}
+                  {labels[root]}
                 </button>
               ))}
             </div>

@@ -7,7 +7,10 @@ import {
   SCAN_MAX_DEPTH,
   classifyExtension
 } from '@shared/domain/projects.constants'
-import { RESERVED_WRAPPER_DIRECTORIES } from '@shared/domain/stacks.constants'
+import {
+  RESERVED_WRAPPER_DIRECTORIES,
+  WRAPPER_DIRECTORY_NAME
+} from '@shared/domain/stacks.constants'
 import { mapWithConcurrency } from '@main/core/async'
 import { getLogger } from '@main/core/logger'
 import { readAbletonSet, reverifySamples } from './als-reader'
@@ -324,11 +327,20 @@ export interface BrowsedEntry {
  * The same ignore rules as the scan, so the two agree about what is even
  * there: no `Backup`, no `Ableton Project Info`, and none of the app's own
  * wrapper directories.
+ *
+ * The wrapper itself is hidden too, which the scan does *not* do — the scan has
+ * to walk it, because everything filed lives inside it. This is the source side
+ * of a migration, and the archive is where work goes rather than where it comes
+ * from. Listing it invites the operator to browse into their own shelves
+ * looking for something to bring in.
  */
 export async function browseDirectory(directory: string): Promise<BrowsedEntry[]> {
   const entries = await readdir(directory, { withFileTypes: true })
   const directories = entries.filter(
-    (entry) => entry.isDirectory() && !IGNORED.has(entry.name.toLowerCase())
+    (entry) =>
+      entry.isDirectory() &&
+      !IGNORED.has(entry.name.toLowerCase()) &&
+      entry.name.toLowerCase() !== WRAPPER_DIRECTORY_NAME.toLowerCase()
   )
 
   const results = await mapWithConcurrency(directories, 8, async (entry) => {
