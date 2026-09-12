@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { evaluateReadiness, getStage } from '@shared/domain/projects.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { TextArea } from '@renderer/components/primitives/Input'
@@ -48,6 +49,12 @@ export function DossierOverview({
   const [editing, setEditing] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
   const [managing, setManaging] = useState(false)
+
+  /** What the final stage is still waiting on. Empty once the project is ready. */
+  const outstanding = useMemo(
+    () => evaluateReadiness(project).filter((item) => !item.met),
+    [project]
+  )
 
   /*
    * The shelf this project is filed on, by name.
@@ -123,6 +130,33 @@ export function DossierOverview({
         className={styles.span6}
       >
         <StageStrip stage={project.stage} busy={mutations.patch.isPending} onChange={setStage} />
+
+        {/*
+          What the last stage is still waiting on, named before it is needed.
+          
+          The gate already explains itself — pressing TRACK READY without a
+          final master returns "pick one in the FILES tab". But that only
+          teaches the operator who *tries*, and the honest question they ask
+          first is "where do I choose it". The FILES tab's 2/3 badge was the
+          only standing answer, and a fraction is not an instruction.
+          
+          Hidden once everything is met: a checklist of satisfied requirements
+          is a report nobody asked for, and this panel is about where the work
+          has got to rather than about itself.
+        */}
+        {outstanding.length > 0 ? (
+          <div className={styles.readiness}>
+            <span className={styles.readinessLabel}>{getStage('ready').label} still needs</span>
+            <ul className={styles.readinessList}>
+              {outstanding.map((item) => (
+                <li key={item.id} className={styles.readinessItem}>
+                  <span className={styles.readinessName}>{item.label}</span>
+                  {item.hint ? <span className={styles.readinessHint}>{item.hint}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </Panel>
 
       <Panel

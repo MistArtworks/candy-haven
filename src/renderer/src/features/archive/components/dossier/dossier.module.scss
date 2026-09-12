@@ -239,6 +239,57 @@ $list-cap: min(#{rem(280px)}, 24vh);
   }
 }
 
+// -------------------------------------------------------------- readiness
+
+/*
+ * What the last stage is still waiting on.
+ *
+ * Sits under the strip it explains, separated by a rule rather than a box: it
+ * is a footnote to the stages, not a second thing in the panel. Quiet on
+ * purpose — this is information the operator needs when they go looking, and
+ * an alert for work that is simply unfinished would cry wolf on every project
+ * that is not finished, which is most of them.
+ */
+.readiness {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin-top: space(4);
+  padding-top: space(3);
+  @include hairline(top, 0.08);
+}
+
+.readinessLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.readinessList {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.readinessItem {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+.readinessName {
+  @include label(9px, 0.14em);
+  color: var(--ch-text-secondary);
+  flex-shrink: 0;
+}
+
+.readinessHint {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+  min-width: 0;
+}
+
 // ------------------------------------------------------------------- chips
 
 .tokens {
