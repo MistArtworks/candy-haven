@@ -200,7 +200,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 7
+const SCHEMA_VERSION = 8
 
 /**
  * Collections dropped by the version 2 migration.
@@ -452,6 +452,29 @@ async function applyMigrations(db: Db): Promise<void> {
       ])
 
     logger.info(`Moved ${result.modifiedCount} projects onto audio marks`)
+  }
+
+  if (from < 8) {
+    logger.warn(`Migrating archive schema ${from} -> 8: mixes are marked separately`)
+
+    /*
+     * A third bucket, added empty.
+     *
+     * Nothing is reclassified. A file already marked a master was marked as one
+     * deliberately, and a WIP likewise; guessing which of them the operator
+     * would now call a mix would be inventing a decision they never made. The
+     * bucket starts empty and fills as they mark at the MIX stage.
+     *
+     * `MasterSelectionSchema.mixes` defaults, so this is belt and braces — but
+     * writing the field means a record that is read, patched and written back
+     * carries it explicitly rather than relying on the default surviving every
+     * round trip.
+     */
+    const result = await db
+      .collection(Collections.Projects)
+      .updateMany({ 'masters.mixes': { $exists: false } }, { $set: { 'masters.mixes': [] } })
+
+    logger.info(`Added a mixes bucket to ${result.modifiedCount} projects`)
   }
 
   await collection.updateOne(

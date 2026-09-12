@@ -963,3 +963,25 @@ Answered by the operator on 2026-09-11.
   archive stamping whatever is missing — which is what brings projects created
   before this change (e.g. `Test project Project`) up to standard. Idempotent, so
   both paths are safe to re-run.
+
+- **D26 (Q24) — Three buckets: WIPS, MIXES, MASTERS.** A rough bounce and a
+  considered mix stay distinguishable. MIXES is marked at the MIX stage and
+  MASTERS at MASTER; WIPS belongs to no stage, since a bounce worth keeping can
+  happen at any of them.
+
+- **D27 (Q25) — The final may be promoted from a mix or a master,** not masters
+  alone. A track that never got a separate mastering pass can still ship. WIPS
+  are excluded: kept for reference, never meant to go out.
+
+- **D28 (Q26) — Pressing TRACK READY asks which file ships.** Reaching that
+  stage *is* choosing the final, so the transition opens the picker, takes the
+  name, moves the file and then advances — in that order, because a stage
+  claiming the work is finished while the move failed is the worse of the two
+  states to be left in. Re-entering the stage with a final already set passes
+  straight through.
+
+- **D29 (Q27) — The audio panel appears from MIX onward,** on OVERVIEW rather
+  than FILES. Reverses part of §3.5: it was correct on FILES and unfindable
+  there. What is marked changes with the stage, so the panel asking belongs on
+  the tab the stage lives on. FILES is now purely an inventory, which is what
+  it is named for.

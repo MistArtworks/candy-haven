@@ -202,18 +202,49 @@ export function requiresVolume(category: ProjectCategory): boolean {
  * reading. The final is not a third bucket but a single designation on top, and
  * it may point at any audio file in the project — including one already marked.
  */
-export const AUDIO_MARKS = ['wip', 'master'] as const
+export const AUDIO_MARKS = ['wip', 'mix', 'master'] as const
 export type AudioMark = (typeof AUDIO_MARKS)[number]
 
 export const AUDIO_MARK_LABEL: Record<AudioMark, string> = {
   wip: 'WIPS',
+  mix: 'MIXES',
   master: 'MASTERS'
 }
 
 export const AUDIO_MARK_HINT: Record<AudioMark, string> = {
-  wip: 'Rough bounces as the arrangement moves.',
-  master: 'Mastered versions. Any of them can become the one that ships.'
+  wip: 'Rough bounces kept for reference. Never shipped.',
+  mix: 'Considered mixdowns.',
+  master: 'Mastered versions.'
 }
+
+/**
+ * The stage each mark belongs to, and the point of the whole arrangement.
+ *
+ * The operator marks what they produced at the stage they produced it, so the
+ * question the panel asks changes as the work moves: at MIX it is "which of
+ * these is a mixdown", at MASTER "which of these is mastered". A WIP is not
+ * tied to a stage — a rough bounce is worth keeping whenever it happens.
+ */
+export const AUDIO_MARK_STAGE: Record<AudioMark, ProjectStage | null> = {
+  wip: null,
+  mix: 'mix',
+  master: 'master'
+}
+
+/**
+ * Whether audio can be marked at this stage at all.
+ *
+ * Hidden before MIX: the bounces that matter do not exist yet, and an empty
+ * section on every new project is clutter that teaches nothing. Hidden when
+ * shelved, which is off the pipeline entirely.
+ */
+export function marksAudio(stage: ProjectStage): boolean {
+  const definition = getStage(stage)
+  return !definition.offPipeline && definition.order >= getStage('mix').order
+}
+
+/** The marks a final mix and master may be promoted from. */
+export const FINAL_SOURCE_MARKS: readonly AudioMark[] = ['mix', 'master']
 
 // ------------------------------------------------------------------- views
 

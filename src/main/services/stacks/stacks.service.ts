@@ -913,6 +913,23 @@ export class StacksService {
       })
     }
 
+    /*
+     * Promoted from what the operator marked, not from the folder at large.
+     *
+     * Marking a file at MIX or MASTER is the statement that it is a candidate;
+     * the final is a choice among candidates rather than a fresh search through
+     * everything that happens to be lying in the folder. A WIP is excluded by
+     * the same logic — it is kept for reference and was never meant to ship.
+     */
+    const candidates = [...record.masters.mixes, ...record.masters.masters]
+    if (!candidates.some((path) => samePath(path, sourcePath))) {
+      throw new AppError('That file has not been marked as a mix or a master.', {
+        code: ErrorCode.Validation,
+        hint: 'Mark it in the MIX AND MASTER panel first, then choose it here.',
+        recoverable: false
+      })
+    }
+
     const trimmed = name.trim()
     if (!trimmed) {
       throw new AppError('The final mix and master needs a name.', {
@@ -956,6 +973,7 @@ export class StacksService {
       final: destination,
       removedPath: sourcePath,
       wips: restored.masters.wips,
+      mixes: restored.masters.mixes,
       masters: restored.masters.masters
     })
   }
@@ -978,6 +996,7 @@ export class StacksService {
       final: null,
       removedPath: null,
       wips: returned.masters.wips,
+      mixes: returned.masters.mixes,
       masters: returned.masters.masters
     })
   }

@@ -568,7 +568,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       volumeId: null,
       trackNumber: null,
       colour: DEFAULT_FOLDER_COLOUR,
-      masters: { wips: [], masters: [], final: null },
+      masters: { wips: [], mixes: [], masters: [], final: null },
       trashedAt: null,
       trashedFrom: null,
       // Left unfiled even when the folder already sits inside the stacks tree;
@@ -607,6 +607,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       final: string | null
       removedPath: string | null
       wips: readonly string[]
+      mixes: readonly string[]
       masters: readonly string[]
     }
   ): Promise<ProjectRecord> {
@@ -618,6 +619,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       ...current,
       masters: {
         wips: drop(change.wips),
+        mixes: drop(change.mixes),
         masters: drop(change.masters),
         final: change.final
       },
@@ -1314,6 +1316,7 @@ function rewriteRecordPaths(record: ProjectRecord, from: string, to: string): Pr
     missingSamples: record.missingSamples.map(move),
     masters: {
       wips: record.masters.wips.map(move),
+      mixes: record.masters.mixes.map(move),
       masters: record.masters.masters.map(move),
       // Deliberately not moved. The final lives in Release Mastered Tracks,
       // outside the project folder entirely, so a project moving on disk does

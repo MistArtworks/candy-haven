@@ -6,7 +6,6 @@ import { formatStamp } from '../../lib/present'
 import { ArchiveGlyph } from '../icons/ArchiveGlyph'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
-import { MixAndMaster } from './MixAndMaster'
 import styles from './dossier.module.scss'
 
 function FileRows({ files }: { files: readonly MediaFile[] }): ReactNode {
@@ -35,20 +34,20 @@ function FileRows({ files }: { files: readonly MediaFile[] }): ReactNode {
  * Every filename is a button that reveals the file in Explorer — the register
  * is meant to be a way *into* the work, not a read-only inventory of it.
  *
- * The mix-and-master panel is lifted into its own file. It is the only part of
- * this tab holding decisions rather than listings, and it grew state of its own
- * once promoting a final became a move on disk rather than a field.
+ * The mix-and-master panel used to lead this tab and has moved to OVERVIEW.
+ * It was the only part of FILES holding decisions rather than listings, and it
+ * belongs beside the pipeline: what the operator marks changes with the stage
+ * they are on, so the panel asking it should be on the tab the stage lives on.
+ * What is left here is purely an inventory, which is what the tab is named for.
  */
 export function DossierFiles(props: DossierTabProps): ReactNode {
   const { project, mutations } = props
 
   return (
     <DossierGrid>
-      <MixAndMaster {...props} />
-
       <Panel
         label="Ableton sets"
-        index="02"
+        index="01"
         icon={<ArchiveGlyph name="set" />}
         className={styles.span3}
         aside={String(project.sets.length)}
@@ -102,7 +101,7 @@ export function DossierFiles(props: DossierTabProps): ReactNode {
 
       <Panel
         label="Backup revisions"
-        index="03"
+        index="02"
         icon={<ArchiveGlyph name="layers" />}
         className={styles.span3}
         aside={String(project.revisions.length)}
@@ -133,7 +132,7 @@ export function DossierFiles(props: DossierTabProps): ReactNode {
 
       <Panel
         label="Bounces and renders"
-        index="04"
+        index="03"
         icon={<ArchiveGlyph name="waveform" />}
         className={styles.span3}
         aside={String(project.audio.length)}
@@ -153,7 +152,7 @@ export function DossierFiles(props: DossierTabProps): ReactNode {
 
       <Panel
         label="Images and video"
-        index="05"
+        index="04"
         icon={<ArchiveGlyph name="image" />}
         className={styles.span3}
         aside={String(project.images.length + project.videos.length)}
@@ -182,7 +181,7 @@ export function DossierFiles(props: DossierTabProps): ReactNode {
       {project.missingSamples.length > 0 ? (
         <Panel
           label="Missing samples"
-          index="06"
+          index="05"
           icon={<ArchiveGlyph name="alert" />}
           className={styles.span6}
           aside={String(project.missingSamples.length)}

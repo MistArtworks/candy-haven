@@ -231,9 +231,11 @@ export type StageEvent = z.infer<typeof StageEventSchema>
  * these live on the project rather than on a release.
  */
 export const MasterSelectionSchema = z.object({
-  /** Rough bounces, by absolute path. Mutually exclusive with `masters`. */
+  /** Rough bounces kept for reference, by absolute path. */
   wips: z.array(z.string()).default([]),
-  /** Mastered versions, by absolute path. Mutually exclusive with `wips`. */
+  /** Considered mixdowns, marked at the MIX stage. */
+  mixes: z.array(z.string()).default([]),
+  /** Mastered versions, marked at the MASTER stage. */
   masters: z.array(z.string()).default([]),
   /**
    * The file that ships, and the one entry here that is not in the project.
@@ -511,7 +513,9 @@ export const ProjectPatchSchema = z.object({
    * goes through its own channel so a patch cannot move the operator's audio
    * as a side effect of setting a colour.
    */
-  masters: MasterSelectionSchema.pick({ wips: true, masters: true }).partial().optional(),
+  masters: MasterSelectionSchema.pick({ wips: true, mixes: true, masters: true })
+    .partial()
+    .optional(),
   /** Which set to treat as the project's current working version. */
   primarySetPath: z.string().optional()
 })

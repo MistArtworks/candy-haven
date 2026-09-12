@@ -225,6 +225,19 @@ $list-cap: min(#{rem(280px)}, 24vh);
     border-color: var(--ch-line-strong);
   }
 
+  /*
+   * The mark this stage is for, unpressed.
+   *
+   * Lifted out of the faint ramp so the verb the operator wants right now is
+   * the one the eye finds, without pre-selecting it for them — at MIX, MIXES
+   * reads as the obvious button and the other two stay available for a bounce
+   * that arrived out of order.
+   */
+  &[data-stage]:not([data-on]) {
+    color: var(--ch-text-secondary);
+    border-color: var(--ch-line-strong);
+  }
+
   // The mark this file currently carries. Border rather than fill, so a row of
   // three verbs does not turn into a row of three buttons competing for the eye.
   &[data-on] {
