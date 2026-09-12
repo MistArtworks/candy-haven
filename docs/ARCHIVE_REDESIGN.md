@@ -1,6 +1,6 @@
 # ARCHIVE — redesign capture
 
-> **Status: capture complete, every question answered. Not yet a build plan.**
+> **Status: BUILT.** Every decision below is implemented on `archive-upgrade`.
 >
 > The operator dictated a new system for the ARCHIVE that replaces parts of the
 > current one but explicitly *not all of it*. This file records each piece in
@@ -9,8 +9,24 @@
 > at the bottom, which is the authoritative list. The sections above are the
 > reasoning that produced it.
 >
-> **Next step is a sequenced implementation plan, to be approved before any code
-> is written.**
+> **Built in nine commits on `archive-upgrade`**, in dependency order: schema
+> v4 (stages) → scaffold removal → RELEASES stood down → schema v5 (tree in
+> `Projects`, stored folder kinds) → the icon stamp → schema v6 (origins) and
+> the loose-`.als` fix → schema v7 (audio marks) → bulk filing and copy mode →
+> the drill-down picker → multi-select → the migration view.
+>
+> **The migrations have not been run.** Schema v4 to v7 execute on the next app
+> launch and, between them, rewrite stage values, move the operator's genre
+> folders on disk into `Projects\GENERAL\`, backfill origins and reshape the
+> master picks. They are idempotent and each explains itself at the point of
+> change, but they act on real data and real directories, so the first launch
+> should be a deliberate one.
+>
+> **One decision is only partly built.** D22 asked for a refusal *and* a picker
+> when a project's origin is unreachable. The refusal is in place and names the
+> path it expected; it points the operator at "File to…" rather than opening a
+> destination picker for them. The gesture exists, but it is two steps where
+> one was asked for.
 >
 > Started 2026-09-11. See `PROJECT_CONTEXT.md` §ARCHIVE for the system being
 > replaced, and the "How it works today" briefing in the session that opened
