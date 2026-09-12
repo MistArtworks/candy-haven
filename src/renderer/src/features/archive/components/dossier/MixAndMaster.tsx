@@ -109,15 +109,20 @@ export function MixAndMaster({ project, mutations }: MixAndMasterProps): ReactNo
          */
         <div className={styles.stackTight}>
           <span className={styles.sectionLabel}>FINAL MIX &amp; MASTER</span>
-          <div className={styles.file} data-chosen>
-            <button
-              type="button"
-              className={styles.fileName}
-              title={project.masters.final}
-              onClick={() => void window.candy.shell.reveal(project.masters.final as string)}
-            >
-              {finalName}
-            </button>
+          {/*
+            Plays on double click like every other row here. It was the one row
+            that still revealed in Explorer, which made the gesture mean two
+            different things in one panel — and this is the file the operator
+            is most likely to want to hear, being the one that ships.
+          */}
+          <div
+            className={styles.file}
+            data-chosen
+            data-playable
+            onDoubleClick={() => void play(project.masters.final as string)}
+            title={`${project.masters.final} — double-click to play`}
+          >
+            <span className={styles.fileName}>{finalName}</span>
             <span className={styles.fileMeta}>RELEASE MASTERED TRACKS</span>
           </div>
         </div>
