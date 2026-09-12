@@ -15,7 +15,7 @@ import {
   beginDrag,
   hasLeftElement,
   isDragging,
-  readDrag
+  readDragAll
 } from '../stacks/dnd'
 import styles from '../stacks/stacks.module.scss'
 
@@ -87,11 +87,26 @@ export interface TileGridProps {
   /** The tile a single click marked. Null when nothing is selected. */
   selectedId?: string | null
   onSelect?: (id: string) => void
+  /**
+   * Tiles picked out for a bulk move. Distinct from `selectedId`, which is the
+   * cursor: this is the set that a drag from any of them will carry.
+   */
+  marked?: ReadonlySet<string>
+  /** Ctrl/Cmd-click. `additive` false replaces the set with this one tile. */
+  onMark?: (id: string, additive: boolean) => void
   onMenu?: (event: MouseEvent<HTMLElement>, id: string) => void
   /** A project was dropped onto a tile. */
   onDropProject?: (projectId: string, tileId: string) => void
   /** A folder was dropped onto a tile, re-parenting it. */
   onDropFolder?: (folderId: string, tileId: string) => void
+  /**
+   * Several things were dropped onto a tile.
+   *
+   * Takes precedence over the two single-item handlers where it is supplied,
+   * so a caller does not have to implement both. A drag of one arrives here as
+   * a list of one.
+   */
+  onDropMany?: (projectIds: readonly string[], folderIds: readonly string[], tileId: string) => void
   /** Trailing "new …" tiles. Omitted draws none. */
   adds?: readonly AddTile[]
   /** Omitted leaves the corner mark passive rather than clickable. */
@@ -119,6 +134,9 @@ export function TileGrid({
   onSelect,
   onDropProject,
   onDropFolder,
+  onDropMany,
+  marked,
+  onMark,
   adds,
   onToggleFavourite,
   disabled = false
@@ -139,20 +157,23 @@ export function TileGrid({
     setDragging(null)
     if (disabled) return
 
-    if (tile.acceptsProjects) {
-      const projectId = readDrag(event, PROJECT_DRAG_TYPE)
-      if (projectId) {
-        onDropProject?.(projectId, tile.id)
-        return
-      }
+    const projectIds = tile.acceptsProjects ? readDragAll(event, PROJECT_DRAG_TYPE) : []
+    // A folder dropped on itself is the commonest misfire of this gesture and
+    // means nothing; the service would refuse it, but not silently.
+    const folderIds = tile.acceptsFolders
+      ? readDragAll(event, FOLDER_DRAG_TYPE).filter((id) => id !== tile.id)
+      : []
+
+    if (projectIds.length === 0 && folderIds.length === 0) return
+
+    if (onDropMany) {
+      onDropMany(projectIds, folderIds, tile.id)
+      return
     }
 
-    if (tile.acceptsFolders) {
-      const folderId = readDrag(event, FOLDER_DRAG_TYPE)
-      // A folder dropped on itself is the commonest misfire of this gesture and
-      // means nothing; the service would refuse it, but not silently.
-      if (folderId && folderId !== tile.id) onDropFolder?.(folderId, tile.id)
-    }
+    // Single-item callers that never opted into bulk still work.
+    if (projectIds[0]) onDropProject?.(projectIds[0], tile.id)
+    else if (folderIds[0]) onDropFolder?.(folderIds[0], tile.id)
   }
 
   const accepts = (event: DragEvent<HTMLElement>, tile: Tile): boolean =>
@@ -173,8 +194,19 @@ export function TileGrid({
           data-drop={hovered === tile.id || undefined}
           data-dragging={dragging === tile.id || undefined}
           data-selected={selectedId === tile.id || undefined}
+          data-marked={marked?.has(tile.id) || undefined}
           title={tile.title ?? tile.name}
-          onClick={() => (onSelect ? onSelect(tile.id) : onOpen(tile.id))}
+          onClick={(event) => {
+            // Ctrl/Cmd marks for a bulk move; a plain click is navigation and
+            // keeps doing exactly what it did.
+            if ((event.ctrlKey || event.metaKey) && onMark) {
+              event.preventDefault()
+              onMark(tile.id, true)
+              return
+            }
+            if (onSelect) onSelect(tile.id)
+            else onOpen(tile.id)
+          }}
           onDoubleClick={() => onOpen(tile.id)}
           // Right-clicking selects as well, so the menu that appears is
           // visibly attached to something.
@@ -198,11 +230,26 @@ export function TileGrid({
           onDragStartCapture={(event) => {
             if (!tile.draggableAs) return
             setDragging(tile.id)
-            beginDrag(
-              event,
-              tile.draggableAs === 'folder' ? FOLDER_DRAG_TYPE : PROJECT_DRAG_TYPE,
-              tile.id
-            )
+
+            /*
+             * A drag from a marked tile carries every marked tile of the same
+             * kind; a drag from anywhere else carries only itself and leaves
+             * the marks alone.
+             *
+             * That asymmetry is deliberate. It means a bulk move cannot happen
+             * by accident — the operator has to have marked the very tile they
+             * then pick up — while an ordinary drag of one thing behaves
+             * exactly as it always has, marks or no marks.
+             */
+            const kind = tile.draggableAs
+            const ids =
+              marked?.has(tile.id) === true
+                ? tiles
+                    .filter((entry) => entry.draggableAs === kind && marked.has(entry.id))
+                    .map((entry) => entry.id)
+                : [tile.id]
+
+            beginDrag(event, kind === 'folder' ? FOLDER_DRAG_TYPE : PROJECT_DRAG_TYPE, ids)
           }}
           onDragEndCapture={() => {
             setDragging(null)

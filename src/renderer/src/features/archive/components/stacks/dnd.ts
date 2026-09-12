@@ -12,17 +12,31 @@ import type { DragEvent } from 'react'
  * all without a payload it recognises, and it is what makes a drag out of the
  * window degrade to something harmless rather than nothing.
  */
+/** Separates ids in a multi-item payload. */
+const SEPARATOR = String.fromCharCode(10)
+
 export const PROJECT_DRAG_TYPE = 'application/x-candy-project'
 export const FOLDER_DRAG_TYPE = 'application/x-candy-folder'
 
+/**
+ * Starts a drag carrying one or more ids of the same kind.
+ *
+ * Ids are newline-separated rather than JSON. The payload also goes into
+ * `text/plain` for the reason above, and a dragged-out list of names is a more
+ * useful thing to drop into a text field than a JSON array.
+ *
+ * A single id is just a list of one, so every drop target reads the same shape
+ * and nothing has to branch on how many are coming.
+ */
 export function beginDrag(
   event: DragEvent<HTMLElement>,
   type: typeof PROJECT_DRAG_TYPE | typeof FOLDER_DRAG_TYPE,
-  id: string
+  ids: string | readonly string[]
 ): void {
+  const payload = (Array.isArray(ids) ? ids : [ids as string]).join(SEPARATOR)
   event.dataTransfer.effectAllowed = 'move'
-  event.dataTransfer.setData(type, id)
-  event.dataTransfer.setData('text/plain', id)
+  event.dataTransfer.setData(type, payload)
+  event.dataTransfer.setData('text/plain', payload)
 }
 
 /**
@@ -39,12 +53,21 @@ export function isDragging(
   return event.dataTransfer.types.includes(type)
 }
 
-/** The dragged id, once the drop has actually happened. */
+/** The first dragged id, once the drop has actually happened. */
 export function readDrag(
   event: DragEvent<HTMLElement>,
   type: typeof PROJECT_DRAG_TYPE | typeof FOLDER_DRAG_TYPE
 ): string | null {
-  return event.dataTransfer.getData(type) || null
+  return readDragAll(event, type)[0] ?? null
+}
+
+/** Every dragged id. A single-item drag returns a list of one. */
+export function readDragAll(
+  event: DragEvent<HTMLElement>,
+  type: typeof PROJECT_DRAG_TYPE | typeof FOLDER_DRAG_TYPE
+): string[] {
+  const payload = event.dataTransfer.getData(type)
+  return payload ? payload.split(SEPARATOR).filter(Boolean) : []
 }
 
 /**

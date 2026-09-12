@@ -126,6 +126,32 @@
     border-color: var(--ch-line-strong);
     background: var(--ch-surface-overlay);
   }
+
+  /*
+   * Marked for a bulk move — louder than selected, because this one has
+   * consequences. Selection is where the cursor happens to be; a mark is a
+   * statement that this tile is part of the next move, and the operator needs
+   * to be able to count them across the grid at a glance.
+   *
+   * The accent rail rather than a checkbox: a checkbox in the corner would
+   * fight the favourite mark already there, and a rail reads as a run of
+   * marked tiles rather than as a column of controls.
+   */
+  &[data-marked] {
+    border-color: var(--ch-accent);
+    background: rgba(163, 43, 35, 0.08);
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
 }
 
 // The favourite mark rides in the corner rather than in the name line: the

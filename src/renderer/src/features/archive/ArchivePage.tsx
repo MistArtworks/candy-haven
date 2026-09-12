@@ -9,6 +9,7 @@ import {
   type ReactNode
 } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
 import type {
   ProjectCategory,
@@ -163,7 +164,30 @@ export function ArchivePage(): ReactNode {
    * momentary pointing gesture, not somewhere the operator navigated to, and
    * putting it in history would make the back gesture step through highlights.
    */
+  const queryClient = useQueryClient()
   const [tileSelection, setTileSelection] = useState<string | null>(null)
+
+  /*
+   * Everything picked out for a bulk move, projects and folders together.
+   *
+   * Separate from `tileSelection`, which is the single tile the keyboard is
+   * on. A set of ids is not a cursor: one says "act on these", the other says
+   * "you are here", and collapsing them would make arrowing through a shelf
+   * silently change what the next drag would move.
+   */
+  const [marked, setMarked] = useState<ReadonlySet<string>>(() => new Set())
+
+  const toggleMarked = useCallback((id: string, additive: boolean) => {
+    setMarked((current) => {
+      if (!additive) return current.has(id) && current.size === 1 ? new Set() : new Set([id])
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const clearMarked = useCallback(() => setMarked(new Set()), [])
 
   /*
    * The open dossier, the folder being browsed, the open volume and the open
@@ -420,6 +444,48 @@ export function ArchivePage(): ReactNode {
   )
 
   // ---------------------------------------------------------------- filing
+
+  /*
+   * One drop, however many things were picked up.
+   *
+   * A drag that starts on a marked tile carries the whole marked set; a drag
+   * that starts anywhere else carries just that one thing and leaves the marks
+   * alone. That rule is what stops a bulk move happening by accident — the
+   * operator has to have marked the tile they then drag.
+   *
+   * `fileMany` is used even for one item, so the partial-failure path is the
+   * same code in both cases rather than a rarely-exercised branch.
+   */
+  const fileMany = useCallback(
+    (
+      projectIds: readonly string[],
+      folderIds: readonly string[],
+      targetFolderId: string | null
+    ) => {
+      setNotice(null)
+      setMenu(null)
+
+      void window.candy.projects
+        .fileMany([...projectIds], [...folderIds], targetFolderId)
+        .then(({ moved, failures }) => {
+          clearMarked()
+          void queryClient.invalidateQueries({ queryKey: ['stacks'] })
+          void queryClient.invalidateQueries({ queryKey: ['projects'] })
+
+          if (failures.length === 0) return
+
+          // Named rather than counted. "Three could not be moved" sends the
+          // operator hunting; the names say which, and the reason says why.
+          setNotice(
+            `Moved ${moved}. Could not move ${failures
+              .map((entry) => `${entry.name} — ${entry.reason}`)
+              .join('; ')}`
+          )
+        })
+        .catch(report)
+    },
+    [clearMarked, queryClient, report]
+  )
 
   const fileProject = useCallback(
     (projectId: string, targetFolderId: string | null) => {
@@ -1062,6 +1128,8 @@ export function ArchivePage(): ReactNode {
           onOpen={selectProject}
           selectedId={tileSelection}
           onSelect={setTileSelection}
+          marked={marked}
+          onMark={toggleMarked}
           onMenu={onTileMenu}
           onToggleFavourite={favouriteById}
           disabled={scanning}
@@ -1291,10 +1359,13 @@ export function ArchivePage(): ReactNode {
               else selectProject(id)
             }}
             onMenu={onTileMenu}
+            onDropMany={fileMany}
             onDropProject={fileProject}
             onDropFolder={nestFolder}
             selectedId={tileSelection}
             onSelect={setTileSelection}
+            marked={marked}
+            onMark={toggleMarked}
             onToggleFavourite={favouriteById}
             disabled={scanning || locked}
             adds={[
