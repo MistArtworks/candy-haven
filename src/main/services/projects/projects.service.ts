@@ -464,12 +464,38 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
     const byPath = new Map(existing.map((record) => [record.path.toLowerCase(), record]))
     const scannedPaths = new Set(scanned.map((project) => project.path.toLowerCase()))
     const seenIds = new Set<string>()
+
+    /*
+     * Folders a project was copied *out of*, which the walk will still find.
+     *
+     * Under COPY migration the original stays on disk untouched — that is the
+     * point of choosing it — so the next scan walks both it and the copy. Left
+     * alone, the original would either be registered as a second project of the
+     * same name, or worse, `findRelinked` would match it on folder name plus
+     * primary set and quietly relink the record back to the copy's source,
+     * undoing the migration.
+     *
+     * A record whose origin differs from its current path has been moved or
+     * copied. After a move the origin does not exist, so this set costs
+     * nothing; after a copy it is exactly the folder to ignore.
+     */
+    const copiedOrigins = new Set(
+      existing
+        .filter(
+          (record) =>
+            record.originPath !== null &&
+            record.originPath.toLowerCase() !== record.path.toLowerCase()
+        )
+        .map((record) => (record.originPath as string).toLowerCase())
+    )
     const operations: AnyBulkWriteOperation<ProjectDocument>[] = []
 
     let created = 0
     let updated = 0
 
     for (const project of scanned) {
+      if (copiedOrigins.has(project.path.toLowerCase())) continue
+
       const now = Date.now()
       const match =
         byPath.get(project.path.toLowerCase()) ??

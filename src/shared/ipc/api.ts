@@ -123,6 +123,12 @@ export interface CandyHavenApi {
     scanState(): Promise<ScanState>
     /** Stamps Live's project icon onto every project folder missing it. */
     conform(): Promise<{ stamped: number; total: number }>
+    /** Files several projects and folders at once; reports what did not move. */
+    fileMany(
+      projectIds: string[],
+      folderIds: string[],
+      folderId: string | null
+    ): Promise<{ moved: number; failures: { id: string; name: string; reason: string }[] }>
     /** Moves a bounce into Release Mastered Tracks as the project's final. */
     setFinal(id: string, sourcePath: string, name: string): Promise<ProjectRecord>
     /** Moves the final back into the project folder. */

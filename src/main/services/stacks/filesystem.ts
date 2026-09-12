@@ -203,6 +203,74 @@ async function copyAcrossVolumes(from: string, to: string): Promise<void> {
   await rm(from, { recursive: true })
 }
 
+/**
+ * Duplicates a project folder, leaving the original exactly where it is.
+ *
+ * The same verified copy `moveDirectory` performs across volumes, stopping
+ * before the delete. Used by migration in COPY mode, where keeping the original
+ * untouched is the entire point of choosing it.
+ *
+ * Verification is file count and total bytes rather than a checksum, for the
+ * reason recorded above: a copy interrupted by a full disk or a disconnected
+ * drive is the failure that actually happens, and reading tens of gigabytes of
+ * samples twice to catch a bit-flip is not a trade worth making.
+ */
+export async function copyDirectory(from: string, to: string): Promise<void> {
+  if (samePath(from, to)) return
+
+  if (pathIsInside(to, from)) {
+    throw new AppError('A folder cannot be copied inside itself.', {
+      code: ErrorCode.Validation,
+      recoverable: false
+    })
+  }
+
+  if (!(await directoryExists(from))) {
+    throw new AppError('That folder is no longer on disk.', {
+      code: ErrorCode.NotFound,
+      hint: 'Run a scan to bring the register back in step with the filesystem.',
+      recoverable: true
+    })
+  }
+
+  if (await pathExists(to)) {
+    throw new AppError(`Something called “${basenameOf(to)}” is already in that folder.`, {
+      code: ErrorCode.Validation,
+      hint: 'Rename one of them first — nothing is merged or overwritten automatically.',
+      recoverable: false
+    })
+  }
+
+  await mkdir(dirname(to), { recursive: true })
+
+  const source = await measureTree(from)
+
+  try {
+    await cp(from, to, {
+      recursive: true,
+      errorOnExist: true,
+      force: false,
+      preserveTimestamps: true
+    })
+  } catch (error) {
+    await rm(to, { recursive: true, force: true }).catch(() => undefined)
+    throw translate(error, from)
+  }
+
+  const copied = await measureTree(to)
+
+  if (copied.files !== source.files || copied.bytes !== source.bytes) {
+    await rm(to, { recursive: true, force: true }).catch(() => undefined)
+    throw new AppError('The copy did not match the original, so nothing was filed.', {
+      code: ErrorCode.Unknown,
+      hint: `Expected ${source.files} files and ${source.bytes} bytes, got ${copied.files} and ${copied.bytes}. The project is untouched where it was.`,
+      recoverable: true
+    })
+  }
+
+  logger.info(`Copied ${from} -> ${to}`)
+}
+
 interface TreeSize {
   files: number
   bytes: number

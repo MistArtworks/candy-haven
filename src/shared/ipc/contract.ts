@@ -169,6 +169,25 @@ export const IPC_INVOKE = {
    * operator's audio somewhere else, and that must not be something a patch
    * can do by accident.
    */
+  /**
+   * Files several projects and folders into one destination.
+   *
+   * Returns what moved and what did not, rather than throwing on the first
+   * refusal — see `StacksService.fileMany`. A bulk move cannot be atomic
+   * across a filesystem, so this reports honestly instead of pretending.
+   */
+  'projects:file-many': {
+    input: z.object({
+      projectIds: z.array(z.string()),
+      folderIds: z.array(z.string()),
+      folderId: z.string().nullable()
+    }),
+    output: z.object({
+      moved: z.number().int().min(0),
+      failures: z.array(z.object({ id: z.string(), name: z.string(), reason: z.string() }))
+    })
+  },
+
   'projects:set-final': {
     input: z.object({ id: z.string(), sourcePath: z.string(), name: z.string() }),
     output: ProjectRecordSchema

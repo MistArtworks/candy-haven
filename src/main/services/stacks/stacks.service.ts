@@ -41,6 +41,7 @@ import {
   directoryExists,
   ensureDirectory,
   isAtOrUnder,
+  copyDirectory,
   moveDirectory,
   moveFile,
   pathExists,
@@ -49,6 +50,18 @@ import {
 } from './filesystem'
 
 const logger = getLogger('stacks')
+
+/** What a bulk filing actually managed to do. See `fileMany`. */
+export interface BulkFilingResult {
+  moved: number
+  failures: { id: string; name: string; reason: string }[]
+}
+
+/** An operator-facing sentence from whatever was thrown. */
+function describe(error: unknown): string {
+  if (error instanceof AppError) return error.message
+  return error instanceof Error ? error.message : String(error)
+}
 
 /**
  * THE STACKS — the ARCHIVE's shelving.
@@ -713,8 +726,26 @@ export class StacksService {
     const destination = join(destinationParent, basename(record.path))
 
     if (!samePath(destination, record.path)) {
-      await moveDirectory(record.path, destination)
-      logger.info(`Filed ${record.name}: ${record.path} -> ${destination}`)
+      /*
+       * COPY only applies on the way *in*, and only from outside the wrapper.
+       *
+       * Moving a project between two shelves is reorganising, not migrating —
+       * duplicating it there would leave the operator with two copies of one
+       * project inside their own archive, which is never what dragging between
+       * genres means. Taking a project off the shelf is the same in reverse.
+       */
+      const migrating =
+        this.settings.snapshot.workspace.migrationMode === 'copy' &&
+        folderId !== null &&
+        !isAtOrUnder(record.path, this.resolveWrapper() ?? destination)
+
+      if (migrating) {
+        await copyDirectory(record.path, destination)
+        logger.info(`Copied ${record.name} into the archive: ${record.path} -> ${destination}`)
+      } else {
+        await moveDirectory(record.path, destination)
+        logger.info(`Filed ${record.name}: ${record.path} -> ${destination}`)
+      }
 
       /*
        * Conformed as it lands, so a project brought in from outside looks like
@@ -734,6 +765,64 @@ export class StacksService {
       from: record.path,
       to: destination
     })
+  }
+
+  /**
+   * Files several projects and several folders in one gesture.
+   *
+   * Moves what it can and reports the rest, rather than stopping at the first
+   * refusal. A name collision is the likely failure in a bulk migration and it
+   * is specific to one item — halting would leave eleven good moves undone
+   * because of the twelfth, and the operator would have to work out which had
+   * already gone.
+   *
+   * All-or-nothing is not achievable here and is not claimed. There is no
+   * staging area on a filesystem; by the time the eighth move fails, seven
+   * directories have really moved. What is offered instead is an exact account
+   * of what happened, which is the honest version of the same promise.
+   *
+   * Folders are re-parented before projects, so a project dropped into a folder
+   * that is itself moving in the same batch lands in its new home rather than
+   * chasing it.
+   */
+  async fileMany(
+    projectIds: readonly string[],
+    folderIds: readonly string[],
+    folderId: string | null
+  ): Promise<BulkFilingResult> {
+    this.refuseDuringScan()
+
+    const failures: BulkFilingResult['failures'] = []
+    let moved = 0
+
+    for (const id of folderIds) {
+      // A folder cannot be filed into itself, and the tree guards that anyway;
+      // catching here keeps one bad drop from ending the batch.
+      try {
+        await this.updateFolder(id, { parentId: folderId })
+        moved += 1
+      } catch (error) {
+        failures.push({ id, name: await this.folderName(id), reason: describe(error) })
+      }
+    }
+
+    for (const id of projectIds) {
+      try {
+        await this.fileProject(id, folderId)
+        moved += 1
+      } catch (error) {
+        const record = await this.projects.get(id).catch(() => null)
+        failures.push({ id, name: record?.name ?? id, reason: describe(error) })
+      }
+    }
+
+    logger.info(`Filed ${moved} of ${projectIds.length + folderIds.length}`)
+    return { moved, failures }
+  }
+
+  private async folderName(id: string): Promise<string> {
+    const folders = await this.repository.listAll()
+    return folders.find((entry) => entry.id === id)?.name ?? id
   }
 
   // -------------------------------------------------- final mix and master
