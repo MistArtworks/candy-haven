@@ -327,14 +327,27 @@ export function ArchivePage(): ReactNode {
     [scoped, stacksTree?.folders, folderId]
   )
 
+  /*
+   * UNFILED ignores the filters entirely.
+   *
+   * Its panes list directories on disk, and the register is consulted only to
+   * answer "is this folder one I already know about" — which decides whether a
+   * row can be dragged. A filter left on from another lens cannot narrow what
+   * the pane shows, but it *can* narrow that lookup, and an indexed project
+   * would then be labelled NOT INDEXED and refuse to be picked up. The controls
+   * are hidden there for the same reason; this handles a filter set elsewhere
+   * and still active on arrival.
+   */
+  const filtering = lens !== 'unfiled'
+
   const query = useMemo<ProjectQuery>(
     () => ({
-      search: search || undefined,
-      stages: filters.stages.length > 0 ? filters.stages : undefined,
-      categories: filters.categories.length > 0 ? filters.categories : undefined,
-      tagIds: filters.tags.length > 0 ? filters.tags : undefined,
-      favouritesOnly: filters.favouritesOnly || undefined,
-      includeMissing: filters.includeMissing || undefined,
+      search: filtering ? search || undefined : undefined,
+      stages: filtering && filters.stages.length > 0 ? filters.stages : undefined,
+      categories: filtering && filters.categories.length > 0 ? filters.categories : undefined,
+      tagIds: filtering && filters.tags.length > 0 ? filters.tags : undefined,
+      favouritesOnly: (filtering && filters.favouritesOnly) || undefined,
+      includeMissing: (filtering && filters.includeMissing) || undefined,
       sort: filters.sort,
       /*
        * While browsing, the register beneath the tiles shows only what is filed
@@ -353,7 +366,7 @@ export function ArchivePage(): ReactNode {
       // The bin is a place, not a filter — see `ProjectQuerySchema.trashed`.
       ...(lens === 'bin' ? { trashed: true } : {})
     }),
-    [search, filters, browsing, folderId, subtree, lens, volumeId]
+    [filtering, search, filters, browsing, folderId, subtree, lens, volumeId]
   )
 
   const { data: registry, isLoading } = useProjectRegistry(query)
@@ -409,9 +422,15 @@ export function ArchivePage(): ReactNode {
    * RELEASES draws its own board and VOLUMES at the top level draws tiles; the
    * STACKS root draws only shelves, because "filed here" there means "filed
    * nowhere" and that list lives in UNFILED.
+   *
+   * UNFILED no longer draws one either. It is the migration view now — two
+   * directory trees side by side — and LIST, ICONS and BOARD have nothing to
+   * say about it. Leaving it here left a view toggle sitting above a panel
+   * that ignored it, which is the exact fault the rest of this rule exists to
+   * avoid: a control that does nothing is worse than no control, because the
+   * operator spends a moment deciding it is broken.
    */
   const drawsRegister =
-    lens === 'unfiled' ||
     lens === 'all' ||
     lens === 'bin' ||
     (lens === 'volumes' && volumeId !== null) ||
@@ -1522,7 +1541,7 @@ export function ArchivePage(): ReactNode {
         total={total}
         // The release board draws tiles and a record, never the register, so a
         // sort order and a stage filter would operate on nothing visible.
-        showRegisterControls={lens !== 'releases'}
+        showRegisterControls={lens !== 'releases' && lens !== 'unfiled'}
         searchRef={searchRef}
       />
 

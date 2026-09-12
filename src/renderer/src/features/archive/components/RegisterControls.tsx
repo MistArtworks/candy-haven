@@ -56,7 +56,17 @@ export interface RegisterControlsProps {
   /** Count after filtering, shown against the registry total. */
   shown: number
   total: number
-  /** RELEASES draws tiles rather than a register, so it hides these controls. */
+  /**
+   * Whether the search field, the stage row and the chips are drawn.
+   *
+   * The lens rail is always drawn regardless — it is navigation, and hiding it
+   * would strand the operator in whichever lens turned the controls off.
+   *
+   * RELEASES draws its own board rather than a register. UNFILED is the
+   * migration view, where a filter would be worse than useless: the panes list
+   * directories on disk, so narrowing the register cannot narrow what is shown
+   * and would only make indexed projects look unindexed.
+   */
   showRegisterControls?: boolean
   /** Passed down to the search field, so a shortcut can put the caret in it. */
   searchRef?: Ref<HTMLInputElement>
