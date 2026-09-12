@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type DragEvent, type ReactNode } from 'react'
+import { Fragment, useCallback, useMemo, useState, type DragEvent, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { ArchiveFolder } from '@shared/domain/stacks'
 import type { ProjectSummary } from '@shared/domain/projects'
@@ -8,6 +8,7 @@ import { TileGrid, type Tile } from './tiles/TileGrid'
 import { describeFolder } from './tiles/describe'
 import { FolderTrail } from './stacks/FolderTrail'
 import { PROJECT_DRAG_TYPE, hasLeftElement, isDragging, readDragAll } from './stacks/dnd'
+import shelf from './stacks/stacks.module.scss'
 import styles from './IntakeView.module.scss'
 
 const SEPARATOR = String.fromCharCode(92)
@@ -167,13 +168,35 @@ export function IntakeView({
     })
   }, [])
 
-  const isRoot =
-    source !== null && roots.some((root) => root.toLowerCase() === source.toLowerCase())
+  /*
+   * The walk from the configured location down to where the operator is.
+   *
+   * A breadcrumb rather than the raw path and a back arrow. The arrow was a
+   * bare character with no box and no label, sitting beside a path that looked
+   * like a readout — so three levels down there was no visible way back, and
+   * the honest report was "no option to go back" even though the control was
+   * on screen.
+   *
+   * The destination pane has had a proper trail all along, because it borrows
+   * the shelves'. This builds the same thing from path segments and borrows
+   * the same styles, so the two panes navigate identically.
+   */
+  const crumbs = useMemo(() => {
+    const root = roots.find((candidate) => isUnder(source, candidate))
+    if (!source || !root) return []
 
-  const up = (): void => {
-    if (!source || isRoot) return
-    setChosen(source.slice(0, source.lastIndexOf(SEPARATOR)) || null)
-  }
+    const label = labelRoots(roots)[root]
+    const rest = source.slice(root.length).split(SEPARATOR).filter(Boolean)
+
+    let walked = root
+    return [
+      { path: root, name: label },
+      ...rest.map((segment) => {
+        walked = walked + SEPARATOR + segment
+        return { path: walked, name: segment }
+      })
+    ]
+  }, [source, roots])
 
   // -------------------------------------------------------------- destination
 
@@ -279,17 +302,32 @@ export function IntakeView({
           ) : null}
 
           {source ? (
-            <div className={styles.trail}>
-              <button type="button" className={styles.up} disabled={isRoot} onClick={up}>
-                ◂
-              </button>
-              <span className={styles.trailPath} title={source}>
-                {source}
+            <nav className={shelf.trail} aria-label="Folder trail">
+              {crumbs.map((crumb, index) => (
+                <Fragment key={crumb.path}>
+                  {index > 0 ? (
+                    <span className={shelf.crumbSeparator} aria-hidden="true">
+                      ▸
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={shelf.crumb}
+                    data-current={index === crumbs.length - 1 || undefined}
+                    title={crumb.path}
+                    onClick={() => setChosen(crumb.path)}
+                  >
+                    {crumb.name}
+                  </button>
+                </Fragment>
+              ))}
+
+              <span className={shelf.trailSpacer} />
+              <span className={shelf.trailCount}>
+                {entries.filter((entry) => entry.isProject).length} project
+                {entries.filter((entry) => entry.isProject).length === 1 ? '' : 's'} here
               </span>
-              <span className={styles.trailCount}>
-                {entries.filter((entry) => entry.isProject).length} projects
-              </span>
-            </div>
+            </nav>
           ) : null}
 
           {!source ? (
@@ -357,7 +395,7 @@ export function IntakeView({
               hint={
                 destination === null
                   ? 'Build the tree in STACKS first — a category, then the genres and artists inside it.'
-                  : 'Drop here to file into this shelf, or go back and choose another.'
+                  : 'Drop anywhere in this pane to file into this shelf, or walk back up the trail.'
               }
             />
           ) : (

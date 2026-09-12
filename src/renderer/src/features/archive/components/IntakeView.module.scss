@@ -56,9 +56,21 @@
     box-shadow $duration-fast linear;
 }
 
+/*
+ * Insets for everything that is not the grid.
+ *
+ * `:global` reaches the shelves' own trail, which this pane borrows rather
+ * than restating — see the crumb walk in IntakeView. Borrowing the styles is
+ * the point: the two panes must navigate identically, and two breadcrumbs that
+ * merely resemble each other is how that stops being true.
+ */
 .roots,
-.trail,
 .empty {
+  margin-left: space(5);
+  margin-right: space(5);
+}
+
+.body > nav {
   margin-left: space(5);
   margin-right: space(5);
 }
@@ -118,55 +130,6 @@
     color: var(--ch-text-primary);
     border-color: var(--ch-accent);
   }
-}
-
-// ------------------------------------------------------------------- trail
-
-// Deliberately the same shape as the shelves' own breadcrumb — a rule beneath,
-// the location on the left, a count on the right — so the two panes read as one
-// view rather than two widgets that happen to sit together.
-.trail {
-  display: flex;
-  align-items: center;
-  gap: space(3);
-  padding-bottom: space(2);
-  @include hairline(bottom, 0.1);
-  min-width: 0;
-}
-
-.up {
-  @include readout(11px);
-  line-height: 1;
-  color: var(--ch-text-muted);
-  flex-shrink: 0;
-  padding: 0 space(2);
-
-  &:hover:not(:disabled) {
-    color: var(--ch-gold-300);
-  }
-
-  &:focus-visible {
-    @include focus-ring(1px);
-  }
-
-  &:disabled {
-    opacity: 0.3;
-    pointer-events: none;
-  }
-}
-
-.trailPath {
-  @include readout(9px);
-  color: var(--ch-text-faint);
-  flex: 1;
-  min-width: 0;
-  @include truncate;
-}
-
-.trailCount {
-  @include label(8px, 0.16em);
-  color: var(--ch-text-faint);
-  flex-shrink: 0;
 }
 
 // ------------------------------------------------------------------ drop here
