@@ -361,8 +361,20 @@ export function ArchivePage(): ReactNode {
       ...(browsing ? (subtree ? { folderIds: subtree } : { folderId }) : {}),
       // VOLUMES lists one volume's tracks once opened.
       ...(lens === 'volumes' && volumeId !== null ? { volumeId } : {}),
-      // INTAKE is everything on no shelf at all — `null`, not absent.
-      ...(lens === 'unfiled' ? { folderId: null } : {}),
+      /*
+       * INTAKE takes the *whole* register, not the unfiled slice.
+       *
+       * It used to ask for `folderId: null`, which was right while the lens
+       * drew a list of unfiled projects and wrong the moment it became two
+       * directory panes. The left pane matches browsed folders against records
+       * by path — a filed project still exists on disk and must still be
+       * recognised — and the right pane draws what is filed on the shelf it is
+       * standing on, which a query excluding filed projects can never return.
+       *
+       * The symptom was a drop that worked perfectly and then showed nothing:
+       * the files moved, the record took its folder, and the pane that had
+       * just filed it could not see it.
+       */
       // The bin is a place, not a filter — see `ProjectQuerySchema.trashed`.
       ...(lens === 'bin' ? { trashed: true } : {})
     }),
@@ -519,6 +531,11 @@ export function ArchivePage(): ReactNode {
           clearMarked()
           void queryClient.invalidateQueries({ queryKey: ['stacks'] })
           void queryClient.invalidateQueries({ queryKey: ['projects'] })
+          // The directory listing INTAKE is browsing has just changed on disk:
+          // whatever moved is no longer in the folder it was dragged out of.
+          // Without this the source pane keeps showing it, and shows it as
+          // NOT INDEXED, because its record now points into the archive.
+          void queryClient.invalidateQueries({ queryKey: ['browse'] })
 
           if (failures.length === 0) return
 
