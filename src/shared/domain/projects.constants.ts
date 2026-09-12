@@ -29,8 +29,6 @@ export const PROJECT_STAGE_IDS = [
   'mix',
   'master',
   'ready',
-  'scheduled',
-  'released',
   'shelved'
 ] as const
 
@@ -67,25 +65,22 @@ export const PROJECT_STAGES: readonly ProjectStageDefinition[] = [
     purpose: 'Mixdown bounced; mastering passes in progress.',
     order: 4
   },
+  /*
+   * The end of the pipeline, and terminal on purpose.
+   *
+   * SCHEDULED and RELEASED followed this and have been removed: what happens
+   * after a track is finished — scheduling it, wrapping it, putting it out —
+   * is being respecified, and a pipeline that claims stages the app no longer
+   * acts on is worse than one that stops where the work stops.
+   *
+   * `requiresMaster` stays, so a project cannot claim to be ready without the
+   * operator having said which file ships.
+   */
   {
     id: 'ready',
-    label: 'READY FOR RELEASE',
+    label: 'TRACK READY',
     purpose: 'Final mix and master chosen, and filed where it belongs.',
     order: 5,
-    requiresMaster: true
-  },
-  {
-    id: 'scheduled',
-    label: 'SCHEDULED',
-    purpose: 'Attached to a release with a date set.',
-    order: 6,
-    requiresMaster: true
-  },
-  {
-    id: 'released',
-    label: 'RELEASED',
-    purpose: 'Out in the world.',
-    order: 7,
     requiresMaster: true,
     terminal: true
   },
@@ -93,7 +88,7 @@ export const PROJECT_STAGES: readonly ProjectStageDefinition[] = [
     id: 'shelved',
     label: 'SHELVED',
     purpose: 'Parked indefinitely. Kept for parts, not for release.',
-    order: 8,
+    order: 6,
     offPipeline: true,
     terminal: true
   }
@@ -190,61 +185,66 @@ export function requiresVolume(category: ProjectCategory): boolean {
   return VOLUME_BOUND_CATEGORIES.includes(category)
 }
 
-// ----------------------------------------------------------------- scaffold
-
-/**
- * The folders created inside every new project.
- *
- * These sit *beside* Ableton's own `Samples/` and `Backup/` rather than around
- * them: the project folder we create is the Ableton project folder, so the
- * template set lands at its root and Live resolves everything from there
- * without being told anything.
- *
- * `MIX & MASTER` is one folder rather than two because a mixdown and the master
- * cut from it are the same conversation, and an ampersand is legal on Windows
- * where the obvious `MIX/MASTER` is not.
- */
-export const PROJECT_SCAFFOLD_FOLDERS = [
-  'WIPS',
-  'MIX & MASTER',
-  'STEMS',
-  'GRAPHICS',
-  'MARKETING',
-  'REFERENCES'
-] as const
-
-export type ScaffoldFolder = (typeof PROJECT_SCAFFOLD_FOLDERS)[number]
-
-export const SCAFFOLD_FOLDER_PURPOSE: Record<ScaffoldFolder, string> = {
-  WIPS: 'Rough bounces as the arrangement moves.',
-  'MIX & MASTER': 'Mixdowns and the masters cut from them.',
-  STEMS: 'Exported stems, for collaborators and for live.',
-  GRAPHICS: 'Cover art, canvases, source files.',
-  MARKETING: 'Clips, copy, anything promotional.',
-  REFERENCES: 'Tracks being A/B-ed against.'
-}
-
 // ------------------------------------------------------------------ masters
 
 /**
- * The two audio picks a project carries.
+ * How the operator classifies the audio their project produced.
  *
- * Deliberately on the project rather than on a release: these are production
- * artefacts and exist long before anything is scheduled. A release *reads* the
- * final pick when one is attached; it does not own it.
+ * Every bounce stays loose in the project folder; what gives one meaning is a
+ * mark made here, against the audio the scanner already found. This replaced
+ * six scaffold folders — WIPS, MIX & MASTER and the rest — which sorted the
+ * same files by location and which nothing in the app ever read. Classifying
+ * by declaration rather than by which directory a file was dragged into is the
+ * one arrangement that cannot drift out of step with what the operator meant.
+ *
+ * WIP and MASTER are mutually exclusive: a file is an in-progress bounce or a
+ * finished master, and something claiming to be both makes neither list worth
+ * reading. The final is not a third bucket but a single designation on top, and
+ * it may point at any audio file in the project — including one already marked.
  */
-export const MASTER_PICKS = ['prefinal', 'final'] as const
-export type MasterPick = (typeof MASTER_PICKS)[number]
+export const AUDIO_MARKS = ['wip', 'mix', 'master'] as const
+export type AudioMark = (typeof AUDIO_MARKS)[number]
 
-export const MASTER_PICK_LABEL: Record<MasterPick, string> = {
-  prefinal: 'PRE-FINAL MIX & MASTER',
-  final: 'FINAL MIX & MASTER'
+export const AUDIO_MARK_LABEL: Record<AudioMark, string> = {
+  wip: 'WIPS',
+  mix: 'MIXES',
+  master: 'MASTERS'
 }
 
-export const MASTER_PICK_HINT: Record<MasterPick, string> = {
-  prefinal: 'The candidate currently being lived with. Expected to be replaced.',
-  final: 'The exact file that ships. Chosen from the bounces found in this project.'
+export const AUDIO_MARK_HINT: Record<AudioMark, string> = {
+  wip: 'Rough bounces kept for reference. Never shipped.',
+  mix: 'Considered mixdowns.',
+  master: 'Mastered versions.'
 }
+
+/**
+ * The stage each mark belongs to, and the point of the whole arrangement.
+ *
+ * The operator marks what they produced at the stage they produced it, so the
+ * question the panel asks changes as the work moves: at MIX it is "which of
+ * these is a mixdown", at MASTER "which of these is mastered". A WIP is not
+ * tied to a stage — a rough bounce is worth keeping whenever it happens.
+ */
+export const AUDIO_MARK_STAGE: Record<AudioMark, ProjectStage | null> = {
+  wip: null,
+  mix: 'mix',
+  master: 'master'
+}
+
+/**
+ * Whether audio can be marked at this stage at all.
+ *
+ * Hidden before MIX: the bounces that matter do not exist yet, and an empty
+ * section on every new project is clutter that teaches nothing. Hidden when
+ * shelved, which is off the pipeline entirely.
+ */
+export function marksAudio(stage: ProjectStage): boolean {
+  const definition = getStage(stage)
+  return !definition.offPipeline && definition.order >= getStage('mix').order
+}
+
+/** The marks a final mix and master may be promoted from. */
+export const FINAL_SOURCE_MARKS: readonly AudioMark[] = ['mix', 'master']
 
 // ------------------------------------------------------------------- views
 

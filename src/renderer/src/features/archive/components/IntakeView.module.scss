@@ -1,0 +1,190 @@
+@use 'abstracts' as *;
+
+/*
+ * Two panes of equal weight, on the house grid.
+ *
+ * `repeat(6, minmax(0, 1fr))` with explicit span classes is the convention
+ * everywhere else in the app — see §7.4 — so this uses it rather than a local
+ * two-column rule that happens to look the same. Equal spans because neither
+ * side is subordinate: the operator is comparing where work is against where
+ * it should go, and giving one pane more room would say one of those questions
+ * mattered more.
+ *
+ * Neither pane is `focal`. One focal object per view, and this sits inside the
+ * department's focal panel already.
+ */
+.split {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+.pane {
+  grid-column: span 3;
+  min-width: 0;
+}
+
+@include below('md') {
+  .pane {
+    grid-column: span 6;
+  }
+}
+
+/*
+ * Both panes are `flush`, so this owns every inset rather than sharing the job
+ * with the primitive.
+ *
+ * The trail wants to sit against the header rule the way the shelves' does,
+ * which is what `flush` is for — but the grid beneath it must not run to the
+ * panel's own border. Splitting those two needs the padding to be per-element
+ * here instead of one rule on the body, and doing it here means what is written
+ * is what renders: there is no second padding underneath it to reason about.
+ */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  min-width: 0;
+  height: 100%;
+  padding-bottom: space(5);
+  // Anchors `.dropHint`, and the transition is what stops the fill snapping on
+  // as the pointer crosses the boundary.
+  position: relative;
+  transition:
+    background-color $duration-fast linear,
+    box-shadow $duration-fast linear;
+}
+
+/*
+ * Insets for everything that is not the grid.
+ *
+ * `:global` reaches the shelves' own trail, which this pane borrows rather
+ * than restating — see the crumb walk in IntakeView. Borrowing the styles is
+ * the point: the two panes must navigate identically, and two breadcrumbs that
+ * merely resemble each other is how that stops being true.
+ */
+.roots,
+.empty {
+  margin-left: space(5);
+  margin-right: space(5);
+}
+
+.body > nav {
+  margin-left: space(5);
+  margin-right: space(5);
+}
+
+/*
+ * Both grids scroll inside their pane rather than growing it.
+ *
+ * A source folder of thirty projects would otherwise push the destination pane
+ * off the bottom of the page, and the whole point of the view is having both
+ * on screen at once.
+ */
+/*
+ * The grid is inset like everything else, and a little tighter on the right.
+ *
+ * The scrollbar sits inside this box, so matching the left padding exactly
+ * would leave the tiles further from the right edge than the left. Taking the
+ * scrollbar's width off the right padding is what makes the two columns of
+ * whitespace read as equal.
+ */
+.scroll {
+  min-height: 0;
+  max-height: rem(460px);
+  overflow-y: auto;
+  padding: space(2) space(3) space(2) space(5);
+}
+
+// ------------------------------------------------------------------- roots
+
+// Only drawn with more than one configured location: a rail of one is a label
+// pretending to be a control.
+.roots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+}
+
+.root {
+  @include label(8px, 0.14em);
+  padding: space(1) space(3);
+  color: var(--ch-text-muted);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-accent);
+  }
+}
+
+// ------------------------------------------------------------------ drop here
+
+/*
+ * The whole pane lights up, rather than a band inside it.
+ *
+ * An inset ring rather than a border, so the pane does not change size at the
+ * moment the operator is trying to hit it — a target that moves when you
+ * approach it is the one thing a drop target must never do.
+ */
+.body[data-drop] {
+  background: rgba(163, 43, 35, 0.07);
+  box-shadow: inset 0 0 0 $hairline var(--ch-accent);
+}
+
+/*
+ * What releasing here will do.
+ *
+ * Pinned to the foot of the pane and out of the flow, so appearing mid-drag
+ * cannot reflow the tiles the operator is aiming past. `pointer-events: none`
+ * is the load-bearing part: a caption that swallowed the drop it describes
+ * would be the same fault as the strip this replaced.
+ */
+.dropHint {
+  position: absolute;
+  left: space(5);
+  right: space(5);
+  bottom: space(4);
+  pointer-events: none;
+  @include label(9px, 0.16em);
+  color: var(--ch-text-primary);
+  text-align: center;
+  padding: space(2);
+  background: var(--ch-accent-dim);
+  border: $hairline solid var(--ch-accent);
+}
+
+// ------------------------------------------------------------------- empty
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(4) 0;
+  max-width: rem(520px);
+}
+
+.emptyTitle {
+  @include label(11px, 0.14em);
+  color: var(--ch-text-secondary);
+}
+
+.emptyHint {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}

@@ -79,6 +79,56 @@
   gap: space(3);
 }
 
+/*
+ * The same tiles, laid on their side.
+ *
+ * One column, mark and name on one line, detail held at the trailing edge.
+ * Everything that makes a tile a tile — the swatch rail, the drop state, the
+ * favourite corner, the drag — is untouched, because the only difference
+ * between a grid and a list is how much the operator wants to see at once.
+ *
+ * A list shows the most in the least height, which is what a pane half the
+ * width of the page usually wants; the grid reads faster once names stop being
+ * distinguishable, which is what a folder of thirty near-identical projects
+ * does to a list.
+ */
+.grid[data-layout='rows'] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+
+  .tile {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: space(3);
+    padding: space(2) space(3);
+    text-align: left;
+  }
+
+  .tileIcon {
+    width: rem(20px);
+    height: rem(15px);
+    flex-shrink: 0;
+  }
+
+  .tileName {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .tileCount {
+    flex-shrink: 0;
+  }
+
+  // The corner mark has no corner to sit in on a row, so it rides the trailing
+  // edge with the other metadata rather than overlapping the name.
+  .tilePin {
+    position: static;
+    order: 3;
+  }
+}
+
 .tile {
   --folder-colour: var(--ch-concrete-500);
 
@@ -125,6 +175,32 @@
   &[data-selected] {
     border-color: var(--ch-line-strong);
     background: var(--ch-surface-overlay);
+  }
+
+  /*
+   * Marked for a bulk move — louder than selected, because this one has
+   * consequences. Selection is where the cursor happens to be; a mark is a
+   * statement that this tile is part of the next move, and the operator needs
+   * to be able to count them across the grid at a glance.
+   *
+   * The accent rail rather than a checkbox: a checkbox in the corner would
+   * fight the favourite mark already there, and a rail reads as a run of
+   * marked tiles rather than as a column of controls.
+   */
+  &[data-marked] {
+    border-color: var(--ch-accent);
+    background: rgba(163, 43, 35, 0.08);
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
   }
 }
 
@@ -344,6 +420,65 @@
   flex-direction: column;
   gap: space(4);
   padding: space(5);
+}
+
+/*
+ * What a folder is going to be, when there is more than one answer.
+ *
+ * Two slabs side by side rather than a select: the choice between a genre and
+ * an artist is made once per folder and each option needs its line of
+ * explanation, which a dropdown cannot carry. Drawn as a radio group so the
+ * two read as one decision.
+ */
+.kindChoice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+}
+
+.kindOption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: space(1);
+  padding: space(3);
+  text-align: left;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.05);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-accent);
+    background: rgba(163, 43, 35, 0.1);
+  }
+}
+
+.kindLabel {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+
+  .kindOption[data-selected] & {
+    color: var(--ch-text-primary);
+  }
+}
+
+.kindPurpose {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
 }
 
 .dialogError {

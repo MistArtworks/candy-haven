@@ -121,6 +121,24 @@ export interface CandyHavenApi {
     scan(force?: boolean): Promise<ScanState>
     cancelScan(): Promise<ScanState>
     scanState(): Promise<ScanState>
+    /** Stamps Live's project icon onto every project folder missing it. */
+    conform(): Promise<{ stamped: number; total: number }>
+    /** Lists one directory on disk, for the migration view. */
+    browse(
+      path: string
+    ): Promise<
+      { path: string; name: string; isProject: boolean; projects: number; children: number }[]
+    >
+    /** Files several projects and folders at once; reports what did not move. */
+    fileMany(
+      projectIds: string[],
+      folderIds: string[],
+      folderId: string | null
+    ): Promise<{ moved: number; failures: { id: string; name: string; reason: string }[] }>
+    /** Moves a bounce into Release Mastered Tracks as the project's final. */
+    setFinal(id: string, sourcePath: string, name: string): Promise<ProjectRecord>
+    /** Moves the final back into the project folder. */
+    clearFinal(id: string): Promise<ProjectRecord>
     addNote(id: string, draft: NoteDraft): Promise<ProjectRecord>
     updateNote(id: string, noteId: string, draft: NoteDraft): Promise<ProjectRecord>
     deleteNote(id: string, noteId: string): Promise<ProjectRecord>

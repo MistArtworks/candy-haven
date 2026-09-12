@@ -16,16 +16,13 @@ import { MAX_RELEASE_TITLE_LENGTH, RELEASE_SUBJECTS } from './releases.constants
  * scheduling system that replaces TRANSMISSIONS.
  */
 
-export type { DeliverableKind, ReleaseScaffoldFolder, ReleaseSubject } from './releases.constants'
+export type { DeliverableKind, ReleaseSubject } from './releases.constants'
 
 export {
-  DELIVERABLE_DESTINATION,
   DELIVERABLE_HINT,
   DELIVERABLE_KINDS,
   DELIVERABLE_LABEL,
   MAX_RELEASE_TITLE_LENGTH,
-  RELEASE_SCAFFOLD_FOLDERS,
-  RELEASE_SCAFFOLD_PURPOSE,
   RELEASE_SUBJECTS,
   slugifyReleaseTitle
 } from './releases.constants'

@@ -1,10 +1,5 @@
 import type { ReactNode } from 'react'
-import type { MasterPick, MediaFile } from '@shared/domain/projects'
-import {
-  MASTER_PICKS,
-  MASTER_PICK_HINT,
-  MASTER_PICK_LABEL
-} from '@shared/domain/projects.constants'
+import type { MediaFile } from '@shared/domain/projects'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { formatBytes } from '@renderer/lib/format'
 import { formatStamp } from '../../lib/present'
@@ -38,92 +33,21 @@ function FileRows({ files }: { files: readonly MediaFile[] }): ReactNode {
  *
  * Every filename is a button that reveals the file in Explorer — the register
  * is meant to be a way *into* the work, not a read-only inventory of it.
+ *
+ * The mix-and-master panel used to lead this tab and has moved to OVERVIEW.
+ * It was the only part of FILES holding decisions rather than listings, and it
+ * belongs beside the pipeline: what the operator marks changes with the stage
+ * they are on, so the panel asking it should be on the tab the stage lives on.
+ * What is left here is purely an inventory, which is what the tab is named for.
  */
-export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode {
-  const pick = (kind: MasterPick, path: string | null): void => {
-    mutations.patch.mutate({ id: project.id, patch: { masters: { [kind]: path } } })
-  }
+export function DossierFiles(props: DossierTabProps): ReactNode {
+  const { project, mutations } = props
 
   return (
     <DossierGrid>
-      {/*
-        The two picks lead the tab, and carry the accent.
-
-        They are the only *decisions* on this page — everything below is an
-        inventory of what the scan found. A final master is also the gate on
-        READY, SCHEDULED and RELEASED, so an operator who opens FILES to move a
-        project forward should not have to look for it.
-      */}
-      <Panel
-        label="Mix and master"
-        index="01"
-        icon={<ArchiveGlyph name="master" />}
-        className={styles.span6}
-        focal
-      >
-        {project.audio.length === 0 ? (
-          <p className={styles.empty}>
-            No audio outside the Samples folder yet. Bounce a mixdown into the project and rescan,
-            then choose it here.
-          </p>
-        ) : (
-          <div className={styles.stack}>
-            {MASTER_PICKS.map((kind) => (
-              <div key={kind} className={styles.stackTight}>
-                <span className={styles.sectionLabel}>{MASTER_PICK_LABEL[kind]}</span>
-                <p className={styles.hint}>{MASTER_PICK_HINT[kind]}</p>
-
-                <div className={styles.fileList}>
-                  {project.audio.map((file) => {
-                    const chosen = project.masters[kind] === file.path
-                    return (
-                      <div
-                        key={file.path}
-                        className={styles.file}
-                        data-chosen={chosen || undefined}
-                      >
-                        <button
-                          type="button"
-                          className={styles.fileName}
-                          title={file.path}
-                          onClick={() => void window.candy.shell.reveal(file.path)}
-                        >
-                          {file.relativePath}
-                        </button>
-                        <span className={styles.fileMeta}>{formatBytes(file.sizeBytes)}</span>
-
-                        {chosen ? (
-                          <button
-                            type="button"
-                            className={styles.filePromote}
-                            disabled={mutations.patch.isPending}
-                            onClick={() => pick(kind, null)}
-                          >
-                            CLEAR
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className={styles.filePromote}
-                            disabled={mutations.patch.isPending}
-                            onClick={() => pick(kind, file.path)}
-                          >
-                            CHOOSE
-                          </button>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Panel>
-
       <Panel
         label="Ableton sets"
-        index="02"
+        index="01"
         icon={<ArchiveGlyph name="set" />}
         className={styles.span3}
         aside={String(project.sets.length)}
@@ -177,7 +101,7 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
 
       <Panel
         label="Backup revisions"
-        index="03"
+        index="02"
         icon={<ArchiveGlyph name="layers" />}
         className={styles.span3}
         aside={String(project.revisions.length)}
@@ -208,7 +132,7 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
 
       <Panel
         label="Bounces and renders"
-        index="04"
+        index="03"
         icon={<ArchiveGlyph name="waveform" />}
         className={styles.span3}
         aside={String(project.audio.length)}
@@ -228,7 +152,7 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
 
       <Panel
         label="Images and video"
-        index="05"
+        index="04"
         icon={<ArchiveGlyph name="image" />}
         className={styles.span3}
         aside={String(project.images.length + project.videos.length)}
@@ -257,7 +181,7 @@ export function DossierFiles({ project, mutations }: DossierTabProps): ReactNode
       {project.missingSamples.length > 0 ? (
         <Panel
           label="Missing samples"
-          index="06"
+          index="05"
           icon={<ArchiveGlyph name="alert" />}
           className={styles.span6}
           aside={String(project.missingSamples.length)}

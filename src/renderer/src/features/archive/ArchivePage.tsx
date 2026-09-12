@@ -9,6 +9,8 @@ import {
   type ReactNode
 } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { useSettings } from '@renderer/hooks/useSettings'
 import { AnimatePresence, motion } from 'motion/react'
 import type {
   ProjectCategory,
@@ -18,12 +20,12 @@ import type {
   ProjectViewMode
 } from '@shared/domain/projects'
 import type { ArchiveFolder } from '@shared/domain/stacks'
-import type { ArchiveLens } from '@shared/domain/stacks.constants'
+import type { ArchiveLens, FolderKind } from '@shared/domain/stacks.constants'
 import {
-  ARCHIVE_LENSES,
+  VISIBLE_ARCHIVE_LENSES,
   ARCHIVE_LENS_LABEL,
   FOLDER_KIND_LABEL,
-  folderKindAtDepth,
+  allowedChildKinds,
   isFolderLens
 } from '@shared/domain/stacks.constants'
 import type { DeliverableKind } from '@shared/domain/releases'
@@ -46,6 +48,7 @@ import { ProjectListView } from './components/ProjectListView'
 import { ProjectBoardView } from './components/ProjectBoardView'
 import { ProjectDossier } from './components/ProjectDossier'
 import { ScanPanel } from './components/ScanPanel'
+import { IntakeView } from './components/IntakeView'
 import { TagManagerDialog } from './components/tags/TagManagerDialog'
 import { ArchiveGlyph, type ArchiveGlyphName } from './components/icons/ArchiveGlyph'
 import { ViewToggle } from './components/ViewToggle'
@@ -124,7 +127,7 @@ function useDebounced<T>(value: T, delayMs: number): T {
  *
  * Two axes, and keeping them separate is what stops this page becoming a
  * settings screen. The **lens** decides what is in scope: STACKS browses the
- * filing tree the operator builds, UNFILED everything not yet on a shelf,
+ * filing tree the operator builds, INTAKE what is elsewhere on disk,
  * VOLUMES the albums and EPs, RELEASES what is going out, ALL the register
  * flat, and BIN what has been deleted.
  * The **view** decides how whatever is in scope gets drawn — the ledger, the
@@ -163,7 +166,51 @@ export function ArchivePage(): ReactNode {
    * momentary pointing gesture, not somewhere the operator navigated to, and
    * putting it in history would make the back gesture step through highlights.
    */
+  const queryClient = useQueryClient()
+  const settings = useSettings()
+
+  /*
+   * Where INTAKE browses from: the configured source locations,
+   * and nothing else.
+   *
+   * The filing root was included at first, reasoning that a project sitting
+   * loose in it but outside the wrapper is unfiled in every sense that matters.
+   * True, and not worth what it cost: the filing root's only contents are
+   * almost always the wrapper itself, so it contributed a tab that browsed the
+   * archive the operator is migrating *into*. Migration asks "what have I got
+   * elsewhere" — the answer is the locations they added for exactly that.
+   *
+   * A stray project directly in the filing root is still found by the scan and
+   * still filed from the shelves; it just is not browsed for here.
+   */
+  const intakeRoots = useMemo(
+    () => [...new Set(settings?.workspace.satelliteRoots ?? [])],
+    [settings?.workspace.satelliteRoots]
+  )
+
   const [tileSelection, setTileSelection] = useState<string | null>(null)
+
+  /*
+   * Everything picked out for a bulk move, projects and folders together.
+   *
+   * Separate from `tileSelection`, which is the single tile the keyboard is
+   * on. A set of ids is not a cursor: one says "act on these", the other says
+   * "you are here", and collapsing them would make arrowing through a shelf
+   * silently change what the next drag would move.
+   */
+  const [marked, setMarked] = useState<ReadonlySet<string>>(() => new Set())
+
+  const toggleMarked = useCallback((id: string, additive: boolean) => {
+    setMarked((current) => {
+      if (!additive) return current.has(id) && current.size === 1 ? new Set() : new Set([id])
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const clearMarked = useCallback(() => setMarked(new Set()), [])
 
   /*
    * The open dossier, the folder being browsed, the open volume and the open
@@ -180,7 +227,13 @@ export function ArchivePage(): ReactNode {
   const volumeId = searchParams.get('volume')
   const releaseId = searchParams.get('release')
   const rawLens = searchParams.get('lens')
-  const lens: ArchiveLens = ARCHIVE_LENSES.includes(rawLens as ArchiveLens)
+  /*
+   * A hidden lens in the URL falls back to the default rather than being
+   * honoured. RELEASES is stood down (see HIDDEN_ARCHIVE_LENSES) and an old
+   * bookmark or a back gesture would otherwise open a lens with no way off it
+   * — the rail no longer draws a button to leave by.
+   */
+  const lens: ArchiveLens = VISIBLE_ARCHIVE_LENSES.includes(rawLens as ArchiveLens)
     ? (rawLens as ArchiveLens)
     : 'stacks'
 
@@ -274,14 +327,27 @@ export function ArchivePage(): ReactNode {
     [scoped, stacksTree?.folders, folderId]
   )
 
+  /*
+   * INTAKE ignores the filters entirely.
+   *
+   * Its panes list directories on disk, and the register is consulted only to
+   * answer "is this folder one I already know about" — which decides whether a
+   * row can be dragged. A filter left on from another lens cannot narrow what
+   * the pane shows, but it *can* narrow that lookup, and an indexed project
+   * would then be labelled NOT INDEXED and refuse to be picked up. The controls
+   * are hidden there for the same reason; this handles a filter set elsewhere
+   * and still active on arrival.
+   */
+  const filtering = lens !== 'unfiled'
+
   const query = useMemo<ProjectQuery>(
     () => ({
-      search: search || undefined,
-      stages: filters.stages.length > 0 ? filters.stages : undefined,
-      categories: filters.categories.length > 0 ? filters.categories : undefined,
-      tagIds: filters.tags.length > 0 ? filters.tags : undefined,
-      favouritesOnly: filters.favouritesOnly || undefined,
-      includeMissing: filters.includeMissing || undefined,
+      search: filtering ? search || undefined : undefined,
+      stages: filtering && filters.stages.length > 0 ? filters.stages : undefined,
+      categories: filtering && filters.categories.length > 0 ? filters.categories : undefined,
+      tagIds: filtering && filters.tags.length > 0 ? filters.tags : undefined,
+      favouritesOnly: (filtering && filters.favouritesOnly) || undefined,
+      includeMissing: (filtering && filters.includeMissing) || undefined,
       sort: filters.sort,
       /*
        * While browsing, the register beneath the tiles shows only what is filed
@@ -295,12 +361,24 @@ export function ArchivePage(): ReactNode {
       ...(browsing ? (subtree ? { folderIds: subtree } : { folderId }) : {}),
       // VOLUMES lists one volume's tracks once opened.
       ...(lens === 'volumes' && volumeId !== null ? { volumeId } : {}),
-      // UNFILED is everything on no shelf at all — `null`, not absent.
-      ...(lens === 'unfiled' ? { folderId: null } : {}),
+      /*
+       * INTAKE takes the *whole* register, not the unfiled slice.
+       *
+       * It used to ask for `folderId: null`, which was right while the lens
+       * drew a list of unfiled projects and wrong the moment it became two
+       * directory panes. The left pane matches browsed folders against records
+       * by path — a filed project still exists on disk and must still be
+       * recognised — and the right pane draws what is filed on the shelf it is
+       * standing on, which a query excluding filed projects can never return.
+       *
+       * The symptom was a drop that worked perfectly and then showed nothing:
+       * the files moved, the record took its folder, and the pane that had
+       * just filed it could not see it.
+       */
       // The bin is a place, not a filter — see `ProjectQuerySchema.trashed`.
       ...(lens === 'bin' ? { trashed: true } : {})
     }),
-    [search, filters, browsing, folderId, subtree, lens, volumeId]
+    [filtering, search, filters, browsing, folderId, subtree, lens, volumeId]
   )
 
   const { data: registry, isLoading } = useProjectRegistry(query)
@@ -329,7 +407,6 @@ export function ArchivePage(): ReactNode {
   // Memoised so the empty fallback is not a new array on every render, which
   // would defeat every derivation below it.
   const folders = useMemo(() => stacks?.folders ?? [], [stacks?.folders])
-  const depths = useMemo(() => stacks?.depths ?? {}, [stacks?.depths])
   const allVolumes = useMemo(() => volumes ?? [], [volumes])
   const allReleases = useMemo(() => releases ?? [], [releases])
 
@@ -342,11 +419,12 @@ export function ArchivePage(): ReactNode {
    * Every folder, in reading order, as a filing destination.
    *
    * No longer filtered by depth: a genre holds projects just as a folder inside
-   * it does. Sorted by path so a nested folder always follows its parent, which
-   * is the only ordering that lets a flat menu stand in for a tree.
+   * it does. Ordered by name within each level — the menu walks the tree by
+   * `parentId` now rather than flattening it, so path order no longer has to
+   * stand in for structure.
    */
   const filingTargets = useMemo(
-    () => [...folders].sort((a, b) => a.path.localeCompare(b.path)),
+    () => [...folders].sort((a, b) => a.name.localeCompare(b.name)),
     [folders]
   )
 
@@ -355,19 +433,44 @@ export function ArchivePage(): ReactNode {
    *
    * RELEASES draws its own board and VOLUMES at the top level draws tiles; the
    * STACKS root draws only shelves, because "filed here" there means "filed
-   * nowhere" and that list lives in UNFILED.
+   * nowhere" and that work lives in INTAKE.
+   *
+   * INTAKE does not draw one either. It browses directories, so it takes its
+   * own narrowed toggle — LIST and ICONS, no BOARD — rather than this one,
+   * which would offer a board of stages over a folder that has none.
    */
   const drawsRegister =
-    lens === 'unfiled' ||
     lens === 'all' ||
     lens === 'bin' ||
     (lens === 'volumes' && volumeId !== null) ||
     (browsing && folderId !== null)
 
   const currentFolder = trail.at(-1) ?? null
-  const currentDepth = currentFolder ? (depths[currentFolder.id] ?? 0) : -1
-  // Standing inside any folder is enough; only the wrapper root is not a folder.
-  const canCreateProjectHere = currentFolder !== null
+
+  /*
+   * What the add tile offers is named after what may actually be made here.
+   *
+   * A category holds genres *and* artists, so at that level the tile cannot
+   * name one — it says "New shelf" and the dialog asks which. Everywhere else
+   * exactly one kind is legal and the tile says so outright.
+   */
+  const addableKinds = allowedChildKinds(currentFolder?.kind ?? null)
+  const addFolderLabel =
+    addableKinds.length === 1
+      ? `New ${FOLDER_KIND_LABEL[addableKinds[0]].toLowerCase()}`
+      : 'New shelf'
+
+  // Standing inside any folder is enough; only the tree root is not a folder.
+  /*
+   * A project needs a genre, an artist or a folder under one — not a category.
+   *
+   * A category divides the operator's *filing*, not their work: it holds kinds
+   * of shelf, and a project sitting beside genres at that level would be the
+   * one thing in the tree with no answer to "what is this filed as". The rule
+   * mirrors VALID_CHILD_KINDS, which already refuses to put a project's
+   * possible parents anywhere else.
+   */
+  const canCreateProjectHere = currentFolder !== null && currentFolder.kind !== 'category'
 
   // ------------------------------------------------------------- reporting
 
@@ -401,6 +504,53 @@ export function ArchivePage(): ReactNode {
   )
 
   // ---------------------------------------------------------------- filing
+
+  /*
+   * One drop, however many things were picked up.
+   *
+   * A drag that starts on a marked tile carries the whole marked set; a drag
+   * that starts anywhere else carries just that one thing and leaves the marks
+   * alone. That rule is what stops a bulk move happening by accident — the
+   * operator has to have marked the tile they then drag.
+   *
+   * `fileMany` is used even for one item, so the partial-failure path is the
+   * same code in both cases rather than a rarely-exercised branch.
+   */
+  const fileMany = useCallback(
+    (
+      projectIds: readonly string[],
+      folderIds: readonly string[],
+      targetFolderId: string | null
+    ) => {
+      setNotice(null)
+      setMenu(null)
+
+      void window.candy.projects
+        .fileMany([...projectIds], [...folderIds], targetFolderId)
+        .then(({ moved, failures }) => {
+          clearMarked()
+          void queryClient.invalidateQueries({ queryKey: ['stacks'] })
+          void queryClient.invalidateQueries({ queryKey: ['projects'] })
+          // The directory listing INTAKE is browsing has just changed on disk:
+          // whatever moved is no longer in the folder it was dragged out of.
+          // Without this the source pane keeps showing it, and shows it as
+          // NOT INDEXED, because its record now points into the archive.
+          void queryClient.invalidateQueries({ queryKey: ['browse'] })
+
+          if (failures.length === 0) return
+
+          // Named rather than counted. "Three could not be moved" sends the
+          // operator hunting; the names say which, and the reason says why.
+          setNotice(
+            `Moved ${moved}. Could not move ${failures
+              .map((entry) => `${entry.name} — ${entry.reason}`)
+              .join('; ')}`
+          )
+        })
+        .catch(report)
+    },
+    [clearMarked, queryClient, report]
+  )
 
   const fileProject = useCallback(
     (projectId: string, targetFolderId: string | null) => {
@@ -474,13 +624,13 @@ export function ArchivePage(): ReactNode {
   // --------------------------------------------------------------- dialogs
 
   const submitFolder = useCallback(
-    (name: string, colour: string) => {
+    (name: string, colour: string, kind: FolderKind) => {
       setDialogError(null)
       const done = (): void => setFolderDialog(null)
 
       if (folderDialog?.mode === 'create') {
         stackMutations.create.mutate(
-          { parentId: folderDialog.parentId, name, colour },
+          { parentId: folderDialog.parentId, name, colour, kind },
           { onSuccess: done, onError: reportToDialog }
         )
         return
@@ -812,7 +962,7 @@ export function ArchivePage(): ReactNode {
       },
       {
         chord: 'ctrl+n',
-        label: folderId === null ? 'New genre' : 'New folder',
+        label: addFolderLabel,
         group,
         whileTyping: true,
         disabled: locked || lens !== 'stacks',
@@ -869,7 +1019,7 @@ export function ArchivePage(): ReactNode {
     // Built by mapping rather than by pushing into `entries`: the lint rule
     // that guards refs reads a mutating closure as something that might run
     // during render, and there is nothing here worth arguing the point over.
-    const lenses: Hotkey[] = ARCHIVE_LENSES.map((entry, index) => ({
+    const lenses: Hotkey[] = VISIBLE_ARCHIVE_LENSES.map((entry, index) => ({
       chord: `alt+${index + 1}`,
       label: ARCHIVE_LENS_LABEL[entry],
       group: 'Archive lenses',
@@ -879,6 +1029,7 @@ export function ArchivePage(): ReactNode {
 
     return [...entries, ...lenses]
   }, [
+    addFolderLabel,
     changeLens,
     currentFolder,
     focusSearch,
@@ -903,7 +1054,7 @@ export function ArchivePage(): ReactNode {
       visibleFolders.map((folder) => {
         return {
           id: folder.id,
-          mark: folderKindAtDepth(depths[folder.id] ?? 0),
+          mark: folder.kind,
           name: folder.name,
           detail: describeFolder(stacks?.counts[folder.id] ?? 0, childCounts[folder.id] ?? 0),
           colour: folder.colour,
@@ -914,7 +1065,7 @@ export function ArchivePage(): ReactNode {
           draggableAs: 'folder'
         }
       }),
-    [visibleFolders, depths, stacks?.counts, childCounts]
+    [visibleFolders, stacks?.counts, childCounts]
   )
 
   /**
@@ -1002,7 +1153,7 @@ export function ArchivePage(): ReactNode {
       return 'Nothing loose. Every project the scan found is on a shelf.'
     }
     if (browsing) {
-      return 'Nothing on this shelf yet. Create a project here, or drag one in from UNFILED.'
+      return 'Nothing on this shelf yet. Create a project here, or bring one in from INTAKE.'
     }
     if (lens === 'volumes' && volumeId !== null) {
       return 'No tracks on this volume yet. Right-click a project and assign it here.'
@@ -1042,6 +1193,8 @@ export function ArchivePage(): ReactNode {
           onOpen={selectProject}
           selectedId={tileSelection}
           onSelect={setTileSelection}
+          marked={marked}
+          onMark={toggleMarked}
           onMenu={onTileMenu}
           onToggleFavourite={favouriteById}
           disabled={scanning}
@@ -1063,6 +1216,41 @@ export function ArchivePage(): ReactNode {
   // ----------------------------------------------------------------- panels
 
   const mainPanel = (): ReactNode => {
+    /*
+     * INTAKE is where work comes in, not a second project list.
+     *
+     * The lens has always meant "everything found on disk that is not on a
+     * shelf yet", which is precisely the work that needs bringing in — so
+     * rather than inventing a mode the operator has to go and find, the lens
+     * that already asks the question now shows the answer side by side with
+     * somewhere to put it.
+     */
+    if (lens === 'unfiled') {
+      /*
+         `.browser` for the padding, as every other lens that draws into the
+         flush panel does. The panel is `flush` so the folder browser can sit
+         its breadcrumb against the header rule, which means each lens supplies
+         its own inset — and this one was returning its panes bare, so the
+         tiles ran to the very edge of the page while the headings above them
+         were indented.
+      */
+      return (
+        <div className={styles.browser}>
+          <IntakeView
+            roots={intakeRoots}
+            folders={folders}
+            projects={projects}
+            // BOARD has no meaning over directories, and the toggle beside
+            // this panel does not offer it — but `view` is shared page state
+            // and can still be holding it from another lens.
+            view={view === 'grid' ? 'grid' : 'list'}
+            onFile={fileMany}
+            disabled={scanning || locked}
+          />
+        </div>
+      )
+    }
+
     if (lens === 'releases') {
       return (
         <ReleaseBoard
@@ -1236,11 +1424,12 @@ export function ArchivePage(): ReactNode {
 
           {folders.length === 0 && folderId === null ? (
             <div className={styles.stackEmpty}>
-              <p className={styles.stackEmptyTitle}>No genres yet.</p>
+              <p className={styles.stackEmptyTitle}>No categories yet.</p>
               <p className={styles.stackEmptyHint}>
-                Add one below and it is created as a real folder inside{' '}
-                {setup?.wrapper ?? 'your filing root'}. Projects can be created straight into a
-                genre, or into folders you add underneath it.
+                A category is the top of your filing — PERSONAL, COLLABS, CLIENT WORK. Add one below
+                and it is created as a real folder inside{' '}
+                {`${setup?.wrapper ?? 'your filing root'}${String.fromCharCode(92)}Projects`}.
+                Inside a category you add genres and artists, and projects go in those.
               </p>
             </div>
           ) : null}
@@ -1271,23 +1460,26 @@ export function ArchivePage(): ReactNode {
               else selectProject(id)
             }}
             onMenu={onTileMenu}
+            onDropMany={fileMany}
             onDropProject={fileProject}
             onDropFolder={nestFolder}
             selectedId={tileSelection}
             onSelect={setTileSelection}
+            marked={marked}
+            onMark={toggleMarked}
             onToggleFavourite={favouriteById}
             disabled={scanning || locked}
             adds={[
               {
-                label: folderId === null ? 'New genre' : 'New folder',
+                label: addFolderLabel,
                 mark: 'add',
                 onClick: () => {
                   setDialogError(null)
                   setFolderDialog({ mode: 'create', parentId: folderId })
                 }
               },
-              // Only inside a folder: a project needs a shelf to be created on,
-              // and the root of the tree holds genres rather than work.
+              // Only on a shelf that holds work. The root holds categories and
+              // a category holds genres and artists, so neither takes a project.
               ...(canCreateProjectHere && currentFolder
                 ? [
                     {
@@ -1377,7 +1569,7 @@ export function ArchivePage(): ReactNode {
         total={total}
         // The release board draws tiles and a record, never the register, so a
         // sort order and a stage filter would operate on nothing visible.
-        showRegisterControls={lens !== 'releases'}
+        showRegisterControls={lens !== 'releases' && lens !== 'unfiled'}
         searchRef={searchRef}
       />
 
@@ -1404,6 +1596,13 @@ export function ArchivePage(): ReactNode {
              */
             drawsRegister ? (
               <ViewToggle view={view} onChange={setView} />
+            ) : lens === 'unfiled' ? (
+              /*
+               * INTAKE draws directories rather than a register, so it gets the
+               * two modes that mean something over a folder and not BOARD —
+               * there are no stages to make columns out of.
+               */
+              <ViewToggle view={view} onChange={setView} modes={INTAKE_VIEW_MODES} />
             ) : registry?.scan.finishedAt ? (
               <span className={styles.panelAside}>
                 Indexed {formatStamp(registry.scan.finishedAt)}
@@ -1544,9 +1743,18 @@ export function ArchivePage(): ReactNode {
               ? folderDialog.parentId === null
               : folderDialog.folder.parentId === null
           }
-          kindLabel={
+          /*
+           * What may be made here is read off the parent's kind rather than
+           * off depth. The dialog states it when there is one answer and asks
+           * when there are two — a category holds genres and artists both.
+           */
+          kinds={
             folderDialog.mode === 'create'
-              ? FOLDER_KIND_LABEL[folderKindAtDepth(currentDepth + 1)]
+              ? allowedChildKinds(
+                  folderDialog.parentId
+                    ? (folders.find((entry) => entry.id === folderDialog.parentId)?.kind ?? null)
+                    : null
+                )
               : undefined
           }
           where={
@@ -1652,9 +1860,12 @@ export function ArchivePage(): ReactNode {
 }
 
 /** The focal panel's label follows the lens, so the page names what it shows. */
+/** The view modes INTAKE offers. BOARD needs stages; a directory has none. */
+const INTAKE_VIEW_MODES = ['list', 'grid'] as const
+
 const PANEL_LABEL: Record<ArchiveLens, string> = {
-  stacks: 'Genres',
-  unfiled: 'Unfiled',
+  stacks: 'Stacks',
+  unfiled: 'Intake',
   volumes: 'Volumes',
   releases: 'Releases',
   all: 'Register',

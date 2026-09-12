@@ -1,5 +1,7 @@
 import type { Db, IndexDescription } from 'mongodb'
+import { WRAPPER_DIRECTORY_NAME } from '@shared/domain/stacks.constants'
 import { getLogger } from '@main/core/logger'
+import { migrateToProjectsLayout } from '@main/services/stacks/layout-migration'
 
 const logger = getLogger('archive:schema')
 
@@ -198,7 +200,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 3
+const SCHEMA_VERSION = 8
 
 /**
  * Collections dropped by the version 2 migration.
@@ -276,6 +278,203 @@ async function applyMigrations(db: Db): Promise<void> {
       .updateMany({}, { $unset: { tags: '' }, $set: { tagIds: [] } })
 
     logger.info(`Moved ${result.modifiedCount} projects onto tag ids`)
+  }
+
+  if (from < 4) {
+    logger.warn(`Migrating archive schema ${from} -> 4: the pipeline ends at TRACK READY`)
+
+    /*
+     * `scheduled` and `released` are gone from `PROJECT_STAGE_IDS`, and this
+     * has to run before anything reads a record again.
+     *
+     * Not cosmetic, and not optional. `ProjectStageSchema` is a zod enum over
+     * that list, `stageHistory[].stage` uses it too, and `toRecord()` *skips*
+     * any document that fails to parse. So a project left sitting in a removed
+     * stage does not merely lose its stage — it vanishes from the register
+     * entirely.
+     *
+     * And it does not come back. The comment on `toRecord()` reasons that "a
+     * rescan rewrites it", which held for the failure that comment was written
+     * for but not for this one: the skipped record is absent from `existing`,
+     * so `reconcile()` takes the *new project* branch and issues an insert —
+     * against a path the orphaned document still holds, on a unique index. The
+     * insert collides and the project is unreadable for good, taking its stage
+     * history, notes, tags and filing with it.
+     *
+     * Both values map to `ready`: a project that was scheduled or out in the
+     * world is, at minimum, finished. History entries are rewritten in place
+     * rather than dropped, so the timeline stays continuous and the dates the
+     * operator accumulated survive.
+     */
+    const REMOVED = ['scheduled', 'released']
+    const projects = db.collection(Collections.Projects)
+
+    const current = await projects.updateMany(
+      { stage: { $in: REMOVED } },
+      { $set: { stage: 'ready' } }
+    )
+
+    // Positional-filtered update: one pass over the array rather than one
+    // write per entry, and it touches only the entries that name a dead stage.
+    const history = await projects.updateMany(
+      { 'stageHistory.stage': { $in: REMOVED } },
+      { $set: { 'stageHistory.$[entry].stage': 'ready' } },
+      { arrayFilters: [{ 'entry.stage': { $in: REMOVED } }] }
+    )
+
+    logger.info(
+      `Moved ${current.modifiedCount} projects and ${history.modifiedCount} stage histories onto TRACK READY`
+    )
+  }
+
+  if (from < 5) {
+    logger.warn(`Migrating archive schema ${from} -> 5: the tree moves inside Projects`)
+
+    /*
+     * Folder kind stops being derived from depth and starts being stored, so
+     * every existing record needs one. The rule mirrors what `folderKindAtDepth`
+     * would have said: a folder sitting at the top of the tree was a genre,
+     * everything below it was a plain folder.
+     *
+     * Written before the layout move below, which re-points and re-kinds as it
+     * goes — this pass exists so that a record is readable even if the move
+     * cannot complete. `ArchiveFolderSchema.kind` defaults rather than requires
+     * for the same reason, and for the reason recorded on the v4 step above: a
+     * folder that fails validation is skipped on read, and a skipped folder
+     * takes its whole subtree out of the tree with it.
+     */
+    const folders = db.collection(Collections.ArchiveFolders)
+
+    const tops = await folders.updateMany(
+      { kind: { $exists: false }, parentId: null },
+      { $set: { kind: 'genre' } }
+    )
+    const rest = await folders.updateMany(
+      { kind: { $exists: false } },
+      { $set: { kind: 'folder' } }
+    )
+
+    logger.info(`Kinded ${tops.modifiedCount} shelves and ${rest.modifiedCount} folders`)
+
+    // Moves real directories, so it lives beside the filesystem helpers. It is
+    // idempotent by inspection rather than by flag: a half-finished run is
+    // fixed by running it again.
+    await migrateToProjectsLayout(db)
+  }
+
+  if (from < 6) {
+    logger.warn(`Migrating archive schema ${from} -> 6: projects remember where they came from`)
+
+    /*
+     * Backfilling `originPath` for projects that are still outside the wrapper.
+     *
+     * For those the answer is exact: they have never been filed, so where they
+     * are *is* where the register found them. A project already inside the
+     * wrapper is deliberately left null — its current path is where it was
+     * filed to, not where it came from, and writing that would define home as
+     * the shelf it is already on, making "take off the shelf" a move to the
+     * place it is leaving.
+     *
+     * A null origin is not a broken record. Unfiling refuses and offers the
+     * File to… picker instead, which is the honest answer when nothing in the
+     * database knows where the project started.
+     */
+    /*
+     * Substring test rather than a regex.
+     *
+     * The first version matched on `$regex` and had to express a Windows path
+     * separator through two layers of escaping — TypeScript's string literal,
+     * then the regex engine. It reached the driver as a pattern ending in a
+     * lone backslash, which is not a regex at all, and took the whole boot
+     * sequence down with it. `$indexOfCP` compares plain strings and has
+     * nothing to escape.
+     *
+     * Both sides are lowercased because these are Windows paths: the same
+     * directory can be stored with different casing than it was walked with.
+     */
+    // Built from a character code rather than written as an escape. A path
+    // separator in this file has to survive a TypeScript string literal on its
+    // way to the driver, and getting that wrong is what broke the previous
+    // version — there is nothing to get wrong if no backslash is typed.
+    const separator = String.fromCharCode(92)
+    const marker = separator + WRAPPER_DIRECTORY_NAME.toLowerCase() + separator
+
+    const result = await db
+      .collection(Collections.Projects)
+      .updateMany({ originPath: { $exists: false } }, [
+        {
+          $set: {
+            originPath: {
+              $cond: [{ $gte: [{ $indexOfCP: [{ $toLower: '$path' }, marker] }, 0] }, null, '$path']
+            }
+          }
+        }
+      ])
+
+    logger.info(`Recorded an origin for ${result.modifiedCount} projects`)
+  }
+
+  if (from < 7) {
+    logger.warn(`Migrating archive schema ${from} -> 7: audio is marked, not filed`)
+
+    /*
+     * Two single-valued picks become two lists and a designation.
+     *
+     * `prefinal` and `final` both become entries in `masters`, and `final` is
+     * cleared. That looks like losing the operator's choice, and it is the
+     * careful option rather than the lazy one: `final` no longer means "this
+     * record points at a file in the project folder" — it means "this file has
+     * been moved into Release Mastered Tracks". Carrying the old value across
+     * would have every previously-mastered project claiming a file lives
+     * somewhere it has never been, and the first demote would try to move
+     * something out of a directory it is not in.
+     *
+     * Nothing is actually lost: both paths survive as masters, which is what
+     * they were, and re-designating one is a single click that also performs
+     * the move the new meaning requires.
+     *
+     * `$setDifference` both de-duplicates (prefinal and final are often the
+     * same file) and drops the nulls.
+     */
+    const result = await db
+      .collection(Collections.Projects)
+      .updateMany({ 'masters.prefinal': { $exists: true } }, [
+        {
+          $set: {
+            'masters.wips': [],
+            'masters.masters': {
+              $setDifference: [['$masters.prefinal', '$masters.final'], [null]]
+            },
+            'masters.final': null
+          }
+        },
+        { $unset: 'masters.prefinal' }
+      ])
+
+    logger.info(`Moved ${result.modifiedCount} projects onto audio marks`)
+  }
+
+  if (from < 8) {
+    logger.warn(`Migrating archive schema ${from} -> 8: mixes are marked separately`)
+
+    /*
+     * A third bucket, added empty.
+     *
+     * Nothing is reclassified. A file already marked a master was marked as one
+     * deliberately, and a WIP likewise; guessing which of them the operator
+     * would now call a mix would be inventing a decision they never made. The
+     * bucket starts empty and fills as they mark at the MIX stage.
+     *
+     * `MasterSelectionSchema.mixes` defaults, so this is belt and braces — but
+     * writing the field means a record that is read, patched and written back
+     * carries it explicitly rather than relying on the default surviving every
+     * round trip.
+     */
+    const result = await db
+      .collection(Collections.Projects)
+      .updateMany({ 'masters.mixes': { $exists: false } }, { $set: { 'masters.mixes': [] } })
+
+    logger.info(`Added a mixes bucket to ${result.modifiedCount} projects`)
   }
 
   await collection.updateOne(

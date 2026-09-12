@@ -152,6 +152,79 @@ export const IPC_INVOKE = {
     output: ScanStateSchema
   },
   'projects:scan-cancel': { input: z.void(), output: ScanStateSchema },
+
+  /**
+   * Brings every project folder up to the shape a created one has.
+   *
+   * In practice that is one thing: stamping Live's project icon onto folders
+   * that lack it. Idempotent, and it neither renames nor moves anything, which
+   * is why it is safe to offer as a verb over the whole archive. Returns how
+   * many needed it so the readout can say so rather than claim success.
+   */
+  /**
+   * Promotes a bounce to the project's final mix and master.
+   *
+   * Moves the file into `Release Mastered Tracks` under `name`. Its own
+   * channel rather than a field on `projects:patch` because it puts the
+   * operator's audio somewhere else, and that must not be something a patch
+   * can do by accident.
+   */
+  /**
+   * Files several projects and folders into one destination.
+   *
+   * Returns what moved and what did not, rather than throwing on the first
+   * refusal — see `StacksService.fileMany`. A bulk move cannot be atomic
+   * across a filesystem, so this reports honestly instead of pretending.
+   */
+  /**
+   * Lists one directory, for the side-by-side migration view.
+   *
+   * Reads the filesystem directly rather than the register, which is the
+   * point: the left pane shows where work actually lives, including folders
+   * that hold no projects and have never been indexed.
+   */
+  'projects:browse': {
+    input: z.object({ path: z.string() }),
+    output: z.array(
+      z.object({
+        path: z.string(),
+        name: z.string(),
+        isProject: z.boolean(),
+        projects: z.number().int().min(0),
+        children: z.number().int().min(0)
+      })
+    )
+  },
+
+  'projects:file-many': {
+    input: z.object({
+      projectIds: z.array(z.string()),
+      folderIds: z.array(z.string()),
+      folderId: z.string().nullable()
+    }),
+    output: z.object({
+      moved: z.number().int().min(0),
+      failures: z.array(z.object({ id: z.string(), name: z.string(), reason: z.string() }))
+    })
+  },
+
+  'projects:set-final': {
+    input: z.object({ id: z.string(), sourcePath: z.string(), name: z.string() }),
+    output: ProjectRecordSchema
+  },
+  /** Demotes the final, moving the file back into the project folder. */
+  'projects:clear-final': {
+    input: z.object({ id: z.string() }),
+    output: ProjectRecordSchema
+  },
+
+  'projects:conform': {
+    input: z.void(),
+    output: z.object({
+      stamped: z.number().int().min(0),
+      total: z.number().int().min(0)
+    })
+  },
   'projects:scan-state': { input: z.void(), output: ScanStateSchema },
   'projects:note-add': {
     input: z.object({ id: z.string(), draft: NoteDraftSchema }),

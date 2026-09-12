@@ -1,9 +1,9 @@
 import { copyFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { PROJECT_SCAFFOLD_FOLDERS } from '@shared/domain/projects.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
-import { createDirectory, ensureDirectory, pathExists } from '@main/services/stacks/filesystem'
+import { createDirectory, pathExists } from '@main/services/stacks/filesystem'
+import { stampProjectIcon } from './project-icon'
 
 const logger = getLogger('projects:provisioner')
 
@@ -18,7 +18,10 @@ const logger = getLogger('projects:provisioner')
  * The shape it creates is the decision recorded in the plan: **the project
  * folder is the Ableton project folder**. The template set lands at its root,
  * beside the `Samples/` and `Backup/` directories Live will create on first
- * save, and our own folders sit alongside them. Nothing wraps anything.
+ * save. Nothing wraps anything, and nothing of ours sits inside it — the six
+ * scaffold folders this used to make are gone. They were a filing convention
+ * the app never actually read: a bounce is a WIP or a master because the
+ * operator says so on the record, not because of which folder it landed in.
  *
  * The alternative — an outer folder of ours containing Live's — was rejected
  * because it costs a level of nesting on the path the operator actually opens,
@@ -34,6 +37,11 @@ export interface ProvisionRequest {
   name: string
   /** Absolute path of the operator's template `.als`. */
   templatePath: string
+  /**
+   * Project folders to harvest Live's icon from if it cannot be found in
+   * Live's own installation. Any project Live has saved carries a copy.
+   */
+  iconSources?: readonly string[]
 }
 
 export interface ProvisionResult {
@@ -53,7 +61,7 @@ export interface ProvisionResult {
  * project with no set in it — the one outcome worse than a plain failure.
  */
 export async function provisionProject(request: ProvisionRequest): Promise<ProvisionResult> {
-  const { parentPath, name, templatePath } = request
+  const { parentPath, name, templatePath, iconSources = [] } = request
 
   if (!(await pathExists(templatePath))) {
     throw new AppError('The project template could not be found.', {
@@ -97,11 +105,16 @@ export async function provisionProject(request: ProvisionRequest): Promise<Provi
     })
   }
 
-  for (const folder of PROJECT_SCAFFOLD_FOLDERS) {
-    // `ensureDirectory`, not `createDirectory`: a scaffold folder that somehow
-    // exists is not a reason to fail a project that is otherwise made.
-    await ensureDirectory(join(path, folder))
-  }
+  /*
+   * Last, and allowed to fail.
+   *
+   * Live writes its icon when it first saves a project; doing it here is what
+   * makes a folder we made look right in Explorer before that happens. It is
+   * cosmetic, so a failure is logged inside `stampProjectIcon` and the project
+   * is still returned — refusing to create a project because the shell would
+   * draw the wrong icon would be the wrong trade.
+   */
+  await stampProjectIcon(path, iconSources)
 
   logger.info(`Provisioned project ${path}`)
   return { path, setPath }

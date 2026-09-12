@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, extname, join } from 'node:path'
 import { app, shell } from 'electron'
 import type { ProjectDraft, ProjectRecord } from '@shared/domain/projects'
 import { requiresVolume } from '@shared/domain/projects.constants'
@@ -8,16 +8,22 @@ import type {
   ArchiveSetupDraft,
   ArchiveSetupState,
   FolderDraft,
+  FolderKind,
   FolderPatch,
   StacksTree
 } from '@shared/domain/stacks'
 import {
   DEFAULT_FOLDER_COLOUR,
   MAX_FOLDER_DEPTH,
+  FOLDER_KIND_LABEL,
+  PROJECTS_DIRECTORY_NAME,
+  allowedChildKinds,
   RECYCLE_BIN_DIRECTORY_NAME,
-  RELEASES_DIRECTORY_NAME,
+  RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
   WRAPPER_DIRECTORY_NAME,
+  RELEASES_DIRECTORY_NAME,
   isHexColour,
+  isValidChildKind,
   normaliseHex,
   validateFolderName
 } from '@shared/domain/stacks.constants'
@@ -26,6 +32,7 @@ import { getLogger } from '@main/core/logger'
 import type { ArchiveService } from '@main/services/archive/archive.service'
 import { provisionProject } from '@main/services/projects/project-provisioner'
 import { indexProject } from '@main/services/projects/scanner'
+import { stampProjectIcon } from '@main/services/projects/project-icon'
 import type { ProjectsService } from '@main/services/projects/projects.service'
 import type { SettingsService } from '@main/services/settings/settings.service'
 import { StacksRepository } from './stacks.repository'
@@ -34,13 +41,27 @@ import {
   directoryExists,
   ensureDirectory,
   isAtOrUnder,
+  copyDirectory,
   moveDirectory,
+  moveFile,
   pathExists,
   rewritePath,
   samePath
 } from './filesystem'
 
 const logger = getLogger('stacks')
+
+/** What a bulk filing actually managed to do. See `fileMany`. */
+export interface BulkFilingResult {
+  moved: number
+  failures: { id: string; name: string; reason: string }[]
+}
+
+/** An operator-facing sentence from whatever was thrown. */
+function describe(error: unknown): string {
+  if (error instanceof AppError) return error.message
+  return error instanceof Error ? error.message : String(error)
+}
 
 /**
  * THE STACKS — the ARCHIVE's shelving.
@@ -93,7 +114,7 @@ export class StacksService {
     return root ? join(root, WRAPPER_DIRECTORY_NAME) : null
   }
 
-  /** `<wrapper>/RELEASES`, where finished packages are assembled. */
+  /** `<wrapper>/RELEASES`. Nothing creates this now; kept for archives that have one. */
   resolveReleasesRoot(): string | null {
     const wrapper = this.resolveWrapper()
     return wrapper ? join(wrapper, RELEASES_DIRECTORY_NAME) : null
@@ -103,6 +124,25 @@ export class StacksService {
   resolveRecycleBin(): string | null {
     const wrapper = this.resolveWrapper()
     return wrapper ? join(wrapper, RECYCLE_BIN_DIRECTORY_NAME) : null
+  }
+
+  /** `<wrapper>/Projects`, the root of the filing tree. */
+  resolveProjectsRoot(): string | null {
+    const wrapper = this.resolveWrapper()
+    return wrapper ? join(wrapper, PROJECTS_DIRECTORY_NAME) : null
+  }
+
+  /** `<wrapper>/Release Mastered Tracks`, where finished tracks are kept. */
+  resolveMasteredTracksRoot(): string | null {
+    const wrapper = this.resolveWrapper()
+    return wrapper ? join(wrapper, RELEASE_MASTERED_TRACKS_DIRECTORY_NAME) : null
+  }
+
+  /** The projects root, created if needed. */
+  private async requireProjectsRoot(): Promise<string> {
+    const root = join(await this.requireWrapper(), PROJECTS_DIRECTORY_NAME)
+    await ensureDirectory(root)
+    return root
   }
 
   /** The wrapper, created if needed, or a refusal explaining what is missing. */
@@ -135,17 +175,44 @@ export class StacksService {
     const { filingRoot, projectTemplatePath, satelliteRoots } = this.settings.snapshot.workspace
     const suggestedRoot = defaultArchiveRoot()
     const wrapper = this.resolveWrapper()
-    const releases = this.resolveReleasesRoot()
     const recycleBin = this.resolveRecycleBin()
+    const projectsRoot = this.resolveProjectsRoot()
+    const masteredTracks = this.resolveMasteredTracksRoot()
 
     const rootPresent = filingRoot !== null && (await directoryExists(filingRoot))
-    const wrapperReady =
+
+    /*
+     * The three primitives the wrapper holds, and creating any that are absent.
+     *
+     * This checked for `RELEASES` until RELEASES was stood down, at which point
+     * nothing created that directory any more — so an archive that had never
+     * had one reported `ready: false` for ever, and the department disabled
+     * every control on the page. The failure was silent and total: no error,
+     * just nothing responding to a click.
+     *
+     * Creating rather than only reporting, because the alternative is a readout
+     * that can say "not ready" about a condition the operator has no way to
+     * satisfy. These are directories the app owns outright and `ensureDirectory`
+     * is a no-op where they exist, so self-healing here costs nothing and
+     * removes a whole class of dead-end state. Guarded on the wrapper existing,
+     * so an unplugged drive is still reported rather than rebuilt on whatever
+     * happens to be mounted at that letter.
+     */
+    let wrapperReady = false
+
+    if (
       wrapper !== null &&
-      releases !== null &&
       recycleBin !== null &&
-      (await directoryExists(wrapper)) &&
-      (await directoryExists(releases)) &&
-      (await directoryExists(recycleBin))
+      projectsRoot !== null &&
+      masteredTracks !== null
+    ) {
+      if (await directoryExists(wrapper)) {
+        await ensureDirectory(projectsRoot)
+        await ensureDirectory(masteredTracks)
+        await ensureDirectory(recycleBin)
+        wrapperReady = true
+      }
+    }
     const templatePresent = projectTemplatePath !== null && (await pathExists(projectTemplatePath))
 
     return {
@@ -192,7 +259,16 @@ export class StacksService {
     // and the operator back at the gate, rather than configured but broken.
     const wrapper = join(draft.filingRoot, WRAPPER_DIRECTORY_NAME)
     await ensureDirectory(wrapper)
-    await ensureDirectory(join(wrapper, RELEASES_DIRECTORY_NAME))
+    /*
+     * Three primitives, and the wrapper holds nothing else the app made.
+     *
+     * `RELEASES` is no longer among them. Nothing creates it now that the lens
+     * is stood down, and an operator who already has one keeps it — it stays
+     * reserved by name so a category cannot shadow it, but it is not made
+     * afresh for anybody.
+     */
+    await ensureDirectory(join(wrapper, PROJECTS_DIRECTORY_NAME))
+    await ensureDirectory(join(wrapper, RELEASE_MASTERED_TRACKS_DIRECTORY_NAME))
     await ensureDirectory(join(wrapper, RECYCLE_BIN_DIRECTORY_NAME))
 
     /*
@@ -237,9 +313,6 @@ export class StacksService {
     const counts: Record<string, number> = Object.fromEntries(
       folders.map((folder) => [folder.id, 0])
     )
-    const depths: Record<string, number> = Object.fromEntries(
-      folders.map((folder) => [folder.id, depthOf(folder, folders)])
-    )
     let unfiledCount = 0
 
     for (const record of records) {
@@ -252,7 +325,6 @@ export class StacksService {
     return {
       folders,
       setup: await this.getSetupState(),
-      depths,
       counts,
       unfiledCount,
       trashed
@@ -292,14 +364,21 @@ export class StacksService {
     const folder = this.requireFolder(folders, draft.folderId)
 
     /*
-     * Any folder may hold a project, including a genre at the top level.
+     * Any shelf that holds work may hold a project — a genre, an artist, or a
+     * folder under either. A category may not.
      *
-     * An earlier build required a sub-genre in between and refused a project
-     * created directly in a genre. That was dropped as needless ceremony — a
-     * producer with four EDM tracks should not have to invent a sub-genre to
-     * file them, and one who wants `EDM / Melodic Bass` can simply make the
-     * folder.
+     * A category divides the operator's *filing* rather than their work: it
+     * holds kinds of shelf, and a project beside genres at that level would be
+     * the one thing in the tree with no answer to "what is this filed as".
+     *
+     * No deeper requirement than that. An earlier build demanded a sub-genre in
+     * between and refused a project created directly in a genre, which was
+     * dropped as ceremony — a producer with four EDM tracks should not have to
+     * invent a sub-genre to file them, and one who wants `EDM / Melodic Bass`
+     * can simply make the folder.
      */
+    this.refuseCategoryAsShelf(folder)
+
     const name = this.requireValidName(draft.name)
 
     if (requiresVolume(draft.category) && draft.volumeId === null) {
@@ -313,7 +392,10 @@ export class StacksService {
     const { path } = await provisionProject({
       parentPath: folder.path,
       name,
-      templatePath: setup.templatePath as string
+      templatePath: setup.templatePath as string,
+      // Every project already on disk is a place Live may have left a copy of
+      // its icon, for the case where Live is installed somewhere non-standard.
+      iconSources: (await this.projects.listRecords()).map((record) => record.path)
     })
 
     const scanned = await indexProject(path)
@@ -332,13 +414,16 @@ export class StacksService {
   async createFolder(draft: FolderDraft): Promise<StacksTree> {
     this.refuseDuringScan()
 
-    const wrapper = await this.requireWrapper()
+    const projectsRoot = await this.requireProjectsRoot()
     const folders = await this.repository.listAll()
 
     const parent = draft.parentId ? this.requireFolder(folders, draft.parentId) : null
-    // Top-level names are checked against RELEASES as well: that directory is
-    // the app's own and a genre beside it must not collide with it.
+    // Top-level names are checked against the reserved wrapper directories as
+    // well: those are the app's own and a category beside them must not
+    // collide, even though the tree now sits one level down inside `Projects`.
     const name = this.requireValidName(draft.name, parent === null)
+
+    this.requireValidKind(parent, draft.kind)
 
     if (parent && depthOf(parent, folders) + 1 >= MAX_FOLDER_DEPTH) {
       throw new AppError(`Folders can only be nested ${MAX_FOLDER_DEPTH} deep.`, {
@@ -349,7 +434,7 @@ export class StacksService {
 
     this.refuseDuplicateSibling(folders, draft.parentId, name, null)
 
-    const parentPath = parent ? parent.path : wrapper
+    const parentPath = parent ? parent.path : projectsRoot
     const path = join(parentPath, name)
     const now = Date.now()
 
@@ -360,6 +445,7 @@ export class StacksService {
       id: randomUUID(),
       parentId: draft.parentId,
       name,
+      kind: draft.kind,
       path,
       colour: this.resolveColour(draft.colour),
       order: siblingsOf(folders, draft.parentId).length,
@@ -408,8 +494,13 @@ export class StacksService {
     const moved = name !== folder.name || parentId !== folder.parentId
 
     if (moved) {
-      const wrapper = await this.requireWrapper()
+      const projectsRoot = await this.requireProjectsRoot()
       const parent = parentId ? this.requireFolder(folders, parentId) : null
+
+      // Re-parenting is held to the same rule as creating. A genre that could
+      // not be *made* inside another genre must not be able to arrive there by
+      // being dragged, or the stored kind stops meaning anything.
+      this.requireValidKind(parent, folder.kind)
 
       if (parent) {
         if (parent.id === folder.id || isDescendantOf(parent, folder, folders)) {
@@ -431,7 +522,7 @@ export class StacksService {
 
       this.refuseDuplicateSibling(folders, parentId, name, folder.id)
 
-      const destination = join(parent ? parent.path : wrapper, name)
+      const destination = join(parent ? parent.path : projectsRoot, name)
       await moveDirectory(folder.path, destination)
       logger.info(`Moved folder ${folder.path} -> ${destination}`)
 
@@ -665,12 +756,46 @@ export class StacksService {
     const folders = await this.repository.listAll()
     const target = folderId ? this.requireFolder(folders, folderId) : null
 
+    // Checked on the way in as well as on creation: a drag must not be able to
+    // put a project somewhere the new-project dialog would have refused.
+    if (target) this.refuseCategoryAsShelf(target)
+
     const destinationParent = target ? target.path : await this.unfiledDestination(record)
     const destination = join(destinationParent, basename(record.path))
 
     if (!samePath(destination, record.path)) {
-      await moveDirectory(record.path, destination)
-      logger.info(`Filed ${record.name}: ${record.path} -> ${destination}`)
+      /*
+       * COPY only applies on the way *in*, and only from outside the wrapper.
+       *
+       * Moving a project between two shelves is reorganising, not migrating —
+       * duplicating it there would leave the operator with two copies of one
+       * project inside their own archive, which is never what dragging between
+       * genres means. Taking a project off the shelf is the same in reverse.
+       */
+      const migrating =
+        this.settings.snapshot.workspace.intakeMode === 'copy' &&
+        folderId !== null &&
+        !isAtOrUnder(record.path, this.resolveWrapper() ?? destination)
+
+      if (migrating) {
+        await copyDirectory(record.path, destination)
+        logger.info(`Copied ${record.name} into the archive: ${record.path} -> ${destination}`)
+      } else {
+        await moveDirectory(record.path, destination)
+        logger.info(`Filed ${record.name}: ${record.path} -> ${destination}`)
+      }
+
+      /*
+       * Conformed as it lands, so a project brought in from outside looks like
+       * one made here rather than staying visibly foreign on the shelf.
+       *
+       * A no-op for the common case: Live wrote the icon the first time it
+       * saved, so the stamp finds all three parts already present and returns.
+       * It earns its place on the projects Live has never opened, and on a
+       * cross-volume move, where the ReadOnly attribute that switches folder
+       * customisation on does not reliably survive the copy.
+       */
+      await stampProjectIcon(destination, [record.path])
     }
 
     return this.projects.applyFiling(projectId, {
@@ -678,6 +803,220 @@ export class StacksService {
       from: record.path,
       to: destination
     })
+  }
+
+  /**
+   * Files several projects and several folders in one gesture.
+   *
+   * Moves what it can and reports the rest, rather than stopping at the first
+   * refusal. A name collision is the likely failure in a bulk migration and it
+   * is specific to one item — halting would leave eleven good moves undone
+   * because of the twelfth, and the operator would have to work out which had
+   * already gone.
+   *
+   * All-or-nothing is not achievable here and is not claimed. There is no
+   * staging area on a filesystem; by the time the eighth move fails, seven
+   * directories have really moved. What is offered instead is an exact account
+   * of what happened, which is the honest version of the same promise.
+   *
+   * Folders are re-parented before projects, so a project dropped into a folder
+   * that is itself moving in the same batch lands in its new home rather than
+   * chasing it.
+   */
+  async fileMany(
+    projectIds: readonly string[],
+    folderIds: readonly string[],
+    folderId: string | null
+  ): Promise<BulkFilingResult> {
+    this.refuseDuringScan()
+
+    const failures: BulkFilingResult['failures'] = []
+    let moved = 0
+
+    for (const id of folderIds) {
+      // A folder cannot be filed into itself, and the tree guards that anyway;
+      // catching here keeps one bad drop from ending the batch.
+      try {
+        await this.updateFolder(id, { parentId: folderId })
+        moved += 1
+      } catch (error) {
+        failures.push({ id, name: await this.folderName(id), reason: describe(error) })
+      }
+    }
+
+    for (const id of projectIds) {
+      try {
+        await this.fileProject(id, folderId)
+        moved += 1
+      } catch (error) {
+        const record = await this.projects.get(id).catch(() => null)
+        failures.push({ id, name: record?.name ?? id, reason: describe(error) })
+      }
+    }
+
+    logger.info(`Filed ${moved} of ${projectIds.length + folderIds.length}`)
+    return { moved, failures }
+  }
+
+  /** A category holds genres and artists, never projects. See `createProject`. */
+  private refuseCategoryAsShelf(folder: ArchiveFolder): void {
+    if (folder.kind !== 'category') return
+
+    throw new AppError(`“${folder.name}” is a category, so it does not hold projects.`, {
+      code: ErrorCode.Validation,
+      hint: 'File it into a genre or an artist inside it.',
+      recoverable: false
+    })
+  }
+
+  private async folderName(id: string): Promise<string> {
+    const folders = await this.repository.listAll()
+    return folders.find((entry) => entry.id === id)?.name ?? id
+  }
+
+  // -------------------------------------------------- final mix and master
+
+  /**
+   * Promotes a bounce to the project's final mix and master.
+   *
+   * The file **moves** into `Release Mastered Tracks` under a name the
+   * operator types, rather than being copied there. One file in one place: the
+   * directory is a trustworthy list of finished tracks precisely because the
+   * audio cannot also be sitting somewhere else under a different name.
+   *
+   * Disk first, database second, as everywhere in this service. A demotion of
+   * the previous final happens before the new move, so the directory never
+   * holds two finals for one project even briefly.
+   */
+  async setFinalMaster(
+    projectId: string,
+    sourcePath: string,
+    name: string
+  ): Promise<ProjectRecord> {
+    this.refuseDuringScan()
+
+    const record = await this.projects.get(projectId)
+    const root = this.resolveMasteredTracksRoot()
+
+    if (!root) {
+      throw new AppError('The ARCHIVE has not been set up yet.', {
+        code: ErrorCode.Validation,
+        recoverable: false
+      })
+    }
+
+    if (!isAtOrUnder(sourcePath, record.path)) {
+      throw new AppError('That file is not in this project.', {
+        code: ErrorCode.Validation,
+        hint: 'The final mix and master is chosen from the audio inside the project folder.',
+        recoverable: false
+      })
+    }
+
+    /*
+     * Promoted from what the operator marked, not from the folder at large.
+     *
+     * Marking a file at MIX or MASTER is the statement that it is a candidate;
+     * the final is a choice among candidates rather than a fresh search through
+     * everything that happens to be lying in the folder. A WIP is excluded by
+     * the same logic — it is kept for reference and was never meant to ship.
+     */
+    const candidates = [...record.masters.mixes, ...record.masters.masters]
+    if (!candidates.some((path) => samePath(path, sourcePath))) {
+      throw new AppError('That file has not been marked as a mix or a master.', {
+        code: ErrorCode.Validation,
+        hint: 'Mark it in the MIX AND MASTER panel first, then choose it here.',
+        recoverable: false
+      })
+    }
+
+    const trimmed = name.trim()
+    if (!trimmed) {
+      throw new AppError('The final mix and master needs a name.', {
+        code: ErrorCode.Validation,
+        recoverable: false
+      })
+    }
+
+    // The operator names the track, not the file type. Carrying the extension
+    // over means they cannot accidentally produce a `.wav` called `.mp3`.
+    const extension = extname(sourcePath)
+    const fileName = trimmed.toLowerCase().endsWith(extension.toLowerCase())
+      ? trimmed
+      : `${trimmed}${extension}`
+
+    const verdict = validateFolderName(fileName)
+    if (!verdict.ok) {
+      throw new AppError(verdict.reason ?? 'That name cannot be used.', {
+        code: ErrorCode.Validation,
+        recoverable: false
+      })
+    }
+
+    await ensureDirectory(root)
+    const destination = join(root, fileName)
+
+    // Put the outgoing final back before moving the new one out, so the two
+    // can never both be in the directory under this project's name.
+    const restored = record.masters.final ? await this.returnFinalMaster(record) : record
+
+    await moveFile(sourcePath, destination)
+    logger.info(`Final master for ${record.name}: ${sourcePath} -> ${destination}`)
+
+    /*
+     * The source path is dropped from the buckets and from the scanned audio
+     * list. It has left the project folder, so every one of those references
+     * is now stale, and the next scan would drop them anyway — doing it here
+     * means the dossier is right immediately rather than after a rescan.
+     */
+    return this.projects.applyFinalMaster(projectId, {
+      final: destination,
+      removedPath: sourcePath,
+      wips: restored.masters.wips,
+      mixes: restored.masters.mixes,
+      masters: restored.masters.masters
+    })
+  }
+
+  /**
+   * Demotes the final, moving the file back into the project folder.
+   *
+   * It keeps the name the operator typed rather than reverting to whatever it
+   * was called before. That name was a deliberate choice, and renaming it a
+   * second time would be the app changing a filename the operator set.
+   */
+  async clearFinalMaster(projectId: string): Promise<ProjectRecord> {
+    this.refuseDuringScan()
+    const record = await this.projects.get(projectId)
+
+    if (!record.masters.final) return record
+
+    const returned = await this.returnFinalMaster(record)
+    return this.projects.applyFinalMaster(returned.id, {
+      final: null,
+      removedPath: null,
+      wips: returned.masters.wips,
+      mixes: returned.masters.mixes,
+      masters: returned.masters.masters
+    })
+  }
+
+  /** Moves a project's current final back into its folder. Disk only. */
+  private async returnFinalMaster(record: ProjectRecord): Promise<ProjectRecord> {
+    const current = record.masters.final
+    if (!current) return record
+
+    if (await pathExists(current)) {
+      await moveFile(current, join(record.path, basename(current)))
+      logger.info(`Returned ${basename(current)} to ${record.name}`)
+    } else {
+      // Gone from under us — deleted in Explorer, most likely. Clearing the
+      // record is still the right outcome; refusing would leave the project
+      // permanently claiming a final that does not exist.
+      logger.warn(`Final master for ${record.name} was already gone from ${current}`)
+    }
+
+    return record
   }
 
   // ------------------------------------------------------------ recycle bin
@@ -881,16 +1220,49 @@ export class StacksService {
    * leave the project in a different corner of the app's own directory.
    */
   private async unfiledDestination(record: ProjectRecord): Promise<string> {
-    const root = this.resolveFilingRoot()
     const wrapper = this.resolveWrapper()
 
     // A project that was never inside the wrapper is already unfiled as far as
     // the disk is concerned; leave it exactly where the operator keeps it.
-    if (!root || !wrapper || !isAtOrUnder(record.path, wrapper)) {
+    if (!wrapper || !isAtOrUnder(record.path, wrapper)) {
       return dirname(record.path)
     }
 
-    return root
+    /*
+     * Home is where the register first found it.
+     *
+     * This used to return the filing root, which is not anywhere the operator
+     * ever put anything — a project discovered on an external drive, filed
+     * into a genre, then taken off the shelf, landed beside `Candy Haven`
+     * rather than back where it came from. The record now remembers, so it can
+     * go home.
+     */
+    const origin = record.originPath ? dirname(record.originPath) : null
+
+    if (!origin) {
+      throw new AppError(`There is no recorded original location for “${record.name}”.`, {
+        code: ErrorCode.Validation,
+        hint: 'It was either created inside the archive, or filed before origins were recorded. Use File to… to choose where it should go.',
+        recoverable: false
+      })
+    }
+
+    /*
+     * A refusal rather than a fallback when the original location is gone —
+     * an unplugged drive, a folder deleted in Explorer, a root removed from
+     * settings. Quietly putting it somewhere else is the behaviour this whole
+     * change exists to remove, and an unplugged drive is recoverable: plug it
+     * in and the same gesture works.
+     */
+    if (!(await directoryExists(origin))) {
+      throw new AppError(`“${record.name}” came from a location that is no longer reachable.`, {
+        code: ErrorCode.NotFound,
+        hint: `Expected ${origin}. Reconnect it and try again, or use File to… to choose somewhere else.`,
+        recoverable: true
+      })
+    }
+
+    return origin
   }
 
   /**
@@ -988,6 +1360,34 @@ export class StacksService {
       })
     }
     return folder
+  }
+
+  /**
+   * Refuses a folder kind that may not sit where it is being put.
+   *
+   * This is what keeps a *stored* kind honest. Kind used to be read off depth,
+   * so it could not disagree with position; now that the operator chooses it,
+   * the guarantee has to come from the other direction — position is
+   * constrained to the kinds that are legal there, and an illegal arrangement
+   * is refused rather than silently reinterpreted.
+   *
+   * Applied on create and on re-parent alike, which is the part that matters:
+   * a genre that could not be created inside another genre must not be able to
+   * arrive there by being dragged.
+   */
+  private requireValidKind(parent: ArchiveFolder | null, kind: FolderKind): void {
+    if (isValidChildKind(parent?.kind ?? null, kind)) return
+
+    const where = parent ? `a ${FOLDER_KIND_LABEL[parent.kind].toLowerCase()}` : 'the top level'
+    const allowed = allowedChildKinds(parent?.kind ?? null)
+      .map((entry) => FOLDER_KIND_LABEL[entry])
+      .join(' or ')
+
+    throw new AppError(`A ${FOLDER_KIND_LABEL[kind].toLowerCase()} cannot go inside ${where}.`, {
+      code: ErrorCode.Validation,
+      hint: `${where[0].toUpperCase()}${where.slice(1)} holds ${allowed}.`,
+      recoverable: false
+    })
   }
 
   private requireValidName(name: string, topLevel = false): string {

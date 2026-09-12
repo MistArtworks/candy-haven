@@ -7,7 +7,10 @@ import {
   SCAN_MAX_DEPTH,
   classifyExtension
 } from '@shared/domain/projects.constants'
-import { RESERVED_WRAPPER_DIRECTORIES } from '@shared/domain/stacks.constants'
+import {
+  UNWALKED_WRAPPER_DIRECTORIES,
+  WRAPPER_DIRECTORY_NAME
+} from '@shared/domain/stacks.constants'
 import { mapWithConcurrency } from '@main/core/async'
 import { getLogger } from '@main/core/logger'
 import { readAbletonSet, reverifySamples } from './als-reader'
@@ -39,7 +42,7 @@ const logger = getLogger('projects:scanner')
  */
 const IGNORED = new Set<string>([
   ...SCAN_IGNORED_DIRECTORIES,
-  ...RESERVED_WRAPPER_DIRECTORIES.map((name) => name.toLowerCase())
+  ...UNWALKED_WRAPPER_DIRECTORIES.map((name) => name.toLowerCase())
 ])
 
 /** Bounded so one pathological folder cannot produce a multi-megabyte record. */
@@ -261,9 +264,32 @@ async function walk(directory: string, depth: number, context: WalkContext): Pro
 
   context.filesSeen += files.length
 
-  if (files.some((entry) => classifyExtension(entry.name) === 'set')) {
-    context.projectDirectories.push(directory)
-    return
+  const sets = files.filter((entry) => classifyExtension(entry.name) === 'set')
+
+  if (sets.length > 0) {
+    /*
+     * A configured root is never itself a project, however many sets are
+     * sitting loose in it.
+     *
+     * `walk` is entered at the root with depth 0, and the test below used to
+     * apply there too. One stray `.als` at the top of a root therefore made
+     * the *root* the project folder — and because discovery stops descending
+     * at a project, every real project underneath it disappeared from the
+     * register. Filing that "project" would then have moved the entire root
+     * into a genre.
+     *
+     * Skipping the test at depth 0 and carrying on down is the whole fix. The
+     * stray file is named in the log rather than passed over in silence: a set
+     * outside any project folder is nearly always a mistake, and it is not
+     * otherwise visible anywhere in the app.
+     */
+    if (depth === 0) {
+      const names = sets.map((entry) => entry.name).join(', ')
+      context.options.onWarning?.(`Loose set outside any project folder: ${names}`)
+    } else {
+      context.projectDirectories.push(directory)
+      return
+    }
   }
 
   /*
@@ -278,6 +304,96 @@ async function walk(directory: string, depth: number, context: WalkContext): Pro
   for (const entry of directories) {
     await walk(join(directory, entry.name), depth + 1, context)
   }
+}
+
+/** One directory as the migration view draws it. */
+export interface BrowsedEntry {
+  path: string
+  name: string
+  /** Holds a `.als` directly, so it is a project rather than a container. */
+  isProject: boolean
+  /** Projects directly inside, for the tile's caption. */
+  projects: number
+  /** Sub-directories directly inside, for the tile's caption. */
+  children: number
+}
+
+/**
+ * Lists one directory for the side-by-side migration view.
+ *
+ * One level, on demand, rather than reusing `scanRoots`. The view is a browser
+ * — the operator opens a folder, looks, and either goes deeper or drags
+ * something out of it — and walking an entire drive to render one pane would
+ * cost seconds for a list that is thrown away as soon as they navigate.
+ *
+ * The same ignore rules as the scan, so the two agree about what is even
+ * there: no `Backup`, no `Ableton Project Info`, and none of the app's own
+ * wrapper directories.
+ *
+ * The wrapper itself is hidden too, which the scan does *not* do — the scan has
+ * to walk it, because everything filed lives inside it. This is the source side
+ * of a migration, and the archive is where work goes rather than where it comes
+ * from. Listing it invites the operator to browse into their own shelves
+ * looking for something to bring in.
+ */
+export async function browseDirectory(directory: string): Promise<BrowsedEntry[]> {
+  const entries = await readdir(directory, { withFileTypes: true })
+  const directories = entries.filter(
+    (entry) =>
+      entry.isDirectory() &&
+      !IGNORED.has(entry.name.toLowerCase()) &&
+      entry.name.toLowerCase() !== WRAPPER_DIRECTORY_NAME.toLowerCase()
+  )
+
+  const results = await mapWithConcurrency(directories, 8, async (entry) => {
+    const path = join(directory, entry.name)
+
+    let children: Dirent[] = []
+    try {
+      children = await readdir(path, { withFileTypes: true })
+    } catch {
+      // Unreadable is reported as empty rather than fatal: one locked folder
+      // must not blank the pane it is sitting in.
+      return { path, name: entry.name, isProject: false, projects: 0, children: 0 }
+    }
+
+    /*
+     * Counted rather than merely detected, so a tile can say what a shelf tile
+     * says — "3 projects · 1 folder" — instead of only whether it is worth
+     * clicking. The readdir is already done; counting what came back is free.
+     */
+    const inside = children.filter(
+      (child) => child.isDirectory() && !IGNORED.has(child.name.toLowerCase())
+    )
+
+    const holdsSets = await mapWithConcurrency(inside, 8, async (child) => {
+      try {
+        const grandchildren = await readdir(join(path, child.name), { withFileTypes: true })
+        return grandchildren.some((file) => file.isFile() && classifyExtension(file.name) === 'set')
+      } catch {
+        return false
+      }
+    })
+
+    const projects = holdsSets.filter(Boolean).length
+
+    return {
+      path,
+      name: entry.name,
+      isProject: children.some(
+        (child) => child.isFile() && classifyExtension(child.name) === 'set'
+      ),
+      projects,
+      children: inside.length - projects
+    }
+  })
+
+  // Projects last: the containers are what the operator is navigating through,
+  // and burying them under a long list of projects makes the pane a dead end.
+  return results.sort((a, b) => {
+    if (a.isProject !== b.isProject) return a.isProject ? 1 : -1
+    return a.name.localeCompare(b.name)
+  })
 }
 
 // ----------------------------------------------------------------- inventory

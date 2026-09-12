@@ -90,6 +90,35 @@ even in a quoted heredoc. That silently corrupts:
 project twice, including once in a throwaway test script that made `nvidia-smi`
 appear broken when the shipped code was fine.
 
+### Third gotcha — the renderer hot-reloads, main does not
+
+In `npm run dev`, edits under `src/renderer/` swap in immediately. Edits under
+`src/main/` **do not reliably restart the main process.** Rebuilding does not
+help either: the running Electron process keeps the bundle it booted with.
+
+This is nasty because it fails *silently and partially* rather than loudly. The
+IPC contract is bundled into main, so a stale main validates its own stale
+shape — the response passes `router.ts`'s zod check, the renderer gets an object
+missing whatever field was just added, and reads `undefined`. Nothing throws.
+
+It has cost this project two debugging sessions, both in INTAKE:
+
+- `browseDirectory` gained `projects` / `children` counts. Every folder tile
+  read **"Empty"**, including ones holding two projects, because `undefined`
+  reached `describeFolder` and an empty caption renders as "Empty".
+- The same function started hiding the `Candy Haven` wrapper. It kept appearing
+  in the source pane.
+
+Both times the renderer changes in the *same commit* were visibly live, which is
+exactly what makes it look like an application bug.
+
+**Check before debugging** — if the process predates the edit, restart:
+
+```powershell
+(Get-Process electron | Sort-Object StartTime | Select-Object -First 1).StartTime
+(Get-Item src/main/services/.../file.ts).LastWriteTime
+```
+
 ---
 
 ## 3. The world and the visual language

@@ -35,9 +35,29 @@ import type { FolderSwatch } from './stacks'
 export const ARCHIVE_LENSES = ['all', 'stacks', 'unfiled', 'volumes', 'releases', 'bin'] as const
 export type ArchiveLens = (typeof ARCHIVE_LENSES)[number]
 
+/**
+ * Lenses that are not offered at the moment.
+ *
+ * `releases` is stood down rather than removed. What happens after a track is
+ * finished — scheduling it, wrapping it, putting it out — is being
+ * respecified, and in the meantime the final mix and master lives in
+ * `Release Mastered Tracks`. Leaving RELEASES on the rail would give the
+ * operator two places that both claim to answer "what is going out".
+ *
+ * Hidden rather than deleted, and the distinction is the point: the service,
+ * the collection and every release the operator has already raised are intact.
+ * Putting the lens back is a one-line change here, not a rebuild.
+ */
+export const HIDDEN_ARCHIVE_LENSES: readonly ArchiveLens[] = ['releases']
+
+/** The lenses actually offered on the rail, in order. */
+export const VISIBLE_ARCHIVE_LENSES: readonly ArchiveLens[] = ARCHIVE_LENSES.filter(
+  (lens) => !HIDDEN_ARCHIVE_LENSES.includes(lens)
+)
+
 export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
-  stacks: 'GENRES',
-  unfiled: 'UNFILED',
+  stacks: 'STACKS',
+  unfiled: 'INTAKE',
   volumes: 'VOLUMES',
   releases: 'RELEASES',
   all: 'ALL',
@@ -45,13 +65,23 @@ export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
 }
 
 export const ARCHIVE_LENS_PURPOSE: Record<ArchiveLens, string> = {
-  stacks: 'Genres, folders and the projects filed on them.',
-  unfiled: 'Everything found on disk that is not on a shelf yet.',
+  stacks: 'Categories, genres, artists and the projects filed on them.',
+  unfiled: 'Work found elsewhere on disk, and somewhere to put it.',
   volumes: 'Albums, EPs and compilations, and the tracks bound into each.',
   releases: 'What is going out, and the files that go with it.',
   all: 'The whole register, flat.',
   bin: 'Deleted projects, kept until you empty them.'
 }
+
+/*
+ * Named STACKS rather than GENRES.
+ *
+ * It was GENRES while a genre *was* the top of the tree and the lens showed
+ * nothing else. The tree now opens on categories and holds genres and artists
+ * a level down, so naming the lens after one of the things inside it described
+ * a third of what the operator was looking at. THE STACKS is what this
+ * subsystem has been called throughout — the shelving, whatever is on it.
+ */
 
 /** True for the one lens that browses folders rather than filtering the register. */
 export function isFolderLens(lens: ArchiveLens): boolean {
@@ -61,33 +91,73 @@ export function isFolderLens(lens: ArchiveLens): boolean {
 // -------------------------------------------------------------- folder kinds
 
 /**
- * What a folder *is* at a given position in the tree.
+ * What a folder *is*, and it is now stored rather than derived.
  *
- * Derived from depth rather than stored, and that is the whole design: moving a
- * folder changes what it is, and a stored `kind` would sooner or later disagree
- * with where the folder actually sits. Depth is the truth; everything else
- * reads it.
+ * This reverses the previous rule, so the reasoning for the reversal matters.
+ * Kind used to be computed from depth — `folderKindAtDepth()` — on the grounds
+ * that a stored kind would sooner or later disagree with where the folder sat.
+ * That holds only while kind is a *consequence* of position. It is not any
+ * more: GENRE and ARTIST are two different statements about the same depth, and
+ * nothing about a directory's location can tell you which the operator meant.
  *
- * Two kinds, not three. An earlier build named depth 1 a SUB-GENRE and required
- * every project to sit in one; that was dropped as needless ceremony. A folder
- * below a genre is just a folder now, and the operator subdivides — or does
- * not — as the work actually warrants.
+ * Position is still constrained, which is what keeps the two from drifting
+ * apart — see `isValidChildKind`. A folder cannot be moved somewhere its kind
+ * would be illegal, so a stored kind and the tree can never contradict one
+ * another; the move is refused instead.
  *
- * Note this is a *naming* distinction only: nothing behaves differently at one
- * depth versus another. Any folder may hold projects and any folder may hold
- * more folders.
+ * Four kinds, in the order they nest:
+ *
+ * - `category` — the operator's top division, directly inside `Projects`.
+ *   PERSONAL, COLLABS, CLIENT WORK.
+ * - `genre` — what the music is. Directly inside a category.
+ * - `artist` — who it is with. Directly inside a category, beside genres.
+ * - `folder` — plain subdivision, anywhere below a genre or an artist.
+ *
+ * More kinds are expected (LABEL, CLIENT). Adding one is a row here and a row
+ * in `VALID_CHILD_KINDS`; nothing else reads the list.
  */
-export const FOLDER_KINDS = ['genre', 'folder'] as const
+export const FOLDER_KINDS = ['category', 'genre', 'artist', 'folder'] as const
 export type FolderKind = (typeof FOLDER_KINDS)[number]
 
 export const FOLDER_KIND_LABEL: Record<FolderKind, string> = {
+  category: 'CATEGORY',
   genre: 'GENRE',
+  artist: 'ARTIST',
   folder: 'FOLDER'
 }
 
-/** Depth 0 is a genre; everything below it is the operator's own structure. */
-export function folderKindAtDepth(depth: number): FolderKind {
-  return depth <= 0 ? 'genre' : 'folder'
+export const FOLDER_KIND_PURPOSE: Record<FolderKind, string> = {
+  category: 'A top-level division of your work.',
+  genre: 'What the music is.',
+  artist: 'Who the music is with.',
+  folder: 'A plain subdivision.'
+}
+
+/**
+ * Which kinds may be created directly inside which.
+ *
+ * `root` is the top of the tree — the `Projects` directory itself — and only
+ * categories live there. Genre and artist sit beside one another under a
+ * category and may never contain each other: `PERSONAL\Dubstep\Nasko` is
+ * refused, and so is `PERSONAL\Nasko\Dubstep`. Below either of them the
+ * operator subdivides with plain folders as far as they like.
+ */
+export const VALID_CHILD_KINDS: Record<FolderKind | 'root', readonly FolderKind[]> = {
+  root: ['category'],
+  category: ['genre', 'artist'],
+  genre: ['folder'],
+  artist: ['folder'],
+  folder: ['folder']
+}
+
+/** Whether `child` may sit directly inside `parent`; `null` is the tree root. */
+export function isValidChildKind(parent: FolderKind | null, child: FolderKind): boolean {
+  return VALID_CHILD_KINDS[parent ?? 'root'].includes(child)
+}
+
+/** The kinds that may be created directly inside `parent`; `null` is the tree root. */
+export function allowedChildKinds(parent: FolderKind | null): readonly FolderKind[] {
+  return VALID_CHILD_KINDS[parent ?? 'root']
 }
 
 // ------------------------------------------------------------------ swatches
@@ -165,11 +235,33 @@ export function normaliseHex(value: string): string {
 export const WRAPPER_DIRECTORY_NAME = 'Candy Haven'
 
 /**
- * The one directory inside the wrapper that is not a genre.
+ * Where the whole filing tree lives, inside the wrapper.
  *
- * Created alongside the wrapper and reserved by name, so the tree cannot grow a
- * genre that collides with it and the scan can skip it wholesale — it holds
- * copies of finished files, never projects.
+ * The tree used to hang directly off the wrapper, with genres as its top level.
+ * A containing directory buys two things: the wrapper's own children become a
+ * fixed set the app owns outright, and the tree gains a root that is a real
+ * directory rather than an implied one — which is what lets a category be an
+ * ordinary folder record like every other node.
+ */
+export const PROJECTS_DIRECTORY_NAME = 'Projects'
+
+/**
+ * Where a finished track's final mix and master is kept.
+ *
+ * One flat directory for the whole archive, holding one file per project under
+ * a name the operator types. Setting a final *moves* the bounce here and
+ * demoting it moves the file back, so this is not a copy of anything — it is
+ * the list of finished tracks, and it is accurate because there is nowhere
+ * else the file could be.
+ */
+export const RELEASE_MASTERED_TRACKS_DIRECTORY_NAME = 'Release Mastered Tracks'
+
+/**
+ * Hand-off packages for raised releases.
+ *
+ * Stood down with the RELEASES lens — nothing creates this any more — but still
+ * reserved by name, because an operator who has already raised releases has the
+ * directory and its contents on disk. See HIDDEN_ARCHIVE_LENSES.
  */
 export const RELEASES_DIRECTORY_NAME = 'RELEASES'
 
@@ -190,8 +282,33 @@ export const RELEASES_DIRECTORY_NAME = 'RELEASES'
  */
 export const RECYCLE_BIN_DIRECTORY_NAME = 'RECYCLE BIN'
 
-/** Directories inside the wrapper that the app owns and a genre may not shadow. */
+/** Directories inside the wrapper that the app owns and a folder may not shadow. */
 export const RESERVED_WRAPPER_DIRECTORIES: readonly string[] = [
+  PROJECTS_DIRECTORY_NAME,
+  RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
+  RELEASES_DIRECTORY_NAME,
+  RECYCLE_BIN_DIRECTORY_NAME
+]
+
+/**
+ * Wrapper directories the scan must **not** descend into.
+ *
+ * Deliberately not the same list as the one above, and the difference is the
+ * whole reason this exists. `RESERVED_WRAPPER_DIRECTORIES` answers "may the
+ * operator name a folder this?"; this answers "should the walk go in there?".
+ * Those were one list until `Projects` joined it, at which point the scan
+ * started skipping the entire filing tree — every filed project became
+ * invisible to the register, and worse, was then reported *missing*, because
+ * its path sits under a walked root and the walk never reached it.
+ *
+ * `Projects` is reserved by name and always walked. The other three are
+ * reserved and never walked: `RELEASES` and `Release Mastered Tracks` hold
+ * copies of finished audio rather than projects, and `RECYCLE BIN` holds work
+ * the operator deliberately threw away — indexing that would resurrect every
+ * deleted project as a live record on the next launch.
+ */
+export const UNWALKED_WRAPPER_DIRECTORIES: readonly string[] = [
+  RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
   RELEASES_DIRECTORY_NAME,
   RECYCLE_BIN_DIRECTORY_NAME
 ]

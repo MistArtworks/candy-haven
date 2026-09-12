@@ -130,6 +130,12 @@ const api: CandyHavenApi = {
     patch: (id, patch) => invoke('projects:patch', { id, patch }),
     scan: (force) => invoke('projects:scan', force ? { force } : undefined),
     cancelScan: () => invoke('projects:scan-cancel'),
+    conform: () => invoke('projects:conform'),
+    browse: (path) => invoke('projects:browse', { path }),
+    fileMany: (projectIds, folderIds, folderId) =>
+      invoke('projects:file-many', { projectIds, folderIds, folderId }),
+    setFinal: (id, sourcePath, name) => invoke('projects:set-final', { id, sourcePath, name }),
+    clearFinal: (id) => invoke('projects:clear-final', { id }),
     scanState: () => invoke('projects:scan-state'),
     addNote: (id, draft) => invoke('projects:note-add', { id, draft }),
     updateNote: (id, noteId, draft) => invoke('projects:note-update', { id, noteId, draft }),

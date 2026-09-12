@@ -1,12 +1,32 @@
 # ARCHIVE — redesign capture
 
-> **Status: capture in progress. Do not build from this yet.**
+> **Status: BUILT.** Every decision below is implemented on `archive-upgrade`.
 >
-> The operator is dictating a new system for the ARCHIVE that replaces parts of
-> the current one but explicitly *not all of it*. This file records each piece
-> as it is described, in their words plus a mapping onto the code that exists
-> today. Nothing here is agreed or designed until the dictation is complete and
-> the open questions at the bottom have been answered.
+> The operator dictated a new system for the ARCHIVE that replaces parts of the
+> current one but explicitly *not all of it*. This file records each piece in
+> their words, plus a mapping onto the code that exists today. All 22 open
+> questions were put to them and answered on 2026-09-11 — see the Decisions log
+> at the bottom, which is the authoritative list. The sections above are the
+> reasoning that produced it.
+>
+> **Built in nine commits on `archive-upgrade`**, in dependency order: schema
+> v4 (stages) → scaffold removal → RELEASES stood down → schema v5 (tree in
+> `Projects`, stored folder kinds) → the icon stamp → schema v6 (origins) and
+> the loose-`.als` fix → schema v7 (audio marks) → bulk filing and copy mode →
+> the drill-down picker → multi-select → the migration view.
+>
+> **The migrations have not been run.** Schema v4 to v7 execute on the next app
+> launch and, between them, rewrite stage values, move the operator's genre
+> folders on disk into `Projects\GENERAL\`, backfill origins and reshape the
+> master picks. They are idempotent and each explains itself at the point of
+> change, but they act on real data and real directories, so the first launch
+> should be a deliberate one.
+>
+> **One decision is only partly built.** D22 asked for a refusal *and* a picker
+> when a project's origin is unreachable. The refusal is in place and names the
+> path it expected; it points the operator at "File to…" rather than opening a
+> destination picker for them. The gesture exists, but it is two steps where
+> one was asked for.
 >
 > Started 2026-09-11. See `PROJECT_CONTEXT.md` §ARCHIVE for the system being
 > replaced, and the "How it works today" briefing in the session that opened
@@ -201,9 +221,66 @@ rather than dictated; everything else is theirs.
 The ARCHIVE has **two mechanisms**:
 
 - **MIGRATION** — bringing existing work in from wherever it already lives.
-  _(Awaiting dictation.)_
+  See §3.2.
 - **MANAGEMENT** — creating and running projects from here on: projects, WIPs,
   final mixdowns, stems.
+
+### 3.0 Standing constraints
+
+Rules the operator has stated that apply across the whole system, not to one
+mechanism. Treat these as decided.
+
+**C1 — Never rename a project folder. Migration takes the name exactly as the
+operator wrote it, and does not append ` Project`.**
+
+> "We don't want to rename projects, or while migrating we are not going to add
+> 'Project' in the end — just the way the user named it."
+
+Status against today's code:
+
+- **Moving already honours this.** `fileProject()` builds its destination as
+  `join(destinationParent, basename(record.path))`, so the folder name survives
+  a move untouched. Nothing in the filing or bin paths renames anything.
+- **Creation does not.** `provisionProject()` appends the suffix deliberately:
+  `` const folderName = `${name} Project` ``. The recorded reason is that
+  `cleanProjectName()` strips exactly that suffix to derive the display name,
+  so "the register should not be able to tell which projects the app created."
+  Whether C1 overrides this is Q10.
+- **Display names are still derived, not verbatim.** `cleanProjectName()` strips
+  a trailing ` Project` to produce `name`, while `folderName` keeps the real
+  directory name. No disk rename is involved, but a folder called
+  `My Beat Project` shows in the register as `My Beat`. Whether that counts as
+  "renaming" under C1 is Q11.
+
+**C2 — No scaffold folders. A project folder is the set plus whatever Live
+makes, and nothing of ours.**
+
+> "Also we don't need the 6 scaffolding folders."
+
+`provisionProject()` currently creates `WIPS`, `MIX & MASTER`, `STEMS`,
+`GRAPHICS`, `MARKETING` and `REFERENCES` in every project it makes. These go.
+
+Blast radius is small — `PROJECT_SCAFFOLD_FOLDERS` has four references:
+`project-provisioner.ts` (the loop that creates them), `ProjectDialog.tsx` and
+`SetupGate.tsx` (explanatory copy naming them), and the re-exports in
+`domain/projects.ts`. **The release scaffold goes too** — confirmed
+separately. `RELEASE_SCAFFOLD_FOLDERS` (`MASTER`, `ART`, `COPY`) is a different
+mechanism, created under a release directory when a release is cut, but the
+operator wants it gone on the same grounds.
+
+That one has a behavioural knock-on the project scaffold does not.
+`ReleasesService.attach()` *copies* each deliverable into its scaffold folder
+and records `copiedPath` — `DELIVERABLE_DESTINATION` maps master → `MASTER`,
+cover and canvas → `ART`. With the folders gone, deliverables are copied to the
+release directory root instead, and `DELIVERABLE_DESTINATION` is deleted. The
+release directory itself moves from `RELEASES` to `Release Master` under the new
+wrapper layout — see Q6.
+
+This is consistent with how the app already tracks deliverables: `masters`
+(`prefinal` / `final`) on the record points at whichever audio file the operator
+picked, and the scanner lists every audio file outside `Samples\` as a
+candidate. Neither has ever required the file to sit in a particular folder —
+the folders were a filing convention the app never actually read.
 
 ### 3.1 MANAGEMENT
 
@@ -251,25 +328,355 @@ an `Artist` folder under a `Genre` no longer changes what it is — which is
 probably the intent, but it needs stating, because the tree then has to refuse
 or tolerate arrangements that depth alone used to prevent.
 
-**On the custom folder icon.** Windows does this with a `desktop.ini` in the
-folder pointing at an `.ico`, and the *folder* must carry the read-only or
-system attribute for Explorer to read it:
+**On the custom folder icon — this is Ableton's own mechanism, not something we
+invent.** Verified against a real Live-made project at
+`C:\Users\hanee\Desktop\Music\Hyperpop Project`:
+
+```
+Hyperpop Project\                       ← attributes: ReadOnly, Directory
+├── Ableton Project Info\
+│   └── AProject.ico                    ← 481,686 bytes, per project
+├── Backup\
+│   └── Hyperpop [2026-07-17 174440].als   ← and nine more
+├── Samples\
+│   └── Processed\
+├── Desktop.ini                         ← attributes: Hidden, Archive
+└── Hyperpop.als
+```
+
+`Desktop.ini`, exactly as Live writes it:
 
 ```ini
 [.ShellClassInfo]
-IconResource=..\..\AProject.ico,0
+ConfirmFileOp=0
+NoSharing=0
+IconFile=Ableton Project Info\AProject.ico
+IconIndex=0
 ```
 
-The reference screenshot shows `AProject.ico` — 128×128, 470 KB — already
-sitting under `C:\Users\hanee\Music\Candy...`, which suggests one shared icon
-referenced by every project rather than a copy inside each. Details to settle
-in Q9.
+Three corrections to the earlier guess in this file:
+
+1. It is `IconFile` + `IconIndex`, **not** `IconResource`.
+2. The `.ico` is **per project**, inside `Ableton Project Info\` — not one shared
+   copy in the wrapper. Every project carries its own ~470 KB.
+3. Three things must all be true for Explorer to draw it: the `Desktop.ini`
+   exists with that content, it is **Hidden**, and the *project folder itself*
+   carries **ReadOnly**. Miss the ReadOnly attribute and the icon silently does
+   not appear.
+
+**Which explains the reference screenshots.** `idk honestly Project` has the
+icon because Live saved it and wrote all three. `Test project Project` does not,
+because `provisionProject()` only copies the template `.als` and makes the
+scaffold folders — there is no `Ableton Project Info\`, no `Desktop.ini` and no
+ReadOnly attribute until Live opens the project for the first time.
+
+**So requirement 4 means: do what Live does, at creation time**, so a
+Candy Haven project looks right in Explorer before Live has ever touched it.
+Where our copy of `AProject.ico` comes from is Q9.
+
+Two knock-on risks worth recording now:
+
+- **`Ableton Project Info` is already in `SCAN_IGNORED_DIRECTORIES`**, so the
+  walk never descends into it and the `.ico` is not indexed as project artwork.
+  That stays correct and needs no change.
+- **Cross-volume migration may drop the icon.** `copyAcrossVolumes()` uses `cp`
+  recursive; if it does not carry the ReadOnly attribute across, every project
+  migrated from another drive arrives looking like a plain folder even though
+  its `Desktop.ini` and `.ico` came over intact. Needs testing, and probably an
+  explicit re-stamp of the attribute after any copy. Same-volume `rename()` is
+  unaffected — attributes travel with the directory entry.
+
+### 3.2 MIGRATION
+
+**Dictated by the operator:**
+
+> "Migration is a similar way as before but we get a **side-by-side migration
+> mode**.
+>
+> We either get to **drag and drop** it at a specific folder like we have right
+> now, or we **right click and drop** it to where we want it — like
+> `Dubstep -> [Folder] -> final location`. Basically it could be any sort of
+> depth, it could be shown in the right click and migrated.
+>
+> When migrating, the user gets to put something in **the settings** saying if
+> he wants to **copy** all the files of a project that he selected in archive,
+> or **move** them."
+
+Three parts, at three different distances from what exists.
+
+**(a) Side-by-side migration mode — new.** A dedicated mode showing source and
+destination together, rather than today's arrangement where UNFILED is a panel
+beside the folder browser. Shape not yet specified — see Q13.
+
+**(b) Placement by drag, or by a deep right-click picker.** Both gestures exist
+today; the second is not fit for the new depth.
+
+- Drag and drop onto a folder: works today, one project at a time (§2.4).
+- Right-click → "File to…": exists, but renders a **flat list of every folder
+  by bare name**, in reading order:
+
+  ```tsx
+  filingTargets.map((folder) => <Item label={folder.name} … />)
+  ```
+
+  No nesting, no path, no indication which folder sits inside which. With
+  today's shallow tree that is survivable. Under the proposed hierarchy —
+  `Projects\<category>\<genre|artist>\<subfolder>` — it becomes a flat wall of
+  names where three folders called `Misc` are indistinguishable. The operator
+  wants it **cascading**, walking the tree to arbitrary depth, with the final
+  destination chosen at the end of the walk.
+
+**(c) Copy or move, chosen in settings — new, and the most consequential.**
+`fileProject()` always **moves** today; `moveDirectory()` is `rename()` on one
+volume and verified copy-then-delete across volumes. There is no copy path at
+all, and no setting for one.
+
+The significant consequence is what copy does to the register. If the project is
+copied rather than moved, the original stays at the source root, and **the next
+scan walks both**:
+
+- the original at e.g. `C:\Users\hanee\Desktop\Music\Hyperpop Project`, and
+- the copy at `…\Candy Haven\Projects\Personal\Dubstep\Hyperpop Project`.
+
+`findRelinked()` will not merge them — it explicitly skips any record whose own
+path was also found in this scan, precisely so that two folders sharing a name
+are treated as two projects. So copy mode produces **two records with the same
+name**, each with its own stage, tags and notes, diverging from the moment they
+are made. Whether that is intended, and which one the register should consider
+canonical, is Q12.
+
+Secondary: copying duplicates `Samples\`, so a copy-mode migration of a large
+library costs real disk space. Worth surfacing in the UI before it runs.
+
+### 3.3 Multi-select migration
+
+> "There should be a multi-select migration as well, where I can move multiple
+> projects along with its corresponding files."
+
+This is §2.4 applied to migration: select several projects and place them in one
+gesture, each carrying its whole folder. "Along with its corresponding files" is
+already guaranteed by the move path — the unit is always the whole project
+folder (§2.2) — so the new work is entirely the selection model and the bulk
+operation, which is singular at every layer today including the IPC contract.
+
+Partial-failure policy is Q5 and now matters more: a bulk migration is exactly
+where a name collision part way through is likely.
+
+### 3.4 Conforming a migrated project to the house structure
+
+> "We need to come up with a mechanism to convert these migrated projects into
+> how Candy Haven is structured. Like let's say we have a project we created
+> through the archive and a project we migrated — they should be similar in
+> structure."
+
+**This answers Q2: yes, an adopted project is brought up to the same shape as a
+created one.** The two are visibly different today:
+
+| | Created by Candy Haven | Migrated (Live-made) |
+| --- | --- | --- |
+| `<name>.als` | ✓ copied from template | ✓ |
+| `WIPS`, `MIX & MASTER`, `STEMS`, `GRAPHICS`, `MARKETING`, `REFERENCES` | ✓ | ✗ |
+| `Ableton Project Info\AProject.ico` | ✗ *(until §3.1 lands)* | ✓ |
+| `Desktop.ini` + ReadOnly, so the icon draws | ✗ *(until §3.1 lands)* | ✓ |
+| `Backup\`, `Samples\` | ✗ until Live saves | ✓ |
+| Loose rendered audio at the project root | ✗ — bounces go in `MIX & MASTER` / `WIPS` | ✓ commonly |
+
+**C2 removes most of the difference.** With no scaffold folders, a created
+project and a migrated one differ by one thing: whether the icon is stamped.
+`Backup\` and `Samples\` are Live's to make on first save and should not be
+faked. So conforming reduces to:
+
+1. **Icon stamp** — the §3.1 helper: ensure `Ableton Project Info\AProject.ico`,
+   write `Desktop.ini`, set the folder ReadOnly. A no-op for a Live-made project
+   that already has all three; the fix for one Candy Haven made and Live has
+   never opened.
+
+It should be idempotent and runnable against any project at any time, not only
+at the moment of migration — which makes "conform" a verb the operator can apply
+across the whole archive rather than a hidden side effect of a drag.
+
+**Q14 is moot under C2.** The question of whether to sort loose bounces into
+`MIX & MASTER` / `WIPS` disappears with the folders: there is nowhere to sort
+them to, and loose files at the project root are now the house standard for both
+kinds of project. Nothing moves files inside a project folder any more.
+
+### 3.5 WIPs, masters and the final — records, not folders
+
+> "The user is going to store all the project's WIPs in the project's folder
+> itself — like let's say in `Beatout`, we have a section where we can select
+> specific audio files to be a part of **WIPs**, **masters** (different mastered
+> song versions), and **a final mix and master** (for release)."
+
+**This answers Q16, and it is why C2 works.** Every bounce stays loose in the
+project folder. What gives them meaning is a selection made in the app against
+the audio the scanner already found — `record.audio`, which is every audio file
+outside `Samples\`, capped at 400. Dropping the scaffold folders does not lose
+information, because the folders were never where the information lived; it
+moves the classification from *where a file sits* to *what the operator says it
+is*, which is the one place it cannot drift out of step.
+
+**Against today's model.** The record has exactly two single-valued slots:
+
+```ts
+MASTER_PICKS = ['prefinal', 'final']
+MasterSelectionSchema = { prefinal: string | null, final: string | null }
+
+prefinal: 'The candidate currently being lived with. Expected to be replaced.'
+final:    'The exact file that ships. Chosen from the bounces found in this project.'
+```
+
+The proposal generalises this to three buckets, two of them lists:
+
+| Bucket | Cardinality | Today |
+| --- | --- | --- |
+| WIPs | many | — nothing |
+| Masters (mastered versions) | many | `prefinal`, but only one |
+| Final mix and master | one | `final` — unchanged |
+
+So `prefinal` becomes `masters[]`, `wips[]` is new, and `final` survives as is.
+
+**Blast radius — `final` is load-bearing.** It is not just a label:
+
+- `PROJECT_STAGES` carries `requiresMaster`, gating entry to the later stages.
+- `evaluateReadiness()` / `isReleaseReady()` read the selection.
+- `ReleasesService.create()` attaches `subject.finalMaster` automatically when
+  raising a release, so the operator is not asked to choose the same file twice.
+
+Keeping `final` singular and in place means none of that has to change — only
+the two list buckets are new. See Q17 for the one thing that is genuinely open.
+
+#### Setting the final writes a named file to the wrapper
+
+> "**Release Mastered Tracks** (the folder which is in `Candy Haven\`) is where
+> the final mix and masters are saved. When he is setting this, he gets to name
+> the file."
+
+So designating the final is not only a record edit — it puts a file on disk:
+
+```
+Candy Haven\Release Mastered Tracks\<name the operator types>.wav
+```
+
+**Folder name discrepancy — see Q19.** §3.1 recorded this primitive directory as
+`Release Master`; it is `Release Mastered Tracks` here. Taking the later,
+fuller name as correct, but worth confirming since it is created on disk.
+
+**The shape this needs already exists in the codebase.** `ReleasesService` holds
+each deliverable as
+
+```ts
+master: { sourcePath: null, copiedPath: null, copiedAt: null }
+```
+
+— where the file came from, where the copy landed, and when. That is exactly
+what setting a final needs: the bounce stays in the project folder (`sourcePath`)
+and a named copy lands in `Release Mastered Tracks` (`copiedPath`). Reusing the
+shape rather than inventing a second one keeps one answer to "where is the file
+that ships".
+
+Three things this raises, all in Q20: whether it is a copy or a move, what
+happens on a name collision in what is now a flat shared folder, and what
+happens to the old file when the final is changed or cleared.
+
+### 3.6 The pipeline stops at TRACK READY
+
+> "We can remove the stages/phases after the mix and master stage. We have a
+> final stage called **TRACK READY** — we will decide in future for the system
+> for releasing and wrapping the project up. For now this is all we need."
+
+**The table today — nine stages:**
+
+`idea` → `sketch` → `arrangement` → `mix` → `master` → `ready` → `scheduled`
+→ `released`, plus `shelved` off-pipeline.
+
+**Proposed — seven:**
+
+`idea` → `sketch` → `arrangement` → `mix` → `master` → `ready` *(relabelled
+**TRACK READY**, now `terminal: true`)*, plus `shelved` off-pipeline.
+`scheduled` and `released` are deleted.
+
+**The code change is contained.** Nothing outside `projects.constants.ts`
+references `'scheduled'` or `'released'` as literals — the board columns, the
+stage strip and the progress meter are all generated from `PROJECT_STAGES`, so
+they shrink on their own. `requiresMaster` stays on `ready`, so the master
+selection keeps gating entry to the final stage.
+
+**The data change is not, and this one bites.** Records are validated on the way
+out of the database, and an unreadable one is *skipped*:
+
+```ts
+const parsed = ProjectRecordSchema.safeParse({ id: _id, ...rest })
+if (!parsed.success) {
+  logger.warn(`Skipping unreadable project record ${_id}`, …)
+  return null
+}
+```
+
+`ProjectStageSchema` is `z.enum(PROJECT_STAGE_IDS)`, and `stageHistory[].stage`
+uses it too. So the moment the enum shrinks, any project sitting in `scheduled`
+or `released` — **or merely carrying one of them in its stage history** — fails
+to parse and disappears from the register.
+
+It gets worse than disappearing. The comment reasons that "a rescan rewrites
+it", which was true for the failure that comment was written for. It is not true
+here:
+
+1. `listAll()` drops the unreadable record, so it is absent from `existing`.
+2. `reconcile()` finds no match by path and no relink candidate, so it takes the
+   *new project* branch and issues an `insertOne`.
+3. The orphaned document is still in Mongo holding that `path`, and
+   `project_path_unique` is a unique index on `path` — so the insert collides.
+
+The project would be permanently unreadable rather than merely reset, and the
+operator's stage history, notes, tags and filing would go with it.
+
+**This is a migration, not a constant edit.** `applyMigrations()` in
+`archive/schema.ts` is already a versioned runner at `SCHEMA_VERSION` 3, with
+precedent for exactly this kind of field rewrite at v3 (`tags` → `tagIds`). A
+v4 step must rewrite `stage` and every `stageHistory[].stage` off the removed
+values — presumably onto `ready` — **before** the enum shrinks. See Q22.
+
+### 3.7 Audio selection follows the stage — refinement, 2026-09-12
+
+> "Once we are on mix or master stage, we get a button or section in OVERVIEW
+> where it is represented as icons of all the audios in the project folder. We
+> select the mix and masters files at their respective stages. And when we do
+> ready for release, that's when we select the final master or mix from the
+> things we have selected, and then it is moved to the final master directory
+> (with file rename before moving)."
+
+**This revises §3.5 and reverses D13.** As built, the three buckets live on the
+FILES tab, are available at every stage, and the final may be any audio file in
+the project. The proposal ties the whole thing to the pipeline:
+
+| | As built | Proposed |
+| --- | --- | --- |
+| Where | FILES tab, panel 01 | OVERVIEW, at MIX and MASTER stages |
+| What is marked | WIPs, masters | Mixes at MIX, masters at MASTER |
+| Drawn as | Rows with mark buttons | Icons of the project's audio |
+| The final | Any audio file (D13) | Chosen **from what was marked** |
+| When the final is set | Any time; gates TRACK READY | On moving to TRACK READY |
+| The move + rename | Already as described | Unchanged |
+
+The shape of it is coherent: the operator marks what they produced at the stage
+they produced it, and the last step chooses among those rather than starting
+from the whole folder again. It also answers the question that prompted it —
+"where do I select my final mix and master" — by putting the selection on the
+tab the operator is already looking at, at the moment the stage makes it
+relevant.
+
+Open: whether the buckets are renamed to match the stages, whether the final
+may come from mixes as well as masters, whether the picker is part of the
+TRACK READY transition or merely gates it, and whether the section is hidden
+before MIX. See Q24–Q27.
 
 ---
 
 ## Open questions
 
-Numbered as they arise; to be put to the operator once dictation is complete.
+**All resolved.** Kept for the reasoning behind each; the answers are in the
+Decisions log below, which is what to build from. Q2, Q14 and Q16 were closed by
+later dictation rather than by a decision.
 
 - **Q1 — "multiple root folders": sources or destinations?** Does this mean more
   than one place to *look for* projects (close to today's `satelliteRoots`), or
@@ -277,13 +684,10 @@ Numbered as they arise; to be put to the operator once dictation is complete.
   If destinations: when a project is unfiled, or restored from the bin, which
   root does it go back to?
 
-- **Q2 — should an adopted project be scaffolded?** When a project is brought in
-  from a root, should it get the six scaffold folders a home-grown project gets
-  (`WIPS`, `MIX & MASTER`, `STEMS`, `GRAPHICS`, `MARKETING`, `REFERENCES`)? And
-  if so, should its loose rendered audio be *sorted into* them — bounces into
-  `MIX & MASTER` or `WIPS` — or left at the project root untouched? Sorting
-  means moving files the operator did not ask us to move, which is a much
-  stronger action than moving a folder as a unit. See §2.2.
+- **Q2 — ~~should an adopted project be scaffolded?~~ ANSWERED by §3.4:** yes.
+  A migrated project is conformed to the same shape as a created one. The
+  remaining half — whether loose files are *sorted into* the scaffold rather
+  than the folders merely created — carries forward as Q14.
 
 - **Q4 — can a root ever be a project?** Confirming the intended rule for §2.3:
   a configured root should never be adoptable as a project folder even if a
@@ -314,12 +718,123 @@ Numbered as they arise; to be put to the operator once dictation is complete.
   `Collabs` ordinary folder records at a fixed depth, or a separate concept with
   its own collection and rules?
 
-- **Q9 — the project icon.** Confirming the mechanism: one shared `.ico` in the
-  `Candy Haven` wrapper, referenced by a `desktop.ini` written into each project
-  folder, with the folder marked read-only so Explorer honours it. Should the
-  `.ico` ship with the app and be written out on setup, or is it a file the
-  operator supplies? And should *existing* projects be back-filled with the icon
-  or only newly created ones?
+- **Q9 — the project icon. Recommendation below; confirm or overrule.**
+
+  **Use Ableton's own `AProject.ico`, never a Candy Haven one.** Live writes its
+  own copy the first time it saves a project, so any icon we invent is either
+  replaced under the operator or leaves two visually distinct populations of
+  project folder for no functional reason. Ableton's icon makes the folder look
+  identical before and after Live first touches it — the same principle already
+  recorded in `provisionProject()`: the register should not be able to tell
+  which projects the app created.
+
+  **Source it from Live's installation, resolved once and cached in userData.**
+  Verified on this machine:
+
+  ```
+  C:\ProgramData\Ableton\Live 12 Suite\Resources\Misc\AProject.ico   481,686 bytes
+  ```
+
+  Byte-identical in size to the copy inside `Hyperpop Project\Ableton Project
+  Info\` — Live copies this file verbatim rather than generating anything per
+  project. Cascade:
+
+  1. Cached copy in userData, if already resolved.
+  2. `C:\ProgramData\Ableton\<edition>\Resources\Misc\AProject.ico`. Skip
+     dot-prefixed directories — this machine also has a staged
+     `.Live 12 Suite_updated` beside the live one.
+  3. Any indexed project's `Ableton Project Info\AProject.ico`, covering a
+     non-standard install path.
+  4. Skip the icon; Live writes it on first save. Only reachable when Live is
+     not installed at all.
+
+  This closes the fresh-machine case: the icon is available before a single
+  project has been indexed. The template cannot be a source — the operator's
+  template is a bare `.als` in Ableton's User Library, not a project folder.
+
+  Note the app has no Live-path resolution today to reuse: `openInLive()` calls
+  `shell.openPath()` and lets the OS file association do the work. This needs a
+  small new locator in the shape of `archive/binary-locator.ts`.
+
+- **Q10 — does C1 apply to *creating* projects too?** `provisionProject()`
+  currently appends ` Project` to match Ableton's own convention, so an
+  app-made folder is indistinguishable from a Live-made one. Should newly
+  created projects keep that suffix, or be named exactly what the operator
+  typed — accepting that app-made and Live-made folders then look different on
+  disk?
+
+- **Q11 — should the register display the folder name verbatim?** Today
+  `cleanProjectName()` strips a trailing ` Project` for display only, so
+  `My Beat Project` on disk reads as `My Beat` in the UI. Nothing is renamed on
+  disk. Does C1 mean this should stop, and the register show exactly what the
+  folder is called?
+
+- **Q12 — what does COPY mode mean for the register?** Copying leaves the
+  original at the source root, so the next scan finds both it and the copy and
+  registers them as two separate projects with the same name, each accumulating
+  its own stage, tags and notes. Options: (i) accept two records; (ii) the
+  original is forgotten from the register once copied, leaving the file on disk
+  as a backup but only one record; (iii) the source root is excluded from
+  scanning after migration; (iv) the two are linked so one record has two paths.
+  Related: should copy/move be a global setting as dictated, or a choice made
+  per migration at the moment of the drop?
+
+- **Q13 — what is on each side of the side-by-side view?** Left = the source
+  roots as a real directory tree, right = the `Candy Haven\Projects` tree? Or
+  left = unfiled projects as a list, right = the destination tree? And does the
+  left side browse *directories on disk*, including folders that are not
+  projects, or only the projects the register already knows about?
+
+- **Q14 — ~~does conforming move files, or only create folders?~~ MOOT under
+  C2.** With no scaffold folders there is nowhere to sort loose files to, and
+  nothing moves files inside a project folder.
+
+- **Q16 — ~~where do WIPs, mixdowns and stems live?~~ ANSWERED by §3.5:** loose
+  in the project folder, classified by selection in the app rather than by which
+  folder they sit in.
+
+- **Q17 — must the final be one of the masters?** Is "final mix and master" a
+  promotion of one entry from the masters list — so choosing it picks from what
+  is already there — or an independent pick from any audio file in the project?
+  Follow-on: can one file appear in two buckets at once (a WIP that is also a
+  master), or is each audio file in exactly one?
+
+- **Q18 — what about stems?** §3 named "wips, final mixdowns and stems" as the
+  things MANAGEMENT looks after, but §3.5 describes only three buckets. Are stems
+  a fourth bucket, or out of scope for now?
+
+- **Q15 — when does conforming run?** Automatically as part of every migration,
+  or an explicit verb the operator applies? And should it be runnable
+  retroactively against projects already in the archive — including the 26
+  already indexed?
+
+- **Q19 — `Release Master` or `Release Mastered Tracks`?** §3.1 recorded the
+  first, §3.5 the second. This directory gets created on disk, so the name has to
+  be settled.
+
+- **Q20 — mechanics of writing the final master.** (a) Copy the bounce into
+  `Release Mastered Tracks` and leave the original in the project, or move it?
+  (b) It is a flat folder shared by every project, so two projects can produce
+  the same operator-typed name — refuse, suffix, or overwrite? (c) When the final
+  is changed to a different bounce, or cleared, does the previously written file
+  get deleted, left behind, or replaced?
+
+- **Q21 — what happens to RELEASES in the meantime?** §3.6 defers "the system
+  for releasing and wrapping the project up" to a future decision, but the
+  RELEASES lens, service, collection and directory all exist and work today, and
+  §3.5 adds a second place a final master is written. Options: leave RELEASES
+  running untouched; hide the lens until it is respecified; or strip it back now
+  so there is one answer to "where is the file that ships". Related: with
+  `scheduled` and `released` gone from the pipeline, a release can no longer
+  move a project's stage.
+
+- **Q22 — confirm the stage migration target.** A v4 migration must rewrite
+  every project sitting in `scheduled` or `released`, and every `stageHistory`
+  entry naming them, before the enum shrinks — otherwise those records become
+  permanently unreadable (§3.6). Rewriting both onto `ready` is the obvious
+  target. Should the historical entries be rewritten in place, or dropped from
+  the history so it does not claim a stage the project never reached under the
+  new table?
 
 - **Q3 — where does "home" point when it no longer exists?** If §2.1 is fixed by
   remembering a project's origin, what should taking it off the shelf do when
@@ -330,4 +845,143 @@ Numbered as they arise; to be put to the operator once dictation is complete.
 
 ## Decisions log
 
-_(Nothing decided yet.)_
+Answered by the operator on 2026-09-11.
+
+- **D1 (Q1) — Multiple roots means multiple *sources*.** "Where we can find
+  directories for project files." One filing root, one `Candy Haven` wrapper.
+  `satelliteRoots` is already a list, so this is close to what exists;
+  `requireWrapper()`, `unfiledDestination()` and `pruneMissingFolders()` keep
+  their single-wrapper assumption.
+
+- **D2 (Q12) — COPY migration yields one record, and the original is skipped.**
+  The record follows the copy into `Candy Haven`. The original stays on disk
+  untouched, is remembered as the project's origin, and is excluded from future
+  scans so no duplicate appears.
+
+- **D3 — MOVE is the default migration mode.** Copy is the opt-in, not the
+  other way round. (Volunteered alongside Q12.)
+
+- **D4 (Q8) — Categories are ordinary folders.** A category is a folder record
+  directly under `Projects`, reusing the existing tree wholesale — colours,
+  renaming, re-parenting, drop targets, counts. The only new rule is that depth
+  0 under `Projects` is named "category".
+
+- **D5 (Q7) — Folder types have fixed positions.** Genre and Artist are stored
+  on the folder and only valid **directly under a category**. Either may hold
+  projects and plain sub-folders, but never each other:
+  `Personal\Dubstep\Nasko\` is refused, as is `Personal\Nasko\Dubstep\`.
+
+- **D6 (Q6) — The existing wrapper is auto-migrated.** On first launch, create
+  `Projects\`, make one category, and move the current genre folders under it,
+  rewriting the folder records' paths in the same migration. No hand re-filing.
+
+- **D7 (Q19) — The directory is `Release Mastered Tracks`.** Not
+  `Release Master`.
+
+- **D8 (Q22) — Removed stages are rewritten onto `ready`,** both the project's
+  current stage and every `stageHistory` entry naming `scheduled` or `released`.
+  Nothing is dropped; the timeline stays continuous. Ships as schema v4.
+
+- **D9 (Q9) — The project icon is harvested from Live's install.** Copy
+  `AProject.ico` from `C:\ProgramData\Ableton\<edition>\Resources\Misc\` once,
+  cache in userData, stamp every created project. Nothing shipped or
+  redistributed. Fallbacks as recorded in Q9.
+
+- **D10 (Q10) — Created projects keep the ` Project` suffix.** C1's no-rename
+  rule governs *migration*; creation still follows Ableton's convention so an
+  app-made folder is indistinguishable from a Live-made one.
+
+- **D11 (Q11) — The register keeps stripping ` Project` for display.** Display
+  only; `cleanProjectName()` stays. Nothing is renamed on disk.
+
+- **D12 (Q18) — No stems bucket.** Three buckets only: WIPs, masters, final.
+  Stems remain ordinary unclassified files in the project folder.
+
+- **D13 (Q17) — The final can be any audio file in the project,** not only one
+  promoted from the masters list. The picker offers everything the scanner
+  found.
+
+- **D14 (Q17b) — WIP and master are mutually exclusive.** A file is a WIP, or a
+  master, or unmarked. The final is a separate designation and may point at a
+  file already carrying one of those marks.
+
+- **D15 (Q20a) — Setting the final MOVES the bounce** into
+  `Release Mastered Tracks`, under the operator-typed name. It does not stay in
+  the project folder.
+
+- **D16 (Q20b) — Changing the final moves the old file back** into the project
+  folder, then moves the new one out to `Release Mastered Tracks`. One file, one
+  place, always — and the folder is an accurate list of finished tracks.
+
+- **D17 (Q20c) — A name collision is refused.** The operator is asked to rename;
+  nothing is overwritten or silently suffixed. Consistent with
+  `moveDirectory()`, which already refuses rather than merging.
+
+  **Follow-on — Q23, now D23:** when a demoted final moves back into the
+  project folder, it keeps the operator-typed name. Also: `Release Mastered Tracks` should join
+  `RESERVED_WRAPPER_DIRECTORIES` so a category cannot be created with that name,
+  and the record needs to remember the file's in-project path for D16 to be able
+  to put it back.
+
+- **D18 (Q13) — Side-by-side shows two directory trees.** Left browses the
+  source roots as real directories; right browses the `Candy Haven` tree. Not a
+  flat unfiled list — seeing how work is currently organised on disk is part of
+  deciding where it belongs.
+
+- **D19 (Q5a) — Bulk operations move what they can and report the rest.** One
+  name collision does not block the rest of the batch; the failures are named at
+  the end.
+
+- **D20 (Q5b) — Multi-select covers folders as well as projects.** Note this is
+  the heavier option: re-parenting a folder cascades a path rewrite across every
+  descendant, so bulk folder moves need the partial-failure reporting of D19 to
+  be genuinely trustworthy, and `cascadePaths()` becomes a hot path.
+
+- **D21 (Q21) — RELEASES is turned off, not deleted.** Hide the lens, stop
+  creating release directories, leave the service, collection and existing
+  records in place. Nothing competes with `Release Mastered Tracks`, and the
+  mechanism is still there when releasing is respecified.
+
+- **D22 (Q3) — An unreachable origin refuses, then offers a picker.** Taking a
+  project off the shelf when its origin is gone moves nothing and says why; the
+  operator can plug the drive back in and retry, or choose a destination from
+  the same refusal. It never silently falls back to the filing root — that is
+  the flaw in §2.1.
+
+- **D23 (Q23) — A demoted final keeps the operator-typed name.** It returns to
+  the project folder as `Hyperpop Final.wav`, not as whatever it was called
+  before promotion. The name was a deliberate choice, and C1 says the app does
+  not rename the operator's files.
+
+- **D24 (Q4) — A configured root is never a project, and a stray set is logged.**
+  The walk descends past a loose `.als` at the top of a root and finds the real
+  projects beneath it. One line in the indexing log names the stray file, since
+  a set outside any project folder is nearly always a mistake.
+
+- **D25 (Q15) — Conform runs on migration, and there is a fix-all pass.**
+  Anything migrated is stamped as it lands, and a separate action walks the whole
+  archive stamping whatever is missing — which is what brings projects created
+  before this change (e.g. `Test project Project`) up to standard. Idempotent, so
+  both paths are safe to re-run.
+
+- **D26 (Q24) — Three buckets: WIPS, MIXES, MASTERS.** A rough bounce and a
+  considered mix stay distinguishable. MIXES is marked at the MIX stage and
+  MASTERS at MASTER; WIPS belongs to no stage, since a bounce worth keeping can
+  happen at any of them.
+
+- **D27 (Q25) — The final may be promoted from a mix or a master,** not masters
+  alone. A track that never got a separate mastering pass can still ship. WIPS
+  are excluded: kept for reference, never meant to go out.
+
+- **D28 (Q26) — Pressing TRACK READY asks which file ships.** Reaching that
+  stage *is* choosing the final, so the transition opens the picker, takes the
+  name, moves the file and then advances — in that order, because a stage
+  claiming the work is finished while the move failed is the worse of the two
+  states to be left in. Re-entering the stage with a final already set passes
+  straight through.
+
+- **D29 (Q27) — The audio panel appears from MIX onward,** on OVERVIEW rather
+  than FILES. Reverses part of §3.5: it was correct on FILES and unfindable
+  there. What is marked changes with the stage, so the panel asking belongs on
+  the tab the stage lives on. FILES is now purely an inventory, which is what
+  it is named for.

@@ -1,7 +1,13 @@
 import { useState, type ReactNode } from 'react'
 import { useDialogKeys } from '@renderer/hooks/useDialogKeys'
 import { motion } from 'motion/react'
-import { DEFAULT_FOLDER_COLOUR, validateFolderName } from '@shared/domain/stacks.constants'
+import {
+  DEFAULT_FOLDER_COLOUR,
+  FOLDER_KIND_LABEL,
+  FOLDER_KIND_PURPOSE,
+  validateFolderName
+} from '@shared/domain/stacks.constants'
+import type { FolderKind } from '@shared/domain/stacks.constants'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
@@ -13,18 +19,26 @@ export interface FolderDialogProps {
   /** Where the folder will sit, shown so a nested create is unambiguous. */
   where: string
   /**
-   * Sitting directly in the wrapper, where the name rules are stricter — the
-   * app owns `RELEASES` at that level and a genre cannot collide with it.
+   * Sitting at the top of the tree, where the name rules are stricter — the
+   * app owns several directory names in the wrapper and a category cannot
+   * collide with any of them.
    */
   topLevel?: boolean
-  /** What this folder will be: GENRE at the top level, FOLDER below it. */
-  kindLabel?: string
+  /**
+   * What may be created here, from `allowedChildKinds()`.
+   *
+   * One entry is the common case and the dialog simply states it. Two means
+   * the operator has a real choice to make — a category holds genres *and*
+   * artists — and only then is a picker drawn. Empty or absent on rename,
+   * which cannot change what a folder is.
+   */
+  kinds?: readonly FolderKind[]
   initialName?: string
   initialColour?: string
   busy?: boolean
   /** Set when the main process refused the last attempt. */
   error?: string | null
-  onSubmit: (name: string, colour: string) => void
+  onSubmit: (name: string, colour: string, kind: FolderKind) => void
   onCancel: () => void
 }
 
@@ -43,7 +57,7 @@ export function FolderDialog({
   mode,
   where,
   topLevel = false,
-  kindLabel,
+  kinds = [],
   initialName = '',
   initialColour = DEFAULT_FOLDER_COLOUR,
   busy = false,
@@ -53,12 +67,13 @@ export function FolderDialog({
 }: FolderDialogProps): ReactNode {
   const [name, setName] = useState(initialName)
   const [colour, setColour] = useState(initialColour)
+  const [kind, setKind] = useState<FolderKind>(kinds[0] ?? 'folder')
 
   const verdict = validateFolderName(name, topLevel)
   const canSubmit = verdict.ok && !busy
 
   const submit = (): void => {
-    if (canSubmit) onSubmit(name.trim(), colour)
+    if (canSubmit) onSubmit(name.trim(), colour, kind)
   }
 
   useDialogKeys({ onCommit: submit, onCancel, canCommit: canSubmit })
@@ -83,7 +98,7 @@ export function FolderDialog({
         >
           <header className={styles.dialogHead}>
             <span className={styles.dialogTitle}>
-              {mode === 'create' ? `Add ${(kindLabel ?? 'folder').toLowerCase()}` : 'Rename folder'}
+              {mode === 'create' ? `Add ${FOLDER_KIND_LABEL[kind].toLowerCase()}` : 'Rename folder'}
             </span>
             <span className={styles.dialogWhere} title={where}>
               {where}
@@ -101,6 +116,31 @@ export function FolderDialog({
               // pristine empty field is not an error, it is an unstarted one.
               hint={name.length > 0 && !verdict.ok ? (verdict.reason ?? undefined) : undefined}
             />
+
+            {/*
+              Only drawn when there is something to choose. Below a category
+              there is exactly one legal kind, and offering a picker with one
+              option would be asking a question that has already been answered
+              by where the operator clicked.
+            */}
+            {mode === 'create' && kinds.length > 1 ? (
+              <div className={styles.kindChoice} role="radiogroup" aria-label="What this is">
+                {kinds.map((entry) => (
+                  <button
+                    key={entry}
+                    type="button"
+                    role="radio"
+                    aria-checked={kind === entry}
+                    className={styles.kindOption}
+                    data-selected={kind === entry || undefined}
+                    onClick={() => setKind(entry)}
+                  >
+                    <span className={styles.kindLabel}>{FOLDER_KIND_LABEL[entry]}</span>
+                    <span className={styles.kindPurpose}>{FOLDER_KIND_PURPOSE[entry]}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <SwatchPicker value={colour} onChange={setColour} subject="Folder" />
 

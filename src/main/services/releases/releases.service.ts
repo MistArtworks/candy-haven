@@ -8,12 +8,7 @@ import type {
   ReleasePatch,
   ReleaseSummary
 } from '@shared/domain/releases'
-import {
-  DELIVERABLE_DESTINATION,
-  DELIVERABLE_LABEL,
-  RELEASE_SCAFFOLD_FOLDERS,
-  slugifyReleaseTitle
-} from '@shared/domain/releases.constants'
+import { DELIVERABLE_LABEL, slugifyReleaseTitle } from '@shared/domain/releases.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import type { ArchiveService } from '@main/services/archive/archive.service'
@@ -135,9 +130,6 @@ export class ReleasesService {
     const root = await this.requireReleasesRoot()
 
     const path = await this.claimDirectory(root, title)
-    for (const folder of RELEASE_SCAFFOLD_FOLDERS) {
-      await ensureDirectory(join(path, folder))
-    }
 
     const now = Date.now()
     const release: ArchiveRelease = {
@@ -268,10 +260,10 @@ export class ReleasesService {
       })
     }
 
-    const destinationFolder = join(release.path, DELIVERABLE_DESTINATION[kind])
-    await ensureDirectory(destinationFolder)
-
-    const copiedPath = join(destinationFolder, basename(sourcePath))
+    // Straight into the release directory. The MASTER / ART / COPY folders
+    // that used to sort these are gone: three files do not need three folders
+    // to be told apart, and the record already names which is which.
+    const copiedPath = join(release.path, basename(sourcePath))
 
     try {
       await copyFile(sourcePath, copiedPath)

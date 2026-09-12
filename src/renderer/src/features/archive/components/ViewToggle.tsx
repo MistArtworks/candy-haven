@@ -6,6 +6,15 @@ import styles from './ViewToggle.module.scss'
 export interface ViewToggleProps {
   view: ProjectViewMode
   onChange: (view: ProjectViewMode) => void
+  /**
+   * Which modes to offer. Omitted offers all three.
+   *
+   * INTAKE draws directories rather than a register, so it has LIST and ICONS
+   * and no BOARD — there are no stages to make columns out of. Narrowing the
+   * offer here rather than hiding the whole control means the operator keeps
+   * the two choices that do apply.
+   */
+  modes?: readonly ProjectViewMode[]
 }
 
 /**
@@ -21,10 +30,14 @@ export interface ViewToggleProps {
  * A panel-scoped control belongs on the panel. The page now renders this as the
  * panel's `aside` and only where a register is actually drawn.
  */
-export function ViewToggle({ view, onChange }: ViewToggleProps): ReactNode {
+export function ViewToggle({
+  view,
+  onChange,
+  modes = PROJECT_VIEW_MODES
+}: ViewToggleProps): ReactNode {
   return (
     <div className={styles.group} role="group" aria-label="Register view">
-      {PROJECT_VIEW_MODES.map((mode) => (
+      {modes.map((mode) => (
         <button
           key={mode}
           type="button"

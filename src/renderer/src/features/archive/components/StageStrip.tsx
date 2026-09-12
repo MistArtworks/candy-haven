@@ -38,10 +38,12 @@ export interface StageStripProps {
  * - **Position without colour.** Passed stages carry a gold underline and the
  *   current one a lifted fill, so the run reads as progress even where the
  *   accent does not register.
- * - **Gates that explain themselves.** SCHEDULED and RELEASED are refused by
- *   the main process when no master is chosen. The cells stay live and the
- *   refusal surfaces in the dossier's notice bar, because a silently dead
- *   control teaches nothing.
+ * - **Gates that explain themselves.** TRACK READY is refused by the main
+ *   process when no final mix and master is chosen. The cell stays live and
+ *   the refusal surfaces in the dossier's notice bar, because a silently dead
+ *   control teaches nothing. OVERVIEW also names what is outstanding beneath
+ *   this strip, since the refusal only ever reaches the operator who tries —
+ *   and the first question is "where do I choose it", not "why was I stopped".
  */
 export function StageStrip({ stage, busy = false, onChange }: StageStripProps): ReactNode {
   const current = getStage(stage)

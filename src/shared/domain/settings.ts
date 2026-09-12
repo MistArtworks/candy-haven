@@ -79,6 +79,20 @@ export const WorkspaceSettingsSchema = z.object({
    * than decompressed again.
    */
   scanOnLaunch: z.boolean().default(true),
+  /**
+   * What taking a project into the archive does with the original.
+   *
+   * `move` by default, and deliberately so: it is the mode with one answer to
+   * "where is this project", and the register has always worked that way.
+   * `copy` is the cautious opt-in — the original stays where it is, untouched,
+   * while a duplicate is filed.
+   *
+   * Under `copy` the record follows the copy and the original is remembered as
+   * the project's origin and skipped by later scans, so the register does not
+   * grow two entries for one piece of work. It costs disk: a project's Samples
+   * folder is duplicated along with everything else.
+   */
+  intakeMode: z.enum(['move', 'copy']).default('move'),
   /** Directory watched for stream overlay assets. */
   overlayAssetPath: z.string().nullable().default(null),
   /**

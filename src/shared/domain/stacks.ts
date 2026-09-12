@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { DEFAULT_FOLDER_COLOUR, MAX_FOLDER_NAME_LENGTH, isHexColour } from './stacks.constants'
+import {
+  DEFAULT_FOLDER_COLOUR,
+  FOLDER_KINDS,
+  MAX_FOLDER_NAME_LENGTH,
+  isHexColour
+} from './stacks.constants'
 
 /**
  * Schema half of the stacks domain — the ARCHIVE's shelving.
@@ -25,16 +30,22 @@ export {
   DEFAULT_FOLDER_COLOUR,
   FOLDER_KINDS,
   FOLDER_KIND_LABEL,
+  FOLDER_KIND_PURPOSE,
   FOLDER_SWATCHES,
   HEX_PATTERN,
   MAX_FOLDER_DEPTH,
   MAX_FOLDER_NAME_LENGTH,
+  PROJECTS_DIRECTORY_NAME,
   RECYCLE_BIN_DIRECTORY_NAME,
   RELEASES_DIRECTORY_NAME,
+  RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
   RESERVED_WRAPPER_DIRECTORIES,
+  UNWALKED_WRAPPER_DIRECTORIES,
+  VALID_CHILD_KINDS,
   WRAPPER_DIRECTORY_NAME,
-  folderKindAtDepth,
+  allowedChildKinds,
   isFolderLens,
+  isValidChildKind,
   isHexColour,
   normaliseHex,
   validateFolderName
@@ -63,11 +74,24 @@ const ColourSchema = z.string().refine(isHexColour, 'Expected a six-digit hex co
  * *output*, so a document written by an earlier build that is missing a field
  * added since would make the whole channel fail rather than one record.
  */
+export const FolderKindSchema = z.enum(FOLDER_KINDS)
+
 export const ArchiveFolderSchema = z.object({
   id: z.string(),
-  /** Parent folder, or null for a folder sitting directly in the wrapper. */
+  /** Parent folder, or null for a folder sitting directly in `Projects`. */
   parentId: z.string().nullable().default(null),
   name: z.string().max(MAX_FOLDER_NAME_LENGTH),
+  /**
+   * What this folder is: a category, a genre, an artist, or a plain folder.
+   *
+   * Stored rather than derived from depth — see the note on `FOLDER_KINDS`.
+   * Defaulted rather than required because a record written before this field
+   * existed must still parse: a folder that fails validation is *skipped* on
+   * read, and a skipped folder takes its whole subtree out of the tree. The
+   * v5 migration sets the real values; this default only has to keep the
+   * record readable until it runs.
+   */
+  kind: FolderKindSchema.default('folder'),
   /** Absolute path of the real directory this record describes. */
   path: z.string(),
   /** Six-digit hex, exactly as the operator chose it. */
@@ -94,6 +118,8 @@ export type ArchiveFolder = z.infer<typeof ArchiveFolderSchema>
 export const FolderDraftSchema = z.object({
   parentId: z.string().nullable(),
   name: z.string(),
+  /** What to create. Refused if it may not sit inside `parentId`. */
+  kind: FolderKindSchema,
   /** Omitted takes the default swatch rather than an absent colour. */
   colour: ColourSchema.optional()
 })
@@ -197,15 +223,6 @@ export type ArchiveSetupDraft = z.infer<typeof ArchiveSetupDraftSchema>
 export const StacksTreeSchema = z.object({
   folders: z.array(ArchiveFolderSchema),
   setup: ArchiveSetupStateSchema,
-  /**
-   * Depth of each folder, keyed by id.
-   *
-   * Carried rather than left to the renderer because depth decides what a
-   * folder *is* — a genre at the top, a plain folder below — which decides
-   * which mark its tile draws. Main has already walked the tree to build this
-   * payload, so it answers rather than making the renderer re-derive it.
-   */
-  depths: z.record(z.string(), z.number().int().min(0)),
   /**
    * Projects filed directly in each folder, keyed by folder id.
    *

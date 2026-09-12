@@ -1,4 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { evaluateReadiness, getStage, marksAudio } from '@shared/domain/projects.constants'
+import type { ProjectStage } from '@shared/domain/projects'
 import { Button } from '@renderer/components/primitives/Button'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { TextArea } from '@renderer/components/primitives/Input'
@@ -9,6 +11,8 @@ import { ArchiveGlyph } from '../icons/ArchiveGlyph'
 import { StageStrip } from '../StageStrip'
 import { TagPicker } from '../tags/TagPicker'
 import { TagManagerDialog } from '../tags/TagManagerDialog'
+import { MixAndMaster } from './MixAndMaster'
+import { FinalMasterDialog } from './FinalMasterDialog'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
 import styles from './dossier.module.scss'
@@ -48,6 +52,53 @@ export function DossierOverview({
   const [editing, setEditing] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
   const [managing, setManaging] = useState(false)
+  const [shipping, setShipping] = useState(false)
+  const [shipError, setShipError] = useState<string | null>(null)
+  const [shipBusy, setShipBusy] = useState(false)
+
+  /*
+   * TRACK READY asks which file ships instead of refusing because none does.
+   *
+   * Reaching that stage *is* choosing the final — it means "this is finished",
+   * and a project cannot be finished without saying which file is the finished
+   * thing. Refusing and sending the operator off to set it first made the
+   * stage button a quiz about a step they had not been told to take.
+   *
+   * Every other stage passes straight through. Re-entering TRACK READY when a
+   * final already exists does too: the question has an answer, and asking it
+   * again would put a dialog between the operator and a correction.
+   */
+  const changeStage = (next: ProjectStage): void => {
+    if (next === 'ready' && project.masters.final === null) {
+      setShipError(null)
+      setShipping(true)
+      return
+    }
+    setStage(next)
+  }
+
+  const ship = async (sourcePath: string, name: string): Promise<void> => {
+    setShipBusy(true)
+    setShipError(null)
+    try {
+      await window.candy.projects.setFinal(project.id, sourcePath, name)
+      setShipping(false)
+      // Only once the file is actually where it claims to be. A stage saying
+      // the work is finished while the move failed is the worse of the two
+      // states to be left in.
+      setStage('ready')
+    } catch (error) {
+      setShipError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setShipBusy(false)
+    }
+  }
+
+  /** What the final stage is still waiting on. Empty once the project is ready. */
+  const outstanding = useMemo(
+    () => evaluateReadiness(project).filter((item) => !item.met),
+    [project]
+  )
 
   /*
    * The shelf this project is filed on, by name.
@@ -122,12 +173,46 @@ export function DossierOverview({
         icon={<ArchiveGlyph name="history" />}
         className={styles.span6}
       >
-        <StageStrip stage={project.stage} busy={mutations.patch.isPending} onChange={setStage} />
+        <StageStrip stage={project.stage} busy={mutations.patch.isPending} onChange={changeStage} />
+
+        {/*
+          What the last stage is still waiting on, named before it is needed.
+          
+          The gate already explains itself — pressing TRACK READY without a
+          final master returns "pick one in the FILES tab". But that only
+          teaches the operator who *tries*, and the honest question they ask
+          first is "where do I choose it". The FILES tab's 2/3 badge was the
+          only standing answer, and a fraction is not an instruction.
+          
+          Hidden once everything is met: a checklist of satisfied requirements
+          is a report nobody asked for, and this panel is about where the work
+          has got to rather than about itself.
+        */}
+        {outstanding.length > 0 ? (
+          <div className={styles.readiness}>
+            <span className={styles.readinessLabel}>{getStage('ready').label} still needs</span>
+            <ul className={styles.readinessList}>
+              {outstanding.map((item) => (
+                <li key={item.id} className={styles.readinessItem}>
+                  <span className={styles.readinessName}>{item.label}</span>
+                  {item.hint ? <span className={styles.readinessHint}>{item.hint}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </Panel>
+
+      {/*
+        Hidden before MIX. There is nothing to mark that early — the bounces
+        that matter do not exist yet — and an empty panel on every new project
+        is clutter that teaches nothing.
+      */}
+      {marksAudio(project.stage) ? <MixAndMaster project={project} mutations={mutations} /> : null}
 
       <Panel
         label="Tags"
-        index="02"
+        index="03"
         icon={<ArchiveGlyph name="tag" />}
         className={styles.span3}
         aside={carried.length > 0 ? String(carried.length) : undefined}
@@ -146,7 +231,7 @@ export function DossierOverview({
 
       <Panel
         label="Notes"
-        index="03"
+        index="04"
         icon={<ArchiveGlyph name="note" />}
         className={styles.span3}
         aside={project.notes.length > 0 ? String(project.notes.length) : undefined}
@@ -266,6 +351,16 @@ export function DossierOverview({
           )}
         </div>
       </Panel>
+
+      {shipping ? (
+        <FinalMasterDialog
+          project={project}
+          busy={shipBusy}
+          error={shipError}
+          onSubmit={(sourcePath, name) => void ship(sourcePath, name)}
+          onCancel={() => setShipping(false)}
+        />
+      ) : null}
 
       {managing ? (
         <TagManagerDialog

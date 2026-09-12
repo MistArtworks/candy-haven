@@ -28,7 +28,9 @@ import type { ReactNode } from 'react'
  * differ — a volume is not a place, it is a record.
  */
 export type ArchiveMark =
+  | 'category'
   | 'genre'
+  | 'artist'
   | 'folder'
   | 'project'
   | 'album'
@@ -113,13 +115,37 @@ function renderMark(mark: ArchiveMark, open: boolean): ReactNode {
         </>
       )
 
+    case 'category':
+      /*
+       * The heaviest rib, and the only divided one.
+       *
+       * A category is the top of the tree and holds *kinds* of thing rather
+       * than work itself, so the shoulder is split: two compartments, which is
+       * what a category is. The divider is what separates it from a genre at a
+       * glance, since both are otherwise the most solid marks in the family.
+       */
+      return <Folder open={open} rib={5} divided />
+
     case 'genre':
-      // One heavy rib across the shoulder. The most solid mark in the family,
-      // because a genre is the top of the tree.
+      // One heavy rib across the shoulder. Solid and undivided: a genre holds
+      // work, not further kinds of thing.
       return <Folder open={open} rib={4} />
 
+    case 'artist':
+      /*
+       * A genre's weight with a plate on it.
+       *
+       * Artist and genre sit at the same level and hold the same things, so
+       * they cannot differ by rib weight alone — the eye reads that as a
+       * hierarchy that is not there. The disc says *who* rather than *what*,
+       * borrowing the record plate the volume marks already use, and it is the
+       * one folder in the family carrying another object.
+       */
+      return <Folder open={open} rib={4} plate />
+
     case 'folder':
-      // A lighter rib — below a genre, and claiming less than one.
+      // A lighter rib — below a genre or an artist, and claiming less than
+      // either.
       return <Folder open={open} rib={2} />
 
     case 'project':
@@ -234,7 +260,19 @@ function renderMark(mark: ArchiveMark, open: boolean): ReactNode {
  * heavier means higher in the tree — and `open` drops the lid to mark the
  * shelf the browser is standing in.
  */
-function Folder({ open, rib }: { open: boolean; rib: number }): ReactNode {
+function Folder({
+  open,
+  rib,
+  divided = false,
+  plate = false
+}: {
+  open: boolean
+  rib: number
+  /** Splits the shoulder rib in two. Marks a category. */
+  divided?: boolean
+  /** Sets a record plate in the body. Marks an artist. */
+  plate?: boolean
+}): ReactNode {
   return (
     <>
       {/* The fill is the swatch at low alpha so a dark colour still reads as a
@@ -247,11 +285,17 @@ function Folder({ open, rib }: { open: boolean; rib: number }): ReactNode {
         strokeWidth="1.5"
       />
       <path
-        d={open ? 'M2 12 H62' : 'M2 18 H62'}
+        d={open ? 'M2 12 H62' : divided ? 'M2 18 H30 M34 18 H62' : 'M2 18 H62'}
         stroke="currentColor"
         strokeWidth={open ? 1.5 : rib}
         opacity={open ? 0.5 : 1}
       />
+      {plate && !open ? (
+        <>
+          <circle cx="32" cy="31" r="8" stroke="currentColor" strokeWidth="1.5" opacity="0.75" />
+          <circle cx="32" cy="31" r="2.5" fill="currentColor" stroke="none" />
+        </>
+      ) : null}
       {open ? (
         // An open folder loses its lid: the shelf the browser is standing in.
         <path d="M8 42 L14 18 H62 L56 42 Z" fill="currentColor" fillOpacity="0.28" />

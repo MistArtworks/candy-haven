@@ -34,6 +34,7 @@ import type { ArchiveService } from '@main/services/archive/archive.service'
 import { isAtOrUnder, rewritePath } from '@main/services/stacks/filesystem'
 import { ProjectsRepository, type ProjectDocument } from './projects.repository'
 import { cleanProjectName, scanRoots, type ScannedProject } from './scanner'
+import { hasProjectIcon, stampProjectIcon } from './project-icon'
 
 const logger = getLogger('projects')
 
@@ -463,12 +464,38 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
     const byPath = new Map(existing.map((record) => [record.path.toLowerCase(), record]))
     const scannedPaths = new Set(scanned.map((project) => project.path.toLowerCase()))
     const seenIds = new Set<string>()
+
+    /*
+     * Folders a project was copied *out of*, which the walk will still find.
+     *
+     * Under COPY migration the original stays on disk untouched — that is the
+     * point of choosing it — so the next scan walks both it and the copy. Left
+     * alone, the original would either be registered as a second project of the
+     * same name, or worse, `findRelinked` would match it on folder name plus
+     * primary set and quietly relink the record back to the copy's source,
+     * undoing the migration.
+     *
+     * A record whose origin differs from its current path has been moved or
+     * copied. After a move the origin does not exist, so this set costs
+     * nothing; after a copy it is exactly the folder to ignore.
+     */
+    const copiedOrigins = new Set(
+      existing
+        .filter(
+          (record) =>
+            record.originPath !== null &&
+            record.originPath.toLowerCase() !== record.path.toLowerCase()
+        )
+        .map((record) => (record.originPath as string).toLowerCase())
+    )
     const operations: AnyBulkWriteOperation<ProjectDocument>[] = []
 
     let created = 0
     let updated = 0
 
     for (const project of scanned) {
+      if (copiedOrigins.has(project.path.toLowerCase())) continue
+
       const now = Date.now()
       const match =
         byPath.get(project.path.toLowerCase()) ??
@@ -541,17 +568,100 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       volumeId: null,
       trackNumber: null,
       colour: DEFAULT_FOLDER_COLOUR,
-      masters: { prefinal: null, final: null },
+      masters: { wips: [], mixes: [], masters: [], final: null },
       trashedAt: null,
       trashedFrom: null,
       // Left unfiled even when the folder already sits inside the stacks tree;
       // `reconcileFiling` resolves that from the path a moment later, which is
       // the one place that rule is expressed.
       folderId: null,
+      // Where the scan found it, recorded once. This is the only moment it can
+      // be known — every later read sees wherever the project has since been
+      // filed to.
+      originPath: project.path,
       createdAt: now,
       ...discoveredFields(project, now),
       path: project.path
     }
+  }
+
+  /**
+   * Records a change of final mix and master.
+   *
+   * Called by the stacks service *after* the file has already moved, so this
+   * is bookkeeping rather than an action — the same division as `applyFiling`.
+   *
+   * `removedPath` is pruned from both buckets and from the scanned audio list.
+   * A promoted bounce has left the project folder, so every reference to its
+   * old path is stale; the next scan would drop them anyway, and doing it here
+   * means the dossier is correct immediately rather than one scan later.
+   *
+   * A demoted file is deliberately *not* added back to either bucket. It
+   * returns under the name the operator typed, not the one it was marked
+   * under, so the mark no longer describes anything that exists — and the scan
+   * will list it as ordinary audio again on its next pass.
+   */
+  async applyFinalMaster(
+    id: string,
+    change: {
+      final: string | null
+      removedPath: string | null
+      wips: readonly string[]
+      mixes: readonly string[]
+      masters: readonly string[]
+    }
+  ): Promise<ProjectRecord> {
+    const current = await this.get(id)
+    const drop = (paths: readonly string[]): string[] =>
+      change.removedPath ? paths.filter((path) => path !== change.removedPath) : [...paths]
+
+    const next: ProjectRecord = {
+      ...current,
+      masters: {
+        wips: drop(change.wips),
+        mixes: drop(change.mixes),
+        masters: drop(change.masters),
+        final: change.final
+      },
+      audio: change.removedPath
+        ? current.audio.filter((file) => file.path !== change.removedPath)
+        : current.audio,
+      updatedAt: Date.now()
+    }
+
+    await this.repository.replace(next)
+    return next
+  }
+
+  /**
+   * Brings every project folder up to the shape a created one has.
+   *
+   * With the scaffold folders gone there is exactly one difference left between
+   * a project Candy Haven made and one migrated in: whether Explorer draws
+   * Live's project icon on it. Live writes that itself on first save, so a
+   * migrated project usually arrives with it already — what needs this pass is
+   * a project created before the app stamped icons, or one Live has never
+   * opened.
+   *
+   * Idempotent and non-destructive. Nothing is renamed, nothing is moved and no
+   * file the operator put there is touched; a project that already has the icon
+   * is skipped without a write. That is what makes it safe to offer as a verb
+   * over the whole archive rather than only at the moment of migration.
+   */
+  async conformIcons(): Promise<{ stamped: number; total: number }> {
+    const records = await this.repository.listAll()
+    const live = records.filter((record) => !record.missing && record.trashedAt === null)
+    const sources = live.map((record) => record.path)
+
+    let stamped = 0
+
+    for (const record of live) {
+      if (await hasProjectIcon(record.path)) continue
+      if (await stampProjectIcon(record.path, sources)) stamped += 1
+    }
+
+    logger.info(`Conformed ${stamped} of ${live.length} projects`)
+    return { stamped, total: live.length }
   }
 
   /**
@@ -1184,7 +1294,6 @@ function rewriteRecordPaths(record: ProjectRecord, from: string, to: string): Pr
   if (from === to) return record
 
   const move = (value: string): string => rewritePath(value, from, to)
-  const moveNullable = (value: string | null): string | null => (value ? move(value) : value)
 
   return {
     ...record,
@@ -1206,8 +1315,13 @@ function rewriteRecordPaths(record: ProjectRecord, from: string, to: string): Pr
     videos: record.videos.map((file) => ({ ...file, path: move(file.path) })),
     missingSamples: record.missingSamples.map(move),
     masters: {
-      prefinal: moveNullable(record.masters.prefinal),
-      final: moveNullable(record.masters.final)
+      wips: record.masters.wips.map(move),
+      mixes: record.masters.mixes.map(move),
+      masters: record.masters.masters.map(move),
+      // Deliberately not moved. The final lives in Release Mastered Tracks,
+      // outside the project folder entirely, so a project moving on disk does
+      // not move it and rewriting this path would break the reference.
+      final: record.masters.final
     }
   }
 }
@@ -1235,6 +1349,10 @@ function discoveredFields(
   // Where a project is filed is the operator's decision, not the scanner's.
   // Listing it here is what stops a rescan emptying the shelves.
   | 'folderId'
+  // Where the project was first found never changes, by definition. A rescan
+  // finds it at its current path; writing that back would redefine home as
+  // wherever it happens to be now.
+  | 'originPath'
   | 'createdAt'
 > {
   return {
