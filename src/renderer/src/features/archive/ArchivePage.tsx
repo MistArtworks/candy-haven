@@ -170,20 +170,23 @@ export function ArchivePage(): ReactNode {
   const settings = useSettings()
 
   /*
-   * Where the migration view browses from.
+   * Where the migration view browses from: the configured source locations,
+   * and nothing else.
    *
-   * The configured source locations, plus the filing root — a project sitting
-   * loose in the filing root but outside the wrapper is unfiled in every sense
-   * that matters, and leaving it unreachable would mean the one place the
-   * ARCHIVE is pointed at could not be browsed.
+   * The filing root was included at first, reasoning that a project sitting
+   * loose in it but outside the wrapper is unfiled in every sense that matters.
+   * True, and not worth what it cost: the filing root's only contents are
+   * almost always the wrapper itself, so it contributed a tab that browsed the
+   * archive the operator is migrating *into*. Migration asks "what have I got
+   * elsewhere" — the answer is the locations they added for exactly that.
+   *
+   * A stray project directly in the filing root is still found by the scan and
+   * still filed from the shelves; it just is not browsed for here.
    */
-  const migrationRoots = useMemo(() => {
-    const workspace = settings?.workspace
-    if (!workspace) return []
-    return [
-      ...new Set([workspace.filingRoot, ...workspace.satelliteRoots].filter(Boolean))
-    ] as string[]
-  }, [settings?.workspace])
+  const migrationRoots = useMemo(
+    () => [...new Set(settings?.workspace.satelliteRoots ?? [])],
+    [settings?.workspace.satelliteRoots]
+  )
 
   const [tileSelection, setTileSelection] = useState<string | null>(null)
 
