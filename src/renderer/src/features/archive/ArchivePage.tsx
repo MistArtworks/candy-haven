@@ -347,11 +347,12 @@ export function ArchivePage(): ReactNode {
    * Every folder, in reading order, as a filing destination.
    *
    * No longer filtered by depth: a genre holds projects just as a folder inside
-   * it does. Sorted by path so a nested folder always follows its parent, which
-   * is the only ordering that lets a flat menu stand in for a tree.
+   * it does. Ordered by name within each level — the menu walks the tree by
+   * `parentId` now rather than flattening it, so path order no longer has to
+   * stand in for structure.
    */
   const filingTargets = useMemo(
-    () => [...folders].sort((a, b) => a.path.localeCompare(b.path)),
+    () => [...folders].sort((a, b) => a.name.localeCompare(b.name)),
     [folders]
   )
 

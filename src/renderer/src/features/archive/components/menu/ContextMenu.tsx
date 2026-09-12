@@ -21,7 +21,13 @@ export type MenuTarget =
 
 export interface ContextMenuProps {
   target: MenuTarget
-  /** Every folder, in reading order, for "File to…". */
+  /**
+   * Every live folder, for the "File to…" walk.
+   *
+   * The whole tree rather than a pre-filtered list: the picker navigates it by
+   * `parentId`, so it needs every level, not just the ones a flat menu could
+   * have shown.
+   */
   filingTargets: readonly ArchiveFolder[]
   /** Every volume, for "Assign to…". */
   volumes: readonly VolumeSummary[]
@@ -113,6 +119,85 @@ export function ContextMenu(props: ContextMenuProps): ReactNode {
         {target.kind === 'volume' ? <VolumeItems {...props} volume={target.volume} /> : null}
       </div>
     </Portal>
+  )
+}
+
+/**
+ * Walks the tree to any depth, one level at a time.
+ *
+ * This was a flat list of every folder by bare name, in reading order. That
+ * survived while the tree was two levels deep and stopped surviving the moment
+ * it became `Projects\<category>\<genre|artist>\<folder>` — a wall of names
+ * in which three folders called `Misc` are indistinguishable, and which grows
+ * without limit as the operator subdivides.
+ *
+ * Drilling in place rather than flying out sideways. A context menu is already
+ * positioned against a screen edge and a nested flyout has to solve that again
+ * for every level; replacing the contents keeps the menu where the operator
+ * right-clicked. Every level offers *both* — walk further in, or file here —
+ * because a genre is as legitimate a destination as anything under it.
+ */
+function FilingPicker({
+  folders,
+  currentFolderId,
+  onFile
+}: {
+  folders: readonly ArchiveFolder[]
+  currentFolderId: string | null
+  onFile: (folderId: string | null) => void
+}): ReactNode {
+  const [browsing, setBrowsing] = useState<string | null>(null)
+
+  const here = browsing ? (folders.find((entry) => entry.id === browsing) ?? null) : null
+  const children = folders.filter((entry) => entry.parentId === browsing)
+
+  return (
+    <div className={styles.menuScroll}>
+      {here ? (
+        <>
+          <Item
+            label={`← ${
+              here.parentId
+                ? (folders.find((entry) => entry.id === here.parentId)?.name ?? 'Back')
+                : 'All categories'
+            }`}
+            onClick={() => setBrowsing(here.parentId)}
+          />
+          <Item
+            label={`File into ${here.name}`}
+            swatch={here.colour}
+            disabled={here.id === currentFolderId}
+            onClick={() => onFile(here.id)}
+          />
+        </>
+      ) : (
+        <Item
+          label="Take off the shelf"
+          disabled={currentFolderId === null}
+          onClick={() => onFile(null)}
+        />
+      )}
+
+      {children.length === 0 ? (
+        <Item label={here ? 'Nothing inside' : 'No categories yet'} disabled />
+      ) : (
+        children.map((folder) => {
+          const hasChildren = folders.some((entry) => entry.parentId === folder.id)
+          return (
+            <Item
+              key={folder.id}
+              // The chevron is the whole affordance: it says this row goes
+              // deeper rather than files here, which is the one thing the flat
+              // list could never express.
+              label={hasChildren ? `${folder.name}  ›` : folder.name}
+              swatch={folder.colour}
+              disabled={!hasChildren && folder.id === currentFolderId}
+              onClick={() => (hasChildren ? setBrowsing(folder.id) : onFile(folder.id))}
+            />
+          )
+        })
+      )}
+    </div>
   )
 }
 
@@ -244,27 +329,11 @@ function ProjectItems({
       <div className={styles.menuDivider} />
       <span className={styles.menuLabel}>File to</span>
 
-      <div className={styles.menuScroll}>
-        <Item
-          label="Take off the shelf"
-          disabled={project.folderId === null}
-          onClick={() => onFileProject(project.id, null)}
-        />
-
-        {filingTargets.length === 0 ? (
-          <Item label="No folders yet" disabled />
-        ) : (
-          filingTargets.map((folder) => (
-            <Item
-              key={folder.id}
-              label={folder.name}
-              swatch={folder.colour}
-              disabled={folder.id === project.folderId}
-              onClick={() => onFileProject(project.id, folder.id)}
-            />
-          ))
-        )}
-      </div>
+      <FilingPicker
+        folders={filingTargets}
+        currentFolderId={project.folderId}
+        onFile={(folderId) => onFileProject(project.id, folderId)}
+      />
 
       <div className={styles.menuDivider} />
       <span className={styles.menuLabel}>Part of</span>

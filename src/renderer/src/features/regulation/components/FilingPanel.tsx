@@ -39,6 +39,7 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
   const loaded = settings !== null
   const satellites = settings?.workspace.satelliteRoots ?? []
   const scanOnLaunch = settings?.workspace.scanOnLaunch ?? true
+  const migrationMode = settings?.workspace.migrationMode ?? 'move'
   const filingRoot = settings?.workspace.filingRoot ?? null
   const templatePath = settings?.workspace.projectTemplatePath ?? null
 
@@ -178,6 +179,36 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
               ))}
             </ul>
           )}
+        </div>
+
+        {/*
+          A segmented pair rather than a toggle, because neither option is the
+          absence of the other — "not moving" is copying, and a switch labelled
+          MOVE would leave the operator guessing what off meant.
+        */}
+        <div className={styles.control}>
+          <span className={styles.controlLabel}>When migrating a project in</span>
+          <div className={styles.segmented}>
+            {(['move', 'copy'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={styles.segment}
+                data-selected={migrationMode === mode || undefined}
+                aria-pressed={migrationMode === mode}
+                onClick={() => applySettings({ workspace: { migrationMode: mode } })}
+              >
+                {mode.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <p className={styles.controlHint}>
+            <strong>MOVE</strong> takes the project folder into the archive, leaving nothing behind.{' '}
+            <strong>COPY</strong> leaves your original exactly where it is and files a duplicate —
+            safer, but it copies the Samples folder too, so a large library costs real disk. Either
+            way the register holds one entry: under COPY the original is remembered and skipped by
+            later scans.
+          </p>
         </div>
 
         <div className={styles.control}>
