@@ -290,6 +290,29 @@ export const RESERVED_WRAPPER_DIRECTORIES: readonly string[] = [
   RECYCLE_BIN_DIRECTORY_NAME
 ]
 
+/**
+ * Wrapper directories the scan must **not** descend into.
+ *
+ * Deliberately not the same list as the one above, and the difference is the
+ * whole reason this exists. `RESERVED_WRAPPER_DIRECTORIES` answers "may the
+ * operator name a folder this?"; this answers "should the walk go in there?".
+ * Those were one list until `Projects` joined it, at which point the scan
+ * started skipping the entire filing tree — every filed project became
+ * invisible to the register, and worse, was then reported *missing*, because
+ * its path sits under a walked root and the walk never reached it.
+ *
+ * `Projects` is reserved by name and always walked. The other three are
+ * reserved and never walked: `RELEASES` and `Release Mastered Tracks` hold
+ * copies of finished audio rather than projects, and `RECYCLE BIN` holds work
+ * the operator deliberately threw away — indexing that would resurrect every
+ * deleted project as a live record on the next launch.
+ */
+export const UNWALKED_WRAPPER_DIRECTORIES: readonly string[] = [
+  RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
+  RELEASES_DIRECTORY_NAME,
+  RECYCLE_BIN_DIRECTORY_NAME
+]
+
 export const MAX_FOLDER_NAME_LENGTH = 64
 
 /**

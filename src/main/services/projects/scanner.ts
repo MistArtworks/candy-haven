@@ -8,7 +8,7 @@ import {
   classifyExtension
 } from '@shared/domain/projects.constants'
 import {
-  RESERVED_WRAPPER_DIRECTORIES,
+  UNWALKED_WRAPPER_DIRECTORIES,
   WRAPPER_DIRECTORY_NAME
 } from '@shared/domain/stacks.constants'
 import { mapWithConcurrency } from '@main/core/async'
@@ -42,7 +42,7 @@ const logger = getLogger('projects:scanner')
  */
 const IGNORED = new Set<string>([
   ...SCAN_IGNORED_DIRECTORIES,
-  ...RESERVED_WRAPPER_DIRECTORIES.map((name) => name.toLowerCase())
+  ...UNWALKED_WRAPPER_DIRECTORIES.map((name) => name.toLowerCase())
 ])
 
 /** Bounded so one pathological folder cannot produce a multi-megabyte record. */
