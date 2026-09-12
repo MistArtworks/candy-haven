@@ -235,7 +235,13 @@ export function IntakeView({
 
   return (
     <div className={styles.split}>
-      <Panel label="On disk" index="01" className={styles.pane} aside={labelFor(source, roots)}>
+      <Panel
+        label="On disk"
+        index="01"
+        className={styles.pane}
+        aside={labelFor(source, roots)}
+        flush
+      >
         <div className={styles.body}>
           {roots.length > 1 ? (
             <div className={styles.roots}>
@@ -299,6 +305,7 @@ export function IntakeView({
         index="02"
         className={styles.pane}
         aside={trail.at(-1)?.name.toUpperCase() ?? 'ALL CATEGORIES'}
+        flush
       >
         <div className={styles.body}>
           {/*

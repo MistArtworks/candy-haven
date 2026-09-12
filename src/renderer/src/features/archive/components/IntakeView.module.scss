@@ -31,12 +31,31 @@
   }
 }
 
+/*
+ * Both panes are `flush`, so this owns every inset rather than sharing the job
+ * with the primitive.
+ *
+ * The trail wants to sit against the header rule the way the shelves' does,
+ * which is what `flush` is for — but the grid beneath it must not run to the
+ * panel's own border. Splitting those two needs the padding to be per-element
+ * here instead of one rule on the body, and doing it here means what is written
+ * is what renders: there is no second padding underneath it to reason about.
+ */
 .body {
   display: flex;
   flex-direction: column;
-  gap: space(4);
+  gap: space(3);
   min-width: 0;
   height: 100%;
+  padding-bottom: space(5);
+}
+
+.roots,
+.trail,
+.empty,
+.here {
+  margin-left: space(5);
+  margin-right: space(5);
 }
 
 /*
@@ -46,11 +65,19 @@
  * off the bottom of the page, and the whole point of the view is having both
  * on screen at once.
  */
+/*
+ * The grid is inset like everything else, and a little tighter on the right.
+ *
+ * The scrollbar sits inside this box, so matching the left padding exactly
+ * would leave the tiles further from the right edge than the left. Taking the
+ * scrollbar's width off the right padding is what makes the two columns of
+ * whitespace read as equal.
+ */
 .scroll {
   min-height: 0;
   max-height: rem(460px);
   overflow-y: auto;
-  padding-right: space(1);
+  padding: space(2) space(3) space(2) space(5);
 }
 
 // ------------------------------------------------------------------- roots
