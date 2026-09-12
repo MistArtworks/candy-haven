@@ -73,6 +73,26 @@ export function MixAndMaster({ project, mutations }: MixAndMasterProps): ReactNo
 
   const finalName = project.masters.final?.split('\\').pop() ?? null
 
+  /*
+   * Hands the file to the listening room rather than to Explorer.
+   *
+   * Revealing a bounce answered "where is it", which the operator already
+   * knows — they are looking at the project. The question they actually have
+   * while marking is "which one is this", and the only way to answer that is
+   * to hear it.
+   *
+   * Two calls because the popout may or may not exist. `popout` opens it with
+   * the file in the URL, or focuses the one already open without changing what
+   * it plays; `announce` broadcasts the path, which the audio engine in every
+   * window listens for and loads. Together they mean "play this" whichever
+   * state the room was in — and a second file replaces the first rather than
+   * opening a second window.
+   */
+  const play = async (path: string): Promise<void> => {
+    await window.candy.auditorium.popout(path)
+    await window.candy.auditorium.announce(path)
+  }
+
   return (
     <Panel
       label="Mix and master"
@@ -132,32 +152,47 @@ export function MixAndMaster({ project, mutations }: MixAndMasterProps): ReactNo
                   key={file.path}
                   className={styles.file}
                   data-chosen={current !== null || undefined}
+                  // Double rather than single: marking is the reason to be in
+                  // this list, and a single click that started playback would
+                  // fire every time the operator went for a mark and missed by
+                  // a few pixels.
+                  data-playable
+                  onDoubleClick={() => void play(file.path)}
+                  title={`${file.path} — double-click to play`}
                 >
-                  <button
-                    type="button"
-                    className={styles.fileName}
-                    title={file.path}
-                    onClick={() => void window.candy.shell.reveal(file.path)}
-                  >
-                    {file.relativePath}
-                  </button>
+                  <span className={styles.fileName}>{file.relativePath}</span>
                   <span className={styles.fileMeta}>{formatBytes(file.sizeBytes)}</span>
 
-                  {AUDIO_MARKS.map((entry) => (
-                    <button
-                      key={entry}
-                      type="button"
-                      className={styles.filePromote}
-                      data-on={current === entry || undefined}
-                      // The mark this stage is for leads, so the common action
-                      // is the one the eye lands on first.
-                      data-stage={AUDIO_MARK_STAGE[entry] === project.stage || undefined}
-                      disabled={mutations.patch.isPending}
-                      onClick={() => mark(file.path, current === entry ? null : entry)}
-                    >
-                      {AUDIO_MARK_LABEL[entry]}
-                    </button>
-                  ))}
+                  {/*
+                    One control with three cells — the segmented switch
+                    REGULATION uses for any exclusive choice. It was three
+                    separate outlined buttons per row, which read as three
+                    independent toggles rather than one question with three
+                    answers, and turned six bounces into eighteen buttons.
+                  */}
+                  <div
+                    className={styles.marks}
+                    role="radiogroup"
+                    aria-label={`What ${file.relativePath} is`}
+                  >
+                    {AUDIO_MARKS.map((entry) => (
+                      <button
+                        key={entry}
+                        type="button"
+                        role="radio"
+                        aria-checked={current === entry}
+                        className={styles.mark}
+                        data-on={current === entry || undefined}
+                        // The mark this stage is for, so the verb wanted right
+                        // now is the one the eye finds first.
+                        data-stage={AUDIO_MARK_STAGE[entry] === project.stage || undefined}
+                        disabled={mutations.patch.isPending}
+                        onClick={() => mark(file.path, current === entry ? null : entry)}
+                      >
+                        {AUDIO_MARK_LABEL[entry]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )
             })}

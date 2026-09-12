@@ -161,6 +161,17 @@ $list-cap: min(#{rem(280px)}, 24vh);
   }
 }
 
+/*
+ * Rows in the mix-and-master list answer a double click by playing.
+ *
+ * Signalled with the cursor rather than an icon: a play control on every row
+ * would be a fourth thing competing with the three-cell switch beside it, and
+ * the row is already the target.
+ */
+.file[data-playable] {
+  cursor: pointer;
+}
+
 .fileName {
   flex: 1;
   min-width: 0;
@@ -225,19 +236,6 @@ $list-cap: min(#{rem(280px)}, 24vh);
     border-color: var(--ch-line-strong);
   }
 
-  /*
-   * The mark this stage is for, unpressed.
-   *
-   * Lifted out of the faint ramp so the verb the operator wants right now is
-   * the one the eye finds, without pre-selecting it for them — at MIX, MIXES
-   * reads as the obvious button and the other two stay available for a bounce
-   * that arrived out of order.
-   */
-  &[data-stage]:not([data-on]) {
-    color: var(--ch-text-secondary);
-    border-color: var(--ch-line-strong);
-  }
-
   // The mark this file currently carries. Border rather than fill, so a row of
   // three verbs does not turn into a row of three buttons competing for the eye.
   &[data-on] {
@@ -249,6 +247,76 @@ $list-cap: min(#{rem(280px)}, 24vh);
   &:disabled {
     opacity: 0.4;
     pointer-events: none;
+  }
+}
+
+// ----------------------------------------------------------------- marks
+
+/*
+ * What a bounce is: one control, three cells.
+ *
+ * Lifted from REGULATION's segmented switch, which is this application's
+ * answer to any exclusive choice. It was three separately outlined buttons per
+ * row, and the shape was the problem rather than the styling — three boxes
+ * read as three independent toggles, so a list of six bounces was eighteen
+ * controls and none of them said "pick one of these".
+ *
+ * Selection carries on the accent underline plus text colour, never on colour
+ * alone, exactly as the segment and the stage strip do.
+ */
+.marks {
+  display: inline-flex;
+  flex-shrink: 0;
+  @include hairline(all, 0.14);
+}
+
+.mark {
+  position: relative;
+  padding: 2px space(3);
+  @include label(7px, 0.14em);
+  color: var(--ch-text-faint);
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-secondary);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  // The cell for the stage the project is on. Raised out of the faint ramp so
+  // the answer wanted right now is findable, without pre-selecting it.
+  &[data-stage]:not([data-on]) {
+    color: var(--ch-text-muted);
+  }
+
+  &[data-on] {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
   }
 }
 
