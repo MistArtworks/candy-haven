@@ -430,7 +430,16 @@ export function ArchivePage(): ReactNode {
       : 'New shelf'
 
   // Standing inside any folder is enough; only the tree root is not a folder.
-  const canCreateProjectHere = currentFolder !== null
+  /*
+   * A project needs a genre, an artist or a folder under one — not a category.
+   *
+   * A category divides the operator's *filing*, not their work: it holds kinds
+   * of shelf, and a project sitting beside genres at that level would be the
+   * one thing in the tree with no answer to "what is this filed as". The rule
+   * mirrors VALID_CHILD_KINDS, which already refuses to put a project's
+   * possible parents anywhere else.
+   */
+  const canCreateProjectHere = currentFolder !== null && currentFolder.kind !== 'category'
 
   // ------------------------------------------------------------- reporting
 
@@ -1419,8 +1428,8 @@ export function ArchivePage(): ReactNode {
                   setFolderDialog({ mode: 'create', parentId: folderId })
                 }
               },
-              // Only inside a folder: a project needs a shelf to be created on,
-              // and the root of the tree holds genres rather than work.
+              // Only on a shelf that holds work. The root holds categories and
+              // a category holds genres and artists, so neither takes a project.
               ...(canCreateProjectHere && currentFolder
                 ? [
                     {
@@ -1795,7 +1804,7 @@ export function ArchivePage(): ReactNode {
 
 /** The focal panel's label follows the lens, so the page names what it shows. */
 const PANEL_LABEL: Record<ArchiveLens, string> = {
-  stacks: 'Genres',
+  stacks: 'Stacks',
   unfiled: 'Unfiled',
   volumes: 'Volumes',
   releases: 'Releases',

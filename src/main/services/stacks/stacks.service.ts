@@ -364,14 +364,21 @@ export class StacksService {
     const folder = this.requireFolder(folders, draft.folderId)
 
     /*
-     * Any folder may hold a project, including a genre at the top level.
+     * Any shelf that holds work may hold a project — a genre, an artist, or a
+     * folder under either. A category may not.
      *
-     * An earlier build required a sub-genre in between and refused a project
-     * created directly in a genre. That was dropped as needless ceremony — a
-     * producer with four EDM tracks should not have to invent a sub-genre to
-     * file them, and one who wants `EDM / Melodic Bass` can simply make the
-     * folder.
+     * A category divides the operator's *filing* rather than their work: it
+     * holds kinds of shelf, and a project beside genres at that level would be
+     * the one thing in the tree with no answer to "what is this filed as".
+     *
+     * No deeper requirement than that. An earlier build demanded a sub-genre in
+     * between and refused a project created directly in a genre, which was
+     * dropped as ceremony — a producer with four EDM tracks should not have to
+     * invent a sub-genre to file them, and one who wants `EDM / Melodic Bass`
+     * can simply make the folder.
      */
+    this.refuseCategoryAsShelf(folder)
+
     const name = this.requireValidName(draft.name)
 
     if (requiresVolume(draft.category) && draft.volumeId === null) {
@@ -749,6 +756,10 @@ export class StacksService {
     const folders = await this.repository.listAll()
     const target = folderId ? this.requireFolder(folders, folderId) : null
 
+    // Checked on the way in as well as on creation: a drag must not be able to
+    // put a project somewhere the new-project dialog would have refused.
+    if (target) this.refuseCategoryAsShelf(target)
+
     const destinationParent = target ? target.path : await this.unfiledDestination(record)
     const destination = join(destinationParent, basename(record.path))
 
@@ -845,6 +856,17 @@ export class StacksService {
 
     logger.info(`Filed ${moved} of ${projectIds.length + folderIds.length}`)
     return { moved, failures }
+  }
+
+  /** A category holds genres and artists, never projects. See `createProject`. */
+  private refuseCategoryAsShelf(folder: ArchiveFolder): void {
+    if (folder.kind !== 'category') return
+
+    throw new AppError(`“${folder.name}” is a category, so it does not hold projects.`, {
+      code: ErrorCode.Validation,
+      hint: 'File it into a genre or an artist inside it.',
+      recoverable: false
+    })
   }
 
   private async folderName(id: string): Promise<string> {

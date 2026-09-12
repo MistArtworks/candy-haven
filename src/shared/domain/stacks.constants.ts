@@ -56,7 +56,7 @@ export const VISIBLE_ARCHIVE_LENSES: readonly ArchiveLens[] = ARCHIVE_LENSES.fil
 )
 
 export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
-  stacks: 'GENRES',
+  stacks: 'STACKS',
   unfiled: 'UNFILED',
   volumes: 'VOLUMES',
   releases: 'RELEASES',
@@ -65,13 +65,23 @@ export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
 }
 
 export const ARCHIVE_LENS_PURPOSE: Record<ArchiveLens, string> = {
-  stacks: 'Genres, folders and the projects filed on them.',
+  stacks: 'Categories, genres, artists and the projects filed on them.',
   unfiled: 'Everything found on disk that is not on a shelf yet.',
   volumes: 'Albums, EPs and compilations, and the tracks bound into each.',
   releases: 'What is going out, and the files that go with it.',
   all: 'The whole register, flat.',
   bin: 'Deleted projects, kept until you empty them.'
 }
+
+/*
+ * Named STACKS rather than GENRES.
+ *
+ * It was GENRES while a genre *was* the top of the tree and the lens showed
+ * nothing else. The tree now opens on categories and holds genres and artists
+ * a level down, so naming the lens after one of the things inside it described
+ * a third of what the operator was looking at. THE STACKS is what this
+ * subsystem has been called throughout — the shelving, whatever is on it.
+ */
 
 /** True for the one lens that browses folders rather than filtering the register. */
 export function isFolderLens(lens: ArchiveLens): boolean {
