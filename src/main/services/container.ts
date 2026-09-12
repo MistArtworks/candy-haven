@@ -16,6 +16,7 @@ import { DispatchService } from './dispatch/dispatch.service'
 import { ConcordService } from './overlay/concord.service'
 import { MusterService } from './overlay/muster.service'
 import { TwitchChatService } from './chat/twitch-chat.service'
+import { OrientationStore } from './guide/orientation'
 import { getLogger } from '@main/core/logger'
 
 const logger = getLogger('container')
@@ -78,6 +79,11 @@ export interface ServiceContainer {
   readonly dispatch: DispatchService
   readonly concord: ConcordService
   readonly muster: MusterService
+  /**
+   * CATECHISM — whether the orientation tour has been read. No collaborators
+   * and no state beyond one number in userData, so it is constructed inline.
+   */
+  readonly orientation: OrientationStore
 }
 
 export function createServiceContainer(): ServiceContainer {
@@ -145,7 +151,8 @@ export function createServiceContainer(): ServiceContainer {
     nowPlaying: new SpotifyService(archive, overlayServer),
     dispatch: new DispatchService(),
     concord,
-    muster: new MusterService(archive, overlayServer, chat, settings, rite, concord)
+    muster: new MusterService(archive, overlayServer, chat, settings, rite, concord),
+    orientation: new OrientationStore()
   }
 }
 

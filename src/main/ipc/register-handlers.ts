@@ -323,6 +323,12 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('update:arrival', () => services.updates.notes.arrival())
   router.handle('update:acknowledge', () => services.updates.notes.acknowledge())
 
+  // ---------------------------------------------------------------- catechism
+
+  router.handle('guide:orientation', () => services.orientation.orientation())
+  router.handle('guide:acknowledge', () => services.orientation.acknowledge())
+  router.handle('guide:reset', () => services.orientation.reset())
+
   router.handle('dispatch:state', () => services.dispatch.current)
   router.handle('dispatch:setup', () => services.dispatch.setup)
   router.handle('dispatch:configure', ({ source }) => services.dispatch.configure(source))

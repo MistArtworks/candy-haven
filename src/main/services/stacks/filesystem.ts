@@ -101,6 +101,42 @@ function basenameOf(path: string): string {
   return path.split(sep).filter(Boolean).pop() ?? path
 }
 
+/**
+ * A path under `parent` that nothing occupies, suffixing until one is free.
+ *
+ * `Untitled Project` becomes `Untitled Project (2)`, then `(3)`, and so on.
+ * The suffix goes on the *whole* folder name rather than before Live's
+ * ` Project` ending, because the scanner derives a display name by stripping
+ * exactly that ending — `Untitled Project (2)` reads as "Untitled Project (2)"
+ * in the register, which is honest, whereas `Untitled (2) Project` would read
+ * as "Untitled (2)" and quietly claim to be a project the operator named.
+ *
+ * Exists because Live names every new project `Untitled Project`. A migration
+ * bringing in work from several folders therefore collides on the *common*
+ * case rather than a rare one, and refusing the second one is a dead end the
+ * operator can only escape by renaming directories by hand.
+ *
+ * Returns the desired path untouched when nothing is in the way, so the
+ * ordinary case is unchanged and no suffix appears where none is needed.
+ */
+export async function freePath(parent: string, basename: string): Promise<string> {
+  const desired = join(parent, basename)
+  if (!(await pathExists(desired))) return desired
+
+  // Bounded rather than `while (true)`: a directory with a thousand collisions
+  // is a fault worth surfacing, not a loop worth finishing.
+  for (let suffix = 2; suffix <= 999; suffix += 1) {
+    const candidate = join(parent, `${basename} (${suffix})`)
+    if (!(await pathExists(candidate))) return candidate
+  }
+
+  throw new AppError(`Could not find a free name for “${basename}”.`, {
+    code: ErrorCode.Validation,
+    hint: 'That shelf already holds a thousand projects of this name.',
+    recoverable: false
+  })
+}
+
 // -------------------------------------------------------------------- moving
 
 /**

@@ -3,6 +3,7 @@ import type { ArchiveStatus } from '../domain/archive'
 import type { Settings, SettingsPatch } from '../domain/settings'
 import type { RuntimeInfo, WindowState } from '../domain/system'
 import type { ReleaseArrival, UpdateStatus } from '../domain/update'
+import type { Orientation } from '../domain/guide'
 import type { TelemetryState } from '../domain/telemetry'
 import type { CalendarDraft, CalendarEntry, CalendarPatch, CalendarState } from '../domain/calendar'
 import type { AudioPayload } from '../domain/auditorium'
@@ -134,7 +135,11 @@ export interface CandyHavenApi {
       projectIds: string[],
       folderIds: string[],
       folderId: string | null
-    ): Promise<{ moved: number; failures: { id: string; name: string; reason: string }[] }>
+    ): Promise<{
+      moved: number
+      failures: { id: string; name: string; reason: string }[]
+      renamed: { from: string; to: string }[]
+    }>
     /** Moves a bounce into Release Mastered Tracks as the project's final. */
     setFinal(id: string, sourcePath: string, name: string): Promise<ProjectRecord>
     /** Moves the final back into the project folder. */
@@ -329,6 +334,13 @@ export interface CandyHavenApi {
     /** Notes for the running version, or null once acknowledged. */
     arrival(): Promise<ReleaseArrival | null>
     acknowledge(): Promise<void>
+  }
+  readonly guide: {
+    /** The orientation tour, or null once this revision has been read. */
+    orientation(): Promise<Orientation | null>
+    acknowledge(): Promise<void>
+    /** Forgets what was read, so the tour opens on the next launch. */
+    reset(): Promise<void>
   }
   readonly dispatch: {
     state(): Promise<DispatchState>

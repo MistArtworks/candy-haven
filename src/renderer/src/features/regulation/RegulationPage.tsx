@@ -133,6 +133,7 @@ export function RegulationPage(): ReactNode {
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
+        guideId="regulation"
         actions={
           <Button
             size="sm"
@@ -197,6 +198,33 @@ export function RegulationPage(): ReactNode {
                     </div>
                     <p className={styles.controlHint}>
                       Reduced removes ambient movement. Off disables all transitions.
+                    </p>
+                  </div>
+
+                  <div className={styles.control}>
+                    <span className={styles.controlLabel}>Page transition</span>
+                    <div className={styles.segmented} role="group" aria-label="Page transition">
+                      {(['sweep', 'fade', 'off'] as const).map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          className={styles.segment}
+                          data-selected={appearance?.pageTransition === option || undefined}
+                          // Reported as unavailable rather than hidden when
+                          // motion is off: the setting still exists and still
+                          // holds a value, and a control that vanishes reads as
+                          // a fault rather than as a consequence.
+                          disabled={appearance?.motion === 'off'}
+                          onClick={() => applySettings({ appearance: { pageTransition: option } })}
+                        >
+                          {option.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                    <p className={styles.controlHint}>
+                      {appearance?.motion === 'off'
+                        ? 'Motion is off, so departments change instantly whatever is set here.'
+                        : 'Sweep passes a mark across the field as a department changes. Fade is the plain handover. Off changes instantly.'}
                     </p>
                   </div>
 

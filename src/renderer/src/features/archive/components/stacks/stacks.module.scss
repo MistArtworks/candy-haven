@@ -121,11 +121,35 @@
     flex-shrink: 0;
   }
 
+  // A row has no second line to put the tags on, so the two groups go back
+  // side by side at the trailing edge. Stacking them here would double the
+  // height of every row, which is the one thing the list view exists to avoid.
+  .tileFacets {
+    flex: 0 1 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: space(2);
+    justify-content: flex-end;
+    max-width: 50%;
+  }
+
+  .tileTags {
+    flex-wrap: nowrap;
+  }
+
   // The corner mark has no corner to sit in on a row, so it rides the trailing
   // edge with the other metadata rather than overlapping the name.
   .tilePin {
     position: static;
     order: 3;
+  }
+
+  // Likewise the box: it leads the row instead of floating over its corner,
+  // which is where a list expects to be ticked.
+  .tileCheck {
+    position: static;
+    order: -1;
+    flex-shrink: 0;
   }
 }
 
@@ -207,6 +231,70 @@
 // The favourite mark rides in the corner rather than in the name line: the
 // name is already truncated at tile width, and a diamond in front of it would
 // eat the two characters that usually distinguish one shelf from another.
+// The marking box.
+//
+// Square and hairline, like every other control here — no rounded corners, no
+// tick glyph. Checked state is a filled crimson square inset inside the rule,
+// which is the same figure the boot ring and the dot indicators use: a mark
+// held inside a frame rather than a symbol drawn on top of one.
+//
+// Sits in the leading corner, opposite the favourite pin, so the two never
+// collide on a tile that has both.
+.tileCheck {
+  position: absolute;
+  inset-block-start: space(2);
+  inset-inline-start: space(2);
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  background: var(--ch-obsidian-900);
+  border: $hairline solid var(--ch-line-strong);
+  border-radius: $radius-control;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // Hidden until wanted: a box on every tile at rest would compete with the
+  // folder colour, which is what the grid is actually coded by.
+  opacity: 0;
+  transition:
+    opacity $duration-fast linear,
+    border-color $duration-fast linear;
+
+  .tile:hover &,
+  .tile:focus-within &,
+  .grid[data-marking] & {
+    opacity: 1;
+  }
+
+  &:hover {
+    border-color: var(--ch-accent);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+    opacity: 1;
+  }
+}
+
+.tileCheckMark {
+  width: 7px;
+  height: 7px;
+  background: transparent;
+  transition: background $duration-instant linear;
+
+  .tile[data-marked] & {
+    background: var(--ch-accent);
+  }
+}
+
+// A marked tile keeps its box lit whether or not the pointer is on it.
+.tile[data-marked] .tileCheck {
+  opacity: 1;
+  border-color: var(--ch-accent);
+}
+
 .tilePin {
   position: absolute;
   inset-block-start: space(1);
@@ -263,6 +351,62 @@
 .tileCount {
   @include readout(9px);
   color: var(--ch-text-faint);
+}
+
+// A project's facets: its figures, then its tags on the line beneath.
+//
+// A column of two rows. The figures hold a fixed position under the name so a
+// shelf can be scanned down; the tags sit below them, where a project carrying
+// four of them cannot shift the tempo of the tile next to it.
+.tileFacets {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(1);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+// Tempo and key, on one line.
+.tileMeta {
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+// Wrapping, so a project with several tags sets them over two lines rather than
+// clipping the last one mid-word. The tile's own height is what caps it.
+.tileTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: space(1);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+// The one carve-out in the palette: a tag wears the colour the operator picked
+// for it, as a hairline and a wash rather than a fill, so a shelf of tagged
+// projects still reads as this console rather than as a bag of sweets.
+.tileTag {
+  @include label(8px, 0.12em);
+  color: var(--tag-colour, var(--ch-text-secondary));
+  border: $hairline solid color-mix(in srgb, var(--tag-colour, var(--ch-concrete-500)) 55%, transparent);
+  background: color-mix(in srgb, var(--tag-colour, var(--ch-concrete-500)) 12%, transparent);
+  padding: 1px space(1);
+  border-radius: $radius-control;
+  max-width: 10ch;
+  @include truncate;
+}
+
+// Figures, in the same readout face every other number in the console uses.
+.tileReadout {
+  @include readout(9px);
+  color: var(--ch-text-muted);
+  white-space: nowrap;
 }
 
 // The add tile is the same object with nothing in it, so it keeps the same

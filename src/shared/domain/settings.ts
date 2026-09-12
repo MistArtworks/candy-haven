@@ -13,6 +13,20 @@ export type MotionPreference = z.infer<typeof MotionPreferenceSchema>
 export const AccentSchema = z.enum(['crimson', 'gold'])
 export type Accent = z.infer<typeof AccentSchema>
 
+/**
+ * How a department arrives when the operator walks the rail.
+ *
+ * Separate from `motion` because the two answer different questions. `motion`
+ * is an accessibility preference covering every animation in the console;
+ * this is a taste one covering a single, very visible piece of choreography
+ * that some operators will want quieter without stripping the rest.
+ *
+ * `motion` still wins where they disagree — nothing here overrides a request
+ * for reduced movement.
+ */
+export const PageTransitionSchema = z.enum(['sweep', 'fade', 'off'])
+export type PageTransition = z.infer<typeof PageTransitionSchema>
+
 export const UpdateChannelSchema = z.enum(['latest', 'beta'])
 export type UpdateChannel = z.infer<typeof UpdateChannelSchema>
 
@@ -35,6 +49,8 @@ export const AppearanceSettingsSchema = z.object({
   uiScale: z.number().min(0.8).max(2).default(1),
   /** Film grain / scanline intensity, 0..1. */
   grain: z.number().min(0).max(1).default(0.5),
+  /** How a department arrives. See `PageTransitionSchema`. */
+  pageTransition: PageTransitionSchema.default('sweep'),
   /** Skip the boot cinematic once the sequence itself has completed. */
   fastBoot: z.boolean().default(false)
 })

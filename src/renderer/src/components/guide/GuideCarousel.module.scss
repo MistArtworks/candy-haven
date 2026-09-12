@@ -1,0 +1,160 @@
+@use 'abstracts' as *;
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: z('modal');
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: space(8);
+  background: var(--ch-surface-overlay);
+  backdrop-filter: blur(6px);
+}
+
+// The sheet is fixed in height, not sized to its slide.
+//
+// A carousel whose frame resizes on every step makes the reader's eye chase the
+// footer instead of reading — and the dots, which are the one thing that should
+// never move, would move the most.
+.sheet {
+  width: min(880px, 100%);
+  height: min(620px, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--ch-surface);
+  @include hairline(all, 0.14);
+  box-shadow: var(--ch-shadow-panel);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: space(4);
+  padding: space(5) space(6) space(3);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  min-width: 0;
+}
+
+.eyebrow {
+  @include label(9px, 0.24em);
+  color: var(--ch-gold-500);
+}
+
+.title {
+  @include label(18px, 0.08em);
+  color: var(--ch-text-primary);
+  margin: 0;
+}
+
+.count {
+  @include readout(11px);
+  color: var(--ch-text-muted);
+  flex: 0 0 auto;
+  padding-top: space(3);
+}
+
+.rule {
+  height: $hairline;
+  margin: 0 space(6);
+  background: linear-gradient(
+    to right,
+    var(--ch-line-gold) 0%,
+    var(--ch-line) 40%,
+    transparent 100%
+  );
+}
+
+.body {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  padding: space(5) space(6);
+}
+
+// Absolutely placed so the outgoing and incoming slides occupy the same box
+// while `AnimatePresence` holds both for a frame.
+.slide {
+  position: absolute;
+  inset: space(5) space(6);
+  overflow-y: auto;
+
+  // Screenshots carry a slide; the prose under them is the caption. Capped so a
+  // tall capture cannot push its own explanation out of the frame.
+  img {
+    max-height: 300px;
+    object-fit: contain;
+    object-position: left top;
+  }
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  padding: space(4) space(6) space(5);
+  @include hairline(top, 0.08);
+}
+
+.dots {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+// Square, because corners are square here. The active mark is the only crimson
+// in the sheet apart from the primary action — one focal point, as everywhere.
+.dot {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  width: 18px;
+  height: 3px;
+  background: var(--ch-line-strong);
+  cursor: pointer;
+  transition: background $duration-fast $ease-out-expo;
+
+  &:hover {
+    background: var(--ch-alabaster-600);
+  }
+
+  &:focus-visible {
+    @include focus-ring(3px);
+  }
+}
+
+.dotActive {
+  background: var(--ch-accent);
+
+  &:hover {
+    background: var(--ch-accent-bright);
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+@include below('sm') {
+  .layer {
+    padding: space(4);
+  }
+
+  .sheet {
+    height: 100%;
+  }
+
+  .foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

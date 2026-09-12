@@ -38,6 +38,17 @@
   padding: space(10);
 }
 
+// The record in outline, laid out as the real dossier is: title, figures, then
+// the panels. Full width so the slabs stand where the panels will, rather than
+// hugging the left edge the way the surrounding flex column would put them.
+.loadingSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  width: 100%;
+  max-width: 640px;
+}
+
 // -------------------------------------------------------------------- header
 
 // The sheet is a flex column, so every child is shrinkable by default. A tall

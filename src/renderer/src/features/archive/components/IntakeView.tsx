@@ -10,6 +10,7 @@ import { FolderTrail } from './stacks/FolderTrail'
 import { PROJECT_DRAG_TYPE, hasLeftElement, isDragging, readDragAll } from './stacks/dnd'
 import shelf from './stacks/stacks.module.scss'
 import styles from './IntakeView.module.scss'
+import { SkeletonTiles } from '@renderer/components/primitives/Skeleton'
 
 const SEPARATOR = String.fromCharCode(92)
 
@@ -104,6 +105,9 @@ export function IntakeView({
     [projects]
   )
 
+  /** Every id the register holds, so a filing call can refuse anything else. */
+  const knownProjectIds = useMemo(() => new Set(projects.map((project) => project.id)), [projects])
+
   /*
    * One tile per entry, in the department's own vocabulary.
    *
@@ -158,6 +162,20 @@ export function IntakeView({
     [entries]
   )
 
+  /*
+   * Single click selects, double click opens — as STACKS has always behaved.
+   *
+   * This pane used to open a folder on a *single* click, because it had no
+   * notion of a selected tile to fall back to. That made it the one grid in the
+   * department with different rules, and the cost landed on exactly the gesture
+   * this view is for: a click meant to mark or merely to look at a folder
+   * navigated away from the one being worked in instead.
+   *
+   * Supplying `onSelect` is what moves opening onto the double click, because
+   * `TileGrid` only opens on a single click when nothing else claims it.
+   */
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
   const toggleMarked = useCallback((id: string, additive: boolean) => {
     setMarked((current) => {
       if (!additive) return current.has(id) && current.size === 1 ? new Set() : new Set([id])
@@ -167,6 +185,53 @@ export function IntakeView({
       return next
     })
   }, [])
+
+  /** Shift-click. The grid resolved the span; this adds it to what is marked. */
+  const markRange = useCallback((ids: readonly string[]) => {
+    setMarked((current) => new Set([...current, ...ids]))
+  }, [])
+
+  /** Every project in this folder that the register knows, so can be filed. */
+  const markableIds = useMemo(
+    () => tiles.filter((tile) => tile.draggableAs === 'project').map((tile) => tile.id),
+    [tiles]
+  )
+
+  const allMarked = markableIds.length > 0 && markableIds.every((id) => marked.has(id))
+
+  const toggleAll = useCallback(() => {
+    setMarked((current) => {
+      const every = markableIds.length > 0 && markableIds.every((id) => current.has(id))
+      return every ? new Set() : new Set(markableIds)
+    })
+  }, [markableIds])
+
+  /*
+   * Marks are dropped when the operator walks somewhere else.
+   *
+   * A set carried across a navigation would be invisible — the tiles it refers
+   * to are no longer on screen — and would then be filed by the next drag from
+   * a folder that has nothing to do with it. Keyed on `source` rather than on
+   * the click handler so it holds however the operator navigates: a tile, the
+   * breadcrumb, or a root arriving underneath them.
+   *
+   * React's documented "adjusting state when a prop changes" pattern, as
+   * `ConsoleLayout` uses for its transition direction: comparing against the
+   * previous value during render and setting immediately. React discards the
+   * in-progress render and re-runs before touching the DOM, so no extra frame
+   * is committed — where an effect would clear the marks one paint *after* the
+   * new folder had already drawn them.
+   */
+  const [markedIn, setMarkedIn] = useState(source)
+
+  if (markedIn !== source) {
+    setMarkedIn(source)
+    setMarked(new Set())
+    // The cursor goes with them. A tile selected in the folder just left is not
+    // on screen, and leaving it set would carry a stale highlight into a grid
+    // that happens to reuse the id.
+    setSelectedId(null)
+  }
 
   /*
    * The walk from the configured location down to where the operator is.
@@ -270,8 +335,27 @@ export function IntakeView({
   const filedHere = filed.length
 
   const fileHere = (projectIds: readonly string[], folderId: string | null): void => {
-    if (disabled || projectIds.length === 0) return
-    onFile(projectIds, [], folderId)
+    if (disabled) return
+
+    /*
+     * Narrowed to ids the register actually knows, rather than trusted.
+     *
+     * A folder in the source pane is identified by its *path*, because it has
+     * no record to be identified by — so anything reaching this call that is
+     * not a registered project would be sent to the service as a project id
+     * and come back as a failure naming a path. The grid no longer lets a
+     * folder be marked, and this makes that a property of the filing call as
+     * well as of the gesture.
+     *
+     * Checked against the whole register rather than against the source pane's
+     * own tiles: a drop can originate in *either* pane — a project already on a
+     * shelf can be dragged onto a different one — and the destination pane's
+     * tiles are not in the source pane's list.
+     */
+    const filable = projectIds.filter((id) => knownProjectIds.has(id))
+    if (filable.length === 0) return
+
+    onFile(filable, [], folderId)
     setMarked(new Set())
   }
 
@@ -358,6 +442,62 @@ export function IntakeView({
             </nav>
           ) : null}
 
+          {/*
+            The selection bar: what is marked, and the way to file it.
+
+            Marking existed before this and was invisible — Ctrl-click worked,
+            nothing said so, and the only way to act on a marked set was still
+            to drag one of its members. So a migration of twelve projects was
+            twelve drags, which is the work this view was built to remove.
+
+            Drawn only once something is marked, so the pane is unchanged for
+            the single-project case that dragging already handles well. `MARK
+            ALL` is always offered, because it is also the discovery: it is how
+            an operator finds out the view has a selection at all.
+          */}
+          {markableIds.length > 0 ? (
+            <div className={styles.selection} data-active={marked.size > 0 || undefined}>
+              <button
+                type="button"
+                className={styles.selectAll}
+                onClick={toggleAll}
+                disabled={disabled}
+              >
+                {allMarked ? 'Clear all' : 'Mark all'}
+              </button>
+
+              {marked.size > 0 ? (
+                <>
+                  <span className={styles.selectionCount}>
+                    {marked.size} marked
+                    {/* Named so the gesture is learnable rather than folklore. */}
+                    <span className={styles.selectionHint}>
+                      Tick, Ctrl-click to add · Shift-click for a run
+                    </span>
+                  </span>
+
+                  <button
+                    type="button"
+                    className={styles.selectionFile}
+                    disabled={disabled || destination === null}
+                    title={
+                      destination === null
+                        ? 'Open a shelf in the right-hand pane first'
+                        : `File ${marked.size} into ${trail.at(-1)?.name ?? 'this shelf'}`
+                    }
+                    onClick={() => fileHere([...marked], destination)}
+                  >
+                    File {marked.size} into {trail.at(-1)?.name?.toUpperCase() ?? 'SHELF'}
+                  </button>
+                </>
+              ) : (
+                <span className={styles.selectionHint}>
+                  Tick a tile to mark · Ctrl-click or Shift-click for a run · Double-click to open
+                </span>
+              )}
+            </div>
+          ) : null}
+
           {!source ? (
             <Empty
               title="No locations set."
@@ -366,7 +506,12 @@ export function IntakeView({
           ) : error ? (
             <Empty title="Could not read that folder." hint={String(error)} />
           ) : isLoading ? (
-            <Empty title="Reading…" />
+            // Drawn as the grid that is coming rather than as a word. Walking
+            // into a folder is the most-repeated gesture in this view, so the
+            // pane flashing empty between each step was the most-repeated jolt.
+            <div className={styles.scroll}>
+              <SkeletonTiles count={6} label="Reading the folder" />
+            </div>
           ) : entries.length === 0 ? (
             <Empty title="Nothing here." hint="No projects and no folders to walk into." />
           ) : (
@@ -374,8 +519,11 @@ export function IntakeView({
               <TileGrid
                 tiles={tiles}
                 onOpen={openTile}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
                 marked={marked}
                 onMark={toggleMarked}
+                onMarkRange={markRange}
                 layout={view === 'grid' ? 'grid' : 'rows'}
                 disabled={disabled}
               />

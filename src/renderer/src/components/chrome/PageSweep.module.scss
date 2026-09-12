@@ -1,0 +1,54 @@
+@use 'abstracts' as *;
+
+// The registration mark.
+//
+// A hairline core with a glow above and below it, so it reads as a lit rule
+// crossing the field rather than as a bar sliding over it. Crimson because it
+// is momentary and it is the focal event of the transition — which is exactly
+// what the palette reserves the one saturated colour for.
+.sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  z-index: z('transition');
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--ch-accent) 12%,
+    var(--ch-accent-bright) 50%,
+    var(--ch-accent) 88%,
+    transparent 100%
+  );
+  // Two shadows rather than one: a tight bloom that reads as the rule being
+  // lit, and a wide wash that catches the surfaces it passes over.
+  box-shadow:
+    0 0 6px 0 var(--ch-accent-glow),
+    0 0 34px 0 var(--ch-accent-glow);
+
+  // The leading edge. A faint band travelling ahead of the rule, which is what
+  // stops it looking like a line drawn on glass and makes it look like
+  // something passing through the space.
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -26px;
+    height: 26px;
+    background: linear-gradient(to bottom, transparent, var(--ch-accent-glow));
+    opacity: 0.5;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 1px;
+    height: 26px;
+    background: linear-gradient(to top, transparent, var(--ch-accent-glow));
+    opacity: 0.5;
+  }
+}

@@ -1,0 +1,50 @@
+@use 'abstracts' as *;
+
+// Drawn as a ghost control rather than with `Button`.
+//
+// It sits in a masthead beside a StatusDot, which is a readout and not an
+// action, and a filled control there would claim to be the most important thing
+// on the page. This is an offer, so it reads as one until it is hovered.
+.button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(3);
+  background: transparent;
+  @include hairline(all, 0.12);
+  border-radius: $radius-control;
+  @include label(9px, 0.18em);
+  color: var(--ch-text-secondary);
+  cursor: pointer;
+  transition:
+    color $duration-fast $ease-out-expo,
+    border-color $duration-fast $ease-out-expo;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+// The same concentric mark the reference boards use for a device, at 10px.
+.mark {
+  width: 10px;
+  height: 10px;
+  border: $hairline solid var(--ch-gold-500);
+  border-radius: 50%;
+  position: relative;
+  flex: 0 0 auto;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 50%;
+    background: var(--ch-gold-500);
+  }
+}

@@ -52,6 +52,7 @@ export function ObservatoryPage(): ReactNode {
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
+        guideId="observatory"
         actions={
           <div className={styles.headerActions}>
             <StatusDot

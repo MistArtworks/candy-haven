@@ -42,6 +42,7 @@ import {
   ensureDirectory,
   isAtOrUnder,
   copyDirectory,
+  freePath,
   moveDirectory,
   moveFile,
   pathExists,
@@ -55,6 +56,14 @@ const logger = getLogger('stacks')
 export interface BulkFilingResult {
   moved: number
   failures: { id: string; name: string; reason: string }[]
+  /**
+   * Projects filed under a different name because theirs was taken.
+   *
+   * Reported rather than done quietly. Renaming a directory on the operator's
+   * disk is a real edit, and one they would otherwise only discover the next
+   * time they went looking for the folder under the name they knew.
+   */
+  renamed: { from: string; to: string }[]
 }
 
 /** An operator-facing sentence from whatever was thrown. */
@@ -761,7 +770,25 @@ export class StacksService {
     if (target) this.refuseCategoryAsShelf(target)
 
     const destinationParent = target ? target.path : await this.unfiledDestination(record)
-    const destination = join(destinationParent, basename(record.path))
+    const desired = join(destinationParent, basename(record.path))
+
+    /*
+     * A collision is resolved by suffixing rather than refused.
+     *
+     * Live names every project it creates `Untitled Project`, so bringing work
+     * in from several source folders collides on the *usual* case rather than
+     * an unusual one. Refusing left the operator renaming directories by hand
+     * to make a migration proceed, which is work the application was supposed
+     * to be doing.
+     *
+     * Resolved only when the project is actually going somewhere else — a
+     * project already sitting at its destination must not be suffixed away
+     * from its own folder, which is what asking for a free path unconditionally
+     * would do.
+     */
+    const destination = samePath(desired, record.path)
+      ? desired
+      : await freePath(destinationParent, basename(record.path))
 
     if (!samePath(destination, record.path)) {
       /*
@@ -831,6 +858,7 @@ export class StacksService {
     this.refuseDuringScan()
 
     const failures: BulkFilingResult['failures'] = []
+    const renamed: BulkFilingResult['renamed'] = []
     let moved = 0
 
     for (const id of folderIds) {
@@ -846,8 +874,16 @@ export class StacksService {
 
     for (const id of projectIds) {
       try {
-        await this.fileProject(id, folderId)
+        // Read before the move so a rename can be reported: `fileProject`
+        // resolves a collision by suffixing, and the only way to know it did is
+        // to compare the name on either side of it.
+        const before = await this.projects.get(id).catch(() => null)
+        const after = await this.fileProject(id, folderId)
         moved += 1
+
+        if (before && before.name !== after.name) {
+          renamed.push({ from: before.name, to: after.name })
+        }
       } catch (error) {
         const record = await this.projects.get(id).catch(() => null)
         failures.push({ id, name: record?.name ?? id, reason: describe(error) })
@@ -855,7 +891,25 @@ export class StacksService {
     }
 
     logger.info(`Filed ${moved} of ${projectIds.length + folderIds.length}`)
-    return { moved, failures }
+
+    /*
+     * The reasons are logged as well as returned, and that is not redundancy.
+     *
+     * A refusal here is reported to the operator as a notice on the page, which
+     * is the right place for it — but the notice is transient and the log is
+     * not. A failed migration investigated afterwards previously found only
+     * `Filed 0 of 1`, which says that something was refused and nothing about
+     * what, so the only way to recover the reason was to reproduce it.
+     */
+    for (const failure of failures) {
+      logger.warn(`Could not file ${failure.name}: ${failure.reason}`)
+    }
+
+    for (const rename of renamed) {
+      logger.info(`Filed “${rename.from}” as “${rename.to}” — the name was taken`)
+    }
+
+    return { moved, failures, renamed }
   }
 
   /** A category holds genres and artists, never projects. See `createProject`. */

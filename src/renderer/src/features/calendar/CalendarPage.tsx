@@ -16,6 +16,8 @@ import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { formatIsoDate, todayIso } from '@renderer/lib/format'
+import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
+import type { Hotkey } from '@renderer/hotkeys/registry'
 import { CALENDAR_VIEW, CALENDAR_VIEWS, isCalendarView, type CalendarView } from './views'
 import { MonthView } from './components/MonthView'
 import { DayView } from './components/DayView'
@@ -109,6 +111,72 @@ export function CalendarPage(): ReactNode {
     selectView('day')
   }
 
+  /*
+   * The department's chords.
+   *
+   * Numbered lenses on `Alt`, period movement on `Ctrl`+arrows, and the two
+   * actions on the letters they take everywhere else — `Ctrl`+`N` files, as it
+   * does in DISPATCH, and `Ctrl`+`T` returns to today, as every calendar on
+   * this desktop does.
+   *
+   * Everything is `whileTyping` except the lens keys: `Alt`+`2` inside the
+   * entry dialog's title field should type, not jump the register out from
+   * under the dialog.
+   */
+  const hotkeys = useMemo<Hotkey[]>(
+    () => [
+      ...CALENDAR_VIEWS.map((entry, index) => ({
+        chord: `alt+${index + 1}`,
+        label: CALENDAR_VIEW[entry].label,
+        group: 'Calendar lenses',
+        run: () => selectView(entry)
+      })),
+      {
+        chord: 'ctrl+arrowleft',
+        label: 'Previous period',
+        group: 'Calendar',
+        whileTyping: true,
+        run: () => step(-1)
+      },
+      {
+        chord: 'ctrl+arrowright',
+        label: 'Next period',
+        group: 'Calendar',
+        whileTyping: true,
+        run: () => step(1)
+      },
+      {
+        chord: 'ctrl+t',
+        label: 'Back to today',
+        group: 'Calendar',
+        whileTyping: true,
+        run: () => setAnchor(todayIso())
+      },
+      {
+        chord: 'ctrl+n',
+        label: 'File an entry',
+        group: 'Calendar',
+        whileTyping: true,
+        // On the anchored date, which is the day the operator is looking at.
+        // In MONTH that is the first of the month rather than today, and that
+        // is the honest answer — the dialog opens on a date you can see.
+        run: () => openDate(anchor)
+      },
+      {
+        chord: 'escape',
+        label: 'Close the dialog',
+        group: 'Calendar',
+        whileTyping: true,
+        disabled: subject === null,
+        run: () => setSubject(null)
+      }
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [view, anchor, subject]
+  )
+
+  useHotkeys(hotkeys)
+
   const toggleDone = (entry: CalendarEntry): void => {
     void actions.patch(entry.id, { done: !entry.done }).catch(() => {
       // Reported through `actions.error`, which the dialog and the notice both
@@ -158,6 +226,7 @@ export function CalendarPage(): ReactNode {
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
+        guideId="calendar"
         actions={
           <div className={styles.headActions}>
             <StatusDot

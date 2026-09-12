@@ -4,6 +4,7 @@ import { ArchiveStatusSchema } from '../domain/archive'
 import { SettingsPatchSchema, SettingsSchema } from '../domain/settings'
 import { RuntimeInfoSchema, WindowStateSchema } from '../domain/system'
 import { ReleaseArrivalSchema, UpdateStatusSchema } from '../domain/update'
+import { OrientationSchema } from '../domain/guide'
 import { TelemetryStateSchema } from '../domain/telemetry'
 import {
   CalendarDraftSchema,
@@ -204,7 +205,9 @@ export const IPC_INVOKE = {
     }),
     output: z.object({
       moved: z.number().int().min(0),
-      failures: z.array(z.object({ id: z.string(), name: z.string(), reason: z.string() }))
+      failures: z.array(z.object({ id: z.string(), name: z.string(), reason: z.string() })),
+      /** Filed under another name because theirs was taken. See `freePath`. */
+      renamed: z.array(z.object({ from: z.string(), to: z.string() }))
     })
   },
 
@@ -530,6 +533,19 @@ export const IPC_INVOKE = {
    */
   'update:arrival': { input: z.void(), output: ReleaseArrivalSchema.nullable() },
   'update:acknowledge': { input: z.void(), output: z.void() },
+
+  /**
+   * CATECHISM — the orientation tour, or null when it has already been read.
+   *
+   * Answered once per *guide revision* rather than per version, and unlike
+   * `update:arrival` it speaks on a fresh install. Acknowledging is what stops
+   * it returning, so the renderer must call `guide:acknowledge` when the
+   * operator closes it however they close it.
+   */
+  'guide:orientation': { input: z.void(), output: OrientationSchema.nullable() },
+  'guide:acknowledge': { input: z.void(), output: z.void() },
+  /** Puts the tour back, so it opens again on the next launch. */
+  'guide:reset': { input: z.void(), output: z.void() },
 
   'dispatch:state': { input: z.void(), output: DispatchStateSchema },
   'dispatch:setup': { input: z.void(), output: DispatchSetupSchema },

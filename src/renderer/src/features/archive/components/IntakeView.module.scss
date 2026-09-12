@@ -188,3 +188,100 @@
   color: var(--ch-text-faint);
   line-height: 1.6;
 }
+
+// ---------------------------------------------------------------- selection
+
+/*
+ * The marking bar, between the trail and the grid.
+ *
+ * Sited here rather than as a floating bar at the foot of the pane: what is
+ * marked is a property of the folder being browsed, so it belongs with the
+ * breadcrumb that says which folder that is. A bar over the grid would also
+ * cover the last row of tiles, which is where the operator is usually working.
+ *
+ * Dormant until something is marked — the hint alone, no rules, no accent — so
+ * an operator filing one project never sees a control they do not need.
+ */
+.selection {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(4);
+  @include hairline(bottom, 0.06);
+  min-height: 34px;
+
+  &[data-active] {
+    background: var(--ch-surface-sunken);
+    box-shadow: inset 2px 0 0 var(--ch-accent);
+  }
+}
+
+.selectAll {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-gold-300);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.selectionCount {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  min-width: 0;
+  @include label(9px, 0.16em);
+  color: var(--ch-text-primary);
+}
+
+.selectionHint {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  @include truncate;
+}
+
+// The commit. The one crimson control in the pane, because it is the one thing
+// here that moves directories on the operator's disk.
+.selectionFile {
+  appearance: none;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: space(1) space(3);
+  background: var(--ch-accent-dim);
+  border: $hairline solid var(--ch-accent);
+  border-radius: $radius-control;
+  @include label(9px, 0.16em);
+  color: var(--ch-text-primary);
+  cursor: pointer;
+  transition: background $duration-fast $ease-out-expo;
+
+  &:hover:not(:disabled) {
+    background: var(--ch-accent);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}

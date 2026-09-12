@@ -12,6 +12,7 @@ import { DossierRecord } from './dossier/DossierRecord'
 import { DossierFiles } from './dossier/DossierFiles'
 import { formatKey, formatLength, formatTempo } from '../lib/present'
 import styles from './ProjectDossier.module.scss'
+import { Skeleton, SkeletonRegion, SkeletonText } from '@renderer/components/primitives/Skeleton'
 
 /**
  * Three tabs — and OVERVIEW is deliberately the thinnest of them.
@@ -216,7 +217,20 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
               {error ? (
                 <p className={styles.noticeText}>{(error as Error).message}</p>
               ) : (
-                <p className={styles.noticeText}>Retrieving record…</p>
+                /*
+                 * A record in outline: the title, its figures, then the panels.
+                 *
+                 * The error case keeps its sentence — a failure needs words,
+                 * and a skeleton that never resolves would be a lie. Only the
+                 * genuinely-loading case is drawn as the thing it will become.
+                 */
+                <SkeletonRegion label="Retrieving record" className={styles.loadingSkeleton}>
+                  <Skeleton width="52%" height="20px" />
+                  <Skeleton width="34%" height="10px" />
+                  <SkeletonText lines={2} />
+                  <Skeleton height="96px" />
+                  <Skeleton height="96px" />
+                </SkeletonRegion>
               )}
               <Button size="sm" onClick={onClose}>
                 Close

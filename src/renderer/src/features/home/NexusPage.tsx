@@ -90,6 +90,7 @@ export function NexusPage(): ReactNode {
           label={section.label}
           purpose={section.purpose}
           epigraph={section.epigraph}
+          guideId="nexus"
           actions={
             <StatusDot
               tone={archiveTone(archive.state)}

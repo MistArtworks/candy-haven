@@ -156,6 +156,7 @@ export function DispatchPage(): ReactNode {
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
+        guideId="dispatch"
         actions={
           <div className={styles.headerActions}>
             {/*

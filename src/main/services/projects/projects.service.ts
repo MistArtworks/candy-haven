@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
+import { basename } from 'node:path'
 import { nativeImage, shell } from 'electron'
 import type { AnyBulkWriteOperation } from 'mongodb'
 import type {
@@ -707,8 +708,23 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
     const current = await this.get(id)
     const moved = rewriteRecordPaths(current, change.from, change.to)
 
+    /*
+     * The display name follows the directory when the directory is renamed.
+     *
+     * Filing normally preserves the folder name, so this is a no-op for every
+     * ordinary move. It earns its place when the destination resolved a name
+     * collision by suffixing — without it the register would keep calling the
+     * project `Untitled` while the folder on disk read `Untitled Project (2)`,
+     * and the operator would have no way to tell two of them apart.
+     *
+     * Derived with the scanner's own rule rather than a second one here, so a
+     * renamed project is spelled exactly as the next scan would spell it.
+     */
+    const renamed = basename(change.to) !== basename(change.from)
+
     const next: ProjectRecord = {
       ...moved,
+      name: renamed ? cleanProjectName(basename(change.to)) : moved.name,
       folderId: change.folderId,
       updatedAt: Date.now()
     }

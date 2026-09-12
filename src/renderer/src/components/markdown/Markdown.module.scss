@@ -1,0 +1,264 @@
+@use 'abstracts' as *;
+
+// Prose in the institutional register.
+//
+// Measure is capped rather than left to the container: documentation is the one
+// place in this console with paragraphs long enough for line length to matter,
+// and a 1760px window would otherwise set them edge to edge.
+
+.prose {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: space(3);
+  color: var(--ch-text-secondary);
+  font-family: var(--ch-font-body);
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 78ch;
+}
+
+.h1,
+.h2,
+.h3 {
+  @include label(13px, 0.16em);
+  color: var(--ch-text-primary);
+  margin-top: space(6);
+  scroll-margin-top: space(6);
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.h2 {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--ch-gold-300);
+  margin-top: space(5);
+}
+
+.h3 {
+  font-size: 10px;
+  color: var(--ch-text-secondary);
+  margin-top: space(4);
+}
+
+.paragraph {
+  margin: 0;
+}
+
+.strong {
+  color: var(--ch-text-primary);
+  font-weight: 600;
+}
+
+// Emphasis carries a shade rather than only a slant: at 13px in a condensed
+// face, italic alone is close to invisible against this background.
+.em {
+  font-style: italic;
+  color: var(--ch-alabaster-500);
+}
+
+// ------------------------------------------------------------------- lists
+
+.bullet,
+.ordered {
+  display: grid;
+  grid-template-columns: space(6) 1fr;
+  align-items: baseline;
+  gap: space(2);
+  margin: 0;
+}
+
+// A rule rather than a glyph. The palette has no bullet character in it, and a
+// measured dash is the same mark the mastheads use to separate label from body.
+.dash {
+  height: $hairline;
+  background: var(--ch-line-strong);
+  transform: translateY(-4px);
+}
+
+.ordinal {
+  @include readout(10px);
+  color: var(--ch-gold-500);
+  letter-spacing: 0.1em;
+}
+
+// ------------------------------------------------------------------ callout
+
+.note {
+  display: flex;
+  gap: space(3);
+  padding: space(3) space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+
+  p {
+    margin: 0;
+    color: var(--ch-text-primary);
+  }
+}
+
+.noteRule {
+  flex: 0 0 auto;
+  width: 2px;
+  align-self: stretch;
+  background: var(--ch-accent);
+}
+
+// --------------------------------------------------------------------- code
+
+.code {
+  position: relative;
+  margin: 0;
+  padding: space(4);
+  padding-top: space(5);
+  background: var(--ch-obsidian-900);
+  @include hairline(all, 0.08);
+  overflow-x: auto;
+
+  code {
+    @include readout(12px);
+    color: var(--ch-alabaster-400);
+    line-height: 1.6;
+    white-space: pre;
+  }
+}
+
+.lang {
+  position: absolute;
+  top: space(2);
+  right: space(3);
+  @include label(8px, 0.2em);
+  color: var(--ch-text-faint);
+}
+
+.inlineCode {
+  @include readout(11px);
+  color: var(--ch-gold-300);
+  background: var(--ch-obsidian-900);
+  padding: 1px 5px;
+  border-radius: $radius-control;
+}
+
+.link {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--ch-accent-bright);
+  text-decoration: none;
+  border-bottom: $hairline solid var(--ch-accent-dim);
+  cursor: pointer;
+
+  &:hover {
+    border-bottom-color: var(--ch-accent-bright);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+// ------------------------------------------------------------------ figures
+
+.figure {
+  margin: space(2) 0;
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+
+  img {
+    width: 100%;
+    display: block;
+    @include hairline(all, 0.12);
+    background: var(--ch-obsidian-900);
+  }
+
+  figcaption {
+    @include label(9px, 0.16em);
+    color: var(--ch-text-muted);
+  }
+}
+
+// The stand-in for a capture that has not been taken yet. Deliberately legible
+// rather than subtle: it is also the shot list.
+.missing {
+  margin: space(2) 0;
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  padding: space(5);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--ch-obsidian-900) 0,
+    var(--ch-obsidian-900) 10px,
+    var(--ch-obsidian-800) 10px,
+    var(--ch-obsidian-800) 20px
+  );
+  @include hairline(all, 0.1);
+
+  figcaption {
+    display: flex;
+    flex-direction: column;
+    gap: space(1);
+  }
+}
+
+.missingMark {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: $hairline solid var(--ch-line-gold);
+  border-radius: 50%;
+}
+
+.missingLabel {
+  @include label(8px, 0.22em);
+  color: var(--ch-gold-500);
+}
+
+.missingName {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+}
+
+.missingAlt {
+  font-size: 12px;
+  color: var(--ch-text-muted);
+}
+
+// ------------------------------------------------------------------- tables
+
+.tableWrap {
+  overflow-x: auto;
+  @include hairline(all, 0.1);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    @include label(9px, 0.18em);
+    color: var(--ch-gold-300);
+    text-align: left;
+    padding: space(2) space(3);
+    @include hairline(bottom, 0.14);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: space(2) space(3);
+    font-size: 12px;
+    color: var(--ch-text-secondary);
+    vertical-align: top;
+    @include hairline(bottom, 0.06);
+  }
+
+  tr:last-child td {
+    border-bottom: 0;
+  }
+}

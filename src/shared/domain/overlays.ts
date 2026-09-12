@@ -230,7 +230,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     scope: [
       'Settable duration with one-tap presets, started and paused from the console',
       'Grace period past zero, counted down in crimson rather than stopping',
-      'Four countdown presentations the operator selects per timer',
+      'Five countdown faces the operator selects per timer',
       'Audio cues in the console at one minute and at final call',
       'Blinks on expiry; transparent throughout so it drops onto any scene'
     ],

@@ -1,34 +1,54 @@
-Candy Haven now stays running, and gains two departments: CALENDAR and AUDITORIUM.
+Candy Haven explains itself now. There is a manual in the console, a quick guide on every department, and a tour on first launch — plus multi-select filing, a page transition, and a fix for the migration that kept refusing.
 
-## Runs in the background
+## CATECHISM
 
-- The console starts with Windows, if you ask it to. REGULATION → STARTUP turns it on, and by default a sign-in launch comes up in the tray rather than on screen — the point is that the archive, the overlay server and chat are already up before OBS asks for them.
-- A tray icon holds the session: right-click for the console, the archive's state, an update check, and Quit.
-- The window's close button now retires to the tray instead of ending the session. **Alt+F4 still quits**, as does Quit on the tray icon — an application that refuses the operating system's own close is one you cannot get rid of. All three behaviours are settings.
+A tenth department, at the bottom of the rail under OVERSIGHT. The manual, in the console rather than in a file somewhere.
 
-## AUDITORIUM
+- Thirteen chapters: one per department, a commissioning walkthrough, the shortcut tables, a glossary of everything this console calls things by its own name, and a fault-finding chapter organised by symptom.
+- **Quick guide** in every department's masthead — a handful of slides on that department, for when you are already on the page and do not want a chapter.
+- A tour opens on a first launch, and again only when the guides are rewritten enough to be worth re-reading. Dismissing it is what marks it read. **Replay orientation** in CATECHISM puts it back.
+- `F1` opens the guide for wherever you are. `Ctrl+Shift+K` opens the manual. `Ctrl+/` lists every chord currently bound, which it always could, and which is now written down.
 
-The listening room. Admit one audio file — wav, mp3, flac, ogg, opus, m4a, aac — and hear it, with the Candy Haven mark at the centre of every render.
+The prose lives in Markdown files in the repository, so correcting the documentation is editing a sentence rather than a component.
 
-- **WAVEFORM** decodes the file and surveys it end to end. Each column is coloured by its own frequency content, so crimson is where the low end is carrying and gold where the top is, and the shape of an arrangement is legible without playing it.
-- **SPECTRUM** is the live frequency reading, logarithmic so an octave takes the same width wherever it falls.
-- **SPECTRAL** is a scrolling spectrogram.
-- **STATIC** is the mark alone, for a second screen.
-- Wind the zoom in and the playhead pins to the centre of the stage with the music sliding through it; wind it out to ALL and the playhead travels across the whole file. Click the waveform anywhere to move it.
+## Filing several projects at once
 
-## A transport that follows you
+INTAKE was one drag per project. Twelve projects was twelve drags.
 
-- A player bar sits at the foot of the console whenever something is loaded, and audio keeps playing as you move between departments.
-- Release masters in the ARCHIVE have a **Play** button, so a finished master can be checked without leaving the record.
-- **Pop out** detaches the room into its own small always-on-top window with its own transport, for a second screen. Both windows follow the same file.
+- **Tick the box** on any project in ON DISK, UNFILED, or a shelf. Ctrl-click and Shift-click work too — Shift takes a whole run from the last one you touched.
+- **MARK ALL** takes the folder. **FILE _n_ INTO _shelf_** files the marked set without dragging anything.
+- Dragging a marked project carries the whole marked set. Dragging an unmarked one carries only itself, so a bulk move cannot happen by accident.
+- `Ctrl+A` marks everything in scope. `Escape` clears the marks before it clears anything else.
 
-## CALENDAR
+Marks clear when you walk somewhere else, because a selection you cannot see is one you will move by mistake.
 
-- The dated register, and the replacement for the scheduling department that was removed. Four views over one set of entries: MONTH, WEEK, DAY and AGENDA.
-- File a session, a delivery, a broadcast, a rite or a deadline. Timed or all-day, with notes, struck through when discharged rather than deleted.
-- Click a day to file on it, an hour to file at it, a date to open it. Overlapping entries split the column instead of hiding each other.
-- Entries live in the archive, so they survive a restart, and the department says plainly when it is not attached.
+## Projects called "Untitled Project" file properly
 
-## The rail
+Live names every project it creates `Untitled Project`, so bringing work in from several folders collided on the _usual_ case. The second one simply refused, and the reason was not written down anywhere you would find it.
 
-- Nine departments no longer read as a menu. The directory is filed under four divisions — COMMAND, PRODUCTION, BROADCAST, OVERSIGHT — with the numbering still running straight through, because a department's index is its identity and what Ctrl+N selects.
+It now files as `Untitled Project (2)`, the register renames with it so the two are tellable apart, and the notice says exactly what was renamed and why. Nothing is merged and nothing is overwritten. Refusals that do happen are written to the log with their reason.
+
+## Plates say something useful
+
+A project tile read `SINGLE · 4.3 MB`. Every project on a genre shelf is the same category, and megabytes say nothing about music.
+
+Tiles now carry **tempo and key**, with the project's **tags** in their own colours on the line beneath. Size is still in the ledger, which is the view whose job is figures.
+
+## Departments arrive rather than appear
+
+A crimson mark crosses the field as a department changes: the page you are leaving recedes, the mark passes, the new one is set behind it.
+
+REGULATION → PRESENTATION → **Page transition** sets it to `SWEEP`, `FADE` or `OFF`. Motion still wins where the two disagree.
+
+Two things that were wrong here are fixed with it. The console briefly rendered the department you were _going to_ inside the one you were leaving — you could see the next page before the transition to it. And loading a shelf drew a sentence where the shelf was about to be; it now draws the shelf's own shape, so the real tiles land where the placeholders stood instead of the page jumping.
+
+## Shortcuts
+
+- CALENDAR and AUDITORIUM had none. Both have a full set now — lenses and presets on `Alt`+digits, `Space` for the transport, `Ctrl+T` back to today, `Ctrl+N` to file an entry.
+- `Ctrl+0` reaches the tenth department. It was generating a `Ctrl+10`, which is not a key.
+- `Ctrl+A` in ARCHIVE marks everything in scope, and still selects text inside the search field.
+
+## Fixed
+
+- Folders in INTAKE could be marked with a modifier click even though they cannot be filed — they are places to walk into, and a folder has no record to file. They counted toward the total and would have been sent to the filing service as if they were projects.
+- Double-click opens a folder in INTAKE, as it always has in STACKS. A single click selects. Previously a click meant to mark something navigated out of the folder you were working in.

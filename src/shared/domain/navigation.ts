@@ -12,7 +12,8 @@ export const SECTION_IDS = [
   'observatory',
   'telemetry',
   'dispatch',
-  'regulation'
+  'regulation',
+  'catechism'
 ] as const
 
 export type SectionId = (typeof SECTION_IDS)[number]
@@ -166,6 +167,16 @@ export const SECTIONS: readonly SectionDefinition[] = [
     epigraph: 'Harmony is maintained.',
     group: 'oversight',
     order: 8,
+    implemented: true
+  },
+  {
+    id: 'catechism',
+    path: '/catechism',
+    label: 'CATECHISM',
+    purpose: 'How this console is operated, department by department',
+    epigraph: 'We do not question the shape of the universe.',
+    group: 'oversight',
+    order: 9,
     implemented: true
   }
 ] as const

@@ -1,0 +1,188 @@
+@use 'abstracts' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: space(6);
+  padding: space(8);
+  min-height: 100%;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+// Two columns, and the body is the one that scrolls.
+//
+// The rail stays put while a chapter is read: this is a reference, and losing
+// the list of chapters at the bottom of a long one is how a reader ends up
+// scrolling back up to find out where they are.
+.grid {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: space(5);
+  align-items: start;
+  min-height: 0;
+}
+
+.rail {
+  position: sticky;
+  top: space(4);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.navItem {
+  appearance: none;
+  background: none;
+  border: 0;
+  display: grid;
+  grid-template-columns: space(7) 1fr;
+  align-items: start;
+  gap: space(2);
+  padding: space(3) space(4);
+  text-align: left;
+  cursor: pointer;
+  @include hairline(bottom, 0.05);
+  transition: background $duration-fast $ease-out-expo;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover {
+    background: var(--ch-surface-raised);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+
+  // The active mark is a rule down the left rather than a fill, so the rail
+  // still reads as a list of equals with one of them current.
+  &[data-active] {
+    background: var(--ch-surface-raised);
+    box-shadow: inset 2px 0 0 var(--ch-accent);
+
+    .navLabel {
+      color: var(--ch-text-primary);
+    }
+
+    .navIndex {
+      color: var(--ch-gold-300);
+    }
+  }
+}
+
+.navIndex {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  padding-top: 2px;
+}
+
+.navBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.navLabel {
+  @include label(10px, 0.16em);
+  color: var(--ch-text-secondary);
+}
+
+.navPurpose {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ch-text-muted);
+}
+
+.content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.body {
+  // Bounded against the viewport rather than the content, so the panel itself
+  // never grows past the window and the rail beside it stays reachable.
+  max-height: calc(100vh - #{space(52)});
+  overflow-y: auto;
+  padding-right: space(3);
+}
+
+.prose {
+  max-width: 74ch;
+}
+
+.jump {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--ch-accent-bright);
+  }
+}
+
+// On-this-page. A row of chapter sections, drawn as a strip rather than a
+// second sidebar — there is already one rail on this page and a second would
+// leave the prose in a trench.
+.outline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1) space(4);
+  padding-bottom: space(4);
+  margin-bottom: space(5);
+  @include hairline(bottom, 0.08);
+}
+
+.outlineItem {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  @include label(9px, 0.14em);
+  color: var(--ch-text-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.unwritten {
+  font-size: 13px;
+  color: var(--ch-text-muted);
+  line-height: 1.7;
+
+  code {
+    @include readout(11px);
+    color: var(--ch-gold-300);
+  }
+}
+
+@include below('md') {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rail {
+    position: static;
+  }
+
+  .body {
+    max-height: none;
+  }
+}

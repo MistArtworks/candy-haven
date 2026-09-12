@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { getSection } from '@shared/domain/navigation'
 import {
   AUDIO_EXTENSIONS,
   AUDIO_PRESET,
   AUDIO_PRESET_LIST,
+  AUDIO_PRESETS,
   type AudioPreset
 } from '@shared/domain/auditorium'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
@@ -16,6 +17,8 @@ import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { gridVariants } from '@renderer/motion/transitions'
 import { formatBytes, truncatePath } from '@renderer/lib/format'
 import { usePlayback } from '@renderer/app/providers/playback'
+import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
+import type { Hotkey } from '@renderer/hotkeys/registry'
 import { formatClock } from './lib/format'
 import { ZOOM_LEVELS, timeAtFraction, zoomLabel, type ZoomLevel } from './lib/zoom'
 import { Visualiser } from './components/Visualiser'
@@ -79,6 +82,72 @@ export function AuditoriumPage(): ReactNode {
 
   const hasFile = source !== null
   const seekable = hasFile && Number.isFinite(duration) && duration > 0
+
+  /*
+   * The listening room's chords.
+   *
+   * `Space` for the transport, which is what every player on this desktop does
+   * and what the hands already reach for. Deliberately **not** `whileTyping` —
+   * it is the one binding here a text field would genuinely want, and this page
+   * has no fields worth guarding, so the default is correct and cheap.
+   *
+   * Seeking is on `Ctrl`+arrows rather than bare arrows for the same reason the
+   * page transition uses `Ctrl`+digits: a bare arrow is how a keyboard user
+   * moves focus, and stealing it would make the department unnavigable.
+   */
+  const hotkeys = useMemo<Hotkey[]>(
+    () => [
+      {
+        chord: ' ',
+        label: playing ? 'Hold' : 'Play',
+        group: 'Auditorium',
+        disabled: !hasFile,
+        run: () => toggle()
+      },
+      {
+        chord: 'ctrl+o',
+        label: 'Admit a file',
+        group: 'Auditorium',
+        whileTyping: true,
+        run: () => void choose()
+      },
+      {
+        chord: 'ctrl+arrowleft',
+        label: 'Back five seconds',
+        group: 'Auditorium',
+        whileTyping: true,
+        disabled: !seekable,
+        run: () => seek(Math.max(0, position - 5))
+      },
+      {
+        chord: 'ctrl+arrowright',
+        label: 'Forward five seconds',
+        group: 'Auditorium',
+        whileTyping: true,
+        disabled: !seekable,
+        run: () => seek(Math.min(duration, position + 5))
+      },
+      {
+        chord: 'ctrl+home',
+        label: 'Back to the top',
+        group: 'Auditorium',
+        whileTyping: true,
+        disabled: !seekable,
+        run: () => seek(0)
+      },
+      ...AUDIO_PRESETS.map((entry, index) => ({
+        chord: `alt+${index + 1}`,
+        label: AUDIO_PRESET[entry].label,
+        group: 'Auditorium renders',
+        run: () => setPreset(entry)
+      }))
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hasFile, playing, seekable, position, duration]
+  )
+
+  useHotkeys(hotkeys)
+
   // Only the surveyed envelope carries a time axis, so it is the only render a
   // click on can mean a position. The live ones have no past to point at.
   const scrollable = preset === 'waveform'
@@ -91,6 +160,7 @@ export function AuditoriumPage(): ReactNode {
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
+        guideId="auditorium"
         actions={
           <div className={styles.headActions}>
             <StatusDot

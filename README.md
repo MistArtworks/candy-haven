@@ -7,10 +7,11 @@ console for a music production practice: Ableton project management, release
 pipelines, stream overlay control, and a natural-language command interface —
 all backed by a private, application-owned MongoDB instance.
 
-This repository currently contains the **application foundation**: the boot
-sequence, the console shell, the design system, and the full main-process
-service layer. Feature departments are routed and specified but not yet
-commissioned.
+Ten departments, grouped into four divisions. Nine are in service — the project
+registry and filing tree, the dated register, the listening room, the broadcast
+overlay kit, host telemetry, a shared feedback board, operator settings and the
+built-in manual. **INTERFACE**, the natural-language command console, is routed
+and specified but not yet commissioned; its page lists what it will do.
 
 ---
 
@@ -48,12 +49,31 @@ src/
 │   └── ipc/                   Channel contract and public API surface
 └── renderer/src/              React application
     ├── app/                   Router, providers, stores
+    ├── assets/guide/          Screenshots the CATECHISM draws
     ├── components/            Design system primitives
     ├── features/              One directory per department
+    ├── hotkeys/               Keyboard layer and the live cheatsheet
     ├── layouts/               Console shell
     ├── motion/                Shared animation vocabulary
     └── styles/                Sass tokens, mixins, theme
 ```
+
+### Documentation is prose, not components
+
+CATECHISM — the in-app manual — renders Markdown compiled in by Vite from
+[`features/catechism/content/`](src/renderer/src/features/catechism/content).
+`docs/` holds the reference chapters, `guides/` the quick-guide carousels, one
+slide per level-2 heading.
+
+Correcting the documentation means editing a `.md` file. Nothing else moves, and
+the diff reads as English. Screenshots are resolved by filename from
+[`assets/guide/`](src/renderer/src/assets/guide) — dropping a capture in makes
+it available with no code change, and a missing one renders a captioned
+placeholder rather than a broken image. The outstanding shot list is
+[`SCREENSHOTS.md`](src/renderer/src/assets/guide/SCREENSHOTS.md).
+
+The Markdown subset understood is deliberately small and documented at the top
+of [`lib/markdown.ts`](src/renderer/src/lib/markdown.ts).
 
 ### The IPC boundary
 
@@ -180,9 +200,20 @@ commissioning scope. To bring one online:
    [`src/main/services/archive/schema.ts`](src/main/services/archive/schema.ts).
 5. Declare new IPC channels in [`src/shared/ipc/contract.ts`](src/shared/ipc/contract.ts)
    and implement them in `src/main/ipc/register-handlers.ts`.
+6. Write `content/guides/<name>.md` and `content/docs/<name>.md`, and add the
+   chapter to `CHAPTERS` in
+   [`features/catechism/content/index.ts`](src/renderer/src/features/catechism/content/index.ts).
+   Pass `guideId="<name>"` to the page's `PageHeader`.
 
 The navigation rail, page transitions and titlebar pick the section up
-automatically from the shared registry.
+automatically from the shared registry. So does the masthead's quick-guide
+button, which renders nothing until the guide exists — so step 6 is safe to
+leave until last.
+
+> **Ten is the ceiling for numbered chords.** `Ctrl`+`1`…`9` and `Ctrl`+`0` walk
+> the rail; an eleventh department would get no shortcut rather than an
+> impossible one. See the note in
+> [`ConsoleLayout.tsx`](src/renderer/src/layouts/ConsoleLayout.tsx).
 
 ---
 

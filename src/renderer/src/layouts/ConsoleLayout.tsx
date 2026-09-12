@@ -1,17 +1,24 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { SECTIONS, getSection, getSectionByPath } from '@shared/domain/navigation'
 import { TimerCues } from '@renderer/app/providers/TimerCues'
 import { ConcordCues } from '@renderer/app/providers/ConcordCues'
 import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
 import { ReleaseNotice } from '@renderer/components/feedback/ReleaseNotice'
+import { OrientationGate } from '@renderer/components/guide/OrientationGate'
+import { GuideCarousel } from '@renderer/components/guide/GuideCarousel'
+import { getGuide } from '@renderer/features/catechism/content'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
 import { MiniPlayer } from '@renderer/components/chrome/MiniPlayer'
 import { CommandRail } from '@renderer/components/nav/CommandRail'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
-import { consoleEnterVariants, pageVariants } from '@renderer/motion/transitions'
+import { consoleEnterVariants, pageVariants, sweepVariants } from '@renderer/motion/transitions'
+import { PageSweep } from '@renderer/components/chrome/PageSweep'
+import { useSystemStore, selectSettings } from '@renderer/app/store/system.store'
+import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
+import { PageOutlet } from './PageOutlet'
 import styles from './ConsoleLayout.module.scss'
 
 /**
@@ -27,6 +34,31 @@ export function ConsoleLayout(): ReactNode {
   const section = getSectionByPath(location.pathname)
 
   /*
+   * Which page transition to run.
+   *
+   * Two settings feed this and they are not the same question. `pageTransition`
+   * is taste — how ceremonial the handover should be. `motion` is
+   * accessibility, and it wins: an operator who asked for reduced movement gets
+   * the plain fade whatever the other setting says, and `off` gets neither.
+   */
+  const transition = useSystemStore(selectSettings)?.appearance.pageTransition ?? 'sweep'
+  const animating = useAnimationsEnabled()
+  const ceremony = animating && transition === 'sweep'
+  const silent = transition === 'off'
+
+  /*
+   * The quick guide, opened from the keyboard.
+   *
+   * Owned by the shell rather than by `PageHeader`, because `F1` is a global
+   * binding and the shell is what knows which department is on screen. The
+   * button in each masthead keeps its own copy of this state — two ways in to
+   * one component, rather than a context threaded through every page for a
+   * sheet that is open for thirty seconds at a time.
+   */
+  const [guideOpen, setGuideOpen] = useState(false)
+  const guide = section ? getGuide(section.id) : null
+
+  /*
    * Ctrl+1..n walks the rail, in the order the rail is drawn.
    *
    * Numbered from the registry rather than hard-coded, so a department added or
@@ -39,8 +71,21 @@ export function ConsoleLayout(): ReactNode {
    */
   const navigation = useMemo<Hotkey[]>(
     () => [
-      ...SECTIONS.map((entry, index) => ({
-        chord: `ctrl+${index + 1}`,
+      /*
+       * Ten departments, and a number row has ten keys — the tenth being `0`.
+       *
+       * Written as `ctrl+${index + 1}` while there were nine, which produced
+       * `ctrl+10` the moment a tenth was added: not a chord any keyboard can
+       * send, so CATECHISM had a binding that could never fire and the
+       * cheatsheet advertised it. `0` for the tenth is what every tabbed
+       * application on this desktop does.
+       *
+       * Departments past the tenth get no chord at all rather than a fictional
+       * one. If the rail ever grows that far the numbering has stopped being
+       * the right affordance anyway.
+       */
+      ...SECTIONS.slice(0, 10).map((entry, index) => ({
+        chord: `ctrl+${index === 9 ? '0' : index + 1}`,
         label: entry.label,
         group: 'Global',
         whileTyping: true,
@@ -60,9 +105,39 @@ export function ConsoleLayout(): ReactNode {
         group: 'Global',
         whileTyping: true,
         run: () => navigate(getSection('observatory').path)
+      },
+      {
+        /*
+         * The help key, pointed at whatever department is open.
+         *
+         * `F1` rather than a chord, because it is the one key every application
+         * on this desktop has agreed means "explain this". `whileTyping`
+         * because no text field wants it and someone stuck halfway through
+         * filling a form is exactly who reaches for it.
+         *
+         * Registered even where a guide has not been written: the handler
+         * resolves to nothing and the sheet does not open, which is quieter
+         * than a binding that appears and disappears as the operator walks the
+         * rail.
+         */
+        chord: 'f1',
+        label: 'Quick guide for this department',
+        group: 'Global',
+        whileTyping: true,
+        run: () => setGuideOpen(true)
+      },
+      {
+        chord: 'ctrl+shift+k',
+        label: 'Full documentation',
+        group: 'Global',
+        whileTyping: true,
+        run: () => navigate(getSection('catechism').path)
       }
     ],
-    [navigate]
+    // `setGuideOpen` is listed although a setState function is stable:
+    // the compiler infers dependencies from the body, and a manual array
+    // narrower than what it infers makes it drop the memo entirely.
+    [navigate, setGuideOpen]
   )
 
   useHotkeys(navigation)
@@ -83,6 +158,22 @@ export function ConsoleLayout(): ReactNode {
   if (previousOrder !== currentOrder) {
     setDirection(currentOrder >= previousOrder ? 1 : -1)
     setPreviousOrder(currentOrder)
+  }
+
+  /*
+   * The F1 sheet closes on navigation.
+   *
+   * A guide for the department you have just left is worse than none, and F1 is
+   * easy to hit on the way past. Sited here beside the direction adjustment and
+   * deliberately *after* the hotkey memo above: the React Compiler cannot
+   * preserve a `useMemo` that follows a render-phase setState, so a block like
+   * this placed earlier silently de-optimises the binding list.
+   */
+  const [guideFor, setGuideFor] = useState(section?.id)
+
+  if (guideFor !== section?.id) {
+    setGuideFor(section?.id)
+    setGuideOpen(false)
   }
 
   return (
@@ -106,6 +197,26 @@ export function ConsoleLayout(): ReactNode {
       */}
       <ReleaseNotice />
 
+      {/*
+        The orientation tour, on a first launch and whenever the guide revision
+        moves. Mounted beside the release notice and for the same reason: being
+        new to the console is not a property of whichever department the router
+        happened to land on. Renders nothing once it has been read.
+      */}
+      <OrientationGate />
+
+      {/* F1's sheet. The masthead button renders its own; only one is ever up. */}
+      <AnimatePresence>
+        {guideOpen && guide && section ? (
+          <GuideCarousel
+            guide={guide}
+            eyebrow={section.label}
+            chapter={section.id}
+            onClose={() => setGuideOpen(false)}
+          />
+        ) : null}
+      </AnimatePresence>
+
       <TitleBar />
 
       <div className={styles.body}>
@@ -122,14 +233,27 @@ export function ConsoleLayout(): ReactNode {
               key={section?.id ?? location.pathname}
               className={styles.page}
               custom={direction}
-              variants={pageVariants}
-              initial="initial"
+              variants={ceremony ? sweepVariants : pageVariants}
+              initial={silent ? false : 'initial'}
               animate="animate"
-              exit="exit"
+              exit={silent ? undefined : 'exit'}
             >
-              <Outlet />
+              <PageOutlet />
             </motion.div>
           </AnimatePresence>
+
+          {/*
+            The registration mark, outside `AnimatePresence` and outside the
+            page.
+
+            Outside the presence because it has no exit of its own — it is
+            keyed on the section, so a navigation remounts it and it runs once.
+            Outside the page because the page wrapper carries a transform and a
+            filter, which would both make it the containing block and clip the
+            mark to the page's own box; crossing the whole field is the entire
+            point of it.
+          */}
+          {ceremony && section ? <PageSweep sweepKey={section.id} direction={direction} /> : null}
 
           {/*
             Outside the animated page wrapper on purpose. That element carries a

@@ -35,6 +35,7 @@ import { PROJECT_CATEGORY_LABEL, PROJECT_VIEW_MODES } from '@shared/domain/proje
 import { getSection } from '@shared/domain/navigation'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
+import { SkeletonRows, SkeletonTiles } from '@renderer/components/primitives/Skeleton'
 import { Button } from '@renderer/components/primitives/Button'
 import { formatBytes } from '@renderer/lib/format'
 import { gridVariants } from '@renderer/motion/transitions'
@@ -73,7 +74,7 @@ import {
 import { childCountsOf, childrenOf, subtreeOf, trailTo } from './components/stacks/tree'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
-import { formatStamp } from './lib/present'
+import { formatKey, formatStamp, formatTempo } from './lib/present'
 import styles from './ArchivePage.module.scss'
 
 const INITIAL_FILTERS: RegisterFilters = {
@@ -527,7 +528,7 @@ export function ArchivePage(): ReactNode {
 
       void window.candy.projects
         .fileMany([...projectIds], [...folderIds], targetFolderId)
-        .then(({ moved, failures }) => {
+        .then(({ moved, failures, renamed }) => {
           clearMarked()
           void queryClient.invalidateQueries({ queryKey: ['stacks'] })
           void queryClient.invalidateQueries({ queryKey: ['projects'] })
@@ -537,15 +538,36 @@ export function ArchivePage(): ReactNode {
           // NOT INDEXED, because its record now points into the archive.
           void queryClient.invalidateQueries({ queryKey: ['browse'] })
 
-          if (failures.length === 0) return
+          if (failures.length === 0 && renamed.length === 0) return
 
-          // Named rather than counted. "Three could not be moved" sends the
-          // operator hunting; the names say which, and the reason says why.
-          setNotice(
-            `Moved ${moved}. Could not move ${failures
-              .map((entry) => `${entry.name} — ${entry.reason}`)
-              .join('; ')}`
-          )
+          /*
+           * Both outcomes are named rather than counted.
+           *
+           * "Three could not be moved" sends the operator hunting; the names
+           * say which, and the reason says why. A rename is reported on the
+           * same principle and for a stronger reason — a directory on their
+           * disk is now called something else, and the only alternative to
+           * saying so here is them finding out weeks later.
+           */
+          const parts: string[] = [`Moved ${moved}.`]
+
+          if (renamed.length > 0) {
+            parts.push(
+              `Renamed ${renamed
+                .map((entry) => `${entry.from} → ${entry.to}`)
+                .join('; ')} — the name was already on that shelf.`
+            )
+          }
+
+          if (failures.length > 0) {
+            parts.push(
+              `Could not move ${failures
+                .map((entry) => `${entry.name} — ${entry.reason}`)
+                .join('; ')}`
+            )
+          }
+
+          setNotice(parts.join(' '))
         })
         .catch(report)
     },
@@ -840,12 +862,27 @@ export function ArchivePage(): ReactNode {
     [mutations.restore, report]
   )
 
+  /**
+   * A drag from a row, in the ledger or the unfiled panel.
+   *
+   * Honours the marked set on the same rule `TileGrid` uses: dragging a marked
+   * row carries every marked row, dragging an unmarked one carries only itself
+   * and leaves the marks alone. Without this the two list views could mark a
+   * dozen projects and then move exactly one, which is worse than not offering
+   * marking at all — the operator has no way to tell it did not take.
+   */
   const onProjectDragStart = useCallback(
     (event: DragEvent<HTMLElement>, project: ProjectSummary) => {
-      beginDrag(event, PROJECT_DRAG_TYPE, project.id)
+      const ids = marked.has(project.id) ? [...marked] : [project.id]
+      beginDrag(event, PROJECT_DRAG_TYPE, ids)
     },
-    []
+    [marked]
   )
+
+  /** Shift-click in a list view. The view resolved the span from its own order. */
+  const markRange = useCallback((ids: readonly string[]) => {
+    setMarked((current) => new Set([...current, ...ids]))
+  }, [])
 
   const onProjectMenu = useCallback((event: MouseEvent<HTMLElement>, project: ProjectSummary) => {
     event.preventDefault()
@@ -931,10 +968,23 @@ export function ArchivePage(): ReactNode {
         group,
         // Deliberately not `whileTyping`: Escape in a field should leave the
         // field, which the browser already does.
-        disabled: selectedId === null && menu === null && notice === null,
+        disabled:
+          selectedId === null && menu === null && notice === null && marked.size === 0,
+        /*
+         * One key, unwound in the order things were put on top of each other:
+         * menu, then marks, then the cursor, then the notice.
+         *
+         * Marks sit above the cursor because they are the more consequential
+         * state — a stray Escape that dropped a twelve-project selection while
+         * merely deselecting a tile would be the expensive mistake of the two.
+         */
         run: () => {
           if (menu !== null) {
             setMenu(null)
+            return
+          }
+          if (marked.size > 0) {
+            clearMarked()
             return
           }
           if (selectedId !== null) {
@@ -942,6 +992,18 @@ export function ArchivePage(): ReactNode {
             return
           }
           setNotice(null)
+        }
+      },
+      {
+        chord: 'ctrl+a',
+        label: 'Mark everything in scope',
+        group,
+        // `whileTyping` off on purpose, and the one place that rule really
+        // earns itself: Ctrl+A in the search field must still select the text.
+        disabled: locked || projects.length === 0,
+        run: () => {
+          const every = projects.every((project) => marked.has(project.id))
+          setMarked(every ? new Set() : new Set(projects.map((project) => project.id)))
         }
       },
       {
@@ -1042,7 +1104,10 @@ export function ArchivePage(): ReactNode {
     runScan,
     scanning,
     selectProject,
-    selectedId
+    selectedId,
+    marked,
+    clearMarked,
+    projects
   ])
 
   useHotkeys(hotkeys)
@@ -1077,12 +1142,53 @@ export function ArchivePage(): ReactNode {
    * the VOLUMES lens uses for albums and EPs, which are a different object
    * entirely.
    */
+  /**
+   * Tag id to the tag itself, for captioning tiles.
+   *
+   * A project summary carries `tagIds` and not the tags, because shipping the
+   * whole library on every row would repeat it once per project. The library
+   * is already fetched for the filter row, so this is a lookup rather than a
+   * second request.
+   */
+  const tagsById = useMemo(
+    () => new Map((registry?.tags ?? []).map((tag) => [tag.id, tag])),
+    [registry?.tags]
+  )
+
   const projectTiles = useMemo<Tile[]>(
     () =>
       projects.map((project) => ({
         id: project.id,
         mark: 'project',
         name: project.name,
+        /*
+         * What the operator actually asks of a shelf at a glance.
+         *
+         * This was category, mastered-state and size on disk. None of the three
+         * answers "which of these is the one I want": every project on a genre
+         * shelf is the same category, mastered-state is already on the stage
+         * badge, and megabytes say nothing about the music. Tags, tempo and key
+         * are what distinguishes one set from the next when the names have
+         * stopped being distinguishable — which is exactly the point at which
+         * the operator switched to this view.
+         *
+         * Size has not been lost; the ledger still carries it as a column, and
+         * that is the view whose job is figures.
+         */
+        facets: [
+          ...project.tagIds
+            .map((id) => tagsById.get(id))
+            .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined)
+            .map((tag) => ({ label: tag.name, colour: tag.colour })),
+          ...(project.tempo !== null
+            ? [{ label: `${formatTempo(project.tempo)} BPM`, readout: true }]
+            : []),
+          // Abbreviated: `C Maj` rather than `C Major`, because this sits beside
+          // the tempo on a tile a quarter the width of a dossier.
+          ...(project.key ? [{ label: formatKey(project.key, true), readout: true }] : [])
+        ],
+        // Kept as the fallback for a project with no tags and an unread set —
+        // a blank caption would read as a fault rather than as an absence.
         detail: [
           PROJECT_CATEGORY_LABEL[project.category],
           project.hasFinalMaster ? 'MASTERED' : null,
@@ -1098,7 +1204,7 @@ export function ArchivePage(): ReactNode {
         // onto a project — it is a leaf.
         draggableAs: 'project'
       })),
-    [projects]
+    [projects, tagsById]
   )
 
   /** Binned folders, drawn above the binned projects in the BIN lens. */
@@ -1162,7 +1268,23 @@ export function ArchivePage(): ReactNode {
   }
 
   const registerView = (): ReactNode => {
-    if (isLoading) return <p className={styles.empty}>Reading the register…</p>
+    /*
+     * A skeleton in the shape of the view that is coming, not a sentence.
+     *
+     * "Reading the register…" told the operator nothing they could not infer
+     * and left the panel empty, so the page visibly jumped when the projects
+     * landed. Drawing the grid or the ledger up front means the real rows
+     * replace these in place — and the shape itself says what is arriving,
+     * which is more than the sentence did.
+     */
+    if (isLoading) {
+      return view === 'list' ? (
+        <SkeletonRows label="Reading the register" />
+      ) : (
+        <SkeletonTiles label="Reading the register" />
+      )
+    }
+
     if (projects.length === 0) return <p className={styles.empty}>{emptyMessage()}</p>
 
     const shared = {
@@ -1529,6 +1651,7 @@ export function ArchivePage(): ReactNode {
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
+        guideId="archive"
         actions={
           <div className={styles.headerActions}>
             <span className={styles.headerFigure}>
@@ -1632,6 +1755,9 @@ export function ArchivePage(): ReactNode {
             onSelect={selectProject}
             onProjectDragStart={onProjectDragStart}
             onProjectMenu={onProjectMenu}
+            marked={marked}
+            onMark={toggleMarked}
+            onMarkRange={markRange}
           />
         </Panel>
 

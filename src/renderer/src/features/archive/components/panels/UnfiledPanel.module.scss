@@ -109,3 +109,100 @@
   color: var(--ch-text-faint);
   white-space: nowrap;
 }
+
+// ---------------------------------------------------------------- selection
+
+.selection {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  padding: space(2) space(1);
+  min-height: 26px;
+
+  &[data-active] {
+    box-shadow: inset 2px 0 0 var(--ch-accent);
+    padding-left: space(3);
+  }
+}
+
+.selectAll {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.selectionHint {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+// The row's marking box. Same figure as the tile's — square, hairline, a
+// crimson square held inside it when set — so one gesture is learned once.
+.check {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  background: var(--ch-obsidian-900);
+  border: $hairline solid var(--ch-line-strong);
+  border-radius: $radius-control;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // Dim rather than hidden: a row is a narrower target than a tile, and a box
+  // that appears only on hover is one the operator has to go looking for.
+  opacity: 0.35;
+  transition:
+    opacity $duration-fast linear,
+    border-color $duration-fast linear;
+
+  .row:hover &,
+  .list[data-marking] &,
+  .row[data-marked] & {
+    opacity: 1;
+  }
+
+  &:hover {
+    border-color: var(--ch-accent);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+    opacity: 1;
+  }
+}
+
+.checkMark {
+  width: 7px;
+  height: 7px;
+  background: transparent;
+  transition: background $duration-instant linear;
+
+  .row[data-marked] & {
+    background: var(--ch-accent);
+  }
+}
+
+.row[data-marked] {
+  background: rgba(163, 43, 35, 0.08);
+
+  .check {
+    border-color: var(--ch-accent);
+  }
+}

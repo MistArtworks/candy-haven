@@ -253,6 +253,11 @@ const api: CandyHavenApi = {
     arrival: () => invoke('update:arrival'),
     acknowledge: () => invoke('update:acknowledge')
   },
+  guide: {
+    orientation: () => invoke('guide:orientation'),
+    acknowledge: () => invoke('guide:acknowledge'),
+    reset: () => invoke('guide:reset')
+  },
   dispatch: {
     state: () => invoke('dispatch:state'),
     setup: () => invoke('dispatch:setup'),

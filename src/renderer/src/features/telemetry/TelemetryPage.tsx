@@ -39,6 +39,7 @@ export function TelemetryPage(): ReactNode {
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
+        guideId="telemetry"
         actions={
           <StatusDot
             tone={telemetry.ready ? 'online' : 'pending'}
