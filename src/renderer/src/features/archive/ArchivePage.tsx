@@ -1365,11 +1365,12 @@ export function ArchivePage(): ReactNode {
 
           {folders.length === 0 && folderId === null ? (
             <div className={styles.stackEmpty}>
-              <p className={styles.stackEmptyTitle}>No genres yet.</p>
+              <p className={styles.stackEmptyTitle}>No categories yet.</p>
               <p className={styles.stackEmptyHint}>
-                Add one below and it is created as a real folder inside{' '}
-                {setup?.wrapper ?? 'your filing root'}. Projects can be created straight into a
-                genre, or into folders you add underneath it.
+                A category is the top of your filing — PERSONAL, COLLABS, CLIENT WORK. Add one below
+                and it is created as a real folder inside{' '}
+                {`${setup?.wrapper ?? 'your filing root'}${String.fromCharCode(92)}Projects`}.
+                Inside a category you add genres and artists, and projects go in those.
               </p>
             </div>
           ) : null}

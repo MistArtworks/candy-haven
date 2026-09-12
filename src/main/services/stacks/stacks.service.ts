@@ -175,17 +175,44 @@ export class StacksService {
     const { filingRoot, projectTemplatePath, satelliteRoots } = this.settings.snapshot.workspace
     const suggestedRoot = defaultArchiveRoot()
     const wrapper = this.resolveWrapper()
-    const releases = this.resolveReleasesRoot()
     const recycleBin = this.resolveRecycleBin()
+    const projectsRoot = this.resolveProjectsRoot()
+    const masteredTracks = this.resolveMasteredTracksRoot()
 
     const rootPresent = filingRoot !== null && (await directoryExists(filingRoot))
-    const wrapperReady =
+
+    /*
+     * The three primitives the wrapper holds, and creating any that are absent.
+     *
+     * This checked for `RELEASES` until RELEASES was stood down, at which point
+     * nothing created that directory any more — so an archive that had never
+     * had one reported `ready: false` for ever, and the department disabled
+     * every control on the page. The failure was silent and total: no error,
+     * just nothing responding to a click.
+     *
+     * Creating rather than only reporting, because the alternative is a readout
+     * that can say "not ready" about a condition the operator has no way to
+     * satisfy. These are directories the app owns outright and `ensureDirectory`
+     * is a no-op where they exist, so self-healing here costs nothing and
+     * removes a whole class of dead-end state. Guarded on the wrapper existing,
+     * so an unplugged drive is still reported rather than rebuilt on whatever
+     * happens to be mounted at that letter.
+     */
+    let wrapperReady = false
+
+    if (
       wrapper !== null &&
-      releases !== null &&
       recycleBin !== null &&
-      (await directoryExists(wrapper)) &&
-      (await directoryExists(releases)) &&
-      (await directoryExists(recycleBin))
+      projectsRoot !== null &&
+      masteredTracks !== null
+    ) {
+      if (await directoryExists(wrapper)) {
+        await ensureDirectory(projectsRoot)
+        await ensureDirectory(masteredTracks)
+        await ensureDirectory(recycleBin)
+        wrapperReady = true
+      }
+    }
     const templatePresent = projectTemplatePath !== null && (await pathExists(projectTemplatePath))
 
     return {
