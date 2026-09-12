@@ -80,7 +80,7 @@ export const WorkspaceSettingsSchema = z.object({
    */
   scanOnLaunch: z.boolean().default(true),
   /**
-   * What migrating a project into the archive does with the original.
+   * What taking a project into the archive does with the original.
    *
    * `move` by default, and deliberately so: it is the mode with one answer to
    * "where is this project", and the register has always worked that way.
@@ -92,7 +92,7 @@ export const WorkspaceSettingsSchema = z.object({
    * grow two entries for one piece of work. It costs disk: a project's Samples
    * folder is duplicated along with everything else.
    */
-  migrationMode: z.enum(['move', 'copy']).default('move'),
+  intakeMode: z.enum(['move', 'copy']).default('move'),
   /** Directory watched for stream overlay assets. */
   overlayAssetPath: z.string().nullable().default(null),
   /**

@@ -39,7 +39,7 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
   const loaded = settings !== null
   const satellites = settings?.workspace.satelliteRoots ?? []
   const scanOnLaunch = settings?.workspace.scanOnLaunch ?? true
-  const migrationMode = settings?.workspace.migrationMode ?? 'move'
+  const intakeMode = settings?.workspace.intakeMode ?? 'move'
   const filingRoot = settings?.workspace.filingRoot ?? null
   const templatePath = settings?.workspace.projectTemplatePath ?? null
 
@@ -187,16 +187,16 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
           MOVE would leave the operator guessing what off meant.
         */}
         <div className={styles.control}>
-          <span className={styles.controlLabel}>When migrating a project in</span>
+          <span className={styles.controlLabel}>When taking a project in</span>
           <div className={styles.segmented}>
             {(['move', 'copy'] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 className={styles.segment}
-                data-selected={migrationMode === mode || undefined}
-                aria-pressed={migrationMode === mode}
-                onClick={() => applySettings({ workspace: { migrationMode: mode } })}
+                data-selected={intakeMode === mode || undefined}
+                aria-pressed={intakeMode === mode}
+                onClick={() => applySettings({ workspace: { intakeMode: mode } })}
               >
                 {mode.toUpperCase()}
               </button>

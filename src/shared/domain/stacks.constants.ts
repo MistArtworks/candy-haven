@@ -57,7 +57,7 @@ export const VISIBLE_ARCHIVE_LENSES: readonly ArchiveLens[] = ARCHIVE_LENSES.fil
 
 export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
   stacks: 'STACKS',
-  unfiled: 'UNFILED',
+  unfiled: 'INTAKE',
   volumes: 'VOLUMES',
   releases: 'RELEASES',
   all: 'ALL',
@@ -66,7 +66,7 @@ export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
 
 export const ARCHIVE_LENS_PURPOSE: Record<ArchiveLens, string> = {
   stacks: 'Categories, genres, artists and the projects filed on them.',
-  unfiled: 'Everything found on disk that is not on a shelf yet.',
+  unfiled: 'Work found elsewhere on disk, and somewhere to put it.',
   volumes: 'Albums, EPs and compilations, and the tracks bound into each.',
   releases: 'What is going out, and the files that go with it.',
   all: 'The whole register, flat.',

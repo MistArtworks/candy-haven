@@ -48,7 +48,7 @@ import { ProjectListView } from './components/ProjectListView'
 import { ProjectBoardView } from './components/ProjectBoardView'
 import { ProjectDossier } from './components/ProjectDossier'
 import { ScanPanel } from './components/ScanPanel'
-import { MigrationView } from './components/MigrationView'
+import { IntakeView } from './components/IntakeView'
 import { TagManagerDialog } from './components/tags/TagManagerDialog'
 import { ArchiveGlyph, type ArchiveGlyphName } from './components/icons/ArchiveGlyph'
 import { ViewToggle } from './components/ViewToggle'
@@ -127,7 +127,7 @@ function useDebounced<T>(value: T, delayMs: number): T {
  *
  * Two axes, and keeping them separate is what stops this page becoming a
  * settings screen. The **lens** decides what is in scope: STACKS browses the
- * filing tree the operator builds, UNFILED everything not yet on a shelf,
+ * filing tree the operator builds, INTAKE what is elsewhere on disk,
  * VOLUMES the albums and EPs, RELEASES what is going out, ALL the register
  * flat, and BIN what has been deleted.
  * The **view** decides how whatever is in scope gets drawn — the ledger, the
@@ -170,7 +170,7 @@ export function ArchivePage(): ReactNode {
   const settings = useSettings()
 
   /*
-   * Where the migration view browses from: the configured source locations,
+   * Where INTAKE browses from: the configured source locations,
    * and nothing else.
    *
    * The filing root was included at first, reasoning that a project sitting
@@ -183,7 +183,7 @@ export function ArchivePage(): ReactNode {
    * A stray project directly in the filing root is still found by the scan and
    * still filed from the shelves; it just is not browsed for here.
    */
-  const migrationRoots = useMemo(
+  const intakeRoots = useMemo(
     () => [...new Set(settings?.workspace.satelliteRoots ?? [])],
     [settings?.workspace.satelliteRoots]
   )
@@ -328,7 +328,7 @@ export function ArchivePage(): ReactNode {
   )
 
   /*
-   * UNFILED ignores the filters entirely.
+   * INTAKE ignores the filters entirely.
    *
    * Its panes list directories on disk, and the register is consulted only to
    * answer "is this folder one I already know about" — which decides whether a
@@ -361,7 +361,7 @@ export function ArchivePage(): ReactNode {
       ...(browsing ? (subtree ? { folderIds: subtree } : { folderId }) : {}),
       // VOLUMES lists one volume's tracks once opened.
       ...(lens === 'volumes' && volumeId !== null ? { volumeId } : {}),
-      // UNFILED is everything on no shelf at all — `null`, not absent.
+      // INTAKE is everything on no shelf at all — `null`, not absent.
       ...(lens === 'unfiled' ? { folderId: null } : {}),
       // The bin is a place, not a filter — see `ProjectQuerySchema.trashed`.
       ...(lens === 'bin' ? { trashed: true } : {})
@@ -421,14 +421,11 @@ export function ArchivePage(): ReactNode {
    *
    * RELEASES draws its own board and VOLUMES at the top level draws tiles; the
    * STACKS root draws only shelves, because "filed here" there means "filed
-   * nowhere" and that list lives in UNFILED.
+   * nowhere" and that work lives in INTAKE.
    *
-   * UNFILED no longer draws one either. It is the migration view now — two
-   * directory trees side by side — and LIST, ICONS and BOARD have nothing to
-   * say about it. Leaving it here left a view toggle sitting above a panel
-   * that ignored it, which is the exact fault the rest of this rule exists to
-   * avoid: a control that does nothing is worse than no control, because the
-   * operator spends a moment deciding it is broken.
+   * INTAKE does not draw one either. It browses directories, so it takes its
+   * own narrowed toggle — LIST and ICONS, no BOARD — rather than this one,
+   * which would offer a board of stages over a folder that has none.
    */
   const drawsRegister =
     lens === 'all' ||
@@ -1139,7 +1136,7 @@ export function ArchivePage(): ReactNode {
       return 'Nothing loose. Every project the scan found is on a shelf.'
     }
     if (browsing) {
-      return 'Nothing on this shelf yet. Create a project here, or drag one in from UNFILED.'
+      return 'Nothing on this shelf yet. Create a project here, or bring one in from INTAKE.'
     }
     if (lens === 'volumes' && volumeId !== null) {
       return 'No tracks on this volume yet. Right-click a project and assign it here.'
@@ -1203,20 +1200,24 @@ export function ArchivePage(): ReactNode {
 
   const mainPanel = (): ReactNode => {
     /*
-     * UNFILED is the migration surface, not a second project list.
+     * INTAKE is where work comes in, not a second project list.
      *
      * The lens has always meant "everything found on disk that is not on a
-     * shelf yet", which is precisely the set of work migration is *about* — so
+     * shelf yet", which is precisely the work that needs bringing in — so
      * rather than inventing a mode the operator has to go and find, the lens
      * that already asks the question now shows the answer side by side with
      * somewhere to put it.
      */
     if (lens === 'unfiled') {
       return (
-        <MigrationView
-          roots={migrationRoots}
+        <IntakeView
+          roots={intakeRoots}
           folders={folders}
           projects={projects}
+          // BOARD has no meaning over directories, and the toggle beside this
+          // panel does not offer it — but `view` is shared page state and can
+          // still be holding it from another lens.
+          view={view === 'grid' ? 'grid' : 'list'}
           onFile={fileMany}
           disabled={scanning || locked}
         />
@@ -1568,6 +1569,13 @@ export function ArchivePage(): ReactNode {
              */
             drawsRegister ? (
               <ViewToggle view={view} onChange={setView} />
+            ) : lens === 'unfiled' ? (
+              /*
+               * INTAKE draws directories rather than a register, so it gets the
+               * two modes that mean something over a folder and not BOARD —
+               * there are no stages to make columns out of.
+               */
+              <ViewToggle view={view} onChange={setView} modes={INTAKE_VIEW_MODES} />
             ) : registry?.scan.finishedAt ? (
               <span className={styles.panelAside}>
                 Indexed {formatStamp(registry.scan.finishedAt)}
@@ -1825,9 +1833,12 @@ export function ArchivePage(): ReactNode {
 }
 
 /** The focal panel's label follows the lens, so the page names what it shows. */
+/** The view modes INTAKE offers. BOARD needs stages; a directory has none. */
+const INTAKE_VIEW_MODES = ['list', 'grid'] as const
+
 const PANEL_LABEL: Record<ArchiveLens, string> = {
   stacks: 'Stacks',
-  unfiled: 'Unfiled',
+  unfiled: 'Intake',
   volumes: 'Volumes',
   releases: 'Releases',
   all: 'Register',

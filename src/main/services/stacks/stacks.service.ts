@@ -773,7 +773,7 @@ export class StacksService {
        * genres means. Taking a project off the shelf is the same in reverse.
        */
       const migrating =
-        this.settings.snapshot.workspace.migrationMode === 'copy' &&
+        this.settings.snapshot.workspace.intakeMode === 'copy' &&
         folderId !== null &&
         !isAtOrUnder(record.path, this.resolveWrapper() ?? destination)
 

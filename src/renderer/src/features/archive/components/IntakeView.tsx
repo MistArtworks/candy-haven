@@ -6,7 +6,7 @@ import { FOLDER_KIND_LABEL } from '@shared/domain/stacks.constants'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { ArchiveGlyph } from './icons/ArchiveGlyph'
 import { PROJECT_DRAG_TYPE, beginDrag, hasLeftElement, isDragging, readDragAll } from './stacks/dnd'
-import styles from './MigrationView.module.scss'
+import styles from './IntakeView.module.scss'
 
 const SEPARATOR = String.fromCharCode(92)
 
@@ -57,7 +57,7 @@ interface BrowsedEntry {
   hasChildren: boolean
 }
 
-export interface MigrationViewProps {
+export interface IntakeViewProps {
   /** Configured source roots, as the operator set them in REGULATION. */
   roots: readonly string[]
   folders: readonly ArchiveFolder[]
@@ -68,11 +68,25 @@ export interface MigrationViewProps {
     folderIds: readonly string[],
     folderId: string | null
   ) => void
+  /**
+   * How the source pane draws: rows, or a grid of tiles.
+   *
+   * The same entries and the same handlers either way — only the container's
+   * layout changes. Writing the interaction once is what keeps a drag from
+   * behaving differently depending on which way the operator happens to be
+   * looking at the folder.
+   */
+  view: 'list' | 'grid'
   disabled?: boolean
 }
 
 /**
  * Source on the left, archive on the right, and the work is dragging across.
+ *
+ * Named INTAKE rather than MIGRATION. A migration is something a database has
+ * once; this is what an archive does whenever material arrives, which is the
+ * relationship the operator actually has with it. The word also says which
+ * direction the work moves, where "migration" is silent about it.
  *
  * The left pane browses **real directories** rather than the register. That is
  * the whole reason it exists: UNFILED could already list what had been indexed,
@@ -85,13 +99,14 @@ export interface MigrationViewProps {
  * here would duplicate the scan's job badly — the panel says so rather than
  * offering a drag that would fail.
  */
-export function MigrationView({
+export function IntakeView({
   roots,
   folders,
   projects,
   onFile,
+  view,
   disabled = false
-}: MigrationViewProps): ReactNode {
+}: IntakeViewProps): ReactNode {
   const [chosen, setChosen] = useState<string | null>(null)
   const [marked, setMarked] = useState<ReadonlySet<string>>(() => new Set())
   const [destination, setDestination] = useState<string | null>(null)
@@ -217,7 +232,7 @@ export function MigrationView({
           ) : entries.length === 0 ? (
             <p className={styles.empty}>Nothing in this folder.</p>
           ) : (
-            <ul className={styles.list}>
+            <ul className={styles.list} data-view={view}>
               {entries.map((entry) => {
                 const record = entry.isProject ? recordFor(entry.path) : undefined
                 const draggable = record !== undefined && !disabled

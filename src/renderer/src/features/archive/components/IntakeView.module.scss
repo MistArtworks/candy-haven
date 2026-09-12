@@ -107,6 +107,52 @@
   overflow-y: auto;
 }
 
+/*
+ * The same entries as tiles.
+ *
+ * A grid rather than rows for the same reason the shelves have one: a folder
+ * of thirty projects is a wall of near-identical names in a list, and the eye
+ * reads position and shape faster than it reads text. The list stays the
+ * default because it shows the most in the least height, which is what a pane
+ * half the width of the page usually needs.
+ *
+ * Only the container changes. Every handler on an entry is written once and
+ * applies in both, so a drag cannot behave differently depending on how the
+ * operator happens to be looking at the folder.
+ */
+.list[data-view='grid'] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(rem(120px), 1fr));
+  gap: space(2);
+
+  .entry {
+    flex-direction: column;
+    align-items: center;
+    gap: space(2);
+    padding: space(3) space(2);
+    text-align: center;
+  }
+
+  .entryMark {
+    width: rem(28px);
+    height: rem(28px);
+  }
+
+  .entryName {
+    flex: none;
+    width: 100%;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    // Two lines, then clipped. A project called "color bass idea hopefulluy
+    // Project" would otherwise set the height of every tile in its row.
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
 .entry {
   display: flex;
   align-items: center;
