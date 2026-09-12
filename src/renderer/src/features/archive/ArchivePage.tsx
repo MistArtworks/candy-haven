@@ -1209,18 +1209,28 @@ export function ArchivePage(): ReactNode {
      * somewhere to put it.
      */
     if (lens === 'unfiled') {
+      /*
+         `.browser` for the padding, as every other lens that draws into the
+         flush panel does. The panel is `flush` so the folder browser can sit
+         its breadcrumb against the header rule, which means each lens supplies
+         its own inset — and this one was returning its panes bare, so the
+         tiles ran to the very edge of the page while the headings above them
+         were indented.
+      */
       return (
-        <IntakeView
-          roots={intakeRoots}
-          folders={folders}
-          projects={projects}
-          // BOARD has no meaning over directories, and the toggle beside this
-          // panel does not offer it — but `view` is shared page state and can
-          // still be holding it from another lens.
-          view={view === 'grid' ? 'grid' : 'list'}
-          onFile={fileMany}
-          disabled={scanning || locked}
-        />
+        <div className={styles.browser}>
+          <IntakeView
+            roots={intakeRoots}
+            folders={folders}
+            projects={projects}
+            // BOARD has no meaning over directories, and the toggle beside
+            // this panel does not offer it — but `view` is shared page state
+            // and can still be holding it from another lens.
+            view={view === 'grid' ? 'grid' : 'list'}
+            onFile={fileMany}
+            disabled={scanning || locked}
+          />
+        </div>
       )
     }
 
