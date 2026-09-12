@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, extname, join } from 'node:path'
 import { app, shell } from 'electron'
 import type { ProjectDraft, ProjectRecord } from '@shared/domain/projects'
 import { requiresVolume } from '@shared/domain/projects.constants'
@@ -42,6 +42,7 @@ import {
   ensureDirectory,
   isAtOrUnder,
   moveDirectory,
+  moveFile,
   pathExists,
   rewritePath,
   samePath
@@ -733,6 +734,132 @@ export class StacksService {
       from: record.path,
       to: destination
     })
+  }
+
+  // -------------------------------------------------- final mix and master
+
+  /**
+   * Promotes a bounce to the project's final mix and master.
+   *
+   * The file **moves** into `Release Mastered Tracks` under a name the
+   * operator types, rather than being copied there. One file in one place: the
+   * directory is a trustworthy list of finished tracks precisely because the
+   * audio cannot also be sitting somewhere else under a different name.
+   *
+   * Disk first, database second, as everywhere in this service. A demotion of
+   * the previous final happens before the new move, so the directory never
+   * holds two finals for one project even briefly.
+   */
+  async setFinalMaster(
+    projectId: string,
+    sourcePath: string,
+    name: string
+  ): Promise<ProjectRecord> {
+    this.refuseDuringScan()
+
+    const record = await this.projects.get(projectId)
+    const root = this.resolveMasteredTracksRoot()
+
+    if (!root) {
+      throw new AppError('The ARCHIVE has not been set up yet.', {
+        code: ErrorCode.Validation,
+        recoverable: false
+      })
+    }
+
+    if (!isAtOrUnder(sourcePath, record.path)) {
+      throw new AppError('That file is not in this project.', {
+        code: ErrorCode.Validation,
+        hint: 'The final mix and master is chosen from the audio inside the project folder.',
+        recoverable: false
+      })
+    }
+
+    const trimmed = name.trim()
+    if (!trimmed) {
+      throw new AppError('The final mix and master needs a name.', {
+        code: ErrorCode.Validation,
+        recoverable: false
+      })
+    }
+
+    // The operator names the track, not the file type. Carrying the extension
+    // over means they cannot accidentally produce a `.wav` called `.mp3`.
+    const extension = extname(sourcePath)
+    const fileName = trimmed.toLowerCase().endsWith(extension.toLowerCase())
+      ? trimmed
+      : `${trimmed}${extension}`
+
+    const verdict = validateFolderName(fileName)
+    if (!verdict.ok) {
+      throw new AppError(verdict.reason ?? 'That name cannot be used.', {
+        code: ErrorCode.Validation,
+        recoverable: false
+      })
+    }
+
+    await ensureDirectory(root)
+    const destination = join(root, fileName)
+
+    // Put the outgoing final back before moving the new one out, so the two
+    // can never both be in the directory under this project's name.
+    const restored = record.masters.final ? await this.returnFinalMaster(record) : record
+
+    await moveFile(sourcePath, destination)
+    logger.info(`Final master for ${record.name}: ${sourcePath} -> ${destination}`)
+
+    /*
+     * The source path is dropped from the buckets and from the scanned audio
+     * list. It has left the project folder, so every one of those references
+     * is now stale, and the next scan would drop them anyway — doing it here
+     * means the dossier is right immediately rather than after a rescan.
+     */
+    return this.projects.applyFinalMaster(projectId, {
+      final: destination,
+      removedPath: sourcePath,
+      wips: restored.masters.wips,
+      masters: restored.masters.masters
+    })
+  }
+
+  /**
+   * Demotes the final, moving the file back into the project folder.
+   *
+   * It keeps the name the operator typed rather than reverting to whatever it
+   * was called before. That name was a deliberate choice, and renaming it a
+   * second time would be the app changing a filename the operator set.
+   */
+  async clearFinalMaster(projectId: string): Promise<ProjectRecord> {
+    this.refuseDuringScan()
+    const record = await this.projects.get(projectId)
+
+    if (!record.masters.final) return record
+
+    const returned = await this.returnFinalMaster(record)
+    return this.projects.applyFinalMaster(returned.id, {
+      final: null,
+      removedPath: null,
+      wips: returned.masters.wips,
+      masters: returned.masters.masters
+    })
+  }
+
+  /** Moves a project's current final back into its folder. Disk only. */
+  private async returnFinalMaster(record: ProjectRecord): Promise<ProjectRecord> {
+    const current = record.masters.final
+    if (!current) return record
+
+    if (await pathExists(current)) {
+      await moveFile(current, join(record.path, basename(current)))
+      logger.info(`Returned ${basename(current)} to ${record.name}`)
+    } else {
+      // Gone from under us — deleted in Explorer, most likely. Clearing the
+      // record is still the right outcome; refusing would leave the project
+      // permanently claiming a final that does not exist.
+      logger.warn(`Final master for ${record.name} was already gone from ${current}`)
+    }
+
+    return record
   }
 
   // ------------------------------------------------------------ recycle bin

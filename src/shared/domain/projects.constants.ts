@@ -188,23 +188,31 @@ export function requiresVolume(category: ProjectCategory): boolean {
 // ------------------------------------------------------------------ masters
 
 /**
- * The two audio picks a project carries.
+ * How the operator classifies the audio their project produced.
  *
- * Deliberately on the project rather than on a release: these are production
- * artefacts and exist long before anything is scheduled. A release *reads* the
- * final pick when one is attached; it does not own it.
+ * Every bounce stays loose in the project folder; what gives one meaning is a
+ * mark made here, against the audio the scanner already found. This replaced
+ * six scaffold folders — WIPS, MIX & MASTER and the rest — which sorted the
+ * same files by location and which nothing in the app ever read. Classifying
+ * by declaration rather than by which directory a file was dragged into is the
+ * one arrangement that cannot drift out of step with what the operator meant.
+ *
+ * WIP and MASTER are mutually exclusive: a file is an in-progress bounce or a
+ * finished master, and something claiming to be both makes neither list worth
+ * reading. The final is not a third bucket but a single designation on top, and
+ * it may point at any audio file in the project — including one already marked.
  */
-export const MASTER_PICKS = ['prefinal', 'final'] as const
-export type MasterPick = (typeof MASTER_PICKS)[number]
+export const AUDIO_MARKS = ['wip', 'master'] as const
+export type AudioMark = (typeof AUDIO_MARKS)[number]
 
-export const MASTER_PICK_LABEL: Record<MasterPick, string> = {
-  prefinal: 'PRE-FINAL MIX & MASTER',
-  final: 'FINAL MIX & MASTER'
+export const AUDIO_MARK_LABEL: Record<AudioMark, string> = {
+  wip: 'WIPS',
+  master: 'MASTERS'
 }
 
-export const MASTER_PICK_HINT: Record<MasterPick, string> = {
-  prefinal: 'The candidate currently being lived with. Expected to be replaced.',
-  final: 'The exact file that ships. Chosen from the bounces found in this project.'
+export const AUDIO_MARK_HINT: Record<AudioMark, string> = {
+  wip: 'Rough bounces as the arrangement moves.',
+  master: 'Mastered versions. Any of them can become the one that ships.'
 }
 
 // ------------------------------------------------------------------- views

@@ -542,7 +542,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       volumeId: null,
       trackNumber: null,
       colour: DEFAULT_FOLDER_COLOUR,
-      masters: { prefinal: null, final: null },
+      masters: { wips: [], masters: [], final: null },
       trashedAt: null,
       trashedFrom: null,
       // Left unfiled even when the folder already sits inside the stacks tree;
@@ -557,6 +557,52 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       ...discoveredFields(project, now),
       path: project.path
     }
+  }
+
+  /**
+   * Records a change of final mix and master.
+   *
+   * Called by the stacks service *after* the file has already moved, so this
+   * is bookkeeping rather than an action — the same division as `applyFiling`.
+   *
+   * `removedPath` is pruned from both buckets and from the scanned audio list.
+   * A promoted bounce has left the project folder, so every reference to its
+   * old path is stale; the next scan would drop them anyway, and doing it here
+   * means the dossier is correct immediately rather than one scan later.
+   *
+   * A demoted file is deliberately *not* added back to either bucket. It
+   * returns under the name the operator typed, not the one it was marked
+   * under, so the mark no longer describes anything that exists — and the scan
+   * will list it as ordinary audio again on its next pass.
+   */
+  async applyFinalMaster(
+    id: string,
+    change: {
+      final: string | null
+      removedPath: string | null
+      wips: readonly string[]
+      masters: readonly string[]
+    }
+  ): Promise<ProjectRecord> {
+    const current = await this.get(id)
+    const drop = (paths: readonly string[]): string[] =>
+      change.removedPath ? paths.filter((path) => path !== change.removedPath) : [...paths]
+
+    const next: ProjectRecord = {
+      ...current,
+      masters: {
+        wips: drop(change.wips),
+        masters: drop(change.masters),
+        final: change.final
+      },
+      audio: change.removedPath
+        ? current.audio.filter((file) => file.path !== change.removedPath)
+        : current.audio,
+      updatedAt: Date.now()
+    }
+
+    await this.repository.replace(next)
+    return next
   }
 
   /**
@@ -1220,7 +1266,6 @@ function rewriteRecordPaths(record: ProjectRecord, from: string, to: string): Pr
   if (from === to) return record
 
   const move = (value: string): string => rewritePath(value, from, to)
-  const moveNullable = (value: string | null): string | null => (value ? move(value) : value)
 
   return {
     ...record,
@@ -1242,8 +1287,12 @@ function rewriteRecordPaths(record: ProjectRecord, from: string, to: string): Pr
     videos: record.videos.map((file) => ({ ...file, path: move(file.path) })),
     missingSamples: record.missingSamples.map(move),
     masters: {
-      prefinal: moveNullable(record.masters.prefinal),
-      final: moveNullable(record.masters.final)
+      wips: record.masters.wips.map(move),
+      masters: record.masters.masters.map(move),
+      // Deliberately not moved. The final lives in Release Mastered Tracks,
+      // outside the project folder entirely, so a project moving on disk does
+      // not move it and rewriting this path would break the reference.
+      final: record.masters.final
     }
   }
 }

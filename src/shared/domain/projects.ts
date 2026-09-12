@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { DEFAULT_FOLDER_COLOUR, MAX_FOLDER_NAME_LENGTH, isHexColour } from './stacks.constants'
 import { TagSummarySchema } from './tags'
 import {
-  MASTER_PICKS,
+  AUDIO_MARKS,
   PROJECT_CATEGORIES,
   PROJECT_SORT_MODES,
   PROJECT_STAGE_IDS,
@@ -20,7 +20,7 @@ import {
  */
 
 export type {
-  MasterPick,
+  AudioMark,
   MediaKind,
   ProjectCategory,
   ProjectSortMode,
@@ -33,9 +33,9 @@ export {
   ALS_MAX_DECOMPRESSED_BYTES,
   AUDIO_EXTENSIONS,
   IMAGE_EXTENSIONS,
-  MASTER_PICKS,
-  MASTER_PICK_HINT,
-  MASTER_PICK_LABEL,
+  AUDIO_MARKS,
+  AUDIO_MARK_HINT,
+  AUDIO_MARK_LABEL,
   PIPELINE_STAGES,
   PROJECT_CATEGORIES,
   PROJECT_CATEGORY_LABEL,
@@ -96,7 +96,7 @@ export const ProjectStageSchema = z.enum(PROJECT_STAGE_IDS)
 export const ProjectViewModeSchema = z.enum(PROJECT_VIEW_MODES)
 export const ProjectSortModeSchema = z.enum(PROJECT_SORT_MODES)
 export const ProjectCategorySchema = z.enum(PROJECT_CATEGORIES)
-export const MasterPickSchema = z.enum(MASTER_PICKS)
+export const AudioMarkSchema = z.enum(AUDIO_MARKS)
 
 /** `YYYY-MM-DD`. See projects.constants.ts for why dates are not instants. */
 export const IsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
@@ -231,7 +231,20 @@ export type StageEvent = z.infer<typeof StageEventSchema>
  * these live on the project rather than on a release.
  */
 export const MasterSelectionSchema = z.object({
-  prefinal: z.string().nullable().default(null),
+  /** Rough bounces, by absolute path. Mutually exclusive with `masters`. */
+  wips: z.array(z.string()).default([]),
+  /** Mastered versions, by absolute path. Mutually exclusive with `wips`. */
+  masters: z.array(z.string()).default([]),
+  /**
+   * The file that ships, and the one entry here that is not in the project.
+   *
+   * Designating a final **moves** the bounce into
+   * `Candy Haven\Release Mastered Tracks` under a name the operator types, so
+   * this path points there rather than into the project folder. Demoting moves
+   * it back, keeping that name. One file, one place: the directory is an
+   * accurate list of finished tracks precisely because there is nowhere else
+   * the audio could be.
+   */
   final: z.string().nullable().default(null)
 })
 export type MasterSelection = z.infer<typeof MasterSelectionSchema>
@@ -490,7 +503,15 @@ export const ProjectPatchSchema = z.object({
    */
   volumeId: z.string().nullable().optional(),
   trackNumber: z.number().int().min(0).nullable().optional(),
-  masters: MasterSelectionSchema.partial().optional(),
+  /**
+   * The WIP and MASTER marks only.
+   *
+   * `final` is absent on purpose: designating one *moves* a file into
+   * `Release Mastered Tracks`, which is an action rather than a field, and it
+   * goes through its own channel so a patch cannot move the operator's audio
+   * as a side effect of setting a colour.
+   */
+  masters: MasterSelectionSchema.pick({ wips: true, masters: true }).partial().optional(),
   /** Which set to treat as the project's current working version. */
   primarySetPath: z.string().optional()
 })

@@ -170,6 +170,10 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.projects.runScan(settings.scanRoots, input?.force ?? false)
   )
   router.handle('projects:scan-cancel', () => services.projects.cancelScan())
+  router.handle('projects:set-final', ({ id, sourcePath, name }) =>
+    services.stacks.setFinalMaster(id, sourcePath, name)
+  )
+  router.handle('projects:clear-final', ({ id }) => services.stacks.clearFinalMaster(id))
   router.handle('projects:conform', () => services.projects.conformIcons())
   router.handle('projects:scan-state', () => services.projects.scan)
 

@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, rename, rm, rmdir, stat } from 'node:fs/promises'
+import { copyFile, cp, mkdir, readdir, rename, rm, rmdir, stat } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
@@ -238,6 +238,48 @@ async function measureTree(path: string): Promise<TreeSize> {
  * is enforced by the filesystem itself rather than by a check the service could
  * get wrong.
  */
+/**
+ * Moves a single file, refusing rather than overwriting.
+ *
+ * Separate from `moveDirectory` because the checks differ: there is no
+ * "inside itself" case, and the cross-volume fallback is a plain copy rather
+ * than a verified tree walk. The refusal on an occupied destination is the
+ * same rule the whole service follows — nothing is merged or overwritten
+ * without the operator having said so.
+ */
+export async function moveFile(from: string, to: string): Promise<void> {
+  if (samePath(from, to)) return
+
+  if (!(await pathExists(from))) {
+    throw new AppError('That file is no longer on disk.', {
+      code: ErrorCode.NotFound,
+      hint: 'Run a scan to bring the register back in step with the filesystem.',
+      recoverable: true
+    })
+  }
+
+  if (await pathExists(to)) {
+    throw new AppError(`Something called \u201c${basenameOf(to)}\u201d is already there.`, {
+      code: ErrorCode.Validation,
+      hint: 'Choose another name \u2014 nothing is overwritten automatically.',
+      recoverable: false
+    })
+  }
+
+  await mkdir(dirname(to), { recursive: true })
+
+  try {
+    await rename(from, to)
+    return
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EXDEV') throw translate(error, from)
+  }
+
+  // Different volume. Copy, then remove the original only once it is there.
+  await copyFile(from, to)
+  await rm(from, { force: true })
+}
+
 export async function removeEmptyDirectory(path: string): Promise<void> {
   try {
     await rmdir(path)

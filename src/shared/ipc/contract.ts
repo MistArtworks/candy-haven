@@ -161,6 +161,24 @@ export const IPC_INVOKE = {
    * is why it is safe to offer as a verb over the whole archive. Returns how
    * many needed it so the readout can say so rather than claim success.
    */
+  /**
+   * Promotes a bounce to the project's final mix and master.
+   *
+   * Moves the file into `Release Mastered Tracks` under `name`. Its own
+   * channel rather than a field on `projects:patch` because it puts the
+   * operator's audio somewhere else, and that must not be something a patch
+   * can do by accident.
+   */
+  'projects:set-final': {
+    input: z.object({ id: z.string(), sourcePath: z.string(), name: z.string() }),
+    output: ProjectRecordSchema
+  },
+  /** Demotes the final, moving the file back into the project folder. */
+  'projects:clear-final': {
+    input: z.object({ id: z.string() }),
+    output: ProjectRecordSchema
+  },
+
   'projects:conform': {
     input: z.void(),
     output: z.object({

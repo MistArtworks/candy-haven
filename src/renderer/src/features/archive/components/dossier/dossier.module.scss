@@ -189,6 +189,30 @@ $list-cap: min(#{rem(280px)}, 24vh);
   flex-shrink: 0;
 }
 
+// Naming the finished track, inline on the row it is being promoted from.
+// A dialog was considered and refused: the operator has just decided which
+// file ships, and taking them away from the list to type its name puts a scrim
+// between the decision and its subject.
+.finalNaming {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+}
+
+.finalInput {
+  @include readout(10px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.16);
+  padding: space(1) space(2);
+  width: rem(180px);
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
 .filePromote {
   @include label(7px, 0.14em);
   color: var(--ch-text-muted);
@@ -199,6 +223,19 @@ $list-cap: min(#{rem(280px)}, 24vh);
   &:hover {
     color: var(--ch-text-primary);
     border-color: var(--ch-line-strong);
+  }
+
+  // The mark this file currently carries. Border rather than fill, so a row of
+  // three verbs does not turn into a row of three buttons competing for the eye.
+  &[data-on] {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-accent);
+    background: rgba(163, 43, 35, 0.12);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    pointer-events: none;
   }
 }
 

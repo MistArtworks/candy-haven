@@ -199,7 +199,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 6
+const SCHEMA_VERSION = 7
 
 /**
  * Collections dropped by the version 2 migration.
@@ -387,6 +387,46 @@ async function applyMigrations(db: Db): Promise<void> {
     )
 
     logger.info(`Recorded an origin for ${result.modifiedCount} unfiled projects`)
+  }
+
+  if (from < 7) {
+    logger.warn(`Migrating archive schema ${from} -> 7: audio is marked, not filed`)
+
+    /*
+     * Two single-valued picks become two lists and a designation.
+     *
+     * `prefinal` and `final` both become entries in `masters`, and `final` is
+     * cleared. That looks like losing the operator's choice, and it is the
+     * careful option rather than the lazy one: `final` no longer means "this
+     * record points at a file in the project folder" — it means "this file has
+     * been moved into Release Mastered Tracks". Carrying the old value across
+     * would have every previously-mastered project claiming a file lives
+     * somewhere it has never been, and the first demote would try to move
+     * something out of a directory it is not in.
+     *
+     * Nothing is actually lost: both paths survive as masters, which is what
+     * they were, and re-designating one is a single click that also performs
+     * the move the new meaning requires.
+     *
+     * `$setDifference` both de-duplicates (prefinal and final are often the
+     * same file) and drops the nulls.
+     */
+    const result = await db
+      .collection(Collections.Projects)
+      .updateMany({ 'masters.prefinal': { $exists: true } }, [
+        {
+          $set: {
+            'masters.wips': [],
+            'masters.masters': {
+              $setDifference: [['$masters.prefinal', '$masters.final'], [null]]
+            },
+            'masters.final': null
+          }
+        },
+        { $unset: 'masters.prefinal' }
+      ])
+
+    logger.info(`Moved ${result.modifiedCount} projects onto audio marks`)
   }
 
   await collection.updateOne(
