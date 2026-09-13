@@ -432,4 +432,9 @@ export interface CandyHavenApi {
       filters?: { name: string; extensions: string[] }[]
     }): Promise<string | null>
   }
+
+  readonly darkroom: {
+    /** Writes graded PNG bytes wherever the operator points. Null if cancelled. */
+    save(data: Uint8Array, suggestedName: string): Promise<string | null>
+  }
 }

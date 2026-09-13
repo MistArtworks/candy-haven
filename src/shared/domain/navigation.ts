@@ -9,6 +9,7 @@ export const SECTION_IDS = [
   'archive',
   'calendar',
   'auditorium',
+  'darkroom',
   'observatory',
   'telemetry',
   'dispatch',
@@ -22,9 +23,9 @@ export type SectionId = (typeof SECTION_IDS)[number]
  * The divisions the rail is grouped under.
  *
  * Ordered, and the order is the order departments appear — a section's group is
- * therefore not free to contradict its position in the list. Nine entries in one
- * undivided column read as a menu; four named divisions read as an organisation
- * chart, which is the register this console is written in.
+ * therefore not free to contradict its position in the list. Eleven entries in
+ * one undivided column read as a menu; four named divisions read as an
+ * organisation chart, which is the register this console is written in.
  */
 export const SECTION_GROUP_IDS = ['command', 'production', 'broadcast', 'oversight'] as const
 
@@ -130,13 +131,23 @@ export const SECTIONS: readonly SectionDefinition[] = [
     implemented: true
   },
   {
+    id: 'darkroom',
+    path: '/darkroom',
+    label: 'DARKROOM',
+    purpose: 'Grade photographs onto the console palette and export them',
+    epigraph: 'Every likeness must be developed before it may be shown.',
+    group: 'production',
+    order: 5,
+    implemented: true
+  },
+  {
     id: 'observatory',
     path: '/observatory',
     label: 'OBSERVATORY',
     purpose: 'Stream overlays and live selection rites served to OBS',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'broadcast',
-    order: 5,
+    order: 6,
     implemented: true
   },
   {
@@ -146,7 +157,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Host vitals: processor, memory, graphics and storage',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'oversight',
-    order: 6,
+    order: 7,
     implemented: true
   },
   {
@@ -156,7 +167,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Feedback and suggestions between operators, ruled on and recorded',
     epigraph: 'Nothing is lost that is entered into the record.',
     group: 'oversight',
-    order: 7,
+    order: 8,
     implemented: true
   },
   {
@@ -166,7 +177,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Operator settings, archive control and update channel',
     epigraph: 'Harmony is maintained.',
     group: 'oversight',
-    order: 8,
+    order: 9,
     implemented: true
   },
   {
@@ -176,7 +187,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'How this console is operated, department by department',
     epigraph: 'We do not question the shape of the universe.',
     group: 'oversight',
-    order: 9,
+    order: 10,
     implemented: true
   }
 ] as const

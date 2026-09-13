@@ -716,6 +716,34 @@ export const IPC_INVOKE = {
       })
       .optional(),
     output: z.string().nullable()
+  },
+
+  /**
+   * Writes a graded image where the operator chooses.
+   *
+   * The bytes come from the renderer because that is where the grade is
+   * applied — a canvas is the only thing in the app that can rasterise one, and
+   * shipping the source image plus a settings object to the main process just
+   * to re-implement the pipeline there would give two renderers to keep in
+   * step. Main owns the dialog and the write, which is the same split
+   * `settings:export` uses.
+   */
+  'darkroom:save': {
+    input: z.object({
+      /**
+       * PNG bytes, straight from `canvas.toBlob`.
+       *
+       * `z.custom` rather than `z.instanceof`, which infers
+       * `Uint8Array<ArrayBuffer>` and then refuses the plain `Uint8Array` every
+       * caller actually holds.
+       */
+      data: z.custom<Uint8Array>((value) => value instanceof Uint8Array, {
+        message: 'Expected image bytes'
+      }),
+      /** Suggested filename, extension included. */
+      suggestedName: z.string()
+    }),
+    output: z.string().nullable()
   }
 } satisfies Record<string, { input: z.ZodType; output: z.ZodType }>
 

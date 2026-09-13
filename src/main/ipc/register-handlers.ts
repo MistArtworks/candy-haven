@@ -1,5 +1,5 @@
 import { BrowserWindow, app, dialog, shell } from 'electron'
-import { readFile, stat } from 'node:fs/promises'
+import { readFile, stat, writeFile } from 'node:fs/promises'
 import { basename, extname } from 'node:path'
 import { is } from '@electron-toolkit/utils'
 import { APP_NAME } from '@shared/constants'
@@ -574,6 +574,32 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
       : await dialog.showOpenDialog({ ...options, properties: [...options.properties] })
 
     return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
+
+  /**
+   * Writes a graded image where the operator points.
+   *
+   * The renderer rasterises, because the canvas is the only thing in the app
+   * that can apply a grade; main owns the dialog and the write. Same split as
+   * `settings:export` just above.
+   */
+  router.handle('darkroom:save', async ({ data, suggestedName }) => {
+    const window = windows.mainWindow
+    const options = {
+      title: 'Export graded image',
+      defaultPath: suggestedName,
+      filters: [{ name: 'PNG image', extensions: ['png'] }]
+    }
+
+    const result = window
+      ? await dialog.showSaveDialog(window, options)
+      : await dialog.showSaveDialog(options)
+
+    if (result.canceled || !result.filePath) return null
+
+    await writeFile(result.filePath, data)
+    logger.info(`Exported graded image to ${result.filePath}`)
+    return result.filePath
   })
 
   router.handle('dialog:select-file', async (input) => {

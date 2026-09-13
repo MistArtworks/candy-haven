@@ -304,6 +304,9 @@ const api: CandyHavenApi = {
     openPath: (path) => invoke('shell:open-path', { path }),
     selectDirectory: (title) => invoke('dialog:select-directory', title ? { title } : undefined),
     selectFile: (options) => invoke('dialog:select-file', options)
+  },
+  darkroom: {
+    save: (data, suggestedName) => invoke('darkroom:save', { data, suggestedName })
   }
 }
 
