@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { AudioMark } from '@shared/domain/projects'
 import {
   AUDIO_MARKS,
@@ -10,6 +10,7 @@ import {
 import { Panel } from '@renderer/components/primitives/Panel'
 import { formatBytes } from '@renderer/lib/format'
 import { ArchiveGlyph } from '../icons/ArchiveGlyph'
+import { FinalMasterMenu } from './FinalMasterMenu'
 import type { ProjectRecord } from '@shared/domain/projects'
 import type { useProjectMutations } from '@renderer/hooks/useProjects'
 import styles from './dossier.module.scss'
@@ -38,10 +39,25 @@ import styles from './dossier.module.scss'
 export interface MixAndMasterProps {
   project: ProjectRecord
   mutations: ReturnType<typeof useProjectMutations>
+  /**
+   * Right-click verbs on the shipped file, raised rather than handled here.
+   *
+   * Both end in a dialog or a refusal, and OVERVIEW already owns the one
+   * dialog and the one error surface the dossier has. A second copy of either
+   * living in this panel would mean two places a failed swap could appear.
+   */
+  onSwap: () => void
+  onUnlink: () => void
 }
 
-export function MixAndMaster({ project, mutations }: MixAndMasterProps): ReactNode {
+export function MixAndMaster({
+  project,
+  mutations,
+  onSwap,
+  onUnlink
+}: MixAndMasterProps): ReactNode {
   const stage = getStage(project.stage)
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
 
   const markOf = (path: string): AudioMark | null => {
     if (project.masters.masters.includes(path)) return 'master'
@@ -160,12 +176,36 @@ export function MixAndMaster({ project, mutations }: MixAndMasterProps): ReactNo
             data-playable
             onClick={() => onSingleClick(project.masters.final as string)}
             onDoubleClick={() => onDoubleClick(project.masters.final as string)}
-            title={`${project.masters.final} — click to show, double-click to play`}
+            // The only route to changing a final once it is set. Shipping is a
+            // side effect of reaching TRACK READY and re-entering that stage
+            // passes straight through, so without this a corrected mix has
+            // nowhere to go.
+            onContextMenu={(event) => {
+              event.preventDefault()
+              cancelPending()
+              setMenu({ x: event.clientX, y: event.clientY })
+            }}
+            title={`${project.masters.final} — click to show, double-click to play, right-click for options`}
           >
             <span className={styles.fileName}>{finalName}</span>
             <span className={styles.fileMeta}>RELEASE MASTERED TRACKS</span>
           </div>
         </div>
+      ) : null}
+
+      {menu && project.masters.final ? (
+        <FinalMasterMenu
+          name={finalName ?? 'Final mix and master'}
+          x={menu.x}
+          y={menu.y}
+          canSwap={project.masters.mixes.length + project.masters.masters.length > 0}
+          stepsBack={getStage(project.stage).requiresMaster === true}
+          onPlay={() => void play(project.masters.final as string)}
+          onReveal={() => void window.candy.shell.reveal(project.masters.final as string)}
+          onSwap={onSwap}
+          onUnlink={onUnlink}
+          onClose={() => setMenu(null)}
+        />
       ) : null}
 
       {project.audio.length === 0 ? (

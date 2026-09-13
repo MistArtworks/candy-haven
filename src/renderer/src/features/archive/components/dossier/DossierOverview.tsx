@@ -77,21 +77,44 @@ export function DossierOverview({
     setStage(next)
   }
 
+  /**
+   * Promotes the chosen bounce, and advances the stage only if this was the
+   * first one.
+   *
+   * A swap is not a stage change. The project was already at TRACK READY and
+   * stays there — pushing it there again would write a second, identical entry
+   * into the stage history saying the work finished twice.
+   */
   const ship = async (sourcePath: string, name: string): Promise<void> => {
+    const wasShipping = project.masters.final !== null
+
     setShipBusy(true)
     setShipError(null)
     try {
-      await window.candy.projects.setFinal(project.id, sourcePath, name)
+      await mutations.setFinal.mutateAsync({ id: project.id, sourcePath, name })
       setShipping(false)
       // Only once the file is actually where it claims to be. A stage saying
       // the work is finished while the move failed is the worse of the two
       // states to be left in.
-      setStage('ready')
+      if (!wasShipping) setStage('ready')
     } catch (error) {
       setShipError(error instanceof Error ? error.message : String(error))
     } finally {
       setShipBusy(false)
     }
+  }
+
+  /*
+   * Unlinking goes straight through, with no confirmation.
+   *
+   * Nothing is destroyed: the file moves back into the project folder, marked
+   * as a master, and re-shipping it is two clicks away. A dialog guarding a
+   * reversible move is a dialog the operator learns to dismiss without reading.
+   * A refusal — a scan in flight, most likely — surfaces in the dossier's
+   * notice bar like every other rejected edit.
+   */
+  const unlink = (): void => {
+    mutations.clearFinal.mutate(project.id)
   }
 
   /** What the final stage is still waiting on. Empty once the project is ready. */
@@ -208,7 +231,17 @@ export function DossierOverview({
         that matter do not exist yet — and an empty panel on every new project
         is clutter that teaches nothing.
       */}
-      {marksAudio(project.stage) ? <MixAndMaster project={project} mutations={mutations} /> : null}
+      {marksAudio(project.stage) ? (
+        <MixAndMaster
+          project={project}
+          mutations={mutations}
+          onSwap={() => {
+            setShipError(null)
+            setShipping(true)
+          }}
+          onUnlink={unlink}
+        />
+      ) : null}
 
       <Panel
         label="Tags"

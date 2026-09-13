@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { stat } from 'node:fs/promises'
+import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { app, shell } from 'electron'
-import type { ProjectDraft, ProjectRecord } from '@shared/domain/projects'
+import type { MediaFile, ProjectDraft, ProjectRecord } from '@shared/domain/projects'
 import { requiresVolume } from '@shared/domain/projects.constants'
 import type {
   ArchiveFolder,
@@ -42,6 +43,7 @@ import {
   ensureDirectory,
   isAtOrUnder,
   copyDirectory,
+  freeFilePath,
   freePath,
   moveDirectory,
   moveFile,
@@ -1021,7 +1023,7 @@ export class StacksService {
 
     // Put the outgoing final back before moving the new one out, so the two
     // can never both be in the directory under this project's name.
-    const restored = record.masters.final ? await this.returnFinalMaster(record) : record
+    const restored = await this.returnFinalMaster(record)
 
     await moveFile(sourcePath, destination)
     logger.info(`Final master for ${record.name}: ${sourcePath} -> ${destination}`)
@@ -1031,13 +1033,17 @@ export class StacksService {
      * list. It has left the project folder, so every one of those references
      * is now stale, and the next scan would drop them anyway — doing it here
      * means the dossier is right immediately rather than after a rescan.
+     *
+     * The buckets are read straight off `record`: returning the outgoing final
+     * touches the disk only, so nothing here has changed since it was fetched.
      */
     return this.projects.applyFinalMaster(projectId, {
       final: destination,
       removedPath: sourcePath,
-      wips: restored.masters.wips,
-      mixes: restored.masters.mixes,
-      masters: restored.masters.masters
+      restored,
+      wips: record.masters.wips,
+      mixes: record.masters.mixes,
+      masters: record.masters.masters
     })
   }
 
@@ -1054,32 +1060,59 @@ export class StacksService {
 
     if (!record.masters.final) return record
 
-    const returned = await this.returnFinalMaster(record)
-    return this.projects.applyFinalMaster(returned.id, {
+    const restored = await this.returnFinalMaster(record)
+    return this.projects.applyFinalMaster(projectId, {
       final: null,
       removedPath: null,
-      wips: returned.masters.wips,
-      mixes: returned.masters.mixes,
-      masters: returned.masters.masters
+      restored,
+      wips: record.masters.wips,
+      mixes: record.masters.mixes,
+      masters: record.masters.masters
     })
   }
 
-  /** Moves a project's current final back into its folder. Disk only. */
-  private async returnFinalMaster(record: ProjectRecord): Promise<ProjectRecord> {
+  /**
+   * Moves a project's current final back into its folder. Disk only.
+   *
+   * Returns a descriptor of what landed, for the register to splice back into
+   * the project's audio list — or null when there was no final, or when the
+   * file had already gone from under us. The caller reads the mark buckets off
+   * its own copy of the record; nothing here touches them.
+   *
+   * The name can be taken by the time the file comes home, so the destination
+   * goes through `freeFilePath`. See it for why a demotion must never be a dead
+   * end.
+   */
+  private async returnFinalMaster(record: ProjectRecord): Promise<MediaFile | null> {
     const current = record.masters.final
-    if (!current) return record
+    if (!current) return null
 
-    if (await pathExists(current)) {
-      await moveFile(current, join(record.path, basename(current)))
-      logger.info(`Returned ${basename(current)} to ${record.name}`)
-    } else {
+    if (!(await pathExists(current))) {
       // Gone from under us — deleted in Explorer, most likely. Clearing the
       // record is still the right outcome; refusing would leave the project
       // permanently claiming a final that does not exist.
       logger.warn(`Final master for ${record.name} was already gone from ${current}`)
+      return null
     }
 
-    return record
+    const destination = await freeFilePath(record.path, basename(current))
+    await moveFile(current, destination)
+    logger.info(`Returned ${basename(destination)} to ${record.name}`)
+
+    /*
+     * Described exactly as the scanner would describe it — see `inventory` in
+     * scanner.ts — so the entry spliced into the register now is the same one
+     * the next scan will produce, and the dossier does not visibly shift when
+     * that scan lands.
+     */
+    const info = await stat(destination)
+    return {
+      path: destination,
+      fileName: basename(destination),
+      relativePath: relative(record.path, destination).split(sep).join('/'),
+      sizeBytes: info.size,
+      modifiedAt: info.mtimeMs
+    }
   }
 
   // ------------------------------------------------------------ recycle bin

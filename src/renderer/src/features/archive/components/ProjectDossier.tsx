@@ -136,6 +136,11 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
   const failure = [
     mutations.patch.error,
     mutations.addNote.error,
+    // Swapping and unlinking the final master both move a file on disk and are
+    // refused outright during a scan. The dialog reports its own failures; an
+    // unlink has no dialog, so this bar is the only place it could surface.
+    mutations.setFinal.error,
+    mutations.clearFinal.error,
     // A tag name already taken is refused by the service, and this notice bar
     // is the only place in the dossier that can say so.
     tagMutations.create.error,

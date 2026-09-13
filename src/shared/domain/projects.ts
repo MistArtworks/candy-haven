@@ -242,10 +242,14 @@ export const MasterSelectionSchema = z.object({
    *
    * Designating a final **moves** the bounce into
    * `Candy Haven\Release Mastered Tracks` under a name the operator types, so
-   * this path points there rather than into the project folder. Demoting moves
-   * it back, keeping that name. One file, one place: the directory is an
-   * accurate list of finished tracks precisely because there is nowhere else
-   * the audio could be.
+   * this path points there rather than into the project folder. One file, one
+   * place: the directory is an accurate list of finished tracks precisely
+   * because there is nowhere else the audio could be.
+   *
+   * Demoting moves it back, keeping that name — suffixed `(2)` only if the
+   * operator has since bounced something else under it — and re-marks it a
+   * master on the way in, so it is immediately available to ship again. That is
+   * what makes swapping a final reversible without a rescan.
    */
   final: z.string().nullable().default(null)
 })

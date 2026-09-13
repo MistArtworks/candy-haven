@@ -1,16 +1,9 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode
-} from 'react'
+import { useState, type ReactNode } from 'react'
 import type { ProjectSummary } from '@shared/domain/projects'
 import type { ArchiveFolder } from '@shared/domain/stacks'
 import type { VolumeSummary } from '@shared/domain/volumes'
-import { Portal } from '@renderer/components/primitives/Portal'
 import { VOLUME_KIND_LABEL } from '@shared/domain/volumes.constants'
+import { MenuDivider, MenuItem as Item, MenuLabel, MenuSurface } from './MenuSurface'
 import styles from '../stacks/stacks.module.scss'
 
 /** What was right-clicked, and where. */
@@ -59,66 +52,20 @@ export interface ContextMenuProps {
 /**
  * The right-click menu for folders, projects and volumes.
  *
- * Built in the renderer rather than through Electron's native `Menu.popup`,
- * which the app already installs for text fields. Two reasons: the native menu
- * cannot render a colour swatch beside each destination in the "File to…" list,
- * and a native menu on Windows is drawn in the system's own chrome — a plain
- * grey rectangle in the middle of a page whose entire premise is that it is a
- * console from somewhere else.
- *
- * The existing native handler bails out on targets that are neither editable
- * nor selected text, so it does not fight this.
+ * Three menus in one component because the three targets share a shape: a
+ * heading naming the thing, its verbs, then the destructive ones below a rule.
+ * The panel itself — placement and dismissal — belongs to `MenuSurface`, which
+ * the dossier's final-master menu draws on too.
  */
 export function ContextMenu(props: ContextMenuProps): ReactNode {
   const { target, onClose } = props
-  const ref = useRef<HTMLDivElement>(null)
-  const [position, setPosition] = useState({ x: target.x, y: target.y })
-
-  // Dismiss on anything that is not a click inside the menu. `pointerdown`
-  // rather than `click` so the menu is gone before whatever was underneath it
-  // starts reacting.
-  useEffect(() => {
-    const onPointerDown = (event: PointerEvent): void => {
-      if (!ref.current?.contains(event.target as Node)) onClose()
-    }
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose()
-    }
-
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    window.addEventListener('resize', onClose)
-
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('resize', onClose)
-    }
-  }, [onClose])
-
-  // Nudge back inside the viewport when opened near an edge — measured after
-  // layout, because the menu's height depends on how many folders exist.
-  useLayoutEffect(() => {
-    const element = ref.current
-    if (!element) return
-
-    const { width, height } = element.getBoundingClientRect()
-    setPosition({
-      x: Math.min(target.x, window.innerWidth - width - 8),
-      y: Math.min(target.y, window.innerHeight - height - 8)
-    })
-  }, [target.x, target.y])
-
-  const style = { left: position.x, top: position.y } as CSSProperties
 
   return (
-    <Portal>
-      <div ref={ref} className={styles.menu} style={style} role="menu">
-        {target.kind === 'folder' ? <FolderItems {...props} folder={target.folder} /> : null}
-        {target.kind === 'project' ? <ProjectItems {...props} project={target.project} /> : null}
-        {target.kind === 'volume' ? <VolumeItems {...props} volume={target.volume} /> : null}
-      </div>
-    </Portal>
+    <MenuSurface x={target.x} y={target.y} onClose={onClose}>
+      {target.kind === 'folder' ? <FolderItems {...props} folder={target.folder} /> : null}
+      {target.kind === 'project' ? <ProjectItems {...props} project={target.project} /> : null}
+      {target.kind === 'volume' ? <VolumeItems {...props} volume={target.volume} /> : null}
+    </MenuSurface>
   )
 }
 
@@ -201,35 +148,6 @@ function FilingPicker({
   )
 }
 
-function Item({
-  label,
-  onClick,
-  disabled,
-  danger,
-  swatch
-}: {
-  label: string
-  onClick?: () => void
-  disabled?: boolean
-  danger?: boolean
-  swatch?: string
-}): ReactNode {
-  return (
-    <button
-      type="button"
-      className={styles.menuItem}
-      role="menuitem"
-      disabled={disabled}
-      data-danger={danger || undefined}
-      style={swatch ? ({ '--folder-colour': swatch } as CSSProperties) : undefined}
-      onClick={onClick}
-    >
-      <span>{label}</span>
-      {swatch ? <span className={styles.menuSwatch} aria-hidden="true" /> : null}
-    </button>
-  )
-}
-
 function FolderItems({
   folder,
   onOpenFolder,
@@ -246,11 +164,11 @@ function FolderItems({
   if (folder.trashedAt !== null) {
     return (
       <>
-        <span className={styles.menuLabel}>{folder.name}</span>
+        <MenuLabel>{folder.name}</MenuLabel>
         <Item label="Restore" onClick={() => onRestoreFolder(folder)} />
         <Item label="Show in Explorer" onClick={() => onReveal(folder.path)} />
 
-        <div className={styles.menuDivider} />
+        <MenuDivider />
 
         <Item label="Delete permanently" danger onClick={() => onPurgeFolder(folder)} />
       </>
@@ -259,7 +177,7 @@ function FolderItems({
 
   return (
     <>
-      <span className={styles.menuLabel}>{folder.name}</span>
+      <MenuLabel>{folder.name}</MenuLabel>
 
       <Item label="Open" onClick={() => onOpenFolder(folder.id)} />
       <Item label="New project here" onClick={() => onNewProject(folder)} />
@@ -270,7 +188,7 @@ function FolderItems({
       />
       <Item label="Show in Explorer" onClick={() => onReveal(folder.path)} />
 
-      <div className={styles.menuDivider} />
+      <MenuDivider />
 
       <Item label="Delete to the bin" danger onClick={() => onDeleteFolder(folder)} />
     </>
@@ -302,12 +220,12 @@ function ProjectItems({
   if (project.trashedAt !== null) {
     return (
       <>
-        <span className={styles.menuLabel}>{project.name}</span>
+        <MenuLabel>{project.name}</MenuLabel>
 
         <Item label="Restore" onClick={() => onRestoreProject(project)} />
         <Item label="Show in Explorer" onClick={() => onReveal(project.path)} />
 
-        <div className={styles.menuDivider} />
+        <MenuDivider />
 
         <Item label="Delete permanently" danger onClick={() => onPurgeProject(project)} />
       </>
@@ -316,7 +234,7 @@ function ProjectItems({
 
   return (
     <>
-      <span className={styles.menuLabel}>{project.name}</span>
+      <MenuLabel>{project.name}</MenuLabel>
 
       <Item label="Open in Ableton" onClick={() => onOpenInLive(project.id)} />
       <Item label="Open record" onClick={() => onOpenProject(project.id)} />
@@ -326,8 +244,8 @@ function ProjectItems({
       />
       <Item label="Show in Explorer" onClick={() => onReveal(project.path)} />
 
-      <div className={styles.menuDivider} />
-      <span className={styles.menuLabel}>File to</span>
+      <MenuDivider />
+      <MenuLabel>File to</MenuLabel>
 
       <FilingPicker
         folders={filingTargets}
@@ -335,8 +253,8 @@ function ProjectItems({
         onFile={(folderId) => onFileProject(project.id, folderId)}
       />
 
-      <div className={styles.menuDivider} />
-      <span className={styles.menuLabel}>Part of</span>
+      <MenuDivider />
+      <MenuLabel>Part of</MenuLabel>
 
       <div className={styles.menuScroll}>
         <Item
@@ -360,7 +278,7 @@ function ProjectItems({
         )}
       </div>
 
-      <div className={styles.menuDivider} />
+      <MenuDivider />
 
       {/*
         Two removals, deliberately worded to be hard to confuse. FORGET is the
@@ -381,7 +299,7 @@ function VolumeItems({
 }: ContextMenuProps & { volume: VolumeSummary }): ReactNode {
   return (
     <>
-      <span className={styles.menuLabel}>{volume.title}</span>
+      <MenuLabel>{volume.title}</MenuLabel>
 
       <Item label="Edit" onClick={() => onEditVolume(volume)} />
       <Item
@@ -389,7 +307,7 @@ function VolumeItems({
         onClick={() => onToggleFavourite({ kind: 'volume', volume, x: 0, y: 0 })}
       />
 
-      <div className={styles.menuDivider} />
+      <MenuDivider />
 
       {/*
         Not marked danger, and not worded as a deletion of anything real: a

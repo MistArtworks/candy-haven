@@ -1,5 +1,5 @@
 import { copyFile, cp, mkdir, readdir, rename, rm, rmdir, stat } from 'node:fs/promises'
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 
@@ -133,6 +133,37 @@ export async function freePath(parent: string, basename: string): Promise<string
   throw new AppError(`Could not find a free name for “${basename}”.`, {
     code: ErrorCode.Validation,
     hint: 'That shelf already holds a thousand projects of this name.',
+    recoverable: false
+  })
+}
+
+/**
+ * `freePath` for a file: the suffix goes *before* the extension.
+ *
+ * `Sugar Rush.wav` becomes `Sugar Rush (2).wav`, where `freePath` would have
+ * produced `Sugar Rush.wav (2)` — a file Windows no longer considers audio, and
+ * which the scanner would not list as a bounce.
+ *
+ * Exists for demoting a final mix and master. It returns to the project folder
+ * under the name the operator gave it when it shipped, and by then they may
+ * well have bounced something new under that same name. `moveFile` refuses to
+ * overwrite, quite rightly, so without this the demotion is simply a dead end.
+ */
+export async function freeFilePath(parent: string, fileName: string): Promise<string> {
+  const desired = join(parent, fileName)
+  if (!(await pathExists(desired))) return desired
+
+  const extension = extname(fileName)
+  const stem = extension ? fileName.slice(0, -extension.length) : fileName
+
+  for (let suffix = 2; suffix <= 999; suffix += 1) {
+    const candidate = join(parent, `${stem} (${suffix})${extension}`)
+    if (!(await pathExists(candidate))) return candidate
+  }
+
+  throw new AppError(`Could not find a free name for “${fileName}”.`, {
+    code: ErrorCode.Validation,
+    hint: 'That folder already holds a thousand files of this name.',
     recoverable: false
   })
 }

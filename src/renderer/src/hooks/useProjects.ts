@@ -156,6 +156,19 @@ export function useProjectMutations(): {
     { id: string; noteId: string; draft: NoteDraft }
   >
   deleteNote: UseMutationResult<ProjectRecord, Error, { id: string; noteId: string }>
+  /**
+   * Promoting a bounce to the project's final mix and master.
+   *
+   * A real mutation rather than a bare IPC call because a *swap* changes no
+   * stage — nothing else would invalidate the register afterwards, and the
+   * dossier would keep drawing the file that just left the folder.
+   */
+  setFinal: UseMutationResult<
+    ProjectRecord,
+    Error,
+    { id: string; sourcePath: string; name: string }
+  >
+  clearFinal: UseMutationResult<ProjectRecord, Error, string>
   forget: UseMutationResult<void, Error, string>
   trash: UseMutationResult<ProjectRecord, Error, string>
   restore: UseMutationResult<ProjectRecord, Error, string>
@@ -183,6 +196,15 @@ export function useProjectMutations(): {
     }),
     deleteNote: useMutation({
       mutationFn: ({ id, noteId }) => window.candy.projects.deleteNote(id, noteId),
+      onSuccess
+    }),
+    setFinal: useMutation({
+      mutationFn: ({ id, sourcePath, name }) =>
+        window.candy.projects.setFinal(id, sourcePath, name),
+      onSuccess
+    }),
+    clearFinal: useMutation({
+      mutationFn: (id: string) => window.candy.projects.clearFinal(id),
       onSuccess
     }),
     forget: useMutation({

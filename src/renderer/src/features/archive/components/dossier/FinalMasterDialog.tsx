@@ -37,6 +37,15 @@ export interface FinalMasterDialogProps {
  * project for `Release Mastered Tracks`, and the name it lands under is the
  * name of the finished track rather than whatever the bounce was called at
  * 3am. Asking afterwards would mean a rename of a file already moved.
+ *
+ * The same dialog handles a **swap**, reached by right-clicking the final in
+ * MIX AND MASTER. It is the same question with one more fact in it — that
+ * something is already shipping and is about to come home — so it is the same
+ * dialog with the wording turned, rather than a second one to keep in step. The
+ * name defaults to what the track already ships as: swapping is a statement
+ * about which *file* is right, not about what the track is called, and
+ * re-deriving the name from the project would quietly rename a finished track
+ * every time its mix was corrected.
  */
 export function FinalMasterDialog({
   project,
@@ -50,8 +59,17 @@ export function FinalMasterDialog({
     ...project.masters.mixes.map((path) => ({ path, mark: 'mix' as const }))
   ]
 
+  /** The file already shipping, if any. Its presence is what makes this a swap. */
+  const outgoing = project.masters.final?.split('\\').pop() ?? null
+
   const [chosen, setChosen] = useState<string | null>(candidates[0]?.path ?? null)
-  const [name, setName] = useState(() => project.name)
+  const [name, setName] = useState(() => {
+    if (!outgoing) return project.name
+    // Without its extension: the field asks for a track name, and the service
+    // puts the extension back from whichever file is chosen.
+    const dot = outgoing.lastIndexOf('.')
+    return dot > 0 ? outgoing.slice(0, dot) : outgoing
+  })
 
   const canSubmit = chosen !== null && name.trim().length > 0 && !busy
   const submit = (): void => {
@@ -76,21 +94,38 @@ export function FinalMasterDialog({
           className={styles.dialog}
           role="dialog"
           aria-modal="true"
-          aria-label="Choose the final mix and master"
+          aria-label={
+            outgoing ? 'Swap the final mix and master' : 'Choose the final mix and master'
+          }
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18 }}
         >
           <header className={styles.dialogHead}>
-            <span className={styles.dialogTitle}>Which file ships?</span>
+            <span className={styles.dialogTitle}>
+              {outgoing ? 'Swap the final?' : 'Which file ships?'}
+            </span>
             <span className={styles.dialogWhere}>{project.name}</span>
           </header>
 
           <div className={styles.dialogBody}>
+            {/*
+              What leaves, said before what arrives is chosen. The outgoing file
+              is about to be moved off the operator's disk and back into the
+              project, and a dialog that only asked which file to promote would
+              be describing half of what the button does.
+            */}
+            {outgoing ? (
+              <p className={local.hint}>
+                <strong>{outgoing}</strong> goes back into the project, marked as a master.
+              </p>
+            ) : null}
+
             {candidates.length === 0 ? (
               <p className={local.warn}>
-                Nothing is marked as a mix or a master yet. Mark one in MIX AND MASTER first — the
-                final is chosen from what you marked.
+                {outgoing
+                  ? 'Nothing else is marked as a mix or a master. Mark another bounce in MIX AND MASTER first — the final is swapped for one of those.'
+                  : 'Nothing is marked as a mix or a master yet. Mark one in MIX AND MASTER first — the final is chosen from what you marked.'}
               </p>
             ) : (
               <div className={local.fileList} role="radiogroup" aria-label="Candidates">
@@ -128,7 +163,11 @@ export function FinalMasterDialog({
               onChange={setName}
               placeholder="Track name"
               maxLength={120}
-              hint={`Moves to ${RELEASE_MASTERED_TRACKS_DIRECTORY_NAME}. The extension is kept.`}
+              hint={
+                outgoing
+                  ? `Ships from ${RELEASE_MASTERED_TRACKS_DIRECTORY_NAME} under this name. The extension is kept.`
+                  : `Moves to ${RELEASE_MASTERED_TRACKS_DIRECTORY_NAME}. The extension is kept.`
+              }
             />
 
             {error ? (
@@ -143,7 +182,7 @@ export function FinalMasterDialog({
               Cancel
             </Button>
             <Button variant="primary" size="sm" busy={busy} disabled={!canSubmit} onClick={submit}>
-              Ship it
+              {outgoing ? 'Swap it' : 'Ship it'}
             </Button>
           </div>
         </motion.div>

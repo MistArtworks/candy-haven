@@ -5,6 +5,7 @@ import { nativeImage, shell } from 'electron'
 import type { AnyBulkWriteOperation } from 'mongodb'
 import type {
   AbletonAnalysis,
+  MediaFile,
   NoteDraft,
   ProjectCategory,
   ProjectPatch,
@@ -23,6 +24,7 @@ import {
   createEmptyScanState,
   evaluateReadiness,
   getStage,
+  previousStage,
   requiresVolume
 } from '@shared/domain/projects.constants'
 import type { ArchiveTag, TagSummary } from '@shared/domain/tags'
@@ -597,37 +599,82 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
    * old path is stale; the next scan would drop them anyway, and doing it here
    * means the dossier is correct immediately rather than one scan later.
    *
-   * A demoted file is deliberately *not* added back to either bucket. It
-   * returns under the name the operator typed, not the one it was marked
-   * under, so the mark no longer describes anything that exists — and the scan
-   * will list it as ordinary audio again on its next pass.
+   * `restored` is the mirror of that, and is what makes a swap reversible. A
+   * demoted file is put straight back into the audio list and marked a MASTER
+   * — the honest mark, since it is the file that shipped. Leaving it out was
+   * the older behaviour and the reasoning has not survived contact with the
+   * operation: it argued that a mark on the file's *old* path no longer
+   * describes anything, which is true, but the descriptor here carries the
+   * *new* path, which describes exactly what is now on disk. Without this the
+   * returned file is invisible until the next scan and cannot be re-chosen at
+   * all, because `setFinalMaster` only accepts a marked candidate.
+   *
+   * Unlinking also steps the stage back. TRACK READY carries `requiresMaster`,
+   * so a project left there with no final is claiming a stage it no longer
+   * qualifies for — the one state this whole pairing exists to prevent.
    */
   async applyFinalMaster(
     id: string,
     change: {
       final: string | null
       removedPath: string | null
+      /** The demoted file, as it now sits in the project folder. */
+      restored?: MediaFile | null
       wips: readonly string[]
       mixes: readonly string[]
       masters: readonly string[]
     }
   ): Promise<ProjectRecord> {
     const current = await this.get(id)
+    const restored = change.restored ?? null
+
     const drop = (paths: readonly string[]): string[] =>
       change.removedPath ? paths.filter((path) => path !== change.removedPath) : [...paths]
 
-    const next: ProjectRecord = {
+    const masters = drop(change.masters)
+    if (restored && !masters.includes(restored.path)) masters.push(restored.path)
+
+    const audio = change.removedPath
+      ? current.audio.filter((file) => file.path !== change.removedPath)
+      : [...current.audio]
+
+    if (restored && !audio.some((file) => file.path === restored.path)) {
+      audio.push(restored)
+      // Newest first, matching how `inventory` leaves the list. Appending would
+      // put the returned file at the bottom of the panel until a scan silently
+      // moved it back to the top.
+      audio.sort((a, b) => b.modifiedAt - a.modifiedAt)
+    }
+
+    // The folder's total, kept in step with the two files that just crossed its
+    // boundary. A rescan recomputes it either way; this stops RECORD reporting
+    // a size that visibly jumps the moment one runs.
+    const promotedBytes =
+      current.audio.find((file) => file.path === change.removedPath)?.sizeBytes ?? 0
+    const sizeBytes = Math.max(
+      0,
+      current.sizeBytes - promotedBytes + (restored ? restored.sizeBytes : 0)
+    )
+
+    let next: ProjectRecord = {
       ...current,
       masters: {
         wips: drop(change.wips),
         mixes: drop(change.mixes),
-        masters: drop(change.masters),
+        masters,
         final: change.final
       },
-      audio: change.removedPath
-        ? current.audio.filter((file) => file.path !== change.removedPath)
-        : current.audio,
+      audio,
+      sizeBytes,
       updatedAt: Date.now()
+    }
+
+    if (change.final === null && getStage(next.stage).requiresMaster) {
+      next = this.applyStageChange(
+        next,
+        previousStage(next.stage) ?? 'master',
+        'Final mix and master unlinked'
+      )
     }
 
     await this.repository.replace(next)
