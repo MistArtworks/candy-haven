@@ -2,8 +2,9 @@ import { useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { ArchiveSetupState } from '@shared/domain/stacks'
 import {
+  PROJECTS_DIRECTORY_NAME,
   RECYCLE_BIN_DIRECTORY_NAME,
-  RELEASES_DIRECTORY_NAME,
+  RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
   WRAPPER_DIRECTORY_NAME
 } from '@shared/domain/stacks.constants'
 import { Button } from '@renderer/components/primitives/Button'
@@ -68,6 +69,33 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
   const root = pickedRoot ?? state?.filingRoot ?? state?.suggestedRoot ?? null
   const template = pickedTemplate ?? state?.templatePath ?? null
 
+  /*
+   * Locations already configured, shown rather than assumed absent.
+   *
+   * Derived from the fetched state for the same reason `root` and `template`
+   * are — and this was the one field that missed it. It kept a local list that
+   * started empty, so the gate read "None added" while REGULATION listed roots
+   * the operator had already set, and the two screens disagreed about a single
+   * setting.
+   *
+   * Shown as configured rather than removable because submitting is additive:
+   * the service merges what is sent with what is stored, so a shorter list
+   * cannot express a removal. REGULATION owns the persistent list and is where
+   * one is taken away.
+   */
+  const savedSources = state?.satelliteRoots ?? []
+
+  /*
+   * Anything since saved drops out of the local list rather than being drawn
+   * twice. The gate unmounts the moment setup succeeds, so this rarely fires —
+   * but it makes the list right on any refetch, instead of right only because
+   * the parent happened to unmount first.
+   */
+  const pendingSources = sources.filter(
+    (entry) => !savedSources.some((saved) => samePath(saved, entry))
+  )
+  const totalSources = savedSources.length + pendingSources.length
+
   /** True when the field is showing a root the operator configured previously. */
   const usingSaved =
     pickedRoot === null && state?.filingRoot !== null && state?.filingRoot !== undefined
@@ -95,8 +123,10 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
       )
       if (!selected) return
       setSources((current) =>
-        // Case-insensitive on Windows: the same folder picked twice is one root.
-        current.some((entry) => entry.toLowerCase() === selected.toLowerCase())
+        // Case-insensitive on Windows: the same folder picked twice is one
+        // root. Weighed against what is already saved too, or re-picking a
+        // configured location would list it a second time.
+        [...savedSources, ...current].some((entry) => samePath(entry, selected))
           ? current
           : [...current, selected]
       )
@@ -225,9 +255,17 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
             to be dragged onto a shelf. You can add more later from the INDEXING panel.
           </p>
 
-          {sources.length > 0 ? (
+          {totalSources > 0 ? (
             <ul className={styles.sourceList}>
-              {sources.map((source) => (
+              {savedSources.map((source) => (
+                <li key={`saved:${source}`} className={styles.source}>
+                  <span className={styles.value} title={source}>
+                    {source}
+                  </span>
+                  <span className={styles.provenance}>Already set</span>
+                </li>
+              ))}
+              {pendingSources.map((source) => (
                 <li key={source} className={styles.source}>
                   <span className={styles.value} title={source}>
                     {source}
@@ -249,9 +287,9 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
 
           <div className={styles.stepAction}>
             <span className={styles.value}>
-              {sources.length === 0
+              {totalSources === 0
                 ? 'None added'
-                : `${sources.length} location${sources.length === 1 ? '' : 's'}`}
+                : `${totalSources} location${totalSources === 1 ? '' : 's'}`}
             </span>
             <Button size="sm" onClick={addSource} busy={choosing === 'source'}>
               Add
@@ -270,7 +308,8 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
         <pre className={styles.tree}>
           {`${root ?? '<archive location>'}
   ${WRAPPER_DIRECTORY_NAME}\\
-    ${RELEASES_DIRECTORY_NAME}\\
+    ${PROJECTS_DIRECTORY_NAME}\\
+    ${RELEASE_MASTERED_TRACKS_DIRECTORY_NAME}\\
     ${RECYCLE_BIN_DIRECTORY_NAME}\\`}
         </pre>
         <p className={styles.previewNote}>

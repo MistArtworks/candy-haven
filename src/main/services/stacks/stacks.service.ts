@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { basename, dirname, extname, join } from 'node:path'
+import { basename, dirname, extname, join, resolve } from 'node:path'
 import { app, shell } from 'electron'
 import type { ProjectDraft, ProjectRecord } from '@shared/domain/projects'
 import { requiresVolume } from '@shared/domain/projects.constants'
@@ -286,14 +286,23 @@ export class StacksService {
      * anyway, and listing it twice would double every directory count in the
      * scan readout for no extra coverage.
      */
-    const satelliteRoots = [
-      ...new Set(
-        [...this.settings.snapshot.workspace.satelliteRoots, ...draft.sourceRoots]
-          .filter((root) => !samePath(root, draft.filingRoot))
-          .map((root) => root.trim())
-          .filter(Boolean)
-      )
-    ]
+    const byPath = new Map<string, string>()
+    for (const root of [...this.settings.snapshot.workspace.satelliteRoots, ...draft.sourceRoots]) {
+      const trimmed = root.trim()
+      if (!trimmed || samePath(trimmed, draft.filingRoot)) continue
+      /*
+       * Keyed on a normalised path, stored with the operator's own spelling.
+       *
+       * A plain Set compares case-sensitively, so the same folder reached by
+       * two spellings survived as two entries and was then walked twice. The
+       * key matches what `samePath` does so the two agree; the value keeps the
+       * casing the operator picked, because that is what the settings screens
+       * show back to them.
+       */
+      const key = resolve(trimmed).toLowerCase()
+      if (!byPath.has(key)) byPath.set(key, trimmed)
+    }
+    const satelliteRoots = [...byPath.values()]
 
     await this.settings.update({
       workspace: {
