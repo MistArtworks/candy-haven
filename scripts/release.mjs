@@ -36,7 +36,7 @@ import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
@@ -117,7 +117,23 @@ function build() {
    * reason electron-builder is: Node refuses to spawn a `.cmd` without a shell,
    * and on Windows every npm shim is one.
    */
-  run(process.execPath, [require.resolve('electron-vite/bin/electron-vite.js'), 'build'])
+  /*
+   * Found through the package's manifest rather than by its subpath.
+   *
+   * `electron-vite` declares an `exports` map and `bin/` is not in it, so
+   * asking for `electron-vite/bin/electron-vite.js` throws
+   * ERR_PACKAGE_PATH_NOT_EXPORTED rather than returning the file that is
+   * sitting right there. `package.json` *is* exported, which gives the package
+   * root, and its `bin` field says what to run — so the path this spawns stays
+   * theirs to change rather than being copied into this script.
+   *
+   * electron-builder needs none of this: it declares no exports map at all, so
+   * its subpath resolves directly.
+   */
+  const manifest = require.resolve('electron-vite/package.json')
+  const electronVite = join(dirname(manifest), require(manifest).bin['electron-vite'])
+
+  run(process.execPath, [electronVite, 'build'])
 
   const cli = require.resolve('electron-builder/out/cli/cli.js')
 
