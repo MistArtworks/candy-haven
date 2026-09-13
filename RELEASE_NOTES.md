@@ -1,4 +1,4 @@
-Candy Haven explains itself now. There is a manual in the console, a quick guide on every department, and a tour on first launch — plus multi-select filing, a new landing, an AUDITORIUM you can read closely, and a way to rehearse the broadcast kit without an audience.
+Candy Haven explains itself now. There is a manual in the console, a quick guide on every department, and a tour on first launch — plus multi-select filing, a new landing, an AUDITORIUM you can read closely, a way to rehearse the broadcast kit without an audience, and settings that survive a reinstall.
 
 ## CATECHISM
 
@@ -47,6 +47,18 @@ Every overlay in OBSERVATORY is built to be filled by a crowd, which made the de
 Turn on **REGULATION → REHEARSAL** and THE MUSTER and RESONANCE SELECTION each grow a **Simulator** panel, joining the one THE CONCORD already had. The muster fills the roll with synthetic filings; the ring fills the roster with weighted petitions.
 
 Nothing is written into the overlay directly — a simulated filing goes through the real chat command, the real per-citizen limit and the real duplicate rule. So the ceilings bite, and that is the point: ask for sixty filings on a roll that holds forty and forty arrive, the rest are turned away, and the count says so.
+
+## Settings that outlive an installation
+
+Two things, both about configuration surviving longer than the copy of Candy Haven holding it.
+
+**The uninstaller asks what to keep.** Two boxes on its welcome page, both ticked: **keep my settings** and **keep my archive**. They are separate deliberately — settings are a few kilobytes of REGULATION that cost minutes to retype, while the archive is the register, hundreds of megabytes of project records, stages, tags, notes and volumes that exist nowhere else. One box covering both would mean resetting your preferences cost you the whole register to do it.
+
+Leave both ticked and a later reinstall comes back exactly as you left it. Your project folders on disk are never touched either way, whatever is ticked. A silent uninstall keeps both, so an unattended removal can never take an archive with it.
+
+**Export and import.** REGULATION's masthead writes everything the department holds to one zip — settings, the board configuration, the Spotify link, and a manifest saying what is inside. Import reads one back, validating the settings before anything is written, so a damaged or hand-edited file is refused rather than half-applied.
+
+The zip holds credentials; keep it somewhere private. One thing it cannot carry is the Spotify link, which is sealed against the machine that wrote it — it restores perfectly on a reinstall here and simply asks to be linked again anywhere else. And it is configuration only: the archive is a database and is not in there.
 
 ## Projects called "Untitled Project" file properly
 
