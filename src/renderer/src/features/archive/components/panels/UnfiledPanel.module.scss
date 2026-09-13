@@ -153,7 +153,23 @@
 // The row's marking box. Same figure as the tile's — square, hairline, a
 // crimson square held inside it when set — so one gesture is learned once.
 .check {
-  flex-shrink: 0;
+  /*
+   * Down the whole row, exactly as the grip it replaces is.
+   *
+   * The row is `auto 1fr` with three children in it — the leading mark, the
+   * name and the meta — so the mark has to occupy both rows of the first
+   * column or auto-flow puts the *meta* there instead. That is what it was
+   * doing: the box took row one, the name took the cell beside it, and the meta
+   * dropped into column one underneath, which then sized the `auto` track to
+   * the width of "SINGLE · 402.1 KB · 6D" and pushed every name a hundred and
+   * fifty pixels to the right. Each row is its own grid, so each one measured a
+   * different meta and the names came out on a ragged left edge.
+   *
+   * `.grip` had this from the beginning and the layout was right until marking
+   * was added beside it.
+   */
+  grid-row: span 2;
+  align-self: center;
   width: 13px;
   height: 13px;
   padding: 0;
