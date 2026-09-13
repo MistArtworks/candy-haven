@@ -27,6 +27,7 @@ import { Slider } from '@renderer/components/primitives/Slider'
 import { formatLogTime } from '@renderer/lib/format'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useOverlayInfo, useRiteActions, useRiteState } from '@renderer/hooks/useRite'
+import { useSettings } from '@renderer/hooks/useSettings'
 import { RiteRing } from './components/RiteRing'
 import { PetitionRoster } from './components/PetitionRoster'
 import styles from './SelectionPage.module.scss'
@@ -47,6 +48,16 @@ export function SelectionPage(): ReactNode {
   const actions = useRiteActions()
 
   const [copied, setCopied] = useState(false)
+
+  /*
+   * Rehearsal, gated on the persisted setting rather than on `is.dev`.
+   *
+   * As the concord and the muster are. The evening before a stream is when
+   * anybody wants to fill a ring and look at it, and by then they are running
+   * a packaged build.
+   */
+  const settings = useSettings()
+  const testMode = settings?.workspace.testMode ?? false
 
   const spinning = state.phase === 'spinning'
   const canSpin = state.petitions.length > 0 && !spinning
@@ -75,11 +86,20 @@ export function SelectionPage(): ReactNode {
         disabled: !canSpin,
         run: () => void actions.spin()
       },
+      /*
+       * Clearing is on the same chord as everywhere else in the observatory.
+       *
+       * It was `Ctrl+Enter`, which on the two pages either side of this one
+       * *starts* something — puts a question, puts a call. One submit-shaped
+       * chord meaning "begin" on two overlays and "wipe the board" on a third
+       * is the sort of inconsistency that is only ever discovered by wiping
+       * the board. `Ctrl+Shift+X` clears, everywhere, and does not fire from
+       * inside a text field.
+       */
       {
-        chord: 'ctrl+enter',
+        chord: 'ctrl+shift+x',
         label: 'Clear the ring',
         group: 'Selection',
-        whileTyping: true,
         disabled: spinning || (!state.winner && state.phase === 'idle'),
         run: () => void actions.reset()
       }
@@ -410,9 +430,41 @@ export function SelectionPage(): ReactNode {
           </div>
         </Panel>
 
+        {/*
+          A roster, without a chamber. The ring is the one overlay whose look
+          depends entirely on its contents — segment widths, label legibility,
+          how it reads at eight entries against thirty — and none of that can be
+          judged against an empty roster.
+        */}
+        {testMode ? (
+          <Panel label="Simulator" index="06" className={styles.span2}>
+            <div className={styles.simulator}>
+              <p className={styles.hint}>
+                Files synthetic petitions through the real roster — the same label normalisation,
+                duplicate fold and ceiling a typed entry gets. Every third carries extra weight, so
+                the ring is not a set of equal segments.
+              </p>
+              <div className={styles.simulatorRow}>
+                {[6, 16, 32].map((count) => (
+                  <Button
+                    key={count}
+                    size="sm"
+                    variant="ghost"
+                    disabled={spinning}
+                    onClick={() => void window.candy.rite.simulate(count)}
+                  >
+                    +{count}
+                  </Button>
+                ))}
+              </div>
+              {spinning ? <p className={styles.hint}>The roster is locked while it runs.</p> : null}
+            </div>
+          </Panel>
+        ) : null}
+
         <Panel
           label="Record"
-          index="06"
+          index={testMode ? '07' : '06'}
           className={styles.span6}
           aside={
             state.history.length > 0 ? (

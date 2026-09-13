@@ -27,6 +27,7 @@ import { Collections } from '@main/services/archive/schema'
 import type { ArchiveService } from '../archive/archive.service'
 import type { TwitchChatService } from '../chat/twitch-chat.service'
 import type { SettingsService } from '../settings/settings.service'
+import { syntheticCitizen, syntheticEntry } from './simulacrum'
 import type { OverlayServer } from './overlay-server'
 import type { RiteService } from './rite.service'
 import type { ConcordService } from './concord.service'
@@ -329,6 +330,70 @@ export class MusterService extends TypedEmitter<MusterEvents> {
       entries: [...this.state.entries, this.makeEntry(text, message.display, message.userId)],
       citizens: this.ledger.size
     })
+  }
+
+  /**
+   * Synthetic filings, for rehearsing a call without a chamber.
+   *
+   * The same arrangement the concord's vote simulator uses, for the same
+   * reasons. Gated on the persisted test-mode setting rather than on `is.dev`,
+   * so a packaged console can be rehearsed against the evening before a stream
+   * — which is precisely when anybody wants this — and so there is one answer
+   * to why simulation is unavailable rather than two.
+   *
+   * Filings are routed through `onMessage` rather than pushed into the roll,
+   * which is the part that makes it worth having. What is being exercised is
+   * the real command parser, the real per-citizen ledger, the real duplicate
+   * rule and the real ceiling; a simulator that appended to `entries` would
+   * prove only that arrays can be appended to.
+   *
+   * A consequence worth expecting rather than debugging: ask for forty filings
+   * with the roll capped at forty and a per-citizen limit of one, and forty
+   * arrive. Ask for a hundred and sixty arrive, the rest are turned away, and
+   * `turnedAway` says so — which is the ceiling behaving, not the simulator
+   * failing.
+   */
+  simulate(count: number, options: { oneCitizen?: boolean } = {}): MusterState {
+    if (!this.settings.snapshot.workspace.testMode) {
+      throw new AppError('Filing simulation requires test mode.', {
+        code: ErrorCode.PermissionDenied,
+        hint: 'Enable test mode in REGULATION.',
+        recoverable: false
+      })
+    }
+
+    if (this.state.phase !== 'open') {
+      throw new AppError('Put the call before simulating filings.', {
+        code: ErrorCode.Validation,
+        hint: 'A closed roll takes nothing, which is the rule being exercised.',
+        recoverable: false
+      })
+    }
+
+    const bounded = Math.min(Math.max(Math.round(count), 1), 200)
+    const command = this.state.config.command.trim().toLowerCase()
+    // Offset by what is already on the roll, so a second press adds new titles
+    // instead of re-filing the ones the duplicate rule has already seen.
+    const offset = this.state.entries.length
+
+    for (let index = 0; index < bounded; index += 1) {
+      // One citizen filing repeatedly is how the per-citizen cap is checked:
+      // the roll should stop growing at the limit while the messages keep
+      // arriving, and `citizens` should stay at one.
+      const citizen = syntheticCitizen(options.oneCitizen ? 0 : offset + index)
+
+      this.onMessage({
+        platform: 'twitch',
+        userId: citizen.userId,
+        login: citizen.login,
+        display: citizen.display,
+        text: `!${command} ${syntheticEntry(offset + index)}`,
+        at: Date.now(),
+        badges: []
+      })
+    }
+
+    return this.state
   }
 
   private makeEntry(text: string, author: string, authorId: string): MusterEntry {

@@ -252,6 +252,7 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.rite.setPetitionWeight(id, weight)
   )
   router.handle('rite:petitions-clear', () => services.rite.clearPetitions())
+  router.handle('rite:simulate', ({ count }) => services.rite.simulate(count))
   router.handle('rite:config', (patch) => services.rite.updateConfig(patch))
   router.handle('rite:spin', () => services.rite.spin())
   router.handle('rite:reset', () => services.rite.reset())
@@ -348,6 +349,9 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('muster:open', ({ prompt }) => services.muster.open(prompt))
   router.handle('muster:close', () => services.muster.close())
   router.handle('muster:reset', () => services.muster.reset())
+  router.handle('muster:simulate', ({ count, oneCitizen }) =>
+    services.muster.simulate(count, { oneCitizen })
+  )
   router.handle('muster:config', (patch) => services.muster.updateConfig(patch))
   router.handle('muster:add', (draft) => services.muster.add(draft))
   router.handle('muster:remove', ({ id }) => services.muster.remove(id))

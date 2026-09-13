@@ -130,7 +130,7 @@ export function createServiceContainer(): ServiceContainer {
    * each, and routing it back out through IPC only to come in again would put
    * the renderer in the middle of a main-process concern.
    */
-  const rite = new RiteService(archive, overlayServer)
+  const rite = new RiteService(archive, overlayServer, settings)
   const concord = new ConcordService(archive, overlayServer, chat, settings)
 
   return {

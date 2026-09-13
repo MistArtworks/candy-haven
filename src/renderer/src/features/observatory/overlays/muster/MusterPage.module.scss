@@ -1,5 +1,22 @@
 @use 'abstracts' as *;
 
+// ----------------------------------------------------------------- simulator
+
+// Rehearsal scaffolding. Deliberately plain — it is not a shipped feature, and
+// dressing it up would make it look like one in a screenshot.
+.simulator {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  align-items: flex-start;
+}
+
+.simulatorRow {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
 // THE MUSTER — host surface.
 //
 // The roll is the focal object rather than the preview, which is a departure

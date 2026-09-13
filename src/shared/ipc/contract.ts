@@ -416,6 +416,17 @@ export const IPC_INVOKE = {
     output: RiteStateSchema
   },
   'rite:petitions-clear': { input: z.void(), output: RiteStateSchema },
+
+  /**
+   * A ring's worth of synthetic petitions.
+   *
+   * Capped at the roster's own ceiling: asking for more than the ring holds is
+   * a request for a full ring, not an error.
+   */
+  'rite:simulate': {
+    input: z.object({ count: z.number().int().min(1).max(48) }),
+    output: RiteStateSchema
+  },
   'rite:config': { input: RiteConfigPatchSchema, output: RiteStateSchema },
   'rite:spin': { input: z.void(), output: RiteStateSchema },
   'rite:reset': { input: z.void(), output: RiteStateSchema },
@@ -586,6 +597,22 @@ export const IPC_INVOKE = {
   'muster:config': { input: MusterConfigPatchSchema, output: MusterStateSchema },
   'muster:add': { input: MusterEntryDraftSchema, output: MusterStateSchema },
   'muster:remove': { input: z.object({ id: z.string() }), output: MusterStateSchema },
+
+  /**
+   * Synthetic filings, for rehearsing a call without a chamber.
+   *
+   * Bounded well below the concord's five thousand, and for a different
+   * reason: a vote is a tally and a filing is a row on a roll, so the ceiling
+   * that matters here is the roll's own forty. Two hundred is enough to run
+   * past it and watch the refusals.
+   */
+  'muster:simulate': {
+    input: z.object({
+      count: z.number().int().min(1).max(200),
+      oneCitizen: z.boolean().optional()
+    }),
+    output: MusterStateSchema
+  },
   /** Reports what fitted: a roll longer than the destination is truncated. */
   'muster:handoff': {
     input: MusterHandoffSchema,

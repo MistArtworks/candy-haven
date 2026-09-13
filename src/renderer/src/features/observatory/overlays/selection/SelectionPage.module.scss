@@ -1,5 +1,22 @@
 @use 'abstracts' as *;
 
+// ----------------------------------------------------------------- simulator
+
+// Rehearsal scaffolding. Deliberately plain — it is not a shipped feature, and
+// dressing it up would make it look like one in a screenshot.
+.simulator {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  align-items: flex-start;
+}
+
+.simulatorRow {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
 .page {
   padding: space(10) space(10) space(12);
   max-width: 1560px;

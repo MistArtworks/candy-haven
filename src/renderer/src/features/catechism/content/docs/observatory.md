@@ -205,3 +205,29 @@ HTML fields.
 REGULATION has a **REHEARSAL** category — test mode, for exercising the kit
 without a live audience. Use it to check an overlay's layout, cues and timings
 before a broadcast rather than finding out during one.
+
+With it on, three overlays grow a **Simulator** panel:
+
+| Overlay             | Fills      | With                             |
+| ------------------- | ---------- | -------------------------------- |
+| THE MUSTER          | the roll   | synthetic filings, 8 / 20 / 60   |
+| RESONANCE SELECTION | the roster | synthetic petitions, 6 / 16 / 32 |
+| THE CONCORD         | the tally  | synthetic votes, 25 / 250 / 1000 |
+
+None of them write to the overlay's state directly. A simulated filing goes
+through the real chat command, the real per-citizen ledger and the real
+duplicate rule; a simulated vote through the real parser and the real counting
+path. That is the point — a simulator that appended to an array would prove
+only that arrays can be appended to.
+
+So expect the ceilings to bite, because they are the thing being exercised. Ask
+the muster for sixty filings on a roll that holds forty and forty arrive, the
+rest are turned away, and the count beside the roll says so.
+
+Each also carries a second button that files repeatedly **as one person** or
+reuses voter ids, which is how the per-citizen caps are checked: the messages
+keep arriving, the roll or the tally stops growing, and the citizen count holds.
+
+It is gated on the setting rather than on a development build, deliberately.
+The evening before a stream is exactly when anybody wants to fill a ring and
+look at it, and by then you are running an installed copy.

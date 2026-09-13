@@ -23,6 +23,8 @@ import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import { TypedEmitter } from '@main/core/emitter'
 import type { ArchiveService } from '../archive/archive.service'
+import type { SettingsService } from '../settings/settings.service'
+import { syntheticCitizen, syntheticEntry } from './simulacrum'
 import type { OverlayServer } from './overlay-server'
 import { RiteRepository } from './rite.repository'
 
@@ -60,7 +62,9 @@ export class RiteService extends TypedEmitter<RiteEvents> {
   constructor(
     archive: ArchiveService,
     /** Shared with the timers: one server serves every overlay. */
-    private readonly server: OverlayServer
+    private readonly server: OverlayServer,
+    /** Read for one thing only: whether rehearsal is permitted. */
+    private readonly settings: SettingsService
   ) {
     super()
     this.repository = new RiteRepository(archive)
@@ -98,6 +102,51 @@ export class RiteService extends TypedEmitter<RiteEvents> {
   }
 
   // ------------------------------------------------------------------ roster
+
+  /**
+   * A ring's worth of synthetic petitions, for rehearsal.
+   *
+   * The ring is the one overlay whose *look* depends entirely on its contents —
+   * segment widths, label legibility, how the wheel reads at eight entries
+   * against thirty — and none of that can be judged against an empty roster.
+   * This fills it.
+   *
+   * Routed through `addPetition`, so the label normalisation, the duplicate
+   * fold and the ceiling all apply exactly as they would to a hand-typed entry.
+   * Weights vary because a ring of equal segments is the one case that never
+   * shows whether weighting is drawn correctly.
+   *
+   * Gated on test mode, matching the concord and the muster. Stops quietly at
+   * the ceiling rather than throwing: the caller asked for a full ring, and a
+   * full ring is what a full ring looks like.
+   */
+  simulate(count: number): RiteState {
+    if (!this.settings.snapshot.workspace.testMode) {
+      throw new AppError('Petition simulation requires test mode.', {
+        code: ErrorCode.PermissionDenied,
+        hint: 'Enable test mode in REGULATION.',
+        recoverable: false
+      })
+    }
+
+    const bounded = Math.min(Math.max(Math.round(count), 1), MAX_PETITIONS)
+    const offset = this.state.petitions.length
+
+    for (let index = 0; index < bounded; index += 1) {
+      if (this.state.petitions.length >= MAX_PETITIONS) break
+
+      const citizen = syntheticCitizen(offset + index)
+      this.addPetition({
+        label: syntheticEntry(offset + index),
+        // Mostly one, occasionally heavier — a roster where every third entry
+        // carries extra weight, which is enough to see on the ring.
+        weight: index % 3 === 0 ? 2 + (index % 3) : 1,
+        filedBy: citizen.display
+      })
+    }
+
+    return this.state
+  }
 
   addPetition(draft: PetitionDraft): RiteState {
     this.assertIdle('The roster is locked while a selection is running.')

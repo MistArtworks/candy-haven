@@ -256,6 +256,8 @@ export interface CandyHavenApi {
     /** Clears the result and returns the ring to rest, keeping the roster. */
     reset(): Promise<RiteState>
     clearHistory(): Promise<RiteState>
+    /** A ring's worth of synthetic petitions. Refused outside test mode. */
+    simulate(count: number): Promise<RiteState>
     onState(listener: (state: RiteState) => void): Unsubscribe
   }
   /**
@@ -277,7 +279,7 @@ export interface CandyHavenApi {
     /** Returns to drafting, keeping the ballot and clearing the votes. */
     reset(): Promise<ConcordState>
     clearHistory(): Promise<ConcordState>
-    /** Synthetic votes. Rejected outside development. */
+    /** Synthetic votes. Refused outside test mode. */
     simulate(count: number, changeVotes?: boolean): Promise<ConcordState>
     onState(listener: (state: ConcordState) => void): Unsubscribe
   }
@@ -368,6 +370,14 @@ export interface CandyHavenApi {
     remove(id: string): Promise<MusterState>
     /** Reports what fitted: a roll longer than the destination is truncated. */
     handoff(request: MusterHandoff): Promise<{ sent: number; dropped: number }>
+    /**
+     * Synthetic filings, through the real chat path. Refused outside test mode.
+     *
+     * `oneCitizen` files everything as the same person, which is how the
+     * per-citizen cap is checked: the messages keep arriving and the roll stops
+     * growing.
+     */
+    simulate(count: number, oneCitizen?: boolean): Promise<MusterState>
     onState(listener: (state: MusterState) => void): Unsubscribe
   }
   readonly overlay: {

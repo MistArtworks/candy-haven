@@ -30,6 +30,7 @@ import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useOverlayInfo } from '@renderer/hooks/useRite'
+import { useSettings } from '@renderer/hooks/useSettings'
 import { MusterFace } from '@renderer/muster/muster-renderer'
 import styles from './MusterPage.module.scss'
 
@@ -48,6 +49,16 @@ import styles from './MusterPage.module.scss'
 export function MusterPage(): ReactNode {
   const overlay = getOverlay('muster')
   const server = useOverlayInfo()
+  const settings = useSettings()
+  /*
+   * Rehearsal, gated on the persisted setting rather than on `is.dev`.
+   *
+   * The same call the concord makes, and for the same reason: the evening
+   * before a stream is exactly when an operator wants to fill a roll and look
+   * at it, and by then they are running a packaged build. Gating on the build
+   * would put the feature only where it is least needed.
+   */
+  const testMode = settings?.workspace.testMode ?? false
 
   const [state, setState] = useState<MusterState>(createEmptyMusterState)
   const [copied, setCopied] = useState<string | null>(null)
@@ -129,21 +140,47 @@ export function MusterPage(): ReactNode {
 
   const hotkeys = useMemo<Hotkey[]>(
     () => [
+      /*
+       * Put and close are two chords now, not one that toggles.
+       *
+       * `Ctrl+Enter` did both, and it fires while typing — which is right for
+       * putting a call, since the question is typed and then put without
+       * leaving the field. It is wrong for closing one: the operator is in the
+       * entry field mid-call, reaches for a submit-shaped chord, and the call
+       * ends. Split, `Ctrl+Enter` can only ever *start* something, and closing
+       * takes the deliberate two-modifier chord the concord already uses for
+       * exactly this.
+       */
       {
         chord: 'ctrl+enter',
-        label: open ? 'Close the call' : 'Put the call',
+        label: 'Put the call',
         group: 'The Muster',
         whileTyping: true,
-        run: () =>
-          void run('call', () =>
-            open ? window.candy.muster.close() : window.candy.muster.open(question)
-          )
+        disabled: open,
+        run: () => void run('call', () => window.candy.muster.open(question))
       },
       {
-        chord: 'ctrl+backspace',
-        label: 'Clear the roll',
+        chord: 'ctrl+shift+enter',
+        label: 'Close the call',
         group: 'The Muster',
         whileTyping: true,
+        disabled: !open,
+        run: () => void run('call', () => window.candy.muster.close())
+      },
+      /*
+       * Clearing is off `Ctrl+Backspace`, and off the typing path entirely.
+       *
+       * It was `Ctrl+Backspace` with `whileTyping`, which is
+       * delete-the-previous-word in every text field there is — so an operator
+       * tidying a word out of an entry they were filing wiped the whole roll,
+       * a second or two after typing it. The dispatcher now refuses that chord
+       * inside a field regardless, but a destructive action should not be
+       * reachable from a field in the first place, so this no longer asks.
+       */
+      {
+        chord: 'ctrl+shift+x',
+        label: 'Clear the roll',
+        group: 'The Muster',
         disabled: state.phase === 'idle' && state.entries.length === 0,
         run: () => void run('reset', () => window.candy.muster.reset())
       }
@@ -473,9 +510,52 @@ export function MusterPage(): ReactNode {
           </div>
         </Panel>
 
+        {/*
+          A chamber, without a chamber.
+        */}
+        {testMode ? (
+          <Panel label="Simulator" index="06" className={styles.span2}>
+            <div className={styles.simulator}>
+              <p className={styles.hint}>
+                Files synthetic entries through the real chat command, the real per-citizen ledger
+                and the real duplicate rule — not straight onto the roll, or it would prove nothing.
+              </p>
+              <div className={styles.simulatorRow}>
+                {[8, 20, 60].map((count) => (
+                  <Button
+                    key={count}
+                    size="sm"
+                    variant="ghost"
+                    disabled={!open}
+                    busy={busy === 'simulate'}
+                    onClick={() => void run('simulate', () => window.candy.muster.simulate(count))}
+                  >
+                    +{count}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!open}
+                busy={busy === 'simulate'}
+                onClick={() => void run('simulate', () => window.candy.muster.simulate(10, true))}
+              >
+                10 from one citizen
+              </Button>
+              <p className={styles.hint}>
+                The second files everything as one person, so the roll should stop at the
+                per-citizen limit while the messages keep arriving — and the count beside the roll
+                should hold at one citizen.
+              </p>
+              {!open ? <p className={styles.hint}>Put the call first.</p> : null}
+            </div>
+          </Panel>
+        ) : null}
+
         <Panel
           label="Broadcast sources"
-          index="06"
+          index={testMode ? '07' : '06'}
           className={styles.wide}
           aside={
             <StatusDot

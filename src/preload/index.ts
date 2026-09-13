@@ -192,6 +192,7 @@ const api: CandyHavenApi = {
     spin: () => invoke('rite:spin'),
     reset: () => invoke('rite:reset'),
     clearHistory: () => invoke('rite:history-clear'),
+    simulate: (count) => invoke('rite:simulate', { count }),
     onState: (listener) => subscribe('rite:state', listener)
   },
   concord: {
@@ -247,6 +248,7 @@ const api: CandyHavenApi = {
     add: (draft) => invoke('muster:add', draft),
     remove: (id) => invoke('muster:remove', { id }),
     handoff: (request) => invoke('muster:handoff', request),
+    simulate: (count, oneCitizen) => invoke('muster:simulate', { count, oneCitizen }),
     onState: (listener) => subscribe('muster:state', listener)
   },
   release: {
