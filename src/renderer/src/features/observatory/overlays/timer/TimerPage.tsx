@@ -79,11 +79,16 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
         whileTyping: true,
         run: () => void actions.restart(timerId)
       },
+      /*
+       * Clearing is off `Ctrl+Backspace`. See the muster's note and
+       * `ownedByTheField`: that chord is delete-the-previous-word in every text
+       * field, and it was bound here to wipe the board with `whileTyping` set.
+       * Destructive actions do not reach for that flag.
+       */
       {
-        chord: 'ctrl+backspace',
+        chord: 'ctrl+shift+x',
         label: 'Clear the clock',
         group: overlay.label,
-        whileTyping: true,
         run: () => void actions.reset(timerId)
       },
       {

@@ -129,11 +129,16 @@ export function ConcordPage(): ReactNode {
         disabled: !open,
         run: () => void actions.close()
       },
+      /*
+       * Clearing is off `Ctrl+Backspace`. See the muster's note and
+       * `ownedByTheField`: that chord is delete-the-previous-word in every text
+       * field, and it was bound here to wipe the board with `whileTyping` set.
+       * Destructive actions do not reach for that flag.
+       */
       {
-        chord: 'ctrl+backspace',
+        chord: 'ctrl+shift+x',
         label: 'Clear the ballot',
         group: 'The Concord',
-        whileTyping: true,
         disabled: casting || (state.phase === 'idle' && !state.result),
         run: () => void actions.reset()
       }

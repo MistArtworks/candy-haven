@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { HotkeyContext, type HotkeyContextValue } from './context'
-import { chordOf, isTyping, normaliseChord, type Hotkey } from './registry'
+import { chordOf, isTyping, normaliseChord, ownedByTheField, type Hotkey } from './registry'
 import { HotkeySheet } from './HotkeySheet'
 
 /** Opens the cheatsheet. Deliberately undocumented in the interface itself. */
@@ -69,6 +69,17 @@ export function HotkeyProvider({ children }: { children: ReactNode }): ReactNode
       }
 
       const typing = isTyping(event.target)
+
+      /*
+       * The field wins its own gestures, whatever is registered.
+       *
+       * Checked here rather than per binding, and before `whileTyping` is
+       * consulted at all, because `whileTyping` is a claim made by whoever
+       * wrote the shortcut and this is a fact about the platform. A binding
+       * that asks for `Ctrl+Backspace` gets it everywhere except inside a text
+       * field, where it means delete-the-previous-word and always will.
+       */
+      if (typing && ownedByTheField(chord)) return
 
       for (const binding of active) {
         if (binding.disabled) continue

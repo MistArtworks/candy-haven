@@ -74,31 +74,32 @@ project, so it is disabled rather than creating one somewhere arbitrary.
 | ------------------ | ----------------- |
 | `Ctrl+Enter`       | Put the question  |
 | `Ctrl+Shift+Enter` | Close the chamber |
-| `Ctrl+Backspace`   | Clear the ballot  |
+| `Ctrl+Shift+X`     | Clear the ballot  |
 
 ## THE MUSTER
 
-| Chord            | Does                                    |
-| ---------------- | --------------------------------------- |
-| `Ctrl+Enter`     | Put the call, or close it if it is open |
-| `Ctrl+Backspace` | Clear the roll                          |
+| Chord              | Does           |
+| ------------------ | -------------- |
+| `Ctrl+Enter`       | Put the call   |
+| `Ctrl+Shift+Enter` | Close the call |
+| `Ctrl+Shift+X`     | Clear the roll |
 
 ## RESONANCE SELECTION
 
-| Chord        | Does            |
-| ------------ | --------------- |
-| `Space`      | Draw a petition |
-| `Ctrl+Enter` | Clear the ring  |
+| Chord          | Does            |
+| -------------- | --------------- |
+| `Space`        | Draw a petition |
+| `Ctrl+Shift+X` | Clear the ring  |
 
 ## INTERVAL and CONVENING
 
-| Chord            | Does                                         |
-| ---------------- | -------------------------------------------- |
-| `Space`          | Start the clock, or hold it if it is running |
-| `Ctrl+Enter`     | Restart from the top                         |
-| `Ctrl+Backspace` | Clear the clock                              |
-| `Ctrl+↑`         | Add a minute                                 |
-| `Ctrl+↓`         | Take a minute off                            |
+| Chord          | Does                                         |
+| -------------- | -------------------------------------------- |
+| `Space`        | Start the clock, or hold it if it is running |
+| `Ctrl+Enter`   | Restart from the top                         |
+| `Ctrl+Shift+X` | Clear the clock                              |
+| `Ctrl+↑`       | Add a minute                                 |
+| `Ctrl+↓`       | Take a minute off                            |
 
 ## CALENDAR
 
