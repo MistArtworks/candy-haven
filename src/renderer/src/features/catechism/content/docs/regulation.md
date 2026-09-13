@@ -161,7 +161,7 @@ projects, stages, tags and notes — is a database and is not in here.
 
 The uninstaller asks what to keep, with two boxes, both ticked:
 
-- **Keep my settings** — everything on this page, and the two credential files.
+- **Keep my settings** — everything on this page, and the credential files.
 - **Keep my archive** — the register: projects, stages, tags, notes, volumes and
   releases.
 

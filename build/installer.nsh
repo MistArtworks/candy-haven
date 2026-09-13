@@ -72,7 +72,11 @@ Var UnKeepArchiveState
  */
 !macro ch_ClearSettings Base
   Delete "${Base}\settings.json"
+  ; What the loader sets aside when a settings file will not parse. A verbatim
+  ; copy of the file above, so deleting one and keeping the other says nothing.
+  Delete "${Base}\settings.corrupt.*.json"
   Delete "${Base}\spotify.dat"
+  Delete "${Base}\dispatch.dat"
   Delete "${Base}\firebase.json"
   Delete "${Base}\orientation.json"
   Delete "${Base}\release-notes.json"
