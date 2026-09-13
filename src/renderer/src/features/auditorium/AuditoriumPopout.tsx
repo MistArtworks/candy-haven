@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   AUDIO_EXTENSIONS,
   AUDIO_PRESET,
@@ -9,7 +9,7 @@ import { Sigil } from '@renderer/components/sigil/Sigil'
 import { useAudioEngine } from './lib/useAudioEngine'
 import { Visualiser } from './components/Visualiser'
 import { formatClock } from './lib/format'
-import { ZOOM_LEVELS, timeAtFraction, zoomLabel, type ZoomLevel } from './lib/zoom'
+import { DEFAULT_SPAN, clampSpan, fullSpan, isFullSpan, spanLabel, zoomBy } from './lib/zoom'
 import styles from './AuditoriumPopout.module.scss'
 
 export interface AuditoriumPopoutProps {
@@ -52,9 +52,8 @@ export function AuditoriumPopout({ file }: AuditoriumPopoutProps): ReactNode {
   } = useAudioEngine()
 
   const [preset, setPreset] = useState<AudioPreset>('waveform')
-  const [zoom, setZoom] = useState<ZoomLevel>(8)
+  const [zoom, setZoom] = useState(DEFAULT_SPAN)
   const [pinned, setPinned] = useState(true)
-  const stageRef = useRef<HTMLDivElement | null>(null)
 
   // The handover file, opened once on arrival. Keyed on the path so a popout
   // reopened with a different file picks the new one up.
@@ -74,13 +73,7 @@ export function AuditoriumPopout({ file }: AuditoriumPopoutProps): ReactNode {
   const seekable = hasFile && Number.isFinite(duration) && duration > 0
   const progress = seekable ? position / duration : 0
   const scrollable = preset === 'waveform'
-
-  /** Seeks from a click anywhere on the stage, which the render invites. */
-  const seekFromStage = (clientX: number): void => {
-    const box = stageRef.current?.getBoundingClientRect()
-    if (!box || !seekable || !scrollable) return
-    seek(timeAtFraction((clientX - box.left) / box.width, position, duration, zoom))
-  }
+  const span = clampSpan(zoom, duration)
 
   return (
     <div className={styles.popout}>
@@ -148,21 +141,22 @@ export function AuditoriumPopout({ file }: AuditoriumPopoutProps): ReactNode {
 
       <audio ref={elementRef} preload="metadata" hidden />
 
-      <div
-        className={styles.stageHost}
-        ref={stageRef}
-        onClick={(event) => seekFromStage(event.clientX)}
-        data-seekable={scrollable && seekable ? true : undefined}
-      >
+      <div className={styles.stageHost} data-seekable={scrollable && seekable ? true : undefined}>
         <Visualiser
           analyserRef={analyserRef}
           peaksRef={peaksRef}
           elementRef={elementRef}
           preset={preset}
-          zoom={zoom}
+          zoom={span}
           playing={playing}
           idle={!hasFile}
           surveying={surveying}
+          onSeek={scrollable && seekable ? seek : undefined}
+          onZoom={
+            scrollable && seekable
+              ? (deltaY) => setZoom((current) => zoomBy(current, deltaY, duration))
+              : undefined
+          }
         />
       </div>
 
@@ -200,20 +194,17 @@ export function AuditoriumPopout({ file }: AuditoriumPopoutProps): ReactNode {
 
         <span className={styles.clock}>{formatClock(duration)}</span>
 
-        <nav className={styles.zoom} aria-label="Render span">
-          {ZOOM_LEVELS.map((level) => (
-            <button
-              key={level}
-              type="button"
-              className={styles.zoomStep}
-              data-active={level === zoom || undefined}
-              disabled={!scrollable}
-              onClick={() => setZoom(level)}
-            >
-              {zoomLabel(level)}
-            </button>
-          ))}
-        </nav>
+        {/* Scroll over the render to zoom; this reports where that has got to
+            and takes a click to fit the whole file. */}
+        <button
+          type="button"
+          className={styles.span}
+          disabled={!scrollable || !seekable}
+          onClick={() => setZoom(isFullSpan(span, duration) ? DEFAULT_SPAN : fullSpan(duration))}
+          title="Scroll over the render to zoom. Click to fit the whole file."
+        >
+          {spanLabel(span, duration)}
+        </button>
 
         <label className={styles.level}>
           <span className={styles.levelLabel}>LVL</span>

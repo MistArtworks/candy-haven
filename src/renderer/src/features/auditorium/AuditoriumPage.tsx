@@ -20,7 +20,7 @@ import { usePlayback } from '@renderer/app/providers/playback'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { formatClock } from './lib/format'
-import { ZOOM_LEVELS, timeAtFraction, zoomLabel, type ZoomLevel } from './lib/zoom'
+import { DEFAULT_SPAN, clampSpan, fullSpan, isFullSpan, spanLabel, zoomBy } from './lib/zoom'
 import { Visualiser } from './components/Visualiser'
 import styles from './AuditoriumPage.module.scss'
 
@@ -68,9 +68,17 @@ export function AuditoriumPage(): ReactNode {
     setVolume
   } = usePlayback()
   const [preset, setPreset] = useState<AudioPreset>('waveform')
-  // Eight seconds by default: enough of a bar or two to read what is coming
-  // without the render becoming a wall of detail.
-  const [zoom, setZoom] = useState<ZoomLevel>(8)
+  /*
+   * How many seconds of file the render shows, continuously.
+   *
+   * Held raw and clamped at the point of use rather than corrected when a file
+   * changes. A thirty-second window is meaningless on a ten-second file, but
+   * *forcing* it down to ten and leaving it there means admitting a short file
+   * in the middle of a session permanently narrows the operator's view — they
+   * set thirty, and something they were only checking took it away. Clamping on
+   * read keeps the setting intact and shows what can be shown.
+   */
+  const [zoom, setZoom] = useState(DEFAULT_SPAN)
 
   const choose = async (): Promise<void> => {
     const path = await window.candy.shell.selectFile({
@@ -82,6 +90,8 @@ export function AuditoriumPage(): ReactNode {
 
   const hasFile = source !== null
   const seekable = hasFile && Number.isFinite(duration) && duration > 0
+  /** The window actually drawn: never tighter than the file, never wider. */
+  const span = clampSpan(zoom, duration)
 
   /*
    * The listening room's chords.
@@ -134,6 +144,31 @@ export function AuditoriumPage(): ReactNode {
         whileTyping: true,
         disabled: !seekable,
         run: () => seek(0)
+      },
+      /*
+       * Zoom, for the hands that are not on a wheel.
+       *
+       * The render zooms by scrolling over it, which is the right gesture and
+       * the only one most operators will use. It is also unreachable from a
+       * keyboard and from a trackpad in the middle of a drag, so the same
+       * movement is bound here: `Ctrl` and the vertical arrows, matching the
+       * horizontal pair that already seek.
+       */
+      {
+        chord: 'ctrl+arrowup',
+        label: 'Closer',
+        group: 'Auditorium',
+        whileTyping: true,
+        disabled: !seekable,
+        run: () => setZoom((current) => zoomBy(current, -240, duration))
+      },
+      {
+        chord: 'ctrl+arrowdown',
+        label: 'Wider',
+        group: 'Auditorium',
+        whileTyping: true,
+        disabled: !seekable,
+        run: () => setZoom((current) => zoomBy(current, 240, duration))
       },
       ...AUDIO_PRESETS.map((entry, index) => ({
         chord: `alt+${index + 1}`,
@@ -203,19 +238,17 @@ export function AuditoriumPage(): ReactNode {
           className={styles.stagePanel}
         >
           {/*
-            The overview invites a click, so the stage takes one and seeks —
-            which is what anybody who has used a player expects of a waveform,
-            and which the scrub bar below then merely repeats for the renders
-            that have no time axis to click on.
+            The render invites a press, and it takes one itself.
+
+            It used to be handled here, by a click on this wrapper, mapped
+            through `timeAtFraction`. That worked while the stage had one time
+            axis on it. It now has two — the window across the band and the
+            whole file along the strip beneath it — and only the thing that drew
+            them knows where the boundary between them is, so the handling went
+            with the drawing. This wrapper keeps the cursor and nothing else.
           */}
           <div
             className={styles.stageHost}
-            onClick={(event) => {
-              if (!scrollable || !seekable) return
-              const box = event.currentTarget.getBoundingClientRect()
-              const fraction = (event.clientX - box.left) / box.width
-              seek(timeAtFraction(fraction, position, duration, zoom))
-            }}
             data-seekable={scrollable && seekable ? true : undefined}
           >
             <Visualiser
@@ -223,10 +256,16 @@ export function AuditoriumPage(): ReactNode {
               peaksRef={peaksRef}
               elementRef={elementRef}
               preset={preset}
-              zoom={zoom}
+              zoom={span}
               playing={playing}
               idle={!hasFile}
               surveying={surveying}
+              onSeek={scrollable && seekable ? seek : undefined}
+              onZoom={
+                scrollable && seekable
+                  ? (deltaY) => setZoom((current) => zoomBy(current, deltaY, duration))
+                  : undefined
+              }
             />
           </div>
 
@@ -265,30 +304,30 @@ export function AuditoriumPage(): ReactNode {
 
             <span className={styles.clock}>{formatClock(duration)}</span>
 
-            {/* Only the surveyed renders have a time axis to zoom. */}
-            <nav
-              className={styles.zoom}
-              aria-label="Render span"
-              data-disabled={!scrollable || undefined}
+            {/*
+              The span: a readout, not a row of keys.
+
+              Five fixed steps stood here — 4, 8, 16, 30 seconds and ALL — and
+              they were replaced rather than added to, because the step you want
+              is always between two of the ones on offer. The wheel over the
+              render is the control now; this says where it has got to, and
+              takes a click to fit the whole file and another to come back.
+              Still greyed out wholesale on the live renders, which have no time
+              axis to zoom: a control that vanishes when you change preset reads
+              as a bug, one that greys out reads as a rule.
+            */}
+            <button
+              type="button"
+              className={styles.span}
+              disabled={!scrollable || !seekable}
+              onClick={() =>
+                setZoom(isFullSpan(span, duration) ? DEFAULT_SPAN : fullSpan(duration))
+              }
+              title="Scroll over the render to zoom, or Ctrl and the up and down arrows. Click to fit the whole file."
             >
-              {ZOOM_LEVELS.map((level) => (
-                <button
-                  key={level}
-                  type="button"
-                  className={styles.zoomStep}
-                  data-active={level === zoom || undefined}
-                  disabled={!scrollable}
-                  onClick={() => setZoom(level)}
-                  title={
-                    level === 0
-                      ? 'The whole file, with the playhead travelling across it'
-                      : `${level} seconds across the stage, playhead centred`
-                  }
-                >
-                  {zoomLabel(level)}
-                </button>
-              ))}
-            </nav>
+              <span className={styles.spanLabel}>SPAN</span>
+              <span className={styles.spanValue}>{spanLabel(span, duration)}</span>
+            </button>
 
             {/*
               `full`, inside a fixed-width wrapper, rather than `inline`.

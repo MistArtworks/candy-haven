@@ -18,10 +18,13 @@ department answers one question, which is what a file sounds like.
 Four renderings of the same signal. They are presentations, not analyses — pick
 whichever tells you what you are listening for.
 
-- **WAVEFORM** — amplitude over the length of the file.
+- **WAVEFORM** — the window across the band, the whole file on the strip beneath.
 - **SPECTRUM** — the frequency content, live.
 - **SPECTRAL** — the spectrogram, frequency against time.
 - **STATIC** — the file drawn whole, no motion.
+
+**Scroll over the render to zoom.** Press anywhere on it to move the playhead —
+on the band you are pointing at the window, on the strip at the whole file.
 
 > The player can be detached into its own window, and pinned above everything
 > else, when you want it beside a DAW rather than in front of it.

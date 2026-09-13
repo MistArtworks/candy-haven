@@ -31,11 +31,29 @@ Four renderings of the same signal. They are presentations rather than analyses
 
 ### WAVEFORM — the whole file, end to end
 
-The file decoded and surveyed: peak amplitude per column across its entire
-length, mirrored about the axis. The played portion is lit and the rest held
-back, so the shape of the arrangement and your position in it are one reading.
+Two readings stacked, at two scales.
 
-Click anywhere on it to move the playhead.
+The **band** across the top is the window: the envelope of a few seconds of
+file, peak amplitude per column, drawn as the signal actually is rather than
+mirrored from one number. The played side is at weight and the coming side held
+back, so where you are and what is about to happen are one reading.
+
+The **strip** along the bottom is the whole file at a glance, with a lit box
+showing which part of it the band above is looking at. It is the only thing in
+the room that says where the window is in the file, which is the one thing a
+zoomed render cannot tell you about itself.
+
+Both are coloured by **frequency content** — crimson where the low end is
+carrying, gold where it is not — so a drop and a breakdown are different colours
+and the arrangement is legible without playing it.
+
+**Scroll over the render to zoom**, or `Ctrl` with the up and down arrows. The
+span is continuous: wind it in to a third of a second and you are looking at one
+hit, wind it out and it stops at the whole file with the playhead travelling
+across it.
+
+Press anywhere on either to move the playhead — on the band you are pointing at
+the window, on the strip at the whole file — and drag to scrub.
 
 This is the only preset that has to decode the whole file first, which is why it
 is the one that takes a moment on a long track.
@@ -67,16 +85,22 @@ For when the console is on a second screen and the movement is a distraction.
 
 ## The transport
 
-| Control      | Does                                       |
-| ------------ | ------------------------------------------ |
-| Play / pause | `Space` also works                         |
-| Seek         | Click anywhere on the stage                |
-| Level        | The output level for this room only        |
-| Render span  | How much of the file the visualiser covers |
+| Control      | Does                                        |
+| ------------ | ------------------------------------------- |
+| Play / pause | `Space` also works                          |
+| Seek         | Press anywhere on the stage, and drag       |
+| Level        | The output level for this room only         |
+| `SPAN`       | Where the zoom has got to. Click to fit all |
 
 ![auditorium-03-zoom.png](auditorium-03-zoom.png)
 
-Narrowing the render span reads the file at **higher resolution** rather than
+**Zoom by scrolling over the render.** There used to be five fixed steps here —
+four, eight, sixteen and thirty seconds, and ALL — and they were replaced rather
+than added to, because the step you want is always between two of the ones on
+offer. `SPAN` reports where the wheel has got to and takes a click to fit the
+whole file, and another to come back.
+
+Winding the span in reads the file at **higher resolution** rather than
 stretching what is already drawn, so a transient inspected closely is really the
 transient rather than an interpolation of one.
 

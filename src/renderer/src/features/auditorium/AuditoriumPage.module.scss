@@ -224,50 +224,50 @@
   flex-shrink: 0;
 }
 
-// The render span. Only the two surveyed presets have a time axis to zoom, so
-// it disables wholesale rather than disappearing — a control that vanishes when
-// you change preset reads as a bug, one that greys out reads as a rule.
-.zoom {
+// The render span.
+//
+// One readout where there used to be five keys. The wheel over the stage is the
+// control; this reports it and doubles as a fit-to-file button. Only the
+// surveyed render has a time axis to zoom, so it greys out rather than
+// disappearing — a control that vanishes when you change preset reads as a bug,
+// one that greys out reads as a rule.
+//
+// The value is a fixed width. It changes on every wheel notch, and a box that
+// resized between "8.0S" and "ALL" would jog the fader beside it every time.
+.span {
   display: flex;
+  align-items: baseline;
+  gap: space(2);
   flex-shrink: 0;
-  @include hairline(all, 0.1);
-
-  &[data-disabled] {
-    opacity: 0.35;
-  }
-}
-
-.zoomStep {
-  @include readout(9px);
-  color: var(--ch-text-muted);
-  // Wide enough that the steps read as separate keys rather than as one run of
-  // characters — "4S8S16S30SALL" was the first draft, and it was unreadable.
   padding: space(1) space(3);
-  min-width: rem(30px);
-  transition:
-    color $duration-fast linear,
-    background-color $duration-fast linear;
-
-  & + & {
-    @include hairline(left, 0.18);
-  }
+  @include hairline(all, 0.1);
+  transition: background-color $duration-fast linear;
 
   &:hover:not(:disabled) {
-    color: var(--ch-text-secondary);
-  }
-
-  &[data-active] {
-    color: var(--ch-text-primary);
-    background: rgba(163, 43, 35, 0.16);
+    background: rgba(163, 43, 35, 0.14);
   }
 
   &:disabled {
+    opacity: 0.35;
     cursor: default;
   }
 
   &:focus-visible {
     @include focus-ring(-2px);
   }
+}
+
+.spanLabel {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+}
+
+.spanValue {
+  @include readout(10px);
+  color: var(--ch-text-primary);
+  min-width: rem(34px);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 // ------------------------------------------------------------------ presets

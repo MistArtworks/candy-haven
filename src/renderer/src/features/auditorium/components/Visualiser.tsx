@@ -1,17 +1,24 @@
-import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  type RefObject
+} from 'react'
 import type { AudioPreset } from '@shared/domain/auditorium'
 import { Logomark } from '@renderer/components/sigil/Logomark'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import { PEAK_STRIDE } from '../lib/survey'
-import type { ZoomLevel } from '../lib/zoom'
+import { windowStart } from '../lib/zoom'
 import styles from '../AuditoriumPage.module.scss'
 
 export interface VisualiserProps {
   analyserRef: RefObject<AnalyserNode | null>
   /** The surveyed file envelope, read each frame by the overview. */
   peaksRef: RefObject<Float32Array | null>
-  /** Seconds of file across the stage, or 0 for the whole of it. */
-  zoom: ZoomLevel
+  /** Seconds of file across the stage. Continuous; see `lib/zoom.ts`. */
+  zoom: number
   /** Read directly for the playhead, so it moves at frame rate rather than 4 Hz. */
   elementRef: RefObject<HTMLAudioElement | null>
   preset: AudioPreset
@@ -20,6 +27,17 @@ export interface VisualiserProps {
   idle: boolean
   /** The file is being decoded; the overview says so rather than drawing blank. */
   surveying: boolean
+  /**
+   * Where a press on the render should move the playhead to.
+   *
+   * Handled here rather than by a click on a wrapper, and that is a change of
+   * ownership rather than a tidy-up: the stage now has two time axes on it —
+   * the window across the top and the whole file along the strip — and only
+   * the thing that drew them knows which one a given pixel belongs to.
+   */
+  onSeek?: (seconds: number) => void
+  /** A wheel notch over the stage, in the event's own units. */
+  onZoom?: (deltaY: number) => void
 }
 
 /*
@@ -47,29 +65,63 @@ const RAMP: readonly (readonly [number, number, number])[] = [
 const LINE = '182, 158, 124'
 
 /**
- * The ramp at `position`, interpolated.
+ * A ramp at `position`, interpolated.
  *
- * Interpolated rather than stepped, because the overview colours every column
- * independently: against five hard stops, a track drifting gradually brighter
- * would band into five blocks instead of shading through them.
+ * Interpolated rather than stepped, because the render colours every column
+ * independently: against a handful of hard stops, a track drifting gradually
+ * brighter would band into blocks instead of shading through them.
  */
-function ramp(position: number): readonly [number, number, number] {
-  const clamped = Math.min(Math.max(position, 0), 1) * (RAMP.length - 1)
-  const index = Math.min(Math.floor(clamped), RAMP.length - 2)
-  const mix = clamped - index
-  const from = RAMP[index]
-  const to = RAMP[index + 1]
+function mix(
+  stops: readonly (readonly [number, number, number])[],
+  position: number
+): readonly [number, number, number] {
+  const clamped = Math.min(Math.max(position, 0), 1) * (stops.length - 1)
+  const index = Math.min(Math.floor(clamped), stops.length - 2)
+  const blend = clamped - index
+  const from = stops[index]
+  const to = stops[index + 1]
 
   return [
-    Math.round(from[0] + (to[0] - from[0]) * mix),
-    Math.round(from[1] + (to[1] - from[1]) * mix),
-    Math.round(from[2] + (to[2] - from[2]) * mix)
+    Math.round(from[0] + (to[0] - from[0]) * blend),
+    Math.round(from[1] + (to[1] - from[1]) * blend),
+    Math.round(from[2] + (to[2] - from[2]) * blend)
   ]
+}
+
+function ramp(position: number): readonly [number, number, number] {
+  return mix(RAMP, position)
 }
 
 function rgba(position: number, alpha: number): string {
   const [red, green, blue] = ramp(position)
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`
+}
+
+/*
+ * The envelope's two ramps, built once and looked up thereafter.
+ *
+ * `rgba` composes a template string, and the envelope sets `fillStyle` once per
+ * pixel column — twelve hundred strings a frame, seventy thousand a second, all
+ * of them immediately garbage. Quantising the tone to forty-eight steps and
+ * keeping the strings costs six kilobytes and makes the colour of a column a
+ * pair of array reads.
+ *
+ * Forty-eight steps is well past the point of visibility: the ramp spans five
+ * stops, so this is nearly ten intermediate colours between each of them, and
+ * the difference between neighbours is under two values in each channel.
+ */
+const SHADES = 48
+const PLAYED: string[] = []
+const COMING: string[] = []
+for (let step = 0; step < SHADES; step += 1) {
+  PLAYED.push(rgba(step / (SHADES - 1), 0.92))
+  COMING.push(rgba(step / (SHADES - 1), 0.26))
+}
+
+/** A column's colour, from its tone and whether the playhead has passed it. */
+function toneShade(tone: number, played: boolean): string {
+  const index = Math.min(SHADES - 1, Math.max(0, Math.round(tone * (SHADES - 1))))
+  return played ? PLAYED[index] : COMING[index]
 }
 
 /**
@@ -92,11 +144,43 @@ export function Visualiser({
   zoom,
   playing,
   idle,
-  surveying
+  surveying,
+  onSeek,
+  onZoom
 }: VisualiserProps): ReactNode {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const stageRef = useRef<HTMLDivElement | null>(null)
   const animated = useAnimationsEnabled()
+
+  /**
+   * Where the render put the strip, written by the loop and read by the
+   * pointer handler.
+   *
+   * The two axes on this stage are laid out by the draw, not by the layout
+   * engine — there is one canvas and the strip is a region of it — so the only
+   * thing that knows where the boundary is, is whatever last drew it. Null for
+   * every render that has no strip, which is the same thing as "the whole
+   * stage is the window".
+   */
+  const layoutRef = useRef<StageLayout | null>(null)
+
+  /**
+   * The window a drag started in.
+   *
+   * Held for the length of the gesture rather than recomputed per move, and it
+   * has to be. Seeking recentres the window on the new playhead, so a drag that
+   * mapped each pointer position through the *current* window would move the
+   * ground under itself: the second sample of a drag lands somewhere the first
+   * one put it rather than where the pointer is. Freezing the mapping at
+   * pointer-down makes the gesture mean what it looks like it means.
+   */
+  const dragRef = useRef<{ strip: boolean; from: number; window: number } | null>(null)
+
+  /** The callbacks, mirrored so the wheel listener never has to rebind. */
+  const handlers = useRef({ onSeek, onZoom })
+  useEffect(() => {
+    handlers.current = { onSeek, onZoom }
+  })
 
   /*
    * What the loop reads each frame.
@@ -111,6 +195,88 @@ export function Visualiser({
   useEffect(() => {
     latest.current = { preset, zoom, playing, idle, surveying }
   })
+
+  /*
+   * The wheel, bound natively rather than through React.
+   *
+   * It has to call `preventDefault`, and React's own wheel listener is attached
+   * to the root as passive — calling it from a synthetic handler is a no-op
+   * with a console warning, and the page scrolls out from under the operator
+   * while they are trying to zoom. A non-passive listener on the element is the
+   * only way to say no to that.
+   */
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+
+    const onWheel = (event: WheelEvent): void => {
+      const zoomer = handlers.current.onZoom
+      if (!zoomer || !layoutRef.current) return
+      event.preventDefault()
+      zoomer(event.deltaY)
+    }
+
+    stage.addEventListener('wheel', onWheel, { passive: false })
+    return () => stage.removeEventListener('wheel', onWheel)
+  }, [])
+
+  /**
+   * A press, and then a drag, on either of the stage's two time axes.
+   *
+   * Above the strip the pointer is reading the window; on the strip it is
+   * reading the whole file. Same gesture, two scales, and the layout the last
+   * frame wrote is what decides which.
+   */
+  const seekFrom = useCallback((clientX: number, box: DOMRect): void => {
+    const seeker = handlers.current.onSeek
+    const drag = dragRef.current
+    if (!seeker || !drag) return
+
+    const fraction = Math.min(Math.max((clientX - box.left) / box.width, 0), 1)
+    seeker(drag.from + fraction * drag.window)
+  }, [])
+
+  const onPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>): void => {
+      const element = elementRef.current
+      const duration = element?.duration ?? Number.NaN
+      if (!handlers.current.onSeek || !element) return
+      if (!Number.isFinite(duration) || duration <= 0) return
+
+      const layout = layoutRef.current
+      if (!layout) return
+
+      const box = event.currentTarget.getBoundingClientRect()
+      const strip = event.clientY - box.top >= layout.stripTop
+
+      dragRef.current = strip
+        ? { strip, from: 0, window: duration }
+        : {
+            strip,
+            from: windowStart(element.currentTime, duration, latest.current.zoom),
+            window: Math.min(latest.current.zoom, duration)
+          }
+
+      event.currentTarget.setPointerCapture(event.pointerId)
+      seekFrom(event.clientX, box)
+    },
+    [elementRef, seekFrom]
+  )
+
+  const onPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>): void => {
+      if (!dragRef.current) return
+      seekFrom(event.clientX, event.currentTarget.getBoundingClientRect())
+    },
+    [seekFrom]
+  )
+
+  const onPointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>): void => {
+    dragRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -134,6 +300,19 @@ export function Visualiser({
      */
     let history: HTMLCanvasElement | null = null
     let historyContext: CanvasRenderingContext2D | null = null
+
+    // Held here rather than at module scope so it belongs to this stage and dies
+    // with it — the department page and the detached player are separate
+    // renderers, but the mini player is not, and two of these sharing one cache
+    // would repaint it for each other on alternate frames.
+    const strip: StripCache = {
+      canvas: null,
+      context: null,
+      peaks: null,
+      width: 0,
+      height: 0,
+      ratio: 1
+    }
 
     let width = 0
     let height = 0
@@ -159,6 +338,23 @@ export function Visualiser({
       history.width = Math.max(1, Math.round(width))
       history.height = Math.max(1, Math.round(height))
       historyContext = history.getContext('2d')
+
+      /*
+       * The strip's canvas, at device resolution.
+       *
+       * Backed at the same ratio as the stage and drawn back at CSS size, so
+       * the blit is one to one on the physical display rather than a CSS-pixel
+       * image resampled up — which on a 2× screen is the difference between a
+       * crisp envelope and a soft one. Marked stale rather than repainted here:
+       * whichever frame next wants it is the one that knows the file.
+       */
+      strip.canvas = document.createElement('canvas')
+      strip.context = strip.canvas.getContext('2d')
+      strip.context?.setTransform(ratio, 0, 0, ratio, 0, 0)
+      strip.peaks = null
+      strip.width = 0
+      strip.height = 0
+      strip.ratio = ratio
     })
     observer.observe(stage)
 
@@ -207,10 +403,15 @@ export function Visualiser({
       const dated = element !== null && Number.isFinite(duration) && duration > 0
       const at = element?.currentTime ?? 0
 
+      // Cleared every frame and set only by the render that has a strip, so a
+      // pointer landing on the stage in SPECTRUM cannot hit a boundary left
+      // behind by the last WAVEFORM frame.
+      layoutRef.current = null
+
       if (mode === 'waveform') {
         const peaks = peaksRef.current
         if (peaks && dated) {
-          drawOverview(context, peaks, at, duration, span, width, height)
+          layoutRef.current = drawWaveform(context, strip, peaks, at, duration, span, width, height)
         } else {
           drawAxis(context, width, height, level)
           drawNotice(context, width, height, waitingFor(reading, empty))
@@ -267,6 +468,10 @@ export function Visualiser({
     <div
       className={styles.stage}
       ref={stageRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
       data-idle={idle || undefined}
       // The mark is the whole render in STATIC and a watermark behind the data
       // in the other three. The same element either way, so it never reflows.
@@ -324,13 +529,18 @@ function waitingFor(reading: boolean, empty: boolean): string {
   return reading ? 'READING THE FILE' : 'NOT SURVEYED'
 }
 
-/** The playhead. */
-function drawPlayhead(context: CanvasRenderingContext2D, x: number, height: number): void {
+/** The playhead, between two heights rather than down the whole stage. */
+function drawPlayhead(
+  context: CanvasRenderingContext2D,
+  x: number,
+  top: number,
+  bottom: number
+): void {
   context.strokeStyle = 'rgba(227, 194, 134, 0.9)'
   context.lineWidth = 1
   context.beginPath()
-  context.moveTo(x, 0)
-  context.lineTo(x, height)
+  context.moveTo(Math.round(x) + 0.5, top)
+  context.lineTo(Math.round(x) + 0.5, bottom)
   context.stroke()
 }
 
@@ -347,10 +557,20 @@ function drawSecondTicks(
   from: number,
   window: number,
   width: number,
-  height: number
+  top: number,
+  bottom: number
 ): void {
-  // One tick a second becomes a picket fence once the window is wide.
-  const step = window <= 8 ? 1 : window <= 16 ? 2 : 5
+  /*
+   * The step, chosen from the window rather than fixed.
+   *
+   * One tick a second is a picket fence once the window is wide and nothing at
+   * all once it is narrow. The zoom is continuous now, so this has to cover the
+   * whole range instead of the four settings that used to exist: the step
+   * climbs through the ordinary divisions of a clock and stops at the first one
+   * that keeps the ticks under forty across the stage.
+   */
+  const steps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300]
+  const step = steps.find((candidate) => window / candidate <= 40) ?? 600
 
   context.strokeStyle = `rgba(${LINE}, 0.07)`
   context.lineWidth = 1
@@ -359,62 +579,184 @@ function drawSecondTicks(
   for (let seconds = first; seconds < from + window; seconds += step) {
     const x = ((seconds - from) / window) * width
     context.beginPath()
-    context.moveTo(x, 0)
-    context.lineTo(x, height)
+    context.moveTo(Math.round(x) + 0.5, top)
+    context.lineTo(Math.round(x) + 0.5, bottom)
     context.stroke()
   }
 }
 
-/** Scratch buffers for the envelope, grown as needed and reused every frame. */
+/** Where the render put the strip, so a press can be sent to the right axis. */
+export interface StageLayout {
+  /** Top edge of the overview strip, in CSS pixels down the stage. */
+  stripTop: number
+  stripHeight: number
+}
+
+/**
+ * The strip, kept as pixels between frames.
+ *
+ * The strip draws the *whole file* at one column per pixel, and the whole file
+ * does not change sixty times a second — only the playhead over it and the box
+ * marking the window do. Redrawing it every frame put a second full pass over
+ * the survey and twelve hundred more fills on top of the band's, which is
+ * exactly the sort of thing that turns a render into a stutter on a long file.
+ *
+ * So it is painted into its own canvas when the file or the size changes, and
+ * blitted after that. What is left per frame is one `drawImage`, one rectangle
+ * to hold back the part that has not played, and the two marks that move.
+ */
+interface StripCache {
+  canvas: HTMLCanvasElement | null
+  context: CanvasRenderingContext2D | null
+  /** What is painted in it. Identity, not a hash: the array *is* the file. */
+  peaks: Float32Array | null
+  width: number
+  height: number
+  /** The backing ratio, so the blit can be drawn back at CSS size. */
+  ratio: number
+}
+
+/** The overview strip: its height, and the air between it and the band. */
+const STRIP_HEIGHT = 42
+const STRIP_GAP = 16
+
+/**
+ * WAVEFORM — the window, over the whole file.
+ *
+ * Two readings stacked, at two scales. The band across the top is the window:
+ * the envelope of a few seconds of file, drawn as it actually is, with the
+ * playhead through the middle of it. The strip along the bottom is the whole
+ * file at a glance, with a lit box showing which part of it the band is looking
+ * at — which is the one thing a zoomed render cannot tell you about itself.
+ *
+ * Both are coloured by frequency content: crimson where the low end is
+ * carrying, gold where it is not. A version of the band drawn as discrete
+ * segmented bars coloured by level was tried and withdrawn. It was not what
+ * this render should look like — wound out, a couple of hundred cell-stacked
+ * bars are a wall of pixels rather than a waveform, and the arrangement stops
+ * being legible at the exact zoom where reading the arrangement is the point —
+ * and it was not cheap either, which is the other half of why it went.
+ */
+function drawWaveform(
+  context: CanvasRenderingContext2D,
+  cache: StripCache,
+  peaks: Float32Array,
+  at: number,
+  duration: number,
+  span: number,
+  width: number,
+  height: number
+): StageLayout {
+  const stripHeight = Math.max(20, Math.min(STRIP_HEIGHT, height * 0.16))
+  const stripTop = height - stripHeight
+  const bandBottom = Math.max(2, stripTop - STRIP_GAP)
+
+  const from = windowStart(at, duration, span)
+  const window = Math.min(span, duration)
+
+  drawEnvelope(context, peaks, at, duration, from, window, width, 0, bandBottom)
+  drawStrip(context, cache, peaks, at, duration, from, window, width, stripTop, stripHeight)
+
+  return { stripTop, stripHeight }
+}
+
+/**
+ * One slice of the envelope, reused.
+ *
+ * `aggregate` is called fifteen hundred times a frame — once per bar and once
+ * per pixel of the strip — and a fresh object from each of them is ninety
+ * thousand allocations a second for three numbers that are read immediately and
+ * never kept. The scratch is the same shape the return used to be; the only
+ * difference is that nothing is handed to the collector.
+ */
+const slice = { low: 0, high: 0, tone: 0 }
+
+/** The extremes and the mean tone of the envelope between two instants. */
+function aggregate(
+  peaks: Float32Array,
+  buckets: number,
+  perSecond: number,
+  startSeconds: number,
+  endSeconds: number,
+  duration: number
+): typeof slice {
+  slice.low = 0
+  slice.high = 0
+  slice.tone = 0
+
+  if (endSeconds <= 0 || startSeconds >= duration) return slice
+
+  const first = Math.max(0, Math.floor(startSeconds * perSecond))
+  const last = Math.min(buckets - 1, Math.max(first, Math.ceil(endSeconds * perSecond) - 1))
+
+  let low = 0
+  let high = 0
+  let tone = 0
+  let weight = 0
+
+  /*
+   * Every survey column under the bar, not one sampled from them.
+   *
+   * The distinction is the whole difference between an envelope and a picket
+   * fence: wound out there are a dozen or more survey columns per bar, and
+   * picking one from each group aliases the peaks into a comb that changes
+   * shape as the window resizes.
+   */
+  for (let bucket = first; bucket <= last; bucket += 1) {
+    const index = bucket * PEAK_STRIDE
+    if (peaks[index] < low) low = peaks[index]
+    if (peaks[index + 1] > high) high = peaks[index + 1]
+    // Tone is averaged rather than taken from the loudest column: colour is a
+    // property of the stretch of music under the bar, and one bright transient
+    // should not repaint a bar of bass.
+    tone += peaks[index + 2]
+    weight += 1
+  }
+
+  slice.low = low
+  slice.high = high
+  slice.tone = weight > 0 ? tone / weight : 0
+  return slice
+}
+
+/** Scratch for the window's columns, grown as needed and reused every frame. */
 let columnLow = new Float32Array(0)
 let columnHigh = new Float32Array(0)
 let columnTone = new Float32Array(0)
 
 /**
- * WAVEFORM — the file's own envelope.
+ * The window, as the envelope it is.
  *
- * Two renders behind one preset, chosen by the zoom. Wound out to ALL the
- * picture is fixed and the playhead travels across it, which is how the shape
- * of an arrangement is read. At every other setting the playhead is nailed to
- * the centre of the stage and the material slides through it, right to left,
- * which is how the next few seconds are read. Those are genuinely different
- * questions rather than two magnifications of one, which is why both are kept.
+ * One column per pixel, taking the extremes of *every* survey column that falls
+ * under it rather than sampling one of them. The distinction is the whole
+ * difference between a waveform and a picket fence: wound out there are a dozen
+ * or more survey columns per pixel, and picking one from each group aliases the
+ * peaks into a comb of spikes that changes shape as the window resizes.
  *
- * Every column is drawn at the colour of its own frequency content: crimson
- * where the low end is carrying, gold where the top is. That is what makes this
- * worth more than a plain envelope — a drop and a breakdown are different
- * colours, so the arrangement is legible without playing it.
- *
- * Each pixel column takes the extremes of *every* survey column that falls
- * under it, rather than sampling one of them. The distinction is the whole
- * difference between a waveform and a picket fence: at ALL there are a dozen or
- * more survey columns per pixel, and picking one at random from each group
- * aliases the peaks into a comb of spikes that changes shape as the window
- * resizes. Aggregating gives the solid body an envelope is supposed to have,
- * and costs one pass over the survey.
+ * Trough and crest are kept apart rather than mirrored from one magnitude, so
+ * the envelope is drawn as the signal actually is — asymmetric where the
+ * material is — instead of as the same sausage every overview draws.
  */
-function drawOverview(
+function drawEnvelope(
   context: CanvasRenderingContext2D,
   peaks: Float32Array,
   at: number,
   duration: number,
-  zoom: number,
+  from: number,
+  window: number,
   width: number,
-  height: number
+  top: number,
+  bottom: number
 ): void {
   const buckets = Math.floor(peaks.length / PEAK_STRIDE)
-  const middle = height / 2
+  const perSecond = buckets / duration
+  const middle = (top + bottom) / 2
   // Short of the full half-height, so a full-scale master does not touch the
-  // panel edge and read as clipped by the frame rather than by the mix.
-  const reach = height * 0.42
-
-  const from = zoom === 0 ? 0 : at - zoom / 2
-  const window = zoom === 0 ? duration : zoom
-  const playhead = zoom === 0 ? (at / duration) * width : width / 2
+  // edge of the band and read as clipped by the frame rather than by the mix.
+  const reach = ((bottom - top) / 2) * 0.92
 
   const columns = Math.max(1, Math.floor(width))
   const columnWidth = width / columns
-  const perSecond = buckets / duration
 
   if (columnLow.length < columns) {
     columnLow = new Float32Array(columns)
@@ -425,34 +767,16 @@ function drawOverview(
   for (let column = 0; column < columns; column += 1) {
     const startSeconds = from + (column / columns) * window
     const endSeconds = from + ((column + 1) / columns) * window
+    const { low, high, tone } = aggregate(
+      peaks,
+      buckets,
+      perSecond,
+      startSeconds,
+      endSeconds,
+      duration
+    )
 
-    let low = 0
-    let high = 0
-    let tone = 0
-
-    // Before the start and past the end there is no file, and the column stays
-    // flat: an envelope that simply stops is the honest way to show a boundary.
-    if (endSeconds > 0 && startSeconds < duration) {
-      const firstBucket = Math.max(0, Math.floor(startSeconds * perSecond))
-      const lastBucket = Math.min(
-        buckets - 1,
-        Math.max(firstBucket, Math.ceil(endSeconds * perSecond) - 1)
-      )
-
-      let weight = 0
-      for (let bucket = firstBucket; bucket <= lastBucket; bucket += 1) {
-        const index = bucket * PEAK_STRIDE
-        if (peaks[index] < low) low = peaks[index]
-        if (peaks[index + 1] > high) high = peaks[index + 1]
-        // Tone is averaged rather than taken from the loudest bucket: colour is
-        // a property of the stretch of music under the column, and one bright
-        // transient should not repaint a bar of bass.
-        tone += peaks[index + 2]
-        weight += 1
-      }
-      if (weight > 0) tone /= weight
-    }
-
+    // Read out of the scratch on the spot: the next column overwrites it.
     columnLow[column] = low
     columnHigh[column] = high
     columnTone[column] = tone
@@ -477,16 +801,18 @@ function drawOverview(
 
   for (let column = 0; column < columns; column += 1) {
     const seconds = from + (column / columns) * window
+    // Past either end of the file there is nothing to draw. A render that
+    // simply stops is the honest way to show a boundary.
     if (seconds < 0 || seconds > duration) continue
 
     const x = column * columnWidth
-    const top = middle - columnHigh[column] * reach
-    const bottom = middle - columnLow[column] * reach
+    const crest = middle - columnHigh[column] * reach
+    const trough = middle - columnLow[column] * reach
 
-    context.fillStyle = rgba(columnTone[column], seconds <= at ? 0.92 : 0.26)
+    context.fillStyle = toneShade(columnTone[column], seconds <= at)
     // A minimum of one pixel: silence is a line through the axis, not a gap in
     // the file, and a gap reads as damage.
-    context.fillRect(x, top, Math.max(columnWidth, 1), Math.max(bottom - top, 1))
+    context.fillRect(x, crest, Math.max(columnWidth, 1), Math.max(trough - crest, 1))
   }
 
   context.strokeStyle = `rgba(${LINE}, 0.14)`
@@ -496,8 +822,129 @@ function drawOverview(
   context.lineTo(width, middle)
   context.stroke()
 
-  if (zoom !== 0) drawSecondTicks(context, from, window, width, height)
-  drawPlayhead(context, playhead, height)
+  drawSecondTicks(context, from, window, width, top, bottom)
+  drawPlayhead(context, ((at - from) / window) * width, top, bottom)
+}
+
+/**
+ * The whole file along the bottom, with the window marked on it.
+ *
+ * This is the reading the band gives up when it zooms: a continuous envelope of
+ * the entire programme, coloured by tone, with the played portion lit. It is
+ * small on purpose — it is a map, not a view — and it is the only thing in the
+ * department that says where the window is in the file.
+ *
+ * The envelope itself comes out of the cache. Only the three things that
+ * actually move are drawn here.
+ */
+function drawStrip(
+  context: CanvasRenderingContext2D,
+  cache: StripCache,
+  peaks: Float32Array,
+  at: number,
+  duration: number,
+  from: number,
+  window: number,
+  width: number,
+  top: number,
+  height: number
+): void {
+  context.fillStyle = 'rgba(9, 9, 9, 0.55)'
+  context.fillRect(0, top, width, height)
+
+  if (cache.canvas && cache.context) {
+    if (cache.peaks !== peaks || cache.width !== width || cache.height !== height) {
+      cache.canvas.width = Math.max(1, Math.round(width * cache.ratio))
+      cache.canvas.height = Math.max(1, Math.round(height * cache.ratio))
+      // Sizing a canvas resets its transform, so it goes back on afterwards.
+      cache.context.setTransform(cache.ratio, 0, 0, cache.ratio, 0, 0)
+      paintStrip(cache.context, peaks, duration, width, height)
+
+      cache.peaks = peaks
+      cache.width = width
+      cache.height = height
+    }
+
+    context.drawImage(cache.canvas, 0, top, width, height)
+  }
+
+  /*
+   * What has not played, held back.
+   *
+   * One rectangle over the cached envelope rather than a second colour per
+   * column, which is what lets the envelope be cached at all — the played
+   * boundary moves continuously and the file behind it does not.
+   */
+  const passed = Math.max(0, Math.min(width, (at / duration) * width))
+  context.fillStyle = 'rgba(9, 9, 9, 0.62)'
+  context.fillRect(passed, top, width - passed, height)
+
+  /*
+   * The window, as a lit box.
+   *
+   * Filled as well as ruled, because at a tight zoom the box is two pixels wide
+   * and a pair of hairlines that close is indistinguishable from one. The fill
+   * is what keeps a narrow window reading as a region.
+   */
+  const x0 = (from / duration) * width
+  const x1 = ((from + window) / duration) * width
+
+  context.fillStyle = 'rgba(210, 169, 97, 0.1)'
+  context.fillRect(x0, top, Math.max(x1 - x0, 2), height)
+
+  context.strokeStyle = 'rgba(210, 169, 97, 0.55)'
+  context.lineWidth = 1
+  context.beginPath()
+  context.moveTo(Math.round(x0) + 0.5, top)
+  context.lineTo(Math.round(x0) + 0.5, top + height)
+  context.moveTo(Math.round(x1) - 0.5, top)
+  context.lineTo(Math.round(x1) - 0.5, top + height)
+  context.stroke()
+
+  drawPlayhead(context, passed, top, top + height)
+
+  context.strokeStyle = `rgba(${LINE}, 0.16)`
+  context.strokeRect(0.5, top + 0.5, width - 1, height - 1)
+}
+
+/**
+ * The strip's envelope, painted into the cache.
+ *
+ * Runs when a file is admitted and when the stage is resized, and not otherwise
+ * — so the cost of a pass over the whole survey is paid twice a file instead of
+ * sixty times a second. Drawn at full weight throughout; the part that has not
+ * played is darkened at blit time.
+ */
+function paintStrip(
+  context: CanvasRenderingContext2D,
+  peaks: Float32Array,
+  duration: number,
+  width: number,
+  height: number
+): void {
+  const buckets = Math.floor(peaks.length / PEAK_STRIDE)
+  const perSecond = buckets / duration
+  const middle = height / 2
+  const reach = (height / 2) * 0.82
+
+  context.clearRect(0, 0, width, height)
+
+  const columns = Math.max(1, Math.floor(width))
+  for (let column = 0; column < columns; column += 1) {
+    const startSeconds = (column / columns) * duration
+    const endSeconds = ((column + 1) / columns) * duration
+    const { low, high, tone } = aggregate(
+      peaks,
+      buckets,
+      perSecond,
+      startSeconds,
+      endSeconds,
+      duration
+    )
+
+    context.fillStyle = toneShade(tone, true)
+    context.fillRect(column, middle - high * reach, 1, Math.max((high - low) * reach, 1))
+  }
 }
 
 /** Maps a frequency onto an analyser bin, given the analyser's own rate. */

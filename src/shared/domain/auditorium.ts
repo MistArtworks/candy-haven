@@ -80,7 +80,7 @@ export const AUDIO_PRESET: Record<AudioPreset, AudioPresetDefinition> = {
     label: 'WAVEFORM',
     purpose: 'The whole file, end to end',
     detail:
-      'The file decoded and surveyed: peak amplitude per column across its entire length, mirrored about the axis. The played portion is lit and the rest held back, so the shape of the arrangement and the position in it are one reading. Click anywhere on it to move the playhead.',
+      'The file decoded and surveyed: the envelope of the window across the band, and the whole file on a strip beneath it with a lit box showing where the window is. Both are coloured by frequency content — crimson where the low end is carrying, gold where it is not — so the shape of the arrangement is legible without playing it. Scroll over the render to zoom. Press anywhere on either to move the playhead.',
     needsDecode: true
   },
   spectrum: {

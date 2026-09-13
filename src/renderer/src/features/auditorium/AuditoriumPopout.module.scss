@@ -223,28 +223,19 @@
   box-shadow: 0 0 10px var(--ch-accent-glow);
 }
 
-.zoom {
-  display: flex;
-  flex-shrink: 0;
-  @include hairline(all, 0.1);
-}
-
-.zoomStep {
+// The render span, reported rather than chosen. The wheel over the stage is the
+// control here as it is on the department page; this says where it has got to.
+.span {
   @include readout(8px);
-  color: var(--ch-text-muted);
+  color: var(--ch-text-primary);
+  flex-shrink: 0;
   padding: 1px space(2);
-  min-width: rem(24px);
-
-  & + & {
-    @include hairline(left, 0.18);
-  }
+  min-width: rem(34px);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  @include hairline(all, 0.1);
 
   &:hover:not(:disabled) {
-    color: var(--ch-text-secondary);
-  }
-
-  &[data-active] {
-    color: var(--ch-text-primary);
     background: rgba(163, 43, 35, 0.16);
   }
 

@@ -181,8 +181,11 @@ ARCHIVE lens.
 
 **`auditorium-03-zoom.png`**
 
-1. Zoom in on a region with a clear transient — a drop or a drum hit.
-2. Capture the stage at that zoom.
+1. WAVEFORM, with a file surveyed.
+2. **Scroll over the render** until `SPAN` in the transport reads about `2.0S`,
+   over a region with a clear transient — a drop or a drum hit.
+3. Capture the stage and the transport together, so the band, the strip beneath
+   it with its lit window box, and the `SPAN` readout are all in frame.
 
 **`auditorium-04-popout.png`**
 
