@@ -24,6 +24,10 @@
  *   npm run release -- --skip-build     re-upload from an existing release/
  *   npm run release -- --dry-run        say what it would do, touch nothing
  *
+ * The renderer is compiled as part of the build step, so there is no separate
+ * `npm run build` to remember. `--skip-build` skips that too, and means what it
+ * says: upload what is on disk, whatever produced it.
+ *
  * The token lives at `~/.ch-release-token`, or in `GH_TOKEN`. It is never
  * printed, and it is the one thing here that must not end up in a log.
  */
@@ -94,6 +98,27 @@ function capture(command, args) {
  * already running this. No shim, no shell, nothing to quote.
  */
 function build() {
+  /*
+   * The renderer is compiled here, not assumed.
+   *
+   * `electron-builder` packages whatever is already in `out/`. It does not know
+   * what produced it and will happily ship a bundle from last week — which is
+   * exactly what happened on 1.7.0: `out/` held a renderer built before the
+   * guide screenshots landed, so the installer went out with two of the
+   * forty-one images Vite should have emitted, and every chapter in the manual
+   * drew a CAPTURE PENDING plate.
+   *
+   * Nothing about that was visible from here. The build step printed a clean
+   * electron-builder log, the assets uploaded, and the fault only showed up in
+   * the installed application. Compiling first is the only way this script can
+   * promise that what it uploads is what the commit it tagged actually says.
+   *
+   * `electron-vite` is resolved and run through `process.execPath` for the same
+   * reason electron-builder is: Node refuses to spawn a `.cmd` without a shell,
+   * and on Windows every npm shim is one.
+   */
+  run(process.execPath, [require.resolve('electron-vite/bin/electron-vite.js'), 'build'])
+
   const cli = require.resolve('electron-builder/out/cli/cli.js')
 
   /*
@@ -288,7 +313,7 @@ async function main() {
 
   step('Build')
   if (skipBuild) say('skipped')
-  else if (dryRun) say('would run electron-builder --win')
+  else if (dryRun) say('would compile the renderer, then run electron-builder --win')
   else build()
 
   step('Assets')
