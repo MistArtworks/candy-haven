@@ -105,6 +105,53 @@ export function RegulationPage(): ReactNode {
     onSuccess: setSettings
   })
 
+  /*
+   * Export and import, each reporting in one line under the masthead.
+   *
+   * The notice is state here rather than a toast because both of these are
+   * things the operator did deliberately and will want to read the result of —
+   * which file was written, what an import actually restored — and a message
+   * that removes itself after three seconds is one they will miss while
+   * looking at the dialog they just dismissed.
+   */
+  const [transfer, setTransfer] = useState<string | null>(null)
+
+  const exportSettings = useMutation({
+    mutationFn: () => window.candy.settings.export(),
+    onSuccess: (result) => {
+      // A cancelled dialog is not an event worth reporting.
+      if (!result.path) return
+      setTransfer(`Wrote ${result.entries.length} files to ${result.path}`)
+    },
+    onError: (error: Error) => setTransfer(error.message)
+  })
+
+  const importSettings = useMutation({
+    mutationFn: () => window.candy.settings.import(),
+    onSuccess: (result) => {
+      if (!result) return
+      setSettings(result.settings)
+
+      /*
+       * Said plainly, because the two credential files are the part an operator
+       * cannot verify by looking at the page. Settings are visible the moment
+       * the import lands; whether the board and the Spotify link came with them
+       * is not, and assuming they did is how somebody goes live unlinked.
+       */
+      const carried = [
+        'settings',
+        result.board ? 'board' : null,
+        result.spotify ? 'Spotify link' : null
+      ].filter(Boolean)
+
+      setTransfer(
+        `Restored ${carried.join(', ')}` +
+          (result.writtenBy ? ` from a ${result.writtenBy} export.` : '.')
+      )
+    },
+    onError: (error: Error) => setTransfer(error.message)
+  })
+
   const restartArchive = useMutation({
     mutationFn: () => window.candy.archive.restart()
   })
@@ -135,16 +182,45 @@ export function RegulationPage(): ReactNode {
         epigraph={section.epigraph}
         guideId="regulation"
         actions={
-          <Button
-            size="sm"
-            variant="danger"
-            busy={resetSettings.isPending}
-            onClick={() => resetSettings.mutate()}
-          >
-            Reset to defaults
-          </Button>
+          <div className={styles.headerActions}>
+            <Button
+              size="sm"
+              variant="ghost"
+              busy={importSettings.isPending}
+              onClick={() => importSettings.mutate()}
+              title="Restore settings, the board and the Spotify link from an exported .zip"
+            >
+              Import
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              busy={exportSettings.isPending}
+              onClick={() => exportSettings.mutate()}
+              title="Write every setting, the board configuration and the Spotify link to one .zip. It holds credentials — keep it somewhere private."
+            >
+              Export
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              busy={resetSettings.isPending}
+              onClick={() => resetSettings.mutate()}
+            >
+              Reset to defaults
+            </Button>
+          </div>
         }
       />
+
+      {transfer ? (
+        <p className={styles.transfer} role="status">
+          <span>{transfer}</span>
+          <button type="button" className={styles.dismiss} onClick={() => setTransfer(null)}>
+            Dismiss
+          </button>
+        </p>
+      ) : null}
 
       <div className={styles.shell}>
         <SettingsNav

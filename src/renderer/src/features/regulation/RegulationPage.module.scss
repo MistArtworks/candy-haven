@@ -10,6 +10,46 @@
   margin: 0 auto;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+// What an export wrote, or what an import restored.
+//
+// Held until dismissed rather than timed out: both are deliberate acts whose
+// result the operator wants to read, and the notice arrives at the moment they
+// are still looking at the dialog they just closed.
+.transfer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(4);
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  border-left: 2px solid var(--ch-gold-500);
+  padding: space(2) space(3);
+  margin-bottom: space(4);
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.dismiss {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
 /*
  * A rail and the group it selects.
  *

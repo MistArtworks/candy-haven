@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import { LOGOMARK_PATH, LOGOMARK_VIEWBOX } from '@renderer/components/sigil/logomark.path'
 import type { SceneProps } from './scenes'
+import styles from '../GenesisField.module.scss'
 import {
   TAU,
   aimCamera,
@@ -839,7 +840,20 @@ export function GateScene({ tone, leanRef, className }: SceneProps): ReactNode {
     return teardown
   }, [animationsEnabled, leanRef])
 
-  return <canvas ref={canvasRef} className={className} aria-hidden="true" />
+  /*
+   * The fallback is not optional, and this scene was missing it.
+   *
+   * `NexusLanding` renders every scene without a `className`, so the fallback
+   * *is* the sizing — `.field` is what makes the canvas `width: 100%`. Without
+   * it the element has no CSS size at all and sits at the HTML default of
+   * 300x150, which `mountScene` then reads back out of `getBoundingClientRect`
+   * and draws the whole gate into: a complete, correct scene at about a fifth
+   * of the size, in the top-left corner, with the rest of the field empty.
+   *
+   * It looked like a broken render and was a missing class. The other two
+   * scenes have carried `?? styles.field` from the beginning.
+   */
+  return <canvas ref={canvasRef} className={className ?? styles.field} aria-hidden="true" />
 }
 
 // ---------------------------------------------------------------------- parts

@@ -1,15 +1,31 @@
 import { readFile, writeFile, rename, mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
+import { app } from 'electron'
 import {
   SettingsSchema,
   createDefaultSettings,
   type Settings,
   type SettingsPatch
 } from '@shared/domain/settings'
+import {
+  BUNDLE_ENTRIES,
+  SETTINGS_BUNDLE_FORMAT,
+  SETTINGS_BUNDLE_KIND,
+  type SettingsExportResult,
+  type SettingsImportResult
+} from '@shared/domain/settings-bundle'
 import { mergeSettings } from '@shared/domain/settings.merge'
 import { getPaths } from '@main/core/paths'
 import { getLogger } from '@main/core/logger'
 import { TypedEmitter } from '@main/core/emitter'
+import { AppError, ErrorCode } from '@main/core/errors'
+import {
+  parseManifest,
+  readBundle,
+  readOptional,
+  writeBundle,
+  type BundleSource
+} from './settings-bundle'
 
 const logger = getLogger('settings')
 
@@ -105,6 +121,143 @@ export class SettingsService extends TypedEmitter<SettingsEvents> {
     this.emit('changed', this.current)
     logger.info('Settings reset to defaults')
     return this.current
+  }
+
+  // ----------------------------------------------------------- export / import
+
+  /** The three files that make up "settings", wherever they live. */
+  private bundlePaths(): { settings: string; board: string; spotify: string } {
+    const { userData, settingsFile } = getPaths()
+    return {
+      settings: settingsFile,
+      board: join(userData, BUNDLE_ENTRIES.board),
+      spotify: join(userData, BUNDLE_ENTRIES.spotify)
+    }
+  }
+
+  /**
+   * Writes every piece of configuration to one archive.
+   *
+   * The current state is serialised from memory rather than copied off disk, so
+   * an export taken a moment after a change cannot race the write queue and
+   * capture the previous file. The other two are read as they are, because
+   * nothing here owns them.
+   */
+  async exportTo(path: string): Promise<SettingsExportResult> {
+    this.assertLoaded()
+
+    const paths = this.bundlePaths()
+    // Annotated, not inferred: from the first element alone TypeScript narrows
+    // `entry` to the literal 'settings.json' and the later pushes fail.
+    const sources: BundleSource[] = [
+      {
+        entry: BUNDLE_ENTRIES.settings,
+        contents: Buffer.from(
+          `${JSON.stringify(this.current, null, 2)}
+`,
+          'utf8'
+        )
+      }
+    ]
+
+    const board = await readOptional(paths.board)
+    if (board) sources.push({ entry: BUNDLE_ENTRIES.board, contents: board })
+
+    const spotify = await readOptional(paths.spotify)
+    if (spotify) sources.push({ entry: BUNDLE_ENTRIES.spotify, contents: spotify })
+
+    const entries = await writeBundle(
+      path,
+      {
+        kind: SETTINGS_BUNDLE_KIND,
+        format: SETTINGS_BUNDLE_FORMAT,
+        app: app.getVersion(),
+        exportedAt: Date.now(),
+        contents: {
+          settings: true,
+          board: board !== null,
+          spotify: spotify !== null
+        }
+      },
+      sources
+    )
+
+    logger.info(`Exported settings to ${path} (${entries.length} entries)`)
+    return { path, entries }
+  }
+
+  /**
+   * Restores an archive over the current configuration.
+   *
+   * Settings go through the same schema that reads them from disk, so a bundle
+   * from an older build is migrated by its defaults rather than rejected — and
+   * one that has been edited into nonsense is refused before anything is
+   * written, which is why this parses before it touches a single file.
+   *
+   * The two credential files are written straight back. `spotify.dat` is sealed
+   * against this machine, so restoring it on the machine that wrote it silently
+   * works and restoring it elsewhere leaves a blob that fails to open and asks
+   * to be linked again. That is the correct behaviour and not worth refusing
+   * the import over.
+   */
+  async importFrom(path: string): Promise<SettingsImportResult> {
+    this.assertLoaded()
+
+    const entries = await readBundle(path)
+    const manifest = parseManifest(entries)
+
+    const rawSettings = entries.get(BUNDLE_ENTRIES.settings)
+    if (!rawSettings) {
+      throw new AppError('That export contains no settings.', {
+        code: ErrorCode.Validation,
+        hint: 'The archive has a manifest but no settings.json.'
+      })
+    }
+
+    let candidate: unknown
+    try {
+      candidate = JSON.parse(rawSettings.toString('utf8'))
+    } catch {
+      throw new AppError('The settings in that export are not readable.', {
+        code: ErrorCode.Validation
+      })
+    }
+
+    const parsed = SettingsSchema.safeParse(candidate)
+    if (!parsed.success) {
+      throw new AppError('The settings in that export did not validate.', {
+        code: ErrorCode.Validation,
+        hint: parsed.error.issues
+          .slice(0, 3)
+          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+          .join('; ')
+      })
+    }
+
+    const paths = this.bundlePaths()
+
+    const board = entries.get(BUNDLE_ENTRIES.board)
+    if (board) await writeFile(paths.board, board)
+
+    const spotify = entries.get(BUNDLE_ENTRIES.spotify)
+    if (spotify) await writeFile(paths.spotify, spotify)
+
+    this.current = parsed.data
+    await this.persist()
+    this.emit('changed', this.current)
+
+    logger.info(
+      `Imported settings from ${path}` +
+        ` (written by ${manifest.app || 'an unknown build'};` +
+        ` board=${board !== undefined}, spotify=${spotify !== undefined})`
+    )
+
+    return {
+      settings: this.current,
+      board: board !== undefined,
+      spotify: spotify !== undefined,
+      writtenBy: manifest.app
+    }
   }
 
   private assertLoaded(): void {

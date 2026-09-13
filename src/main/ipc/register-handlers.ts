@@ -5,6 +5,7 @@ import { is } from '@electron-toolkit/utils'
 import { APP_NAME } from '@shared/constants'
 import { browseDirectory } from '@main/services/projects/scanner'
 import { AUDIO_EXTENSIONS, MAX_AUDIO_BYTES } from '@shared/domain/auditorium'
+import { bundleFilename } from '@shared/domain/settings-bundle'
 import type { RuntimeInfo } from '@shared/domain/system'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogFilePath, getLogger } from '@main/core/logger'
@@ -517,6 +518,48 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
         recoverable: true
       })
     }
+  })
+
+  /*
+   * Where the export goes, and what an import reads.
+   *
+   * Cancelling is not an error at either end: the operator opened a dialog and
+   * changed their mind, which is an ordinary thing to do. Export reports a null
+   * path, import reports null outright, and the console says nothing either
+   * way rather than raising a notice about a thing that did not happen.
+   */
+  router.handle('settings:export', async () => {
+    const window = windows.mainWindow
+    const options = {
+      title: 'Export settings',
+      defaultPath: bundleFilename(app.getVersion(), new Date()),
+      filters: [{ name: 'Candy Haven settings', extensions: ['zip'] }]
+    }
+
+    const result = window
+      ? await dialog.showSaveDialog(window, options)
+      : await dialog.showSaveDialog(options)
+
+    if (result.canceled || !result.filePath) return { path: null, entries: [] }
+    return services.settings.exportTo(result.filePath)
+  })
+
+  router.handle('settings:import', async () => {
+    const window = windows.mainWindow
+    const options = {
+      title: 'Import settings',
+      properties: ['openFile'] as const,
+      filters: [{ name: 'Candy Haven settings', extensions: ['zip'] }]
+    }
+
+    const result = window
+      ? await dialog.showOpenDialog(window, { ...options, properties: [...options.properties] })
+      : await dialog.showOpenDialog({ ...options, properties: [...options.properties] })
+
+    const path = result.canceled ? null : (result.filePaths[0] ?? null)
+    if (!path) return null
+
+    return services.settings.importFrom(path)
   })
 
   router.handle('dialog:select-directory', async (input) => {

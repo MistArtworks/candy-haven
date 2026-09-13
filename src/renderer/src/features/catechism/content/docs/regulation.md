@@ -127,6 +127,51 @@ are the real resolved ones rather than templates.
 | **Archive data** | The database's own directory          |
 | **Versions**     | Candy Haven, Electron, Chromium, Node |
 
+## Export and import
+
+**Export** in the masthead writes everything this department holds to a single
+`.zip`, after asking where to put it:
+
+| Inside the zip  | Is                                                     |
+| --------------- | ------------------------------------------------------ |
+| `settings.json` | Every setting on every category above                  |
+| `firebase.json` | The board configuration, if one is attached            |
+| `spotify.dat`   | The Spotify link, if one is made                       |
+| `manifest.json` | What wrote it, when, and which of the above are inside |
+
+**Import** reads one back. Settings are validated before anything is written,
+so a damaged or hand-edited file is refused rather than half-applied, and a
+bundle from an older build is migrated by the same defaults that migrate the
+settings file itself. The notice afterwards says exactly what was restored —
+worth reading, because whether the board and the Spotify link came across is
+not visible on the page the way the settings are.
+
+> **The zip holds credentials.** Your Spotify client id, the Twitch channel and
+> the board account are all in it. Keep it somewhere private; do not commit it.
+
+One thing it cannot carry. `spotify.dat` is sealed against the machine and the
+account that wrote it, so it restores perfectly on a reinstall **here** and is
+unreadable anywhere else — carried to another machine, the room simply asks to
+be linked again. Everything else is portable.
+
+This is not a backup of your work. It is configuration only; the **archive** —
+projects, stages, tags and notes — is a database and is not in here.
+
+## Uninstalling
+
+The uninstaller asks what to keep, with two boxes, both ticked:
+
+- **Keep my settings** — everything on this page, and the two credential files.
+- **Keep my archive** — the register: projects, stages, tags, notes, volumes and
+  releases.
+
+Clear a box and that part is removed. Leave both and a later reinstall comes
+back exactly as you left it.
+
+Your project folders on disk are never touched either way, whatever is ticked.
+A silent uninstall keeps both, so an unattended removal can never take an
+archive with it.
+
 ## The orientation tour
 
 Shown once, on a first launch, and again only when the guides are rewritten

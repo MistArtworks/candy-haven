@@ -1,6 +1,7 @@
 import type { BootSnapshot } from '../domain/boot'
 import type { ArchiveStatus } from '../domain/archive'
 import type { Settings, SettingsPatch } from '../domain/settings'
+import type { SettingsExportResult, SettingsImportResult } from '../domain/settings-bundle'
 import type { RuntimeInfo, WindowState } from '../domain/system'
 import type { ReleaseArrival, UpdateStatus } from '../domain/update'
 import type { Orientation } from '../domain/guide'
@@ -98,6 +99,18 @@ export interface CandyHavenApi {
     get(): Promise<Settings>
     update(patch: SettingsPatch): Promise<Settings>
     reset(): Promise<Settings>
+    /**
+     * Writes every piece of configuration to one zip, after asking where.
+     *
+     * A null path means the operator cancelled the dialog, which is not a
+     * failure and carries no notice.
+     */
+    export(): Promise<SettingsExportResult>
+    /**
+     * Restores a bundle, after asking which. Null when the dialog was
+     * dismissed; throws when the file is not one of ours.
+     */
+    import(): Promise<SettingsImportResult | null>
   }
   readonly updates: {
     status(): Promise<UpdateStatus>

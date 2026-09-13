@@ -110,7 +110,9 @@ const api: CandyHavenApi = {
   settings: {
     get: () => invoke('settings:get'),
     update: (patch) => invoke('settings:update', patch),
-    reset: () => invoke('settings:reset')
+    reset: () => invoke('settings:reset'),
+    export: () => invoke('settings:export'),
+    import: () => invoke('settings:import')
   },
   updates: {
     status: () => invoke('update:status'),

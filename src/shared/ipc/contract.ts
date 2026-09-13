@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { BootSnapshotSchema } from '../domain/boot'
 import { ArchiveStatusSchema } from '../domain/archive'
 import { SettingsPatchSchema, SettingsSchema } from '../domain/settings'
+import { SettingsExportResultSchema, SettingsImportResultSchema } from '../domain/settings-bundle'
 import { RuntimeInfoSchema, WindowStateSchema } from '../domain/system'
 import { ReleaseArrivalSchema, UpdateStatusSchema } from '../domain/update'
 import { OrientationSchema } from '../domain/guide'
@@ -116,6 +117,18 @@ export const IPC_INVOKE = {
   'settings:get': { input: z.void(), output: SettingsSchema },
   'settings:update': { input: SettingsPatchSchema, output: SettingsSchema },
   'settings:reset': { input: z.void(), output: SettingsSchema },
+
+  /*
+   * Export and import, each opening their own dialog.
+   *
+   * The picker lives in the main process rather than the renderer because that
+   * is where `dialog` is, and because a path chosen there can be handed
+   * straight to the service without crossing the bridge as a string the
+   * renderer could have altered. Both take no input for the same reason: the
+   * operator chooses the file, not the caller.
+   */
+  'settings:export': { input: z.void(), output: SettingsExportResultSchema },
+  'settings:import': { input: z.void(), output: SettingsImportResultSchema.nullable() },
 
   'update:status': { input: z.void(), output: UpdateStatusSchema },
   'update:check': { input: z.void(), output: UpdateStatusSchema },
