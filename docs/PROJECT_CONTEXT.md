@@ -5,7 +5,7 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-09-09. Five of six departments delivered; INTERFACE is the
+> Last updated: 2026-09-13. Nine of ten departments delivered; INTERFACE is the
 > only one still reserved. TRANSMISSIONS was **removed** in the ARCHIVE rework
 > and will be respecified — see §10.
 
@@ -13,20 +13,51 @@
 
 ## 1. What this is
 
-Candy Haven is a **Windows-only Electron desktop application** built for a music
-producer. It is two things at once:
+Candy Haven is a **Windows-only Electron desktop application** built for one
+person: the DJ, producer and sound engineer **Candy Heist** (Yedu Renjith) —
+Kerala-born, Halifax-based since 2023, working between tech house bounce and
+dubstep intensity. It is his console, not a product for sale.
 
-1. a **personal assistant** for their production practice, and
-2. a **content operations console** — Ableton project management, release
-   pipelines, stream overlay control, and a natural-language command interface.
+### Who uses it
+
+**Exactly two people, and there will not be more.** The operator (Candy Heist)
+and the developer (mist / Haneesh Raj Banisetti), who builds it for him. That is
+why DISPATCH is a *shared* board while §9's archive is otherwise strictly local:
+the two installs are two people, not two seats.
+
+Do not propose accounts, roles, multi-tenancy, public sign-up, or onboarding for
+strangers. Where a generic-user compromise is weighed against what suits these
+two, these two win.
+
+### Why it exists
+
+To be the single place that runs **everything** — his daily life, his
+professional life, his music career, his DJ career, and all of his data —
+explicitly to *eliminate the use of other apps* and keep his projects organised.
+That is the north star, and it is why departments keep being added rather than
+the scope settling. The operator's own framing: "EVERYTHING is interlinked."
+
+**Practical consequence:** prefer referencing an existing record — a project, a
+release, a date — over copying its fields into a new department. Interlinking is
+the point, not an optimisation.
+
+### The "artificial" half is not built yet
+
+The intent is a *digital **and artificial** assistant*. As of 2026-09-13 there is
+**no AI integrated at all** and the app is purely a management console.
+**INTERFACE** is the seam reserved for it, and is the only department carrying
+`implemented: false` in `src/shared/domain/navigation.ts`.
 
 It is backed by a **private, application-owned MongoDB instance** (never a system
 service). The app is styled as an institutional terminal from a fictional
 universe; see §3.
 
-**Current state:** the foundation and five of the six departments are shipped —
-NEXUS, ARCHIVE, OBSERVATORY, TELEMETRY, REGULATION. **INTERFACE** is the only
-department still reserved, and THE DOCKET the only reserved overlay.
+**Current state (2026-09-13):** nine of the ten departments are shipped — NEXUS,
+ARCHIVE, CALENDAR, AUDITORIUM, OBSERVATORY, TELEMETRY, DISPATCH, REGULATION,
+CATECHISM. **INTERFACE** is the only department still reserved, and THE DOCKET
+the only reserved overlay. (An earlier copy of this file read "five of six",
+which had been stale since CALENDAR, AUDITORIUM, DISPATCH and CATECHISM
+shipped.)
 
 TRANSMISSIONS (release and promotional scheduling) was **deleted** during the
 ARCHIVE rework of 2026-09-09, on the operator's instruction, because the release
@@ -1067,6 +1098,29 @@ Display face is used uppercase with wide tracking. Note the pattern: wide
   electron-updater ships smaller deltas.
 - Settings has no push channel; if a non-renderer writer ever appears, §6.4's
   local-first model needs revisiting.
+- **No backup story.** The archive is local to each machine by the operator's
+  explicit choice (§9, reaffirmed 2026-09-13 over a shared remote). Because the
+  app is intended to hold *everything* of his, one dead drive currently loses all
+  of it. Raise this before anything irreplaceable is committed to it.
+
+### Planned, but explicitly not being built yet
+
+Described by the operator on 2026-09-13 **as context only** — "we are not going
+to build that just yet". Do not start, scaffold, or propose these unless asked.
+They are recorded so nearer-term work does not foreclose them.
+
+- **Website.** Does not exist yet. Candy Haven is meant to *generate and publish*
+  it, so the site becomes a projection of app data rather than an integration
+  target. No stack or host chosen.
+- **Gigs.** Their own records — venue, promoter, fee, payment status, set time,
+  travel — cross-linked to CALENDAR rather than being mere calendar entries.
+  Gigs are money and logistics, not just dates.
+- **Discography.** All his tracks, albums and EPs, surfaced in a discography
+  section on the website. The load-bearing detail: an entry **links to an ARCHIVE
+  project when one exists and otherwise stands alone**, and a standalone entry
+  can be linked later. Discography is therefore *not* a derivation of ARCHIVE —
+  when the release model in §10 is next extended, leave room for a public record
+  with no project behind it.
 
 ---
 

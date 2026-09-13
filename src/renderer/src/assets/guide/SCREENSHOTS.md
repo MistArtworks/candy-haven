@@ -29,15 +29,25 @@ console shots keep the title bar and rail; detail shots crop to the panel.
 Have real data on screen. An empty state teaches nothing — except the two places
 a chapter documents one on purpose (`archive-05-setup`, `dispatch-02-door`).
 
-> **Five shots can be reused under two names.** Take one capture, save it twice:
+> **Five shots cover eleven names.** Take one capture, save it under each name
+> on its line — the NEXUS landing shot serves three:
 >
-> - `nexus-01-landing.png` = `welcome-02-nexus.png`
+> - `nexus-01-landing.png` = `welcome-02-nexus.png` = `welcome-03-rail.png`
 > - `archive-01-lenses.png` = `welcome-04-archive.png`
 > - `observatory-01-catalogue.png` = `welcome-05-observatory.png`
 > - `auditorium-01-stage.png` = `welcome-06-auditorium.png`
 > - `regulation-01-categories.png` = `welcome-07-regulation.png`
 >
-> That takes 41 files down to **36 distinct captures**.
+> That takes 41 files down to **35 distinct captures**.
+
+> **Two images are not captures.** `practice-01-altar.png` and
+> `practice-02-vault.png` are supplied photographs of Candy Heist playing, not
+> screenshots, so there is nothing to shoot and they are excluded from the counts
+> and the checklist below. The first opens the orientation tour; the second opens
+> THE CONSOLE chapter. Both were gradient-mapped from its own luminance onto the
+> console ramp (obsidian → crimson → gold → alabaster, values taken from
+> `styles/base/_theme.scss`) because the original is stage-lit green, which
+> rule 2 of the design language forbids outright.
 
 Shortcuts worth knowing: `Ctrl`+`1`–`9` and `Ctrl`+`0` walk the rail, `Ctrl`+`,` opens
 REGULATION, `Ctrl`+`E` cycles LIST / ICONS / BOARD, `Alt`+`1`–`5` switches
@@ -49,12 +59,16 @@ ARCHIVE lens.
 
 `Ctrl`+`1`.
 
-**`nexus-01-landing.png`** · also save as `welcome-02-nexus.png`
+**`nexus-01-landing.png`** · also save as `welcome-02-nexus.png` and
+`welcome-03-rail.png`
 
 1. Land on NEXUS. Do not scroll.
-2. Wait for the orb to settle — it reports archive health, so a steady orb means
-   the database is up and the shot is representative.
-3. Capture the full window.
+2. Make sure the rail is **expanded**, not collapsed. This shot doubles as the
+   picture of the whole console, so all four divisions have to be visible:
+   COMMAND, PRODUCTION, BROADCAST, OVERSIGHT.
+3. Wait for the stat strip to settle — ARCHIVE should read ONLINE, so a settled
+   strip means the database is up and the shot is representative.
+4. Capture the full window.
 
 **`nexus-02-overview.png`**
 
@@ -301,19 +315,7 @@ real.
 
 ---
 
-## Session 9 — the whole console (1 file)
-
-**`welcome-03-rail.png`**
-
-1. Any department will do — NEXUS is cleanest.
-2. Make sure the rail is **expanded**, not collapsed.
-3. All four divisions must be visible: COMMAND, PRODUCTION, BROADCAST,
-   OVERSIGHT.
-4. Capture the full window.
-
----
-
-## Session 10 — last, once everything else is in
+## Session 9 — last, once everything else is in
 
 **`welcome-08-documentation.png`**
 
@@ -346,7 +348,7 @@ landed. Otherwise it shows a page full of `CAPTURE PENDING` plates.
 | ☐    | `dispatch-01-board.png`          | 1                                      |
 | ☐    | `regulation-01-categories.png`   | 1                                      |
 | ☐    | `welcome-02-nexus.png`           | 1 · copy of `nexus-01-landing`         |
-| ☐    | `welcome-03-rail.png`            | 1                                      |
+| ☐    | `welcome-03-rail.png`            | 1 · copy of `nexus-01-landing`         |
 | ☐    | `welcome-04-archive.png`         | 1 · copy of `archive-01-lenses`        |
 | ☐    | `welcome-05-observatory.png`     | 1 · copy of `observatory-01-catalogue` |
 | ☐    | `welcome-06-auditorium.png`      | 1 · copy of `auditorium-01-stage`      |
@@ -401,13 +403,15 @@ illustrates.
 | `dispatch-02-door.png`           | `docs/dispatch.md`                                                |
 | `dispatch-03-thread.png`         | `docs/dispatch.md`                                                |
 | `nexus-01-landing.png`           | `guides/nexus.md`, `docs/nexus.md`                                |
-| `nexus-02-overview.png`          | `guides/nexus.md`, `docs/nexus.md`                                |
+| `nexus-02-overview.png`          | `guides/nexus.md`, `docs/nexus.md`, `guides/orientation.md`       |
 | `observatory-01-catalogue.png`   | `guides/observatory.md`, `docs/observatory.md`                    |
 | `observatory-02-card.png`        | `guides/observatory.md`, `docs/observatory.md`                    |
 | `overlay-chorus-console.png`     | `docs/observatory.md`                                             |
 | `overlay-concord-console.png`    | `docs/observatory.md`                                             |
 | `overlay-muster-console.png`     | `docs/observatory.md`                                             |
 | `overlay-selection-scene.png`    | `docs/observatory.md`                                             |
+| `practice-01-altar.png`          | `guides/orientation.md`                                           |
+| `practice-02-vault.png`          | `docs/overview.md`                                                |
 | `regulation-01-categories.png`   | `guides/regulation.md`, `docs/regulation.md`                      |
 | `regulation-02-archive.png`      | `docs/regulation.md`                                              |
 | `regulation-03-integrations.png` | `docs/regulation.md`                                              |
@@ -415,7 +419,7 @@ illustrates.
 | `regulation-05-diagnostics.png`  | `docs/regulation.md`                                              |
 | `telemetry-01-vitals.png`        | `guides/telemetry.md`, `docs/telemetry.md`                        |
 | `telemetry-02-cores.png`         | `docs/telemetry.md`                                               |
-| `welcome-02-nexus.png`           | `guides/orientation.md`                                           |
+| `welcome-02-nexus.png`           | — unreferenced (identical to `welcome-03-rail.png`)               |
 | `welcome-03-rail.png`            | `guides/orientation.md`, `docs/overview.md`                       |
 | `welcome-04-archive.png`         | `guides/orientation.md`                                           |
 | `welcome-05-observatory.png`     | `guides/orientation.md`                                           |

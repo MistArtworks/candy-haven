@@ -1,13 +1,21 @@
 # The console
 
-Candy Haven is the operator console for a music production practice. It is one
+Candy Haven is the operator console for the CANDY HEIST practice. It is one
 Windows application that files your projects, tracks them from an idea through
 to a finished master, serves the overlays your stream is watching, keeps the
 dated register of what is due, and reports on the machine it is running on.
 
-![welcome-03-rail.png](welcome-03-rail.png)
+![practice-02-vault.png](practice-02-vault.png)
+
+It is built for a single operator, and its remit is deliberately wide: the intent
+is that everything the practice involves is filed here rather than spread across
+applications that cannot see one another. That is why the console keeps gaining
+departments rather than settling — and why records reference one another instead
+of being re-entered.
 
 ## How it is arranged
+
+![welcome-03-rail.png](welcome-03-rail.png)
 
 Departments are grouped into four divisions. The division tells you what kind of
 question a department answers, which is usually enough to know where to look.

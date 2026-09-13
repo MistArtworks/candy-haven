@@ -2,10 +2,16 @@
 
 Production assistant and content operations console for the Nayara universe.
 
-Candy Haven is a Windows desktop application built on Electron. It is the operator
-console for a music production practice: Ableton project management, release
-pipelines, stream overlay control, and a natural-language command interface —
-all backed by a private, application-owned MongoDB instance.
+Candy Haven is a Windows desktop application built on Electron, built for one
+person: the DJ, producer and sound engineer **Candy Heist**. It is the operator
+console for his practice: Ableton project management, release pipelines, stream
+overlay control, and a natural-language command interface — all backed by a
+private, application-owned MongoDB instance.
+
+Its remit is deliberately wide — the intent is that everything the practice
+involves is filed here rather than spread across applications that cannot see one
+another. See [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) §1 for who uses
+it and why.
 
 Ten departments, grouped into four divisions. Nine are in service — the project
 registry and filing tree, the dated register, the listening room, the broadcast

@@ -2,11 +2,16 @@
 
 ## An operator's console
 
-![welcome-02-nexus.png](welcome-02-nexus.png)
+![practice-01-altar.png](practice-01-altar.png)
 
-Candy Haven is the console for a music production practice. It files your
-projects, tracks them from an idea to a finished master, runs the overlays your
-stream is watching, and keeps the dated register of what is due.
+Candy Haven is the console for the CANDY HEIST practice — one installation, one
+operator. It files your projects, tracks them from an idea to a finished master,
+runs the overlays your stream is watching, and keeps the dated register of what
+is due.
+
+The remit is deliberately wide. The intent is that everything the practice
+involves is filed here, rather than spread across a dozen applications that
+cannot see one another.
 
 It is written as a department of an institution rather than as an app, so
 everything is numbered, named and filed. That is deliberate, and once you know
@@ -30,7 +35,7 @@ each one is for.
 
 ## NEXUS — the front door
 
-![welcome-02-nexus.png](welcome-02-nexus.png)
+![nexus-02-overview.png](nexus-02-overview.png)
 
 The landing states what the installation is and reports whether it is healthy.
 The orb is not decoration: it carries the live state of the archive, so a glance
