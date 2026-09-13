@@ -1,14 +1,16 @@
-import { useCallback, useMemo, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { getSection } from '@shared/domain/navigation'
+import { useRuntimeInfo } from '@renderer/hooks/useRuntimeInfo'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
 import { Markdown } from '@renderer/components/markdown/Markdown'
 import { outline } from '@renderer/lib/markdown'
 import { gridVariants } from '@renderer/motion/transitions'
-import { CHAPTERS, chapterBlocks, getChapter } from './content'
+import { GuideCarousel } from '@renderer/components/guide/GuideCarousel'
+import { CHAPTERS, chapterBlocks, getChapter, getGuide } from './content'
 import styles from './CatechismPage.module.scss'
 
 /**
@@ -37,6 +39,46 @@ export function CatechismPage(): ReactNode {
   const sections = useMemo(() => (blocks ? outline(blocks) : []), [blocks])
 
   /*
+   * Which section the reader is in, for the rail's mark.
+   *
+   * An observer rather than a scroll handler: the body fires scroll events far
+   * faster than this needs answering, and each one would mean measuring every
+   * heading. The observer reports only the headings that actually crossed.
+   *
+   * The bottom margin is the load-bearing part. Pulling it in to 65% means a
+   * heading counts as current from the moment it reaches the upper third of the
+   * panel rather than when it touches the bottom edge — without it every
+   * heading below the fold is "intersecting" at once and the last one wins,
+   * so the mark sits at the end of the chapter the whole way down.
+   */
+  const [active, setActive] = useState<string | null>(null)
+
+  useEffect(() => {
+    const root = bodyRef.current
+    if (!root || sections.length === 0) return
+
+    const headings = sections
+      .map((entry) => root.querySelector(`#${CSS.escape(entry.id)}`))
+      .filter((node): node is Element => node !== null)
+
+    if (headings.length === 0) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+
+        if (visible[0]) setActive(visible[0].target.id)
+      },
+      { root, rootMargin: '0px 0px -65% 0px', threshold: 0 }
+    )
+
+    for (const heading of headings) observer.observe(heading)
+    return () => observer.disconnect()
+  }, [sections])
+
+  /*
    * Scrolled to rather than linked to.
    *
    * This application routes with `HashRouter`, so the fragment is the route —
@@ -49,6 +91,45 @@ export function CatechismPage(): ReactNode {
       behavior: 'smooth',
       block: 'start'
     })
+  }, [])
+
+  /*
+   * Replaying the tour, and meaning it.
+   *
+   * This used to call `reset` and nothing else: the record was cleared, nothing
+   * happened on screen, and the tour appeared on the *next* launch. Correct, and
+   * indistinguishable from a button that does not work — there is no way to tell
+   * a silent success from a no-op until you relaunch.
+   *
+   * So it does both halves now. The sheet opens immediately, and the
+   * acknowledgement stays cleared, so the real gate in `OrientationGate` shows
+   * it again on the next start exactly as it would on a first install. That is
+   * the difference between re-reading the tour and rehearsing a first run, and
+   * this button is the one worth spending on the second.
+   *
+   * Closing the sheet here deliberately does *not* acknowledge. Acknowledging
+   * is what the first-run gate does when the operator dismisses it there, and
+   * doing it here as well would cancel the very thing that was just set up.
+   */
+  const [tour, setTour] = useState(false)
+  const orientation = getGuide('orientation')
+
+  /*
+   * Development only, and drawn nowhere else.
+   *
+   * Rehearsing a first launch is a thing whoever is *building* the tour needs
+   * to do repeatedly and an operator needs once, never. Shipping the control
+   * would put a button in the manual whose whole purpose is to undo a piece of
+   * state the application is otherwise careful to record — and an operator who
+   * pressed it would be greeted by an introduction on their next start with no
+   * obvious way to say they had already read it.
+   */
+  const { data: runtime } = useRuntimeInfo()
+  const rehearsable = runtime?.isDevelopment === true
+
+  const replayOrientation = useCallback(() => {
+    void window.candy.guide.reset()
+    setTour(true)
   }, [])
 
   const select = useCallback(
@@ -71,19 +152,16 @@ export function CatechismPage(): ReactNode {
         epigraph={section.epigraph}
         actions={
           <div className={styles.headerActions}>
-            {/*
-              The one place the orientation tour can be put back. It is not a
-              setting — it changes nothing about how the console runs — so it
-              belongs with the documentation rather than in REGULATION.
-            */}
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => void window.candy.guide.reset()}
-              title="The orientation tour will open again on the next launch"
-            >
-              Replay orientation
-            </Button>
+            {rehearsable ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={replayOrientation}
+                title="Development only. Opens the tour now, and again on the next launch — as a first run would"
+              >
+                Rehearse first run
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -128,32 +206,69 @@ export function CatechismPage(): ReactNode {
           className={styles.content}
         >
           <div ref={bodyRef} className={styles.body}>
-            {sections.length > 1 ? (
-              <nav className={styles.outline} aria-label="On this page">
-                {sections.map((entry) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    className={styles.outlineItem}
-                    onClick={() => jump(entry.id)}
-                  >
-                    {entry.text}
-                  </button>
-                ))}
-              </nav>
-            ) : null}
+            <div className={styles.bodyInner}>
+              {blocks ? (
+                <Markdown blocks={blocks} className={styles.prose} />
+              ) : (
+                <p className={styles.unwritten}>
+                  This chapter has not been written yet. It will appear here once{' '}
+                  <code>content/docs/{chapter.id}.md</code> exists.
+                </p>
+              )}
 
-            {blocks ? (
-              <Markdown blocks={blocks} className={styles.prose} />
-            ) : (
-              <p className={styles.unwritten}>
-                This chapter has not been written yet. It will appear here once{' '}
-                <code>content/docs/{chapter.id}.md</code> exists.
-              </p>
-            )}
+              {/*
+                The chapter's own sections, as a rail down the right.
+
+                It was a strip of links across the top, which on a long chapter
+                wrapped to three rows of small uppercase text and read as a
+                masthead of its own — the reader met a wall of labels before
+                the first sentence.
+
+                Held at the measure's edge instead, collapsed to one rule per
+                section. The rules alone say how long the chapter is and where
+                you are in it, which is most of what a contents rail is for,
+                and the labels resolve on hover for the rest.
+              */}
+              {sections.length > 1 ? (
+                <nav className={styles.outline} aria-label="On this page">
+                  <div className={styles.outlineInner}>
+                    {sections.map((entry) => (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        className={styles.outlineItem}
+                        data-active={entry.id === active || undefined}
+                        aria-current={entry.id === active ? 'location' : undefined}
+                        onClick={() => jump(entry.id)}
+                      >
+                        <span className={styles.outlineLabel}>{entry.text}</span>
+                        <span className={styles.outlineMark} aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                </nav>
+              ) : null}
+            </div>
           </div>
         </Panel>
       </motion.div>
+
+      {/*
+        The tour, replayed. Mounted here rather than in the shell because this
+        is the one page that offers it deliberately — `OrientationGate` owns the
+        automatic showing, and two components racing to open the same sheet
+        would be worse than one of each.
+      */}
+      <AnimatePresence>
+        {tour && orientation ? (
+          <GuideCarousel
+            guide={orientation}
+            eyebrow="ORIENTATION"
+            chapter="overview"
+            onClose={() => setTour(false)}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }

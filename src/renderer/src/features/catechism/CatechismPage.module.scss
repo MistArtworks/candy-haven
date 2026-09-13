@@ -118,7 +118,16 @@
   padding-right: space(3);
 }
 
+// Prose, then the section rail held at its edge.
+.bodyInner {
+  display: flex;
+  align-items: flex-start;
+  gap: space(6);
+}
+
 .prose {
+  flex: 1 1 auto;
+  min-width: 0;
   max-width: 74ch;
 }
 
@@ -132,16 +141,66 @@
   }
 }
 
-// On-this-page. A row of chapter sections, drawn as a strip rather than a
-// second sidebar — there is already one rail on this page and a second would
-// leave the prose in a trench.
+// The chapter's sections, down the right.
+//
+// Collapsed to one rule per section, so at rest it is a column of marks the
+// length of the chapter rather than a list competing with the prose. That is
+// most of what a contents rail is for — how long, and where am I — and it
+// costs almost no width to say.
+//
+// **The width is reserved, not animated.** A first version collapsed each
+// label with `max-width` and transitioned it, which meant the whole rail grew
+// as the labels arrived and clipped the long ones mid-word. Reserving the
+// space and fading the text in leaves the layout completely still: nothing
+// moves on hover, and a label too long for the column is cut at a word with an
+// ellipsis rather than at a letter.
 .outline {
+  flex: 0 0 236px;
+  align-self: stretch;
+  // Held at the panel's edge rather than against the prose. The measure is
+  // capped at 74ch, so without this the rail follows the last line of text and
+  // leaves the remaining width empty to its right — which reads as the prose
+  // having a narrow second column rather than as a rail on the page.
+  margin-left: auto;
+  // Sticky needs a height to stick within; the inner element does the sticking.
+  position: relative;
+}
+
+.outlineInner {
+  position: sticky;
+  top: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: space(1) space(4);
-  padding-bottom: space(4);
-  margin-bottom: space(5);
-  @include hairline(bottom, 0.08);
+  flex-direction: column;
+  align-items: stretch;
+  gap: space(4);
+  // The padding is always applied, boxed or not, so the plate arriving cannot
+  // shift a single mark. Only its paint changes.
+  padding: space(4);
+}
+
+/*
+ * The plate behind the rail.
+ *
+ * A pseudo-element rather than a background on the rail itself, and that is the
+ * whole trick: it is taken out of flow and given `opacity`, so appearing costs
+ * no layout at all. An earlier version faded in a real background alongside a
+ * `max-width` transition on the labels, which meant the box grew as it arrived
+ * — the movement read as the rail unfolding itself every time the pointer went
+ * near it.
+ */
+.outlineInner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  opacity: 0;
+  transition: opacity $duration-base $ease-out-expo;
+  pointer-events: none;
+}
+
+.outline:hover .outlineInner::before {
+  opacity: 1;
 }
 
 .outlineItem {
@@ -149,16 +208,67 @@
   background: none;
   border: 0;
   padding: 0;
-  @include label(9px, 0.14em);
-  color: var(--ch-text-muted);
+  // Above the plate, which is absolutely placed behind them.
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: space(3);
   cursor: pointer;
-
-  &:hover {
-    color: var(--ch-gold-300);
-  }
+  text-align: right;
+  min-width: 0;
 
   &:focus-visible {
     @include focus-ring(2px);
+  }
+}
+
+// The rule. Short by default, longer and crimson for the section being read,
+// so the position is legible without the labels being shown at all.
+.outlineMark {
+  flex: 0 0 auto;
+  width: 16px;
+  height: $hairline;
+  background: var(--ch-line-strong);
+  transition:
+    width $duration-fast $ease-out-expo,
+    background $duration-fast $ease-out-expo;
+
+  .outlineItem:hover & {
+    width: 24px;
+    background: var(--ch-alabaster-500);
+  }
+
+  .outlineItem[data-active] & {
+    width: 24px;
+    background: var(--ch-accent);
+  }
+}
+
+// Opacity only. The box does not move.
+.outlineLabel {
+  @include label(11px, 0.1em);
+  color: var(--ch-text-muted);
+  min-width: 0;
+  @include truncate;
+  opacity: 0;
+  transition:
+    opacity $duration-base $ease-out-expo,
+    color $duration-fast linear;
+
+  .outline:hover & {
+    opacity: 1;
+  }
+
+  .outlineItem:hover & {
+    color: var(--ch-gold-300);
+  }
+
+  // The section being read stays legible whether or not the rail is hovered —
+  // it is the one label that answers a question the marks alone cannot.
+  .outlineItem[data-active] & {
+    opacity: 1;
+    color: var(--ch-text-primary);
   }
 }
 
@@ -184,5 +294,12 @@
 
   .body {
     max-height: none;
+  }
+
+  // The rail is dropped rather than stacked. On a narrow window the prose has
+  // already given up measure, and a contents list above it would put the same
+  // wall of labels before the first sentence that moving it here removed.
+  .outline {
+    display: none;
   }
 }

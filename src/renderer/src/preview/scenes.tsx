@@ -9,7 +9,7 @@ import { useRef, type ReactNode } from 'react'
 import { GenesisField, type PointerLean } from '@renderer/features/home/components/GenesisField'
 import { GalaxyScene } from '@renderer/features/home/components/scenes/GalaxyScene'
 import { VigilScene } from '@renderer/features/home/components/scenes/VigilScene'
-import { DetonationScene } from '@renderer/features/home/components/scenes/DetonationScene'
+import { GateScene } from '@renderer/features/home/components/scenes/GateScene'
 import { SCENES } from '@renderer/features/home/components/scenes/scenes'
 import '@renderer/styles/global.scss'
 
@@ -74,8 +74,8 @@ function Sheet(): ReactNode {
       <Cell label={SCENES.vigil.label}>
         <VigilScene tone="nominal" leanRef={lean} />
       </Cell>
-      <Cell label={SCENES.detonation.label}>
-        <DetonationScene tone="nominal" leanRef={lean} />
+      <Cell label={SCENES.gate.label}>
+        <GateScene tone="nominal" leanRef={lean} />
       </Cell>
     </div>
   )

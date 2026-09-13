@@ -44,8 +44,20 @@
   max-width: 76ch;
 }
 
-.scope {
+/*
+ * The panel, not the list inside it.
+ *
+ * `grid-column` was set on the `<ol>`, which is not a child of `.grid` — the
+ * `Panel` wrapping it is. So the span did nothing, the panel took the one
+ * implicit column it was given, and the list's own `minmax(320px, 1fr)` tracks
+ * were wider than the box they were in: the items ran out through the panel's
+ * right-hand border and the whole right of the page sat empty.
+ */
+.plan {
   grid-column: span 6;
+}
+
+.scope {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: space(3) space(6);

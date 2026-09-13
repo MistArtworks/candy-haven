@@ -1,15 +1,16 @@
-import { useCallback, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { motion, useMotionValue, useScroll, useSpring, useTransform } from 'motion/react'
 import { SECTIONS } from '@shared/domain/navigation'
 import type { ArchiveState } from '@shared/domain/archive'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
+import { useRuntimeInfo } from '@renderer/hooks/useRuntimeInfo'
 import { formatDuration } from '@renderer/lib/format'
 import { GenesisField, type PointerLean } from './GenesisField'
 import { MandalaRings } from './MandalaRings'
 import { GalaxyScene } from './scenes/GalaxyScene'
 import { VigilScene } from './scenes/VigilScene'
-import { DetonationScene } from './scenes/DetonationScene'
-import { SCENES, SESSION_SCENE } from './scenes/scenes'
+import { GateScene } from './scenes/GateScene'
+import { SCENES, SCENE_IDS, SESSION_SCENE, pinScene, type SceneId } from './scenes/scenes'
 import styles from './NexusLanding.module.scss'
 
 export interface NexusLandingProps {
@@ -133,7 +134,17 @@ export function NexusLanding({
 }: NexusLandingProps): ReactNode {
   const sectionRef = useRef<HTMLElement>(null)
   /** Which field this run of the application opened on. See `scenes.ts`. */
-  const scene = SCENES[SESSION_SCENE]
+  /*
+   * Which field is on screen.
+   *
+   * Seeded from the session's own choice and then held in state, so the dev
+   * picker below can swap it live rather than asking for a relaunch. In a
+   * packaged build nothing ever calls the setter and this is exactly the old
+   * module constant.
+   */
+  const { data: runtime } = useRuntimeInfo()
+  const [sceneId, setSceneId] = useState<SceneId>(SESSION_SCENE)
+  const scene = SCENES[sceneId]
   // The project's own hook, not motion's `useReducedMotion`: this one honours
   // the in-app Motion control in Regulation as well as the OS setting.
   const animationsEnabled = useAnimationsEnabled()
@@ -263,13 +274,13 @@ export function NexusLanding({
         machine rather than an atmosphere, and it would throw away a field the
         operator was looking at.
       */}
-      <motion.div className={styles.fieldLayer} style={parallax.field}>
-        {SESSION_SCENE === 'galaxy' ? (
+      <motion.div key={sceneId} className={styles.fieldLayer} style={parallax.field}>
+        {sceneId === 'galaxy' ? (
           <GalaxyScene tone={tone} leanRef={leanRef} />
-        ) : SESSION_SCENE === 'vigil' ? (
+        ) : sceneId === 'vigil' ? (
           <VigilScene tone={tone} leanRef={leanRef} />
-        ) : SESSION_SCENE === 'detonation' ? (
-          <DetonationScene tone={tone} leanRef={leanRef} />
+        ) : sceneId === 'gate' ? (
+          <GateScene tone={tone} leanRef={leanRef} />
         ) : (
           <GenesisField tone={tone} leanRef={leanRef} />
         )}
@@ -423,6 +434,45 @@ export function NexusLanding({
           <span className={styles.descendChevron} aria-hidden="true" />
         </button>
       </motion.div>
+      {/*
+        The field picker. Development only.
+
+        A one-in-four field is pleasant to launch into and miserable to work on:
+        judging a change meant relaunching until the right one came up, and a
+        fault in a scene could hide for a dozen starts. This pins one — held
+        across reloads, so it survives the restart a code change causes.
+
+        Sited on the landing rather than in REGULATION because the thing being
+        chosen is *on screen here*, and a picker you have to leave the picture
+        to reach is one you cannot judge with.
+      */}
+      {runtime?.isDevelopment ? (
+        <div className={styles.scenePicker}>
+          <span className={styles.scenePickerLabel}>FIELD</span>
+          {SCENE_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              className={styles.scenePickerItem}
+              data-active={id === sceneId || undefined}
+              onClick={() => {
+                pinScene(id)
+                setSceneId(id)
+              }}
+            >
+              {id}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={styles.scenePickerItem}
+            title="Back to a different field on every launch"
+            onClick={() => pinScene(null)}
+          >
+            unpin
+          </button>
+        </div>
+      ) : null}
     </section>
   )
 }

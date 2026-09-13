@@ -66,7 +66,11 @@ ARCHIVE lens.
 
 ## Session 2 — ARCHIVE (9 files)
 
-`Ctrl`+`2`. Do these in order; each builds on the last.
+`Ctrl`+`3`. Do these in order; each builds on the last.
+
+> ARCHIVE is the **third** chord, not the second. INTERFACE is reserved but
+> still on the rail and still bound, so it holds `Ctrl`+`2` — the numbering
+> follows what is drawn rather than skipping what is not built.
 
 **`archive-01-lenses.png`** · also save as `welcome-04-archive.png`
 

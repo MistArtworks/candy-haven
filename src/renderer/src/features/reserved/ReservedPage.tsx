@@ -54,7 +54,7 @@ export function ReservedPage({ sectionId, scope }: ReservedPageProps): ReactNode
           </div>
         </Panel>
 
-        <Panel label="Commissioning scope" index="02">
+        <Panel label="Commissioning scope" index="02" className={styles.plan}>
           <ol className={styles.scope}>
             {scope.map((item, index) => (
               <li key={item} className={styles.scopeItem}>

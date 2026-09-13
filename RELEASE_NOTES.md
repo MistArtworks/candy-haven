@@ -6,7 +6,7 @@ A tenth department, at the bottom of the rail under OVERSIGHT. The manual, in th
 
 - Thirteen chapters: one per department, a commissioning walkthrough, the shortcut tables, a glossary of everything this console calls things by its own name, and a fault-finding chapter organised by symptom.
 - **Quick guide** in every department's masthead — a handful of slides on that department, for when you are already on the page and do not want a chapter.
-- A tour opens on a first launch, and again only when the guides are rewritten enough to be worth re-reading. Dismissing it is what marks it read. **Replay orientation** in CATECHISM puts it back.
+- A tour opens on a first launch, and again only when the guides are rewritten enough to be worth re-reading. Dismissing it is what marks it read — everything in it is also in the chapters, at more length.
 - `F1` opens the guide for wherever you are. `Ctrl+Shift+K` opens the manual. `Ctrl+/` lists every chord currently bound, which it always could, and which is now written down.
 
 The prose lives in Markdown files in the repository, so correcting the documentation is editing a sentence rather than a component.
@@ -36,9 +36,9 @@ Tiles now carry **tempo and key**, with the project's **tags** in their own colo
 
 ## Departments arrive rather than appear
 
-A crimson mark crosses the field as a department changes: the page you are leaving recedes, the mark passes, the new one is set behind it.
+Optional, and off until you ask for it. Turn **THE SWEEP** on and a crimson mark crosses the field as a department changes: the page you are leaving recedes, the mark passes, the new one is set behind it.
 
-REGULATION → PRESENTATION → **Page transition** sets it to `SWEEP`, `FADE` or `OFF`. Motion still wins where the two disagree.
+REGULATION → PRESENTATION → **Page transition**: `SWEEP`, `FADE` or `OFF`. Motion still wins where the two disagree.
 
 Two things that were wrong here are fixed with it. The console briefly rendered the department you were _going to_ inside the one you were leaving — you could see the next page before the transition to it. And loading a shelf drew a sentence where the shelf was about to be; it now draws the shelf's own shape, so the real tiles land where the placeholders stood instead of the page jumping.
 

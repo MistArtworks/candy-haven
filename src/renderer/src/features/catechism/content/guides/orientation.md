@@ -26,7 +26,7 @@ each one is for.
 - **BROADCAST** — what is served to an audience while it is live.
 - **OVERSIGHT** — the condition of the installation, and the rules it runs under.
 
-`Ctrl+1` through `Ctrl+9` walk the rail in the order it is drawn.
+`Ctrl+1` through `Ctrl+9`, then `Ctrl+0`, walk the rail in the order it is drawn — reserved departments included, so the numbers match what you can see.
 
 ## NEXUS — the front door
 

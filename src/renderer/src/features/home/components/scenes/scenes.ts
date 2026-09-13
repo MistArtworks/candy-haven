@@ -24,7 +24,7 @@ export interface SceneProps {
   className?: string
 }
 
-export const SCENE_IDS = ['genesis', 'galaxy', 'vigil', 'detonation'] as const
+export const SCENE_IDS = ['genesis', 'galaxy', 'vigil', 'gate'] as const
 export type SceneId = (typeof SCENE_IDS)[number]
 
 export interface SceneDefinition {
@@ -68,12 +68,56 @@ export const SCENES: Record<SceneId, SceneDefinition> = {
     focusY: 0.4,
     mandala: false
   },
-  detonation: {
-    id: 'detonation',
-    label: 'THE DETONATION · RESONANCE UNBOUND',
-    focusY: 0.5,
-    mandala: true
+  gate: {
+    id: 'gate',
+    label: 'THE GATE · THRESHOLD HELD OPEN',
+    focusY: 0.44,
+    /*
+     * No armature over this one.
+     *
+     * The mandala encloses a single centred object, and this scene already has
+     * one enclosing another — the aperture frames the shaft. A third ring over
+     * the top would be a second frame around a picture that is mostly frame.
+     */
+    mandala: false
   }
+}
+
+/** Where a pinned scene is remembered. Development only; see `pinScene`. */
+const PIN_KEY = 'candy-haven:scene'
+
+function readPin(): SceneId | null {
+  try {
+    const held = window.localStorage.getItem(PIN_KEY)
+    return SCENE_IDS.includes(held as SceneId) ? (held as SceneId) : null
+  } catch {
+    // Storage can be unavailable. A missing pin is the normal case anyway.
+    return null
+  }
+}
+
+/**
+ * Holds one field for every launch, or releases it back to chance.
+ *
+ * Development only, and it exists because a one-in-four field is miserable to
+ * work on: judging a change to a scene meant relaunching until it came up, and
+ * a fault in one could hide for a dozen starts. Pinning makes a scene
+ * reproducible, which is the difference between iterating on it and guessing.
+ *
+ * Persisted rather than held in memory, so it survives the reload that a code
+ * change causes — which is the whole moment it is needed.
+ */
+export function pinScene(id: SceneId | null): void {
+  try {
+    if (id) window.localStorage.setItem(PIN_KEY, id)
+    else window.localStorage.removeItem(PIN_KEY)
+  } catch {
+    // Nothing to do: the pin is a convenience, not state the app depends on.
+  }
+}
+
+export function pinnedScene(): SceneId | null {
+  return readPin()
 }
 
 /**
@@ -89,4 +133,5 @@ export const SCENES: Record<SceneId, SceneDefinition> = {
  * once per window. React's own lifecycle is the wrong scope: components remount
  * on every navigation.
  */
-export const SESSION_SCENE: SceneId = SCENE_IDS[Math.floor(Math.random() * SCENE_IDS.length)]
+export const SESSION_SCENE: SceneId =
+  readPin() ?? SCENE_IDS[Math.floor(Math.random() * SCENE_IDS.length)]

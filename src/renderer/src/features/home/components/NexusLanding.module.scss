@@ -472,3 +472,48 @@
     display: none;
   }
 }
+
+// --------------------------------------------------------------- dev picker
+
+// Development only. Deliberately plain — it is a tool sitting on a composition,
+// and dressing it up would make it part of the picture.
+.scenePicker {
+  position: absolute;
+  left: space(6);
+  bottom: space(6);
+  z-index: z('raised');
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(3);
+  background: var(--ch-surface-overlay);
+  @include hairline(all, 0.12);
+}
+
+.scenePickerLabel {
+  @include label(8px, 0.22em);
+  color: var(--ch-gold-500);
+}
+
+.scenePickerItem {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: space(1) space(2);
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-active] {
+    color: var(--ch-text-primary);
+    box-shadow: inset 0 -2px 0 var(--ch-accent);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}

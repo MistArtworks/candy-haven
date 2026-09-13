@@ -49,8 +49,15 @@ export const AppearanceSettingsSchema = z.object({
   uiScale: z.number().min(0.8).max(2).default(1),
   /** Film grain / scanline intensity, 0..1. */
   grain: z.number().min(0).max(1).default(0.5),
-  /** How a department arrives. See `PageTransitionSchema`. */
-  pageTransition: PageTransitionSchema.default('sweep'),
+  /**
+   * How a department arrives. See `PageTransitionSchema`.
+   *
+   * Off by default. A transition is the kind of thing that is pleasant the
+   * first ten times and then sits between the operator and the page they
+   * asked for — and this console is walked through all day. Whoever wants the
+   * ceremony can turn it on; nobody has to turn it off to get work done.
+   */
+  pageTransition: PageTransitionSchema.default('off'),
   /** Skip the boot cinematic once the sequence itself has completed. */
   fastBoot: z.boolean().default(false)
 })

@@ -19,15 +19,21 @@ Motion, interface scale and the accent this console draws with.
 | **Interface scale** | `0.8` to `2.0`. Scales the whole console, not just text                                                                              |
 | **Accent**          | `crimson` or `gold`. Shifts every interactive affordance                                                                             |
 | **Grain**           | `0` to `1`. The film grain over the whole console                                                                                    |
-| **Page transition** | `sweep`, `fade` or `off`. How a department arrives when you walk the rail                                                            |
+| **Page transition** | `sweep`, `fade` or `off`. How a department arrives. **Off by default**                                                               |
 
 > The accent setting does not touch the boot orb, which stays crimson. It is the
 > focal object, and the palette reserves that colour for focal points.
 
+**Off by default**, and deliberately. A transition is pleasant the first ten
+times and then sits between you and the page you asked for, and this console is
+walked through all day. Turn it on if you want the ceremony.
+
+`sweep` passes a crimson mark across the field as the department changes — the
+outgoing page recedes, the mark crosses, the incoming one is set behind it.
+`fade` is a plain handover. `off` changes instantly.
+
 **Page transition** is taste; **Motion** is accessibility, and where they
-disagree Motion wins. `sweep` passes a crimson mark across the field as the
-department changes — the outgoing page recedes, the mark crosses, the incoming
-one is set behind it. `fade` is the plain handover. `off` changes instantly.
+disagree Motion wins.
 
 Setting Motion to `off` disables the transition whatever this is set to, and the
 control says so rather than disappearing.
@@ -121,8 +127,12 @@ are the real resolved ones rather than templates.
 | **Archive data** | The database's own directory          |
 | **Versions**     | Candy Haven, Electron, Chromium, Node |
 
-## Replaying the orientation tour
+## The orientation tour
 
-Not here — it is in [CATECHISM](/catechism), under **Replay orientation**. It
-changes nothing about how the console runs, so it belongs with the documentation
-rather than with the settings.
+Shown once, on a first launch, and again only when the guides are rewritten
+enough to be worth re-reading. Dismissing it is what marks it read.
+
+There is no control to bring it back, and that is deliberate rather than an
+omission — everything it covers is in these chapters at more length, and each
+department's **Quick guide** button is always available. Nothing is behind the
+tour that is not also in front of it.

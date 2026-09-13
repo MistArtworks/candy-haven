@@ -140,21 +140,22 @@ REGULATION → PRESENTATION → **Motion**:
 - `reduced` keeps state changes legible but removes ambient movement and grain.
 - `off` disables transitions wholesale.
 
-If it is only the **department change** that bothers you — the crimson mark
-crossing the field — that has its own control beside it. **Page transition** →
-`fade` keeps a quiet handover, `off` changes instantly, and the rest of the
-console's movement is left alone.
+If it is only the **department change** that bothers you, that has its own
+control beside Motion. **Page transition** is `off` by default — if a mark is
+crossing the field as you walk the rail, something has turned it on. `fade`
+keeps a quiet handover instead, and the rest of the console's movement is left
+alone either way.
 
 **Grain** is separately adjustable to zero, and **Interface scale** runs from
 0.8 to 2.0 if the issue is size rather than movement.
 
 ## The orientation tour will not come back
 
-It is shown once per guide revision. CATECHISM's masthead has **Replay
-orientation**, which forgets what was read so the tour opens on the next launch.
+By design. It is shown once per guide revision and dismissing it marks it read.
 
-Individual department guides are always available from the **Quick guide**
-button in each masthead — those are not once-only.
+Nothing is lost. Every department's **Quick guide** button is always available
+and covers the same ground for that department, and these chapters cover all of
+it at more length. `F1` opens the guide for wherever you are.
 
 ## Where the logs are
 

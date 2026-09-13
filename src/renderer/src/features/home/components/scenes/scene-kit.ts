@@ -424,6 +424,7 @@ export function mountScene(canvas: HTMLCanvasElement, options: SceneMount): () =
   let elapsed = 0
   let frame = 0
   let last = performance.now()
+  let faulted = false
 
   const resize = (): void => {
     const rect = canvas.getBoundingClientRect()
@@ -470,7 +471,27 @@ export function mountScene(canvas: HTMLCanvasElement, options: SceneMount): () =
     }
 
     context.clearRect(0, 0, width, height)
-    options.onFrame({ context, width, height, elapsed, delta, leanX, leanY, intensity })
+
+    /*
+     * A bad frame must not be a dead canvas.
+     *
+     * `requestAnimationFrame` was armed *after* `onFrame` returned, so a single
+     * throw anywhere in a scene's draw meant the next frame was never scheduled
+     * and the field went black for the rest of the session — silently, because
+     * nothing on screen says "the loop stopped". The failure looked exactly
+     * like a scene that had been written to draw nothing.
+     *
+     * Reported once rather than every frame: a fault here fires sixty times a
+     * second and would bury the stack that explains it under its own repeats.
+     */
+    try {
+      options.onFrame({ context, width, height, elapsed, delta, leanX, leanY, intensity })
+    } catch (cause) {
+      if (!faulted) {
+        faulted = true
+        console.error('Scene frame failed; the field will keep drawing what it can.', cause)
+      }
+    }
 
     if (options.animated) frame = requestAnimationFrame(draw)
   }
