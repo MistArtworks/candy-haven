@@ -1,10 +1,13 @@
-import { createElement } from 'react'
+import { createElement, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { GateScene } from '@renderer/features/home/components/scenes/GateScene'
-import './gate.scss'
+import { GalaxyScene } from '@renderer/features/home/components/scenes/GalaxyScene'
+import type { SceneProps } from '@renderer/features/home/components/scenes/scenes'
+import { sceneMarque } from '@shared/domain/overlays'
+import './scene.scss'
 
 /**
- * THE GATE — the stream-starting scene.
+ * The scene-backed browser sources.
  *
  * The one overlay that mounts React. Every other browser source in the kit is
  * plain TypeScript driving a canvas, and that is the right shape for them: they
@@ -35,8 +38,11 @@ function text(id: string, value: string | null, fallback: string, limit: number)
   node.textContent = resolved.slice(0, limit).toUpperCase()
 }
 
-text('title', params.get('title'), 'STREAM STARTING SOON', 48)
-text('sub', params.get('sub'), 'THE PROCESSION IS STILL ON THE ROAD', 64)
+const slug = window.location.pathname.replace(/^\/+/, '').split('/')[0]
+const marque = sceneMarque(slug)
+
+text('title', params.get('title'), marque.title, 48)
+text('sub', params.get('sub'), marque.sub, 64)
 
 /** A 0..1 query value, or the fallback when absent or unreadable. */
 function ratio(name: string, fallback: number): number {
@@ -69,10 +75,10 @@ const root = document.documentElement
  * A gradient does both jobs: solid enough at the top to carry text, gone by the
  * bottom so the road still runs out of the frame.
  */
-root.style.setProperty('--ch-gate-gap', String(ratio('gap', 0.26)))
-root.style.setProperty('--ch-gate-grad-top', colour('g1', '#08080a'))
-root.style.setProperty('--ch-gate-grad-bottom', colour('g2', '#08080a'))
-root.style.setProperty('--ch-gate-grad-alpha', String(ratio('galpha', 0.92)))
+root.style.setProperty('--ch-scene-gap', String(ratio('gap', 0.26)))
+root.style.setProperty('--ch-scene-grad-top', colour('g1', '#08080a'))
+root.style.setProperty('--ch-scene-grad-bottom', colour('g2', '#08080a'))
+root.style.setProperty('--ch-scene-grad-alpha', String(ratio('galpha', 0.92)))
 
 /** A 0.5–2.0 multiplier, matching the bounds the rest of the kit uses. */
 function multiplier(name: string, fallback: number): number {
@@ -82,14 +88,30 @@ function multiplier(name: string, fallback: number): number {
 }
 
 // The kit's shared knobs, as query parameters rather than a stored config.
-root.style.setProperty('--ch-gate-scale', String(multiplier('scale', 1)))
-root.style.setProperty('--ch-gate-type', String(multiplier('type', 1)))
-root.style.setProperty('--ch-gate-opacity', String(ratio('opacity', 1)))
+root.style.setProperty('--ch-scene-scale', String(multiplier('scale', 1)))
+root.style.setProperty('--ch-scene-type', String(multiplier('type', 1)))
+root.style.setProperty('--ch-scene-opacity', String(ratio('opacity', 1)))
 
 if (params.get('gap') === '0') root.dataset.nogap = 'true'
 
 const host = document.querySelector<HTMLDivElement>('#scene')
 if (!host) throw new Error('Gate scene host missing.')
+
+/**
+ * Which field this address shows.
+ *
+ * Read from the path rather than a query parameter, the way the two countdowns
+ * pick their timer: the address the console hands over is then the whole
+ * configuration, and a source is identified by its URL and nothing else.
+ */
+const SCENES: Record<string, (props: SceneProps) => ReactNode> = {
+  gate: GateScene,
+  survey: GalaxyScene
+}
+
+// Falls back rather than failing: a source pointed straight at the document
+// should draw something recognisable instead of a blank scene.
+const Scene = SCENES[slug] ?? GateScene
 
 /*
  * `tone` is fixed at nominal.
@@ -98,4 +120,4 @@ if (!host) throw new Error('Gate scene host missing.')
  * operator. On a broadcast it would be telling an audience waiting for a stream
  * that something is wrong with a database they cannot see and do not have.
  */
-createRoot(host).render(createElement(GateScene, { tone: 'nominal' }))
+createRoot(host).render(createElement(Scene, { tone: 'nominal' }))

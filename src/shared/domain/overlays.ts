@@ -31,6 +31,7 @@ export const OVERLAY_IDS = [
   'convene',
   'enclosure',
   'gate',
+  'survey',
   'docket'
 ] as const
 
@@ -310,6 +311,34 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
       'Scale, type size and opacity, as everywhere else in the kit'
     ],
     canvas: { width: 1920, height: 1080 },
+    /*
+     * Served from the shared scene document, as the two countdowns share one.
+     *
+     * Every scene-backed overlay is the same page with a different field behind
+     * it — same marque, same reserved band, same knobs. Giving each its own
+     * implementation would mean two copies of four hundred lines that drift the
+     * first time either is touched.
+     */
+    document: 'scene',
+    form: 'full'
+  },
+  {
+    id: 'survey',
+    slug: 'survey',
+    label: 'THE SURVEY',
+    purpose: 'Be right back — the galactic survey, turning while the room waits',
+    epigraph: 'All arms resonant. The survey does not pause.',
+    order: 8,
+    implemented: true,
+    document: 'scene',
+    scope: [
+      'A barred spiral seen from above and to one side, turning',
+      'The resonance plexus threaded through the whole disc',
+      'A marque and a secondary line, for saying how long you will be',
+      'The same reserved chat band and gradient as THE GATE',
+      'Scale, type size and opacity, as everywhere else in the kit'
+    ],
+    canvas: { width: 1920, height: 1080 },
     form: 'full'
   },
   {
@@ -318,7 +347,7 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     label: 'THE DOCKET',
     purpose: 'Standing queue of chat requests and what is being worked next',
     epigraph: 'Mortals reduced to data; choices measured, deviance erased.',
-    order: 8,
+    order: 9,
     implemented: false,
     scope: [
       'Numbered queue of requests, filed by the operator or by chat',
@@ -347,6 +376,24 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
   if (missing.length > 0) {
     throw new Error(`Overlay ids declared without a definition: ${missing.join(', ')}`)
   }
+}
+
+/**
+ * The marque a scene-backed overlay starts with.
+ *
+ * Here rather than in either surface because both need it and they must agree:
+ * the browser source falls back to these when the address carries nothing, and
+ * the console seeds its fields from them. Two copies would drift, and the drift
+ * would show up as a preview that does not match the broadcast.
+ */
+export const SCENE_MARQUE: Record<string, { title: string; sub: string }> = {
+  gate: { title: 'STREAM STARTING SOON', sub: 'THE PROCESSION IS STILL ON THE ROAD' },
+  survey: { title: 'BACK SHORTLY', sub: 'THE SURVEY CONTINUES WITHOUT US' }
+}
+
+/** The marque for a slug, falling back to the gate's. */
+export function sceneMarque(slug: string): { title: string; sub: string } {
+  return SCENE_MARQUE[slug] ?? SCENE_MARQUE.gate
 }
 
 export function getOverlay(id: OverlayId): OverlayDefinition {

@@ -270,6 +270,22 @@ one thing in the composition that has to stay unobstructed.
 Like THE ENCLOSURE, nothing is saved: the address carries the settings, so
 changing one means pasting the new URL rather than reloading the source.
 
+## THE SURVEY
+
+Be right back. A barred spiral seen from above and to one side, turning, with
+the resonance plexus threaded through the whole disc.
+
+The same page and the same settings as THE GATE — marque, second line, chat
+band, gradient and knobs — with a different field behind it. The two are one
+implementation: which scene you get is decided by the address, the way the two
+countdowns share a page and differ by theirs.
+
+It starts on **BACK SHORTLY**, where the gate starts on **STREAM STARTING**
+**SOON**. Both are yours to change.
+
+Like the gate it is a scene rather than furniture, so it does not want
+**Transparent** ticked.
+
 ## THE CHORUS
 
 ![overlay-chorus-console.png](overlay-chorus-console.png)

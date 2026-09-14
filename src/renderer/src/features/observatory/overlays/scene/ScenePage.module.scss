@@ -78,31 +78,31 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: calc(var(--ch-gate-gap, 0.26) * 100%);
+  width: calc(var(--ch-scene-gap, 0.26) * 100%);
   background: linear-gradient(
     to bottom,
-    var(--ch-gate-grad-top, #08080a) 0%,
-    var(--ch-gate-grad-bottom, #08080a) 55%,
+    var(--ch-scene-grad-top, #08080a) 0%,
+    var(--ch-scene-grad-bottom, #08080a) 55%,
     transparent 100%
   );
-  opacity: var(--ch-gate-grad-alpha, 0.92);
+  opacity: var(--ch-scene-grad-alpha, 0.92);
   pointer-events: none;
 }
 
 .marque {
   position: absolute;
-  right: calc(var(--ch-gate-gap, 0.26) * 100% + 3.2%);
+  right: calc(var(--ch-scene-gap, 0.26) * 100% + 3.2%);
   bottom: 7%;
   left: 3.2%;
   display: flex;
   flex-direction: column;
-  gap: calc(4px * var(--ch-gate-scale, 1));
+  gap: calc(4px * var(--ch-scene-scale, 1));
 }
 
 .title {
   color: var(--ch-alabaster-300);
   font-family: var(--ch-font-display);
-  font-size: calc(15px * var(--ch-gate-scale, 1) * var(--ch-gate-type, 1));
+  font-size: calc(15px * var(--ch-scene-scale, 1) * var(--ch-scene-type, 1));
   font-weight: 600;
   letter-spacing: 0.3em;
   text-shadow: 0 2px 18px rgba(8, 8, 10, 0.9);
@@ -111,7 +111,7 @@
 .sub {
   color: var(--ch-alabaster-500);
   font-family: var(--ch-font-display);
-  font-size: calc(8px * var(--ch-gate-scale, 1) * var(--ch-gate-type, 1));
+  font-size: calc(8px * var(--ch-scene-scale, 1) * var(--ch-scene-type, 1));
   letter-spacing: 0.34em;
   text-shadow: 0 2px 14px rgba(8, 8, 10, 0.9);
 }

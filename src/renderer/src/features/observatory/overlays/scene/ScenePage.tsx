@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { getOverlay, overlaySourceUrl } from '@shared/domain/overlays'
+import { getOverlay, overlaySourceUrl, sceneMarque, type OverlayId } from '@shared/domain/overlays'
 import { PRESENTATION_LIMITS } from '@shared/domain/presentation'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
@@ -12,14 +12,16 @@ import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useOverlayInfo } from '@renderer/hooks/useRite'
 import { GateScene } from '@renderer/features/home/components/scenes/GateScene'
-import styles from './GatePage.module.scss'
+import { GalaxyScene } from '@renderer/features/home/components/scenes/GalaxyScene'
+import styles from './ScenePage.module.scss'
 
 const TITLE_LIMIT = 48
 const SUB_LIMIT = 64
 
-const DEFAULTS = {
-  title: 'STREAM STARTING SOON',
-  sub: 'THE PROCESSION IS STILL ON THE ROAD',
+/** The fields each scene draws behind its marque. */
+const SCENES = { gate: GateScene, survey: GalaxyScene } as const
+
+const COMMON = {
   gap: 0.26,
   gradTop: '#08080a',
   gradBottom: '#08080a',
@@ -40,9 +42,18 @@ const DEFAULTS = {
  * the page can simply mount it. What the preview cannot show is the animation
  * at broadcast size, which is why the address is offered alongside it.
  */
-export function GatePage(): ReactNode {
-  const overlay = getOverlay('gate')
+export interface ScenePageProps {
+  overlayId: OverlayId
+}
+
+export function ScenePage({ overlayId }: ScenePageProps): ReactNode {
+  const overlay = getOverlay(overlayId)
   const server = useOverlayInfo()
+
+  // One page for every scene-backed overlay; the id chooses the field and the
+  // marque it starts with, and nothing else differs.
+  const Scene = SCENES[overlayId as keyof typeof SCENES] ?? GateScene
+  const DEFAULTS = { ...COMMON, ...sceneMarque(overlay.slug) }
 
   const [title, setTitle] = useState(DEFAULTS.title)
   const [sub, setSub] = useState(DEFAULTS.sub)
@@ -143,17 +154,17 @@ export function GatePage(): ReactNode {
             className={styles.stage}
             style={
               {
-                '--ch-gate-gap': String(gap),
-                '--ch-gate-grad-top': gradTop,
-                '--ch-gate-grad-bottom': gradBottom,
-                '--ch-gate-grad-alpha': String(gradAlpha),
-                '--ch-gate-scale': String(scale),
-                '--ch-gate-type': String(type),
+                '--ch-scene-gap': String(gap),
+                '--ch-scene-grad-top': gradTop,
+                '--ch-scene-grad-bottom': gradBottom,
+                '--ch-scene-grad-alpha': String(gradAlpha),
+                '--ch-scene-scale': String(scale),
+                '--ch-scene-type': String(type),
                 opacity
               } as React.CSSProperties
             }
           >
-            <GateScene tone="nominal" className={styles.scene} />
+            <Scene tone="nominal" className={styles.scene} />
             <div className={styles.chat} />
             <div className={styles.marque}>
               <span className={styles.title}>
