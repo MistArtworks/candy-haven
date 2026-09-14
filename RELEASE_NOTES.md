@@ -44,4 +44,5 @@ Both the full scene and the widget now draw it, and they draw it **while resting
 
 ## Fixed
 
+- THE GATE turned black after switching away from its scene in OBS and back. Resizing a scene clears its canvas, and only the animation loop ever repainted it — but `requestAnimationFrame` does not run while a page is hidden, and OBS stops pumping frames for a scene that is not live, so the canvas was cleared at exactly the moment nothing was going to redraw it. Scenes now repaint when their page comes back.
 - Every canvas overlay restored its transparency to fully opaque partway through drawing a frame. Harmless until opacity became a setting; now the field behind the muster roll, THE CONCORD's casting halo and the selection ring's plates all return to the level you set instead of discarding it.
