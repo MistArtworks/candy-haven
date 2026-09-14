@@ -88,6 +88,12 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'auditorium'
   },
   {
+    id: 'darkroom',
+    label: 'DARKROOM',
+    purpose: 'Grading photographs onto the console palette',
+    section: 'darkroom'
+  },
+  {
     id: 'observatory',
     label: 'OBSERVATORY',
     purpose: 'The broadcast kit: every overlay, and how to add it to OBS',

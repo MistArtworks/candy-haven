@@ -214,6 +214,23 @@ defaults to `TIME`; `NOW` and `LIVE` are the obvious alternatives.
 Console chords: `Space` starts or holds, `Ctrl`+`Enter` restarts from the top,
 `Ctrl`+`↑` and `Ctrl`+`↓` add and remove a minute mid-run.
 
+### Sound
+
+A clock ticks under either countdown while it runs, and each arrives at
+something of its own: a bass figure when INTERVAL runs out, a granular impact
+when CONVENING reaches zero.
+
+**Ticking clock** is a separate setting from **Audio cues**, because they are
+different kinds of noise. The cues are three chimes at moments that matter; the
+clock is a bed that plays for the whole duration. Turning the chimes off does
+not silence the clock, and it is not meant to.
+
+Both play in the console and never on the broadcast — see above for why.
+
+> CONVENING ships with **Audio cues** off, since nothing should warn an audience
+> it is nearly time. Its impact needs that setting turned on.
+
+
 ## THE ENCLOSURE
 
 A standing frame for the whole broadcast: gold registration brackets at the four

@@ -78,7 +78,17 @@ export const AppearanceSettingsSchema = z.object({
    * costs them nothing — its focal dot tracks with no spring at all, so it is
    * exactly as precise as the arrow it replaces.
    */
-  pointer: PointerSchema.default('reticle'),
+  /*
+   * Opt-in, not opt-out.
+   *
+   * It shipped defaulting to `reticle` in 1.11.0 and hid the system cursor on
+   * every fresh install while drawing nothing in its place — an empty setting
+   * falls through to this default, so an operator who had never heard of the
+   * feature lost their pointer. The mark is still unfinished; until it is
+   * demonstrably drawing, the console must not take away the one thing the
+   * operator needs to reach the setting that turns it off.
+   */
+  pointer: PointerSchema.default('native'),
   /** Skip the boot cinematic once the sequence itself has completed. */
   fastBoot: z.boolean().default(false)
 })

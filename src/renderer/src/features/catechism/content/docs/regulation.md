@@ -20,6 +20,7 @@ Motion, interface scale and the accent this console draws with.
 | **Accent**          | `crimson` or `gold`. Shifts every interactive affordance                                                                             |
 | **Grain**           | `0` to `1`. The film grain over the whole console                                                                                    |
 | **Page transition** | `sweep`, `fade` or `off`. How a department arrives. **Off by default**                                                               |
+| **Pointer**         | `reticle` or `native`. Which pointer the console draws. **`native` by default**                                                      |
 
 > The accent setting does not touch the boot orb, which stays crimson. It is the
 > focal object, and the palette reserves that colour for focal points.
@@ -37,6 +38,36 @@ disagree Motion wins.
 
 Setting Motion to `off` disables the transition whatever this is set to, and the
 control says so rather than disappearing.
+
+### THE RETICLE
+
+Off by default, and deliberately so while the mark is still being finished.
+Turning it on hides the system arrow, so it has to earn that.
+
+On `reticle`, the console hides the system arrow and draws its own pointer: a
+survey instrument rather than a cursor. It tracks, acquires a target, and
+stamps. The geometry is the console’s own mark reduced to something that reads
+at 22 pixels.
+
+| Over                         | The mark                                     |
+| ---------------------------- | -------------------------------------------- |
+| Anything at rest             | Ring and cardinal ticks, leaning into travel  |
+| A button or link             | Corner brackets close around it               |
+| A line of text               | The ring collapses to a caret                 |
+| Something disabled           | Struck through, drained to concrete           |
+| A surface wanting an exact point | A gapped crosshair                       |
+| Something draggable          | A segmented ring                              |
+
+Nothing had to be annotated for any of that. The mark reads whatever the
+interface already says the cursor should be, so every control that exists is
+covered and so is every one added later.
+
+`native` hands the arrow back. Setting **Motion** to `off` does too, and the
+control says so — the instrument is entirely movement.
+
+The title bar keeps the system cursor whatever is set here. The window drag
+region swallows mouse events before the renderer sees them, so there is nothing
+there to draw from.
 
 ## STARTUP
 
