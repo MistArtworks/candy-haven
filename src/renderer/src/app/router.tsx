@@ -65,7 +65,9 @@ function overlayElement(id: OverlayId): ReactNode {
     // Both scene-backed overlays share a page; the id chooses the field.
     case 'gate':
     case 'survey':
-      return <ScenePage overlayId={id} />
+      // Keyed, so walking between the scenes remounts rather than carrying
+      // the previous one's marque into the fields.
+      return <ScenePage key={id} overlayId={id} />
     // Both countdowns share a page; the id selects the timer.
     case 'interval':
     case 'convene':

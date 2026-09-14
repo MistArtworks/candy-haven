@@ -200,6 +200,7 @@ export function createDefaultTimerConfig(id: TimerId): TimerConfig {
     terminalWord: convene ? 'NOW' : 'TIME',
     // A room being counted in is not warned; work running out is.
     sound: !convene,
+    tick: true,
     showLabel: true,
     blinkOnElapsed: !convene
   }

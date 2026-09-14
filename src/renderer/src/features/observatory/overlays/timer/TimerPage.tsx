@@ -360,9 +360,15 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
                 onChange={(sound) => void actions.configure(timerId, { sound })}
                 hint={
                   kind === 'convene'
-                    ? 'Off by default — nothing should warn an audience it is nearly time.'
+                    ? 'Off by default — nothing should warn an audience it is nearly time. The impact when this reaches zero needs it on.'
                     : 'One minute out, final call at ten seconds, and once when spent. Console only, never on the broadcast.'
                 }
+              />
+              <Checkbox
+                label="Ticking clock"
+                checked={state.config.tick}
+                onChange={(tick) => void actions.configure(timerId, { tick })}
+                hint="A clock under the countdown for as long as it runs. Its own setting: the cues are three chimes, this is a bed."
               />
             </div>
           </div>

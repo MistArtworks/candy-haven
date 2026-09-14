@@ -63,6 +63,19 @@ export const TimerConfigSchema = z.object({
    * is silent on the broadcast without any special handling.
    */
   sound: z.boolean().default(true),
+  /**
+   * A clock ticking under the countdown, for as long as it runs.
+   *
+   * Its own setting rather than part of `sound`, because the two are different
+   * kinds of noise. The cues are three chimes at moments that matter; this is a
+   * bed that plays for the whole duration, and an operator who wants to be told
+   * when a minute is left does not necessarily want to hear a clock for the
+   * twenty-nine before it.
+   *
+   * Played by the console like every other cue — see cues.ts for why none of
+   * this lives in the overlay.
+   */
+  tick: z.boolean().default(true),
   showLabel: z.boolean().default(true),
   /** Blink the readout once the time is gone. */
   blinkOnElapsed: z.boolean().default(true),

@@ -3,8 +3,18 @@ import { TIMER_IDS, timerFrameAt } from '@shared/domain/timer.constants'
 import { TimerCueRunner } from '@renderer/timer/cues'
 import { useTimerSet } from '@renderer/hooks/useTimers'
 
-/** Polled rather than tied to a frame loop: a cue edge is a quarter-second event. */
-const CHECK_INTERVAL_MS = 250
+/**
+ * Polled rather than tied to a frame loop, but tightly.
+ *
+ * A quarter of a second was fine while every cue was a chime that could land a
+ * little late without anyone noticing. It is not fine now that a ticking bed
+ * runs underneath: the bed is stopped in the same pass that fires the arrival
+ * sample, so however late this poll notices zero is exactly how long the clock
+ * keeps ticking over the top of the impact meant to replace it.
+ *
+ * A tenth of a second is inaudible as a gap and costs two comparisons.
+ */
+const CHECK_INTERVAL_MS = 100
 
 /**
  * Fires the countdown audio cues, wherever the operator happens to be.
@@ -39,7 +49,14 @@ export function TimerCues(): ReactNode {
     }
 
     const handle = setInterval(check, CHECK_INTERVAL_MS)
-    return () => clearInterval(handle)
+    const cues = runner.current
+    return () => {
+      clearInterval(handle)
+      // Stops the ticking bed with the subscriber. Nothing else would: it is a
+      // looping element outside React, and a clock still audible after the
+      // thing driving it has gone is the worst kind of leak to track down.
+      cues.reset()
+    }
   }, [])
 
   return null

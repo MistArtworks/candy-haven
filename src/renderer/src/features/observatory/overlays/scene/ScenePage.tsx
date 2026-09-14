@@ -53,7 +53,16 @@ export function ScenePage({ overlayId }: ScenePageProps): ReactNode {
   // One page for every scene-backed overlay; the id chooses the field and the
   // marque it starts with, and nothing else differs.
   const Scene = SCENES[overlayId as keyof typeof SCENES] ?? GateScene
-  const DEFAULTS = { ...COMMON, ...sceneMarque(overlay.slug) }
+  /*
+   * Stable for the life of the instance, and the router remounts per overlay.
+   *
+   * Both halves matter. Without the memo the URL builder below closes over a
+   * fresh object every render and its dependency list cannot be honest about
+   * it; without the `key` on the route, React would reuse this component when
+   * walking from one scene to the other and the `useState` initialisers would
+   * keep the previous scene's marque.
+   */
+  const DEFAULTS = useMemo(() => ({ ...COMMON, ...sceneMarque(overlay.slug) }), [overlay.slug])
 
   const [title, setTitle] = useState(DEFAULTS.title)
   const [sub, setSub] = useState(DEFAULTS.sub)
@@ -112,7 +121,20 @@ export function ScenePage({ overlayId }: ScenePageProps): ReactNode {
     if (opacity !== DEFAULTS.opacity) url.searchParams.set('opacity', opacity.toFixed(2))
 
     return url.toString()
-  }, [server.url, overlay, title, sub, gap, gradTop, gradBottom, gradAlpha, scale, type, opacity])
+  }, [
+    server.url,
+    overlay,
+    DEFAULTS,
+    title,
+    sub,
+    gap,
+    gradTop,
+    gradBottom,
+    gradAlpha,
+    scale,
+    type,
+    opacity
+  ])
 
   function copyUrl(): void {
     if (!sourceUrl) return

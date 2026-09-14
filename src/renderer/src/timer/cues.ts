@@ -1,15 +1,26 @@
-import type { TimerFrame, TimerState } from '@shared/domain/timer'
+import type { TimerFrame, TimerId, TimerState } from '@shared/domain/timer'
 import { CUE_FINAL_MS, CUE_ONE_MINUTE_MS, TIMER_KIND } from '@shared/domain/timer.constants'
+import tickUrl from '@renderer/assets/audio/tick.mp3'
+import intervalSpentUrl from '@renderer/assets/audio/interval-spent.wav'
+import conveneSpentUrl from '@renderer/assets/audio/convene-spent.wav'
 
 /**
  * Audio cues for the countdown timers.
  *
- * ### Why these are synthesised
+ * ### Warnings are synthesised; arrivals are played
  *
- * Three tones built from oscillators rather than three audio files. It costs no
- * bundle, nothing has to be fetched at runtime — which the console's CSP would
- * forbid anyway — and there is no artwork to keep in sync. It also happens to
- * suit an application about resonance: the cues are intervals, not samples.
+ * The two warning cues are still built from oscillators. They fire mid-run,
+ * they have to read as an institutional chime rather than as music, and two
+ * tones cost no bundle at all.
+ *
+ * What a countdown *reaches* is a different job, and the operator supplied
+ * samples for it: a bass figure when a break runs out, a granular impact when a
+ * stream is about to open. Those are stings, and a synthesised interval cannot
+ * be one. The clock bed under a running timer is a sample for the same reason.
+ *
+ * All three are imported rather than fetched, so Vite fingerprints them into the
+ * bundle and `media-src 'self'` in the console's CSP covers them. See the README
+ * beside them in `assets/audio/`.
  *
  * ### Why they play in the console
  *
@@ -22,6 +33,12 @@ import { CUE_FINAL_MS, CUE_ONE_MINUTE_MS, TIMER_KIND } from '@shared/domain/time
  */
 
 export type TimerCue = 'minute' | 'final' | 'expired'
+
+/** What each countdown plays when it arrives at zero. */
+const SPENT_SAMPLE: Record<TimerId, string> = {
+  interval: intervalSpentUrl,
+  convene: conveneSpentUrl
+}
 
 /**
  * Cue voices.
@@ -63,8 +80,72 @@ function audioContext(): AudioContext | null {
   return context
 }
 
+/**
+ * Plays a one-shot sample.
+ *
+ * A fresh element per call rather than one kept and rewound, so a cue that
+ * fires while the last one is still ringing does not cut it off. They are
+ * short, and the browser reclaims them once they end.
+ */
+function playSample(url: string, volume: number): void {
+  try {
+    const audio = new Audio(url)
+    audio.volume = volume
+    void audio.play().catch(() => undefined)
+  } catch {
+    // Autoplay blocked, or no audio device. Not worth surfacing.
+  }
+}
+
+/**
+ * The clock under a running countdown.
+ *
+ * One element for the whole application, not one per timer. Both countdowns can
+ * run at once, and two ticking beds beating against each other is noise rather
+ * than twice the tension — so this is a single bed that plays while *any*
+ * timer wants it.
+ */
+let tickAudio: HTMLAudioElement | null = null
+let ticking = false
+
+function setTicking(active: boolean): void {
+  if (active === ticking) return
+  ticking = active
+
+  try {
+    if (!tickAudio) {
+      tickAudio = new Audio(tickUrl)
+      tickAudio.loop = true
+      tickAudio.volume = 0.35
+    }
+
+    if (active) {
+      void tickAudio.play().catch(() => undefined)
+    } else {
+      tickAudio.pause()
+      // Back to the top, so the next run starts on the beat rather than
+      // wherever the last one happened to be stopped.
+      tickAudio.currentTime = 0
+    }
+  } catch {
+    // As above.
+  }
+}
+
 /** Plays one cue. Failures are swallowed — a missed tone is not worth an error. */
-export function playCue(cue: TimerCue): void {
+export function playCue(cue: TimerCue, id: TimerId = 'interval'): void {
+  /*
+   * Arriving at zero is a sample, not an interval.
+   *
+   * Which one depends on the countdown: a break running out and a stream about
+   * to open are different events and the operator chose a different sound for
+   * each.
+   */
+  if (cue === 'expired') {
+    playSample(SPENT_SAMPLE[id] ?? SPENT_SAMPLE.interval, 0.8)
+    return
+  }
+
   const ctx = audioContext()
   if (!ctx) return
 
@@ -104,8 +185,33 @@ export function playCue(cue: TimerCue): void {
 export class TimerCueRunner {
   private readonly fired = new Map<string, Set<TimerCue>>()
 
+  /** Which timers currently want the bed running. */
+  private readonly wantsTick = new Map<TimerId, boolean>()
+
   /** Call on every tick with the current state and derived frame. */
-  update(state: TimerState, frame: TimerFrame, emit: (cue: TimerCue) => void = playCue): void {
+  update(
+    state: TimerState,
+    frame: TimerFrame,
+    emit: (cue: TimerCue, id: TimerId) => void = playCue
+  ): void {
+    /*
+     * Recorded before the `sound` gate, deliberately.
+     *
+     * The bed answers to its own setting. An operator who has turned the chimes
+     * off has said they do not want to be interrupted at the one-minute mark;
+     * they have not said anything about whether a clock should be audible under
+     * the countdown, and conflating the two would make one of the settings
+     * unreachable.
+     *
+     * Grace counts as running: the clock is still going, which is the whole
+     * point of hearing it.
+     */
+    this.wantsTick.set(
+      state.id,
+      state.config.tick && (frame.phase === 'running' || frame.phase === 'grace')
+    )
+    setTicking([...this.wantsTick.values()].some(Boolean))
+
     if (!state.config.sound) return
 
     const key = `${state.id}:${state.startedAt ?? 'idle'}`
@@ -123,7 +229,7 @@ export class TimerCueRunner {
     const fire = (cue: TimerCue): void => {
       if (seen.has(cue)) return
       seen.add(cue)
-      emit(cue)
+      emit(cue, state.id)
     }
 
     const running = frame.phase === 'running'
@@ -154,5 +260,7 @@ export class TimerCueRunner {
 
   reset(): void {
     this.fired.clear()
+    this.wantsTick.clear()
+    setTicking(false)
   }
 }
