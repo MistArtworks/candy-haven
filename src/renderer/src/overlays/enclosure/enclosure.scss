@@ -1,0 +1,233 @@
+@use 'abstracts' as *;
+// Theme only — not the console's full global sheet, for the reason recorded at
+// the top of selection.scss: this page wants the palette and the type stacks
+// and none of the chrome. No vignette and no grain, because a film-grain layer
+// composited over a live capture is noise on top of noise.
+@use 'base/theme';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ch-obsidian-900);
+  font-family: var(--ch-font-display);
+}
+
+html[data-transparent='true'],
+html[data-transparent='true'] body {
+  background: transparent;
+}
+
+/*
+ * The stage is laid out at true broadcast size and scaled as a whole.
+ *
+ * Every measurement below is therefore a real pixel count against a 1920x1080
+ * canvas, which is what makes the frame checkable: a bracket declared at 132px
+ * is 132px on air. `--ch-stage-scale` is set by main.ts from the viewport.
+ */
+#stage {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform: translate(-50%, -50%) scale(var(--ch-stage-scale, 1));
+  transform-origin: center center;
+}
+
+// ------------------------------------------------------------------ brackets
+
+/*
+ * Registration marks, not a border.
+ *
+ * Four corners and nothing along the edges: this sits over a capture for the
+ * whole broadcast, so the frame has to say where the boundary is without
+ * spending the boundary. Aged brass rather than bright gold — structural
+ * ribbing is what this is, and the palette reserves saturation for the pip.
+ */
+.bracket {
+  position: absolute;
+  width: 132px;
+  height: 132px;
+  border: 0 solid rgba(210, 169, 97, 0.62);
+
+  // The doubled inner rule at the turn. Shorter and fainter, so the corner
+  // reads as machined rather than as a thick line.
+  &::after {
+    content: '';
+    position: absolute;
+    width: 68px;
+    height: 68px;
+    border: 0 solid rgba(210, 169, 97, 0.26);
+  }
+}
+
+.bracket--tl {
+  top: 34px;
+  left: 34px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+
+  &::after {
+    top: 13px;
+    left: 13px;
+    border-top-width: 1px;
+    border-left-width: 1px;
+  }
+}
+
+.bracket--tr {
+  top: 34px;
+  right: 34px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+
+  &::after {
+    top: 13px;
+    right: 13px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+  }
+}
+
+.bracket--bl {
+  bottom: 34px;
+  left: 34px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+
+  &::after {
+    bottom: 13px;
+    left: 13px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+  }
+}
+
+.bracket--br {
+  bottom: 34px;
+  right: 34px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+
+  &::after {
+    bottom: 13px;
+    right: 13px;
+    border-bottom-width: 1px;
+    border-right-width: 1px;
+  }
+}
+
+// ------------------------------------------------------------------- plinth
+
+/*
+ * One bar along the bottom inset, carrying everything the frame has to say.
+ *
+ * Sat inside the lower brackets rather than spanning the full width, so the
+ * corners stay the outermost marks and the composition keeps one boundary
+ * instead of two competing ones.
+ */
+.plinth {
+  position: absolute;
+  right: 200px;
+  bottom: 34px;
+  left: 200px;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 22px;
+  border-top: 1px solid rgba(210, 169, 97, 0.34);
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 8, 10, 0.82),
+    rgba(8, 8, 10, 0.46)
+  );
+}
+
+/*
+ * The one saturated element on the whole canvas.
+ *
+ * Crimson glass is reserved for focal points and live state, and this is both.
+ * Dark until the address declares the broadcast live, so an unlit frame carries
+ * no colour at all and the rule holds in either state.
+ */
+.pip {
+  width: 11px;
+  height: 11px;
+  margin-right: 16px;
+  border-radius: 50%;
+  background: var(--ch-concrete-700);
+  box-shadow: none;
+  transition: background 240ms ease, box-shadow 240ms ease;
+}
+
+html[data-air='true'] .pip {
+  background: var(--ch-crimson-500);
+  box-shadow:
+    0 0 10px rgba(163, 43, 35, 0.85),
+    0 0 24px rgba(163, 43, 35, 0.4);
+}
+
+.marque {
+  color: var(--ch-alabaster-300);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+}
+
+/*
+ * Hidden rather than absent when the broadcast is not declared live.
+ *
+ * `visibility` keeps it in flow, so the numeral does not shift sideways the
+ * moment the operator lights the pip — a frame that reflows on air is a frame
+ * somebody notices.
+ */
+.air {
+  margin-left: 18px;
+  color: var(--ch-crimson-400);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  visibility: hidden;
+}
+
+html[data-air='true'] .air {
+  visibility: visible;
+}
+
+.section {
+  margin-left: auto;
+  color: var(--ch-alabaster-500);
+  font-family: var(--ch-font-mono);
+  font-size: 14px;
+  letter-spacing: 0.22em;
+}
+
+// ------------------------------------------------------------------- guides
+
+/*
+ * Alignment guide for cutting the scene in OBS, on `?guides=1`.
+ *
+ * The same convention the selection scene carries. Off by default and never
+ * shown on air — it marks the inset the brackets sit on, so a capture can be
+ * positioned against the boundary rather than by eye.
+ */
+.guide {
+  position: absolute;
+  inset: 34px;
+  display: none;
+  border: 1px dashed rgba(210, 169, 97, 0.28);
+}
+
+html[data-guides='true'] .guide {
+  display: block;
+}

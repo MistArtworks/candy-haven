@@ -1,0 +1,219 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+// Explicit spans, never positional nth-child rules.
+.framePanel {
+  grid-column: span 6;
+}
+
+.span3 {
+  grid-column: span 3;
+}
+
+@include below('lg') {
+  .span3 {
+    grid-column: span 6;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+.back {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-secondary);
+  text-decoration: none;
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+
+  &:hover {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+}
+
+.canvas {
+  font-family: var(--ch-font-mono);
+  font-size: rem(13px);
+  color: var(--ch-gold-300);
+}
+
+// --------------------------------------------------------------- the preview
+
+/*
+ * A scale model of the browser source, not a screenshot of it.
+ *
+ * Geometry is proportional to the real 1920x1080 frame so the brackets sit
+ * where they will sit on air. Type is the one deliberate departure: at true
+ * scale the marque would render around seven pixels and be unreadable, so it
+ * is set larger here. Worth stating rather than hiding, because everything
+ * else on this plate is honest about proportion.
+ *
+ * The hatch stands in for transparency, the way a design tool draws it. It is
+ * concrete on obsidian — no sixth colour enters to say "nothing is here".
+ */
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: var(--ch-obsidian-900);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(85, 78, 66, 0.16) 0,
+    rgba(85, 78, 66, 0.16) 1px,
+    transparent 1px,
+    transparent 9px
+  );
+  border: $hairline solid var(--ch-line);
+}
+
+.bracket {
+  position: absolute;
+  width: 7%;
+  height: 12.4%;
+  border: 0 solid rgba(210, 169, 97, 0.62);
+}
+
+.tl {
+  top: 3.2%;
+  left: 1.8%;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.tr {
+  top: 3.2%;
+  right: 1.8%;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+
+.bl {
+  bottom: 3.2%;
+  left: 1.8%;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+
+.br {
+  bottom: 3.2%;
+  right: 1.8%;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+.plinth {
+  position: absolute;
+  right: 10.4%;
+  bottom: 3.2%;
+  left: 10.4%;
+  display: flex;
+  align-items: center;
+  height: 5.2%;
+  min-height: 20px;
+  padding: 0 space(3);
+  border-top: $hairline solid rgba(210, 169, 97, 0.34);
+  background: linear-gradient(to bottom, rgba(8, 8, 10, 0.82), rgba(8, 8, 10, 0.46));
+}
+
+/*
+ * The one saturated element, here as on the frame itself.
+ *
+ * Dark until the broadcast is declared live, so the plate carries no colour at
+ * all in its resting state and the palette rule holds either way.
+ */
+.pip {
+  width: 8px;
+  height: 8px;
+  margin-right: space(3);
+  border-radius: 50%;
+  background: var(--ch-concrete-700);
+  transition:
+    background 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.stage[data-air] .pip {
+  background: var(--ch-crimson-500);
+  box-shadow:
+    0 0 8px rgba(163, 43, 35, 0.85),
+    0 0 18px rgba(163, 43, 35, 0.4);
+}
+
+.marque {
+  @include label(10px, 0.34em);
+  color: var(--ch-alabaster-300);
+}
+
+.air {
+  @include label(8px, 0.42em);
+  margin-left: space(3);
+  color: var(--ch-crimson-400);
+  visibility: hidden;
+}
+
+.stage[data-air] .air {
+  visibility: visible;
+}
+
+.section {
+  margin-left: auto;
+  font-family: var(--ch-font-mono);
+  font-size: rem(10px);
+  letter-spacing: 0.22em;
+  color: var(--ch-alabaster-500);
+}
+
+// ---------------------------------------------------------------- broadcast
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  margin-top: space(4);
+
+  strong {
+    color: var(--ch-gold-300);
+    font-weight: 400;
+  }
+}
+
+.url {
+  @include readout(12px);
+  display: block;
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-gold);
+  padding: space(2) space(3);
+  margin: space(4) 0;
+  width: 100%;
+  user-select: all;
+  word-break: break-all;
+}
+
+.broadcastActions {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+}

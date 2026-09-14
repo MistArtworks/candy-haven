@@ -188,6 +188,31 @@ defaults to `TIME`; `NOW` and `LIVE` are the obvious alternatives.
 Console chords: `Space` starts or holds, `Ctrl`+`Enter` restarts from the top,
 `Ctrl`+`↑` and `Ctrl`+`↓` add and remove a minute mid-run.
 
+## THE ENCLOSURE
+
+A standing frame for the whole broadcast: gold registration brackets at the four
+corners, and one plinth along the bottom carrying your marque. Nothing along the
+edges — it says where the boundary is without spending it.
+
+It is the only overlay in the kit that holds no live state. There is nothing to
+start or stop, because the frame is settled entirely by the address it is loaded
+at, which is why its console page is a composer rather than a control panel.
+
+| Setting     | What it does                                                |
+| ----------- | ----------------------------------------------------------- |
+| **Marque**  | The name along the plinth. Uppercased, 32 characters        |
+| **Section** | The numeral at the right of the plinth                      |
+| **On air**  | Lights the crimson pip — the only colour on the whole frame |
+
+Because the settings ride in the address, changing one means pasting the new URL
+into OBS rather than reloading the source. It also means two scenes can carry
+two enclosures with different marques at once, which a saved setting could not
+express.
+
+The centre is fully transparent, so it dresses a capture rather than replacing
+one. Append `?guides=1` while you are cutting the scene to outline the inset the
+brackets sit on; the guide never appears on air.
+
 ## THE CHORUS
 
 ![overlay-chorus-console.png](overlay-chorus-console.png)

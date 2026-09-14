@@ -29,6 +29,7 @@ export const OVERLAY_IDS = [
   'transmission',
   'interval',
   'convene',
+  'enclosure',
   'docket'
 ] as const
 
@@ -257,12 +258,39 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     form: 'panel'
   },
   {
+    id: 'enclosure',
+    slug: 'enclosure',
+    label: 'THE ENCLOSURE',
+    purpose: 'Standing frame for the whole broadcast — corner brackets and a marque',
+    epigraph: 'The boundary is drawn, and the boundary is kept.',
+    order: 6,
+    implemented: true,
+    /*
+     * The first entry in the catalogue that carries no live state at all.
+     *
+     * Every other overlay is a thing that *happens* — a call, a draw, a ballot,
+     * a track, two clocks — and each one needs a service, a repository and a
+     * push. This is furniture: it is on screen for the whole broadcast and it
+     * never changes by itself. That is why it costs a registry entry and two
+     * files rather than a subsystem.
+     */
+    scope: [
+      'Gold registration brackets at the four corners, nothing along the edges',
+      'One obsidian plinth along the bottom, carrying the marque and a section numeral',
+      'A single crimson pip, lit when the operator declares the broadcast live',
+      'Marque, numeral and pip pinned by the address, so the URL is the whole setting',
+      'Transparent throughout — it dresses a capture rather than replacing one'
+    ],
+    canvas: { width: 1920, height: 1080 },
+    form: 'panel'
+  },
+  {
     id: 'docket',
     slug: 'docket',
     label: 'THE DOCKET',
     purpose: 'Standing queue of chat requests and what is being worked next',
     epigraph: 'Mortals reduced to data; choices measured, deviance erased.',
-    order: 6,
+    order: 7,
     implemented: false,
     scope: [
       'Numbered queue of requests, filed by the operator or by chat',

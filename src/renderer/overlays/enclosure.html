@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Candy Haven — Enclosure</title>
+    <!--
+      Served over HTTP to an OBS browser source. There is no preload and no IPC
+      on this page.
+
+      `connect-src 'none'`, which is stricter than the other overlays and
+      deliberately so: every one of those opens the local event stream because
+      it renders live state. This one has none — the frame is settled entirely
+      by its own address — so it has no reason to reach the network at all, and
+      saying so here is what keeps that true.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+  </head>
+
+  <body>
+    <!--
+      The stage is a fixed 1920x1080 box scaled to the viewport, not a fluid
+      layout. A browser source has one true size, and a frame whose brackets
+      drift with the window is a frame that cannot be cut against.
+    -->
+    <div id="stage">
+      <div class="bracket bracket--tl"></div>
+      <div class="bracket bracket--tr"></div>
+      <div class="bracket bracket--bl"></div>
+      <div class="bracket bracket--br"></div>
+
+      <div class="guide"></div>
+
+      <div class="plinth">
+        <span class="pip"></span>
+        <span class="marque" id="marque">CANDY HEIST</span>
+        <span class="air" id="air">ON AIR</span>
+        <span class="section" id="section">§01</span>
+      </div>
+    </div>
+
+    <script type="module" src="/src/overlays/enclosure/main.ts"></script>
+  </body>
+</html>
