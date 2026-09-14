@@ -30,6 +30,7 @@ export const OVERLAY_IDS = [
   'interval',
   'convene',
   'enclosure',
+  'gate',
   'docket'
 ] as const
 
@@ -285,12 +286,39 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     form: 'panel'
   },
   {
+    id: 'gate',
+    slug: 'gate',
+    label: 'THE GATE',
+    purpose: 'Stream-starting scene — the causeway, the portal, and the room still arriving',
+    epigraph: 'The threshold is held open. The procession is still on the road.',
+    order: 7,
+    implemented: true,
+    /*
+     * The NEXUS landing field, put to work.
+     *
+     * Drawn rather than rendered — one canvas and a few thousand lines of
+     * arithmetic, no 3D engine — which is what makes it cheap enough to hand to
+     * OBS as a full scene. It is the only overlay that *replaces* a capture
+     * rather than dressing one, because a stream that has not started has
+     * nothing behind it to dress.
+     */
+    scope: [
+      'The causeway, the portal and the procession, at full broadcast size',
+      'A marque and a secondary line over the scene',
+      'A reserved band at the right for chat, with its own gradient',
+      'Gradient colours and strength set by the address',
+      'Scale, type size and opacity, as everywhere else in the kit'
+    ],
+    canvas: { width: 1920, height: 1080 },
+    form: 'full'
+  },
+  {
     id: 'docket',
     slug: 'docket',
     label: 'THE DOCKET',
     purpose: 'Standing queue of chat requests and what is being worked next',
     epigraph: 'Mortals reduced to data; choices measured, deviance erased.',
-    order: 7,
+    order: 8,
     implemented: false,
     scope: [
       'Numbered queue of requests, filed by the operator or by chat',

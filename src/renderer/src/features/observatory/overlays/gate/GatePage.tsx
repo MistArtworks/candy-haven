@@ -1,0 +1,306 @@
+import { useMemo, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { motion } from 'motion/react'
+import { getOverlay, overlaySourceUrl } from '@shared/domain/overlays'
+import { PRESENTATION_LIMITS } from '@shared/domain/presentation'
+import { PageHeader } from '@renderer/components/primitives/PageHeader'
+import { Panel } from '@renderer/components/primitives/Panel'
+import { Button } from '@renderer/components/primitives/Button'
+import { Slider } from '@renderer/components/primitives/Slider'
+import { TextInput } from '@renderer/components/primitives/Input'
+import { StatusDot } from '@renderer/components/primitives/StatusDot'
+import { gridVariants } from '@renderer/motion/transitions'
+import { useOverlayInfo } from '@renderer/hooks/useRite'
+import { GateScene } from '@renderer/features/home/components/scenes/GateScene'
+import styles from './GatePage.module.scss'
+
+const TITLE_LIMIT = 48
+const SUB_LIMIT = 64
+
+const DEFAULTS = {
+  title: 'STREAM STARTING SOON',
+  sub: 'THE PROCESSION IS STILL ON THE ROAD',
+  gap: 0.26,
+  gradTop: '#08080a',
+  gradBottom: '#08080a',
+  gradAlpha: 0.92,
+  scale: 1,
+  type: 1,
+  opacity: 1
+}
+
+/**
+ * Host surface for THE GATE.
+ *
+ * A composer, like THE ENCLOSURE's: the scene holds no state in the main
+ * process, so there is nothing here to start or stop. What is built on this
+ * page is an address, and pasting it into OBS is what applies it.
+ *
+ * The preview is the real scene rather than a mock-up — it is a component, so
+ * the page can simply mount it. What the preview cannot show is the animation
+ * at broadcast size, which is why the address is offered alongside it.
+ */
+export function GatePage(): ReactNode {
+  const overlay = getOverlay('gate')
+  const server = useOverlayInfo()
+
+  const [title, setTitle] = useState(DEFAULTS.title)
+  const [sub, setSub] = useState(DEFAULTS.sub)
+  const [gap, setGap] = useState(DEFAULTS.gap)
+  const [gradTop, setGradTop] = useState(DEFAULTS.gradTop)
+  const [gradBottom, setGradBottom] = useState(DEFAULTS.gradBottom)
+  const [gradAlpha, setGradAlpha] = useState(DEFAULTS.gradAlpha)
+  const [scale, setScale] = useState(DEFAULTS.scale)
+  const [type, setType] = useState(DEFAULTS.type)
+  const [opacity, setOpacity] = useState(DEFAULTS.opacity)
+  const [copied, setCopied] = useState(false)
+
+  const adjusted =
+    title !== DEFAULTS.title ||
+    sub !== DEFAULTS.sub ||
+    gap !== DEFAULTS.gap ||
+    gradTop !== DEFAULTS.gradTop ||
+    gradBottom !== DEFAULTS.gradBottom ||
+    gradAlpha !== DEFAULTS.gradAlpha ||
+    scale !== DEFAULTS.scale ||
+    type !== DEFAULTS.type ||
+    opacity !== DEFAULTS.opacity
+
+  function reset(): void {
+    setTitle(DEFAULTS.title)
+    setSub(DEFAULTS.sub)
+    setGap(DEFAULTS.gap)
+    setGradTop(DEFAULTS.gradTop)
+    setGradBottom(DEFAULTS.gradBottom)
+    setGradAlpha(DEFAULTS.gradAlpha)
+    setScale(DEFAULTS.scale)
+    setType(DEFAULTS.type)
+    setOpacity(DEFAULTS.opacity)
+  }
+
+  /*
+   * Only what differs from the default is written into the address.
+   *
+   * A URL carrying every parameter at its default is longer, harder to read at
+   * a glance in OBS, and implies the operator chose nine things when they chose
+   * none. Absent means default in the overlay, so the short form is the honest
+   * one.
+   */
+  const sourceUrl = useMemo(() => {
+    if (!server.url) return null
+    const url = new URL(overlaySourceUrl(server.url, overlay))
+
+    if (title.trim() && title !== DEFAULTS.title) url.searchParams.set('title', title.trim())
+    if (sub.trim() && sub !== DEFAULTS.sub) url.searchParams.set('sub', sub.trim())
+    if (gap !== DEFAULTS.gap) url.searchParams.set('gap', gap.toFixed(2))
+    if (gradTop !== DEFAULTS.gradTop) url.searchParams.set('g1', gradTop)
+    if (gradBottom !== DEFAULTS.gradBottom) url.searchParams.set('g2', gradBottom)
+    if (gradAlpha !== DEFAULTS.gradAlpha) url.searchParams.set('galpha', gradAlpha.toFixed(2))
+    if (scale !== DEFAULTS.scale) url.searchParams.set('scale', scale.toFixed(2))
+    if (type !== DEFAULTS.type) url.searchParams.set('type', type.toFixed(2))
+    if (opacity !== DEFAULTS.opacity) url.searchParams.set('opacity', opacity.toFixed(2))
+
+    return url.toString()
+  }, [server.url, overlay, title, sub, gap, gradTop, gradBottom, gradAlpha, scale, type, opacity])
+
+  function copyUrl(): void {
+    if (!sourceUrl) return
+    void navigator.clipboard.writeText(sourceUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    })
+  }
+
+  return (
+    <div className={styles.page}>
+      <PageHeader
+        index={overlay.order + 1}
+        label={overlay.label}
+        purpose={overlay.purpose}
+        epigraph={overlay.epigraph}
+        actions={
+          <div className={styles.headerActions}>
+            <Link to="/observatory" className={styles.back}>
+              Catalogue
+            </Link>
+            <StatusDot
+              tone={server.url ? 'online' : 'pending'}
+              label={server.url ? 'Serving' : 'Server offline'}
+            />
+          </div>
+        }
+      />
+
+      <motion.div
+        className={styles.grid}
+        variants={gridVariants}
+        initial="initial"
+        animate="animate"
+      >
+        {/* The scene is the single focal object on this page. */}
+        <Panel label="Scene" index="01" focal className={styles.scenePanel}>
+          <div
+            className={styles.stage}
+            style={
+              {
+                '--ch-gate-gap': String(gap),
+                '--ch-gate-grad-top': gradTop,
+                '--ch-gate-grad-bottom': gradBottom,
+                '--ch-gate-grad-alpha': String(gradAlpha),
+                '--ch-gate-scale': String(scale),
+                '--ch-gate-type': String(type),
+                opacity
+              } as React.CSSProperties
+            }
+          >
+            <GateScene tone="nominal" className={styles.scene} />
+            <div className={styles.chat} />
+            <div className={styles.marque}>
+              <span className={styles.title}>
+                {(title.trim() || DEFAULTS.title).slice(0, TITLE_LIMIT).toUpperCase()}
+              </span>
+              <span className={styles.sub}>
+                {(sub.trim() || DEFAULTS.sub).slice(0, SUB_LIMIT).toUpperCase()}
+              </span>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel label="Marque" index="02" className={styles.span3}>
+          <div className={styles.fields}>
+            <TextInput
+              label="Title"
+              value={title}
+              maxLength={TITLE_LIMIT}
+              onChange={setTitle}
+              placeholder={DEFAULTS.title}
+              hint="Uppercased on the scene."
+            />
+            <TextInput
+              label="Second line"
+              value={sub}
+              maxLength={SUB_LIMIT}
+              onChange={setSub}
+              placeholder={DEFAULTS.sub}
+              hint="Set beneath the title, quieter."
+            />
+
+            <Slider
+              label="Scale"
+              value={scale}
+              min={PRESENTATION_LIMITS.scale.min}
+              max={PRESENTATION_LIMITS.scale.max}
+              step={PRESENTATION_LIMITS.scale.step}
+              onChange={setScale}
+              readout={`${scale.toFixed(2)}×`}
+              width="full"
+            />
+            <Slider
+              label="Type size"
+              value={type}
+              min={PRESENTATION_LIMITS.typeScale.min}
+              max={PRESENTATION_LIMITS.typeScale.max}
+              step={PRESENTATION_LIMITS.typeScale.step}
+              onChange={setType}
+              readout={`${type.toFixed(2)}×`}
+              width="full"
+            />
+            <Slider
+              label="Opacity"
+              value={opacity}
+              min={PRESENTATION_LIMITS.opacity.min}
+              max={PRESENTATION_LIMITS.opacity.max}
+              step={PRESENTATION_LIMITS.opacity.step}
+              onChange={setOpacity}
+              readout={`${Math.round(opacity * 100)}%`}
+              width="full"
+            />
+          </div>
+        </Panel>
+
+        <Panel label="Chat band" index="03" className={styles.span3}>
+          <div className={styles.fields}>
+            <Slider
+              label="Band width"
+              value={gap}
+              min={0}
+              max={0.5}
+              step={0.01}
+              onChange={setGap}
+              readout={gap === 0 ? 'None' : `${Math.round(gap * 100)}%`}
+              hint="The share of the frame held for a chat capture. Zero removes it."
+              width="full"
+            />
+
+            <div className={styles.swatches}>
+              <label className={styles.swatch}>
+                <span className={styles.swatchLabel}>Top colour</span>
+                <input
+                  type="color"
+                  aria-label="Gradient top colour"
+                  value={gradTop}
+                  onChange={(event) => setGradTop(event.target.value)}
+                />
+              </label>
+              <label className={styles.swatch}>
+                <span className={styles.swatchLabel}>Lower colour</span>
+                <input
+                  type="color"
+                  aria-label="Gradient lower colour"
+                  value={gradBottom}
+                  onChange={(event) => setGradBottom(event.target.value)}
+                />
+              </label>
+            </div>
+
+            <Slider
+              label="Band strength"
+              value={gradAlpha}
+              min={0}
+              max={1}
+              step={0.02}
+              onChange={setGradAlpha}
+              readout={`${Math.round(gradAlpha * 100)}%`}
+              hint="The band always fades out by the bottom, whatever the colours."
+              width="full"
+            />
+
+            <div className={styles.actions}>
+              <Button size="sm" variant="ghost" onClick={reset} disabled={!adjusted}>
+                Reset to defaults
+              </Button>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel label="Broadcast source" index="04" className={styles.span6}>
+          {sourceUrl ? (
+            <>
+              <p className={styles.hint}>
+                Add a Browser source in OBS at this address. Width {overlay.canvas.width}, height{' '}
+                {overlay.canvas.height}. This one is a <strong>scene</strong> rather than furniture
+                — it replaces the capture rather than sitting over it, so it does not want
+                Transparent ticked.
+              </p>
+              <code className={styles.url}>{sourceUrl}</code>
+              <div className={styles.broadcastActions}>
+                <Button size="sm" variant="ghost" onClick={copyUrl}>
+                  {copied ? 'Copied' : 'Copy address'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void window.candy.shell.openExternal(sourceUrl)}
+                >
+                  Preview
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p className={styles.hint}>Overlay server offline — no address to serve.</p>
+          )}
+        </Panel>
+      </motion.div>
+    </div>
+  )
+}

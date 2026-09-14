@@ -14,6 +14,7 @@ import { TimerPage } from '@renderer/features/observatory/overlays/timer/TimerPa
 import { MusterPage } from '@renderer/features/observatory/overlays/muster/MusterPage'
 import { TransmissionPage } from '@renderer/features/observatory/overlays/transmission/TransmissionPage'
 import { EnclosurePage } from '@renderer/features/observatory/overlays/enclosure/EnclosurePage'
+import { GatePage } from '@renderer/features/observatory/overlays/gate/GatePage'
 import { CalendarPage } from '@renderer/features/calendar/CalendarPage'
 import { AuditoriumPage } from '@renderer/features/auditorium/AuditoriumPage'
 import { DarkroomPage } from '@renderer/features/darkroom/DarkroomPage'
@@ -61,6 +62,8 @@ function overlayElement(id: OverlayId): ReactNode {
       return <TransmissionPage />
     case 'enclosure':
       return <EnclosurePage />
+    case 'gate':
+      return <GatePage />
     // Both countdowns share a page; the id selects the timer.
     case 'interval':
     case 'convene':

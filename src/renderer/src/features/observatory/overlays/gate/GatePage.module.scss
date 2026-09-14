@@ -1,0 +1,187 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+// Explicit spans, never positional nth-child rules.
+.scenePanel,
+.span6 {
+  grid-column: span 6;
+}
+
+.span3 {
+  grid-column: span 3;
+}
+
+@include below('lg') {
+  .span3 {
+    grid-column: span 6;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+.back {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-secondary);
+  text-decoration: none;
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+
+  &:hover {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+}
+
+// ----------------------------------------------------------- the real scene
+
+/*
+ * The preview is the scene itself, not a mock-up.
+ *
+ * It is a component, so the page mounts it rather than approximating it \u2014 which
+ * means the band and the marque are laid over the same artwork the broadcast
+ * gets, and a gradient that swamps the causeway looks wrong here too.
+ */
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: $hairline solid var(--ch-line);
+  background: var(--ch-obsidian-900);
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.chat {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: calc(var(--ch-gate-gap, 0.26) * 100%);
+  background: linear-gradient(
+    to bottom,
+    var(--ch-gate-grad-top, #08080a) 0%,
+    var(--ch-gate-grad-bottom, #08080a) 55%,
+    transparent 100%
+  );
+  opacity: var(--ch-gate-grad-alpha, 0.92);
+  pointer-events: none;
+}
+
+.marque {
+  position: absolute;
+  right: calc(var(--ch-gate-gap, 0.26) * 100% + 3.2%);
+  bottom: 7%;
+  left: 3.2%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--ch-gate-scale, 1));
+}
+
+.title {
+  color: var(--ch-alabaster-300);
+  font-family: var(--ch-font-display);
+  font-size: calc(15px * var(--ch-gate-scale, 1) * var(--ch-gate-type, 1));
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-shadow: 0 2px 18px rgba(8, 8, 10, 0.9);
+}
+
+.sub {
+  color: var(--ch-alabaster-500);
+  font-family: var(--ch-font-display);
+  font-size: calc(8px * var(--ch-gate-scale, 1) * var(--ch-gate-type, 1));
+  letter-spacing: 0.34em;
+  text-shadow: 0 2px 14px rgba(8, 8, 10, 0.9);
+}
+
+// -------------------------------------------------------------- the controls
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+}
+
+.swatches {
+  display: flex;
+  gap: space(5);
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+
+  input[type='color'] {
+    width: 64px;
+    height: 32px;
+    padding: 0;
+    background: none;
+    border: $hairline solid var(--ch-line-gold);
+    cursor: pointer;
+  }
+}
+
+.swatchLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-secondary);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: space(2);
+  border-top: $hairline solid var(--ch-line);
+}
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+
+  strong {
+    color: var(--ch-gold-300);
+    font-weight: 400;
+  }
+}
+
+.url {
+  @include readout(12px);
+  display: block;
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-gold);
+  padding: space(2) space(3);
+  margin: space(4) 0;
+  width: 100%;
+  user-select: all;
+  word-break: break-all;
+}
+
+.broadcastActions {
+  display: flex;
+  gap: space(2);
+  flex-wrap: wrap;
+}

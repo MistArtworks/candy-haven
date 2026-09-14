@@ -239,6 +239,37 @@ The centre is fully transparent, so it dresses a capture rather than replacing
 one. Append `?guides=1` while you are cutting the scene to outline the inset the
 brackets sit on; the guide never appears on air.
 
+## THE GATE
+
+The stream-starting scene: a causeway running to a colossal ribbed portal, a
+shaft of light standing in its aperture, and the procession still walking
+toward it. The NEXUS landing field, put to work.
+
+It is the only overlay that **replaces** a capture rather than dressing one — a
+stream that has not started has nothing behind it to dress — so it is the one
+source that does **not** want Transparent ticked in OBS.
+
+| Setting          | What it does                                              |
+| ---------------- | --------------------------------------------------------- |
+| **Title**        | The marque, set low and left. Uppercased                   |
+| **Second line**  | A quieter line beneath it                                  |
+| **Band width**   | The share of the frame held for a chat capture. Zero removes it |
+| **Top / lower colour** | The two stops of the band’s gradient                 |
+| **Band strength**| How present the band is overall                            |
+
+The band is **painted here rather than held clear**, which is the one place
+this differs from the rest of the kit. Everywhere else a reserved band is left
+empty so a capture can be composited into it; here the scene is what the
+audience is looking at while they wait, and chat over bare artwork is
+unreadable. It always fades out by the bottom whatever colours you pick, so
+the causeway still runs out of the frame.
+
+The marque sits beside the band rather than centred, because the portal is the
+one thing in the composition that has to stay unobstructed.
+
+Like THE ENCLOSURE, nothing is saved: the address carries the settings, so
+changing one means pasting the new URL rather than reloading the source.
+
 ## THE CHORUS
 
 ![overlay-chorus-console.png](overlay-chorus-console.png)

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Candy Haven — The Gate</title>
+    <!--
+      Served over HTTP to an OBS browser source. No preload and no IPC.
+
+      `connect-src 'none'`, as THE ENCLOSURE does and for the same reason: this
+      scene holds no live state. It is settled entirely by its own address, so
+      it has nothing to reach the network for.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+  </head>
+
+  <body>
+    <div id="stage">
+      <div id="scene"></div>
+      <div class="chat" id="chat"></div>
+      <div class="marque">
+        <span class="title" id="title">STREAM STARTING SOON</span>
+        <span class="sub" id="sub">THE PROCESSION IS STILL ON THE ROAD</span>
+      </div>
+    </div>
+    <script type="module" src="/src/overlays/gate/main.ts"></script>
+  </body>
+</html>
