@@ -33,6 +33,8 @@ import { useOverlayInfo } from '@renderer/hooks/useRite'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { MusterFace } from '@renderer/muster/muster-renderer'
 import styles from './MusterPage.module.scss'
+import { PresentationControls } from '../../components/PresentationControls'
+import { PRESENTATION_LIMITS } from '@shared/domain/presentation'
 
 /**
  * THE MUSTER — host surface.
@@ -462,6 +464,39 @@ export function MusterPage(): ReactNode {
 
         <Panel label="Presentation" index="05" className={styles.span2}>
           <div className={styles.config}>
+            <PresentationControls
+              values={config}
+              onChange={(patch) => void window.candy.muster.configure(patch)}
+              onReset={() =>
+                void window.candy.muster.configure({
+                  scale: 1,
+                  typeScale: 1,
+                  opacity: 1,
+                  instructionScale: 1
+                })
+              }
+              adjusted={
+                config.scale !== 1 ||
+                config.typeScale !== 1 ||
+                config.opacity !== 1 ||
+                config.instructionScale !== 1
+              }
+            >
+              <Slider
+                label="Instruction size"
+                value={config.instructionScale}
+                min={0.8}
+                max={2}
+                step={PRESENTATION_LIMITS.typeScale.step}
+                onChange={(instructionScale) =>
+                  void window.candy.muster.configure({ instructionScale })
+                }
+                readout={`${config.instructionScale.toFixed(2)}×`}
+                hint="The one line with an audience other than you. Worth oversizing."
+                width="full"
+              />
+            </PresentationControls>
+
             <div className={styles.toggles}>
               <Checkbox
                 label="Credit each entry"

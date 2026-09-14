@@ -238,6 +238,12 @@ export function nowPlayingSourceUrl(root: string, slug: string): string {
 
 export function createDefaultNowPlayingConfig(): NowPlayingConfig {
   return {
+    // Knobs at rest. Everything renders exactly as it did before
+    // presentation.ts existed until one of these is moved.
+    scale: 1,
+    typeScale: 1,
+    opacity: 1,
+    coverScale: 1,
     style: 'plate',
     label: 'NOW TRANSMITTING',
     accent: 'gold',

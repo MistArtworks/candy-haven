@@ -1,0 +1,14 @@
+@use 'abstracts' as *;
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: space(2);
+  border-top: $hairline solid var(--ch-line);
+}

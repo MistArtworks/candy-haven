@@ -693,6 +693,11 @@ export function agitationFor(voteRate: number): number {
 
 export function createDefaultConcordConfig(): ConcordConfig {
   return {
+    // Knobs at rest. Everything renders exactly as it did before
+    // presentation.ts existed until one of these is moved.
+    scale: 1,
+    typeScale: 1,
+    opacity: 1,
     title: 'THE CONCORD',
     prompt: 'THE CHAMBER WILL DECIDE',
     presentation: 'tally',

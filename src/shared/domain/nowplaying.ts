@@ -6,6 +6,7 @@ import {
   POLL_MAX_SECONDS,
   POLL_MIN_SECONDS
 } from './nowplaying.constants'
+import { presentationShape } from './presentation'
 
 /**
  * Schema half of the now-playing domain — live Spotify playback, served to OBS.
@@ -106,7 +107,24 @@ export const NowPlayingConfigSchema = z.object({
   /** Turn the cover on the DISC style. */
   spinCover: z.boolean().default(true),
   /** Fade the overlay out entirely when nothing is playing. */
-  hideWhenIdle: z.boolean().default(true)
+  hideWhenIdle: z.boolean().default(true),
+  /**
+   * Cover art, relative to the cell the style gives it.
+   *
+   * Its own knob rather than folded into `scale`, because the cover and the
+   * type are what compete for room in every one of the four styles — a
+   * bigger plate with a proportionally bigger cover does not answer "I want
+   * to see the artwork", which is what was actually asked for.
+   */
+  coverScale: z.number().min(0.5).max(2).default(1),
+  /**
+   * Scale, type scale and opacity. See domain/presentation.ts.
+   *
+   * Spread flat rather than nested, because this config builds its patch
+   * schema by unwrapping defaults — and unwrapping a nested object would
+   * reintroduce the sibling-clobbering bug patch.ts exists to close.
+   */
+  ...presentationShape()
 })
 export type NowPlayingConfig = z.infer<typeof NowPlayingConfigSchema>
 

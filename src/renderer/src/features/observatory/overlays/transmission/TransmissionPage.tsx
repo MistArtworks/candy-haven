@@ -37,6 +37,8 @@ import { NowPlayingFace } from '@renderer/nowplaying/nowplaying-renderer'
 import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { SourceList } from './SourceList'
 import styles from './TransmissionPage.module.scss'
+import { PresentationControls } from '../../components/PresentationControls'
+import { PRESENTATION_LIMITS } from '@shared/domain/presentation'
 
 const LINK_TONE: Record<string, StatusTone> = {
   unconfigured: 'offline',
@@ -343,6 +345,36 @@ export function TransmissionPage(): ReactNode {
               onChange={(style) => set({ style })}
               hint={`Recommended source size: ${canvas.width} × ${canvas.height}.`}
             />
+
+            {/*
+              The knobs sit directly beneath the style, because they are read
+              relative to it: the style decides what this source looks like and
+              these nudge it, so a cranked-up PLATE is still a PLATE.
+            */}
+            <PresentationControls
+              values={config}
+              onChange={(patch) => set(patch)}
+              onReset={() => set({ scale: 1, typeScale: 1, opacity: 1, coverScale: 1 })}
+              adjusted={
+                config.scale !== 1 ||
+                config.typeScale !== 1 ||
+                config.opacity !== 1 ||
+                config.coverScale !== 1
+              }
+            >
+              <Slider
+                label="Cover size"
+                value={config.coverScale}
+                min={PRESENTATION_LIMITS.scale.min}
+                max={PRESENTATION_LIMITS.scale.max}
+                step={PRESENTATION_LIMITS.scale.step}
+                onChange={(coverScale) => set({ coverScale })}
+                readout={`${config.coverScale.toFixed(2)}×`}
+                hint="The artwork alone. Clamped so it cannot crowd out the title."
+                width="full"
+                disabled={!config.showCover}
+              />
+            </PresentationControls>
 
             <SelectInput
               label="Accent"

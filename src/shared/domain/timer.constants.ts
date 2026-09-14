@@ -185,6 +185,11 @@ export function createDefaultTimerConfig(id: TimerId): TimerConfig {
   const convene = TIMER_KIND[id] === 'convene'
 
   return {
+    // Knobs at rest. Everything renders exactly as it did before
+    // presentation.ts existed until one of these is moved.
+    scale: 1,
+    typeScale: 1,
+    opacity: 1,
     // Ten minutes to open a stream, five for a break — the common cases, so
     // neither timer needs configuring before its first use.
     durationMs: convene ? 10 * 60_000 : 5 * 60_000,

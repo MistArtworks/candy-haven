@@ -110,6 +110,18 @@ export class MusterFace {
   private layout: MusterLayout
   private motion: boolean
 
+  /**
+   * The operator's type scale, refreshed each frame from the config.
+   *
+   * Held on the instance rather than threaded through every draw helper,
+   * because the helpers that *measure* text and the ones that *draw* it are
+   * different methods called with the same nominal size — if the two ever
+   * disagreed about the scale, every string would be clipped against the
+   * wrong width.
+   */
+  private typeScale = 1
+  private opacity = 1
+
   private width = 0
   private height = 0
   private running = false
@@ -265,6 +277,19 @@ export class MusterFace {
     const wall = Date.now()
 
     /*
+     * The knobs, applied once for the whole frame.
+     *
+     * Held on the instance as well as set on the context, because `drawField`
+     * drives its own `globalAlpha` per node and then restores it. Restoring to
+     * a literal 1 — which is what it used to do — would silently discard the
+     * operator's opacity for everything drawn after the backdrop, which is to
+     * say the entire roll.
+     */
+    this.typeScale = state.config.typeScale
+    this.opacity = state.config.opacity
+    context.globalAlpha = this.opacity
+
+    /*
      * At rest, the overlay stays on screen and shows that it is waiting.
      *
      * The same decision THE CONCORD reached: a source that vanishes between
@@ -363,21 +388,22 @@ export class MusterFace {
         // detonate: it was a sixty-pixel bloom and is now a fifth of that.
         if (arrival > 0) {
           const size = unit * (0.008 + arrival * 0.022)
-          context.globalAlpha = arrival * 0.5 * energy
+          context.globalAlpha = arrival * 0.5 * energy * this.opacity
           context.drawImage(this.flare, x - size / 2, y - size / 2, size, size)
         }
 
-        context.globalAlpha = Math.min((0.34 + arrival * 0.3) * pulse * energy, 1)
+        context.globalAlpha = Math.min((0.34 + arrival * 0.3) * pulse * energy, 1) * this.opacity
         const size = Math.max(unit * 0.008, 2)
         context.drawImage(this.spark, x - size / 2, y - size / 2, size, size)
       } else {
-        context.globalAlpha = Math.min(0.16 * pulse * energy, 1)
+        context.globalAlpha = Math.min(0.16 * pulse * energy, 1) * this.opacity
         const size = Math.max(unit * 0.005, 1.2)
         context.drawImage(this.spark, x - size / 2, y - size / 2, size, size)
       }
     }
 
-    context.globalAlpha = 1
+    // Back to the operator's level, not to opaque.
+    context.globalAlpha = this.opacity
     context.globalCompositeOperation = 'source-over'
   }
 
@@ -385,12 +411,13 @@ export class MusterFace {
 
   private drawFull(state: MusterState, wall: number, resting: boolean): void {
     const { context, palette } = this
-    const pad = Math.max(Math.min(this.width, this.height) * 0.055, 18)
+    const scale = state.config.scale
+    const pad = Math.max(Math.min(this.width, this.height) * 0.055, 18) * scale
     const usable = this.width * (1 - clamp01(state.config.reserveRight))
     const left = pad
     const right = Math.max(usable - pad, left + 60)
     const width = right - left
-    const unit = Math.max(Math.min(this.width, this.height) * 0.02, 11)
+    const unit = Math.max(Math.min(this.width, this.height) * 0.02, 11) * scale
 
     /*
      * The apparatus, before any text.
@@ -440,7 +467,7 @@ export class MusterFace {
       const count = `${String(state.entries.length).padStart(2, '0')} / ${state.config.maxEntries}`
       context.fillStyle = withAlpha(palette.concrete, 0.9)
       context.textAlign = 'right'
-      context.font = `${unit * 0.8}px ${palette.mono}`
+      context.font = `${this.type(unit * 0.8)}px ${palette.mono}`
       context.fillText(count, right, cursor)
       context.textAlign = 'left'
     }
@@ -706,7 +733,7 @@ export class MusterFace {
     // does not shift width as the roll climbs past nine.
     const numeral = String(index).padStart(2, '0')
     context.fillStyle = withAlpha(palette.gold, 0.55 + arrival * 0.4)
-    context.font = `${unit * 0.7}px ${palette.mono}`
+    context.font = `${this.type(unit * 0.7)}px ${palette.mono}`
     context.textAlign = 'right'
     context.fillText(numeral, x + unit * 1.6, y)
     context.textAlign = 'left'
@@ -721,12 +748,12 @@ export class MusterFace {
     const textWidth = width - (textX - x) - authorWidth - unit * 0.4
 
     context.fillStyle = withAlpha(arrival > 0 ? palette.goldHot : palette.alabaster, 0.94)
-    context.font = `${unit * 0.9}px ${palette.body}`
+    context.font = `${this.type(unit * 0.9)}px ${palette.body}`
     context.fillText(this.clip(entry.text, textWidth, unit * 0.9, palette.body), textX, y)
 
     if (state.config.showAuthors && entry.author) {
       context.fillStyle = withAlpha(palette.concrete, 0.8)
-      context.font = `${unit * 0.62}px ${palette.mono}`
+      context.font = `${this.type(unit * 0.62)}px ${palette.mono}`
       context.textAlign = 'right'
       context.fillText(
         this.clip(entry.author.toUpperCase(), authorWidth - unit * 0.4, unit * 0.62, palette.mono),
@@ -761,7 +788,7 @@ export class MusterFace {
       // spent on the only moment that is actually urgent.
       context.fillStyle = withAlpha(seconds <= 10 ? palette.crimsonHot : palette.goldLit, 0.95)
       context.textAlign = 'right'
-      context.font = `${unit * 1.5}px ${palette.mono}`
+      context.font = `${this.type(unit * 1.5)}px ${palette.mono}`
       context.fillText(clock, x + width, cursor)
       context.textAlign = 'left'
     }
@@ -776,9 +803,10 @@ export class MusterFace {
       'display'
     )
 
-    if (state.config.showInstruction && state.phase === 'open') {
+    if (state.config.showInstruction && state.phase !== 'closed') {
       context.fillStyle = withAlpha(palette.goldLit, 0.9)
-      this.tracked(fileInstruction(state.config), x, cursor, unit * 0.82, 0.2, 'display')
+      const size = unit * 0.82 * state.config.instructionScale
+      this.tracked(fileInstruction(state.config), x, cursor, size, 0.2, 'display')
     } else if (state.phase === 'closed' && state.entries.length > 0) {
       context.fillStyle = withAlpha(palette.concrete, 0.85)
       const filed = `${state.entries.length} ENTERED BY ${state.citizens} ${state.citizens === 1 ? 'CITIZEN' : 'CITIZENS'}`
@@ -793,8 +821,9 @@ export class MusterFace {
   /** The corner plate: the same call, reduced to what fits beside a capture. */
   private drawWidget(state: MusterState, wall: number, resting: boolean): void {
     const { context, palette } = this
-    const pad = Math.max(Math.min(this.width, this.height) * 0.05, 10)
-    const unit = Math.max(Math.min(this.width, this.height) * 0.055, 9)
+    const scale = state.config.scale
+    const pad = Math.max(Math.min(this.width, this.height) * 0.05, 10) * scale
+    const unit = Math.max(Math.min(this.width, this.height) * 0.075, 12) * scale
 
     // A slab, so the plate reads as an object dropped onto a busy scene rather
     // than as text floating over it.
@@ -816,7 +845,7 @@ export class MusterFace {
       const seconds = Math.ceil(remaining / 1000)
       context.fillStyle = withAlpha(seconds <= 10 ? palette.crimsonHot : palette.goldLit, 0.95)
       context.textAlign = 'right'
-      context.font = `${unit * 0.7}px ${palette.mono}`
+      context.font = `${this.type(unit * 0.7)}px ${palette.mono}`
       context.fillText(
         `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`,
         this.width - pad,
@@ -829,6 +858,28 @@ export class MusterFace {
     this.rule(pad, cursor, this.width - pad * 2, 0.2)
     cursor += unit * 1.1
 
+    /*
+     * How to file, drawn before the call state is even considered.
+     *
+     * The widget never showed this at all, which made the corner plate a list
+     * of entries with no account of where they came from — a viewer could watch
+     * the roll fill and never learn they could add to it. Drawn while resting
+     * as well as while open, because somebody arriving between calls is exactly
+     * the person who needs to know the command before the next one opens.
+     */
+    if (state.config.showInstruction) {
+      context.fillStyle = withAlpha(palette.goldLit, 0.95)
+      this.tracked(
+        fileInstruction(state.config),
+        pad,
+        cursor,
+        unit * 0.72 * state.config.instructionScale,
+        0.18,
+        'display'
+      )
+      cursor += unit * 1.2
+    }
+
     if (resting) {
       context.fillStyle = withAlpha(palette.concrete, 0.7)
       this.tracked('AWAITING A CALL', pad, cursor + unit * 0.4, unit * 0.6, 0.22, 'display')
@@ -836,7 +887,7 @@ export class MusterFace {
     }
 
     context.fillStyle = withAlpha(palette.alabaster, 0.9)
-    context.font = `${unit * 0.72}px ${palette.body}`
+    context.font = `${this.type(unit * 0.72)}px ${palette.body}`
     context.fillText(
       this.clip(
         state.prompt || state.config.prompt,
@@ -864,7 +915,7 @@ export class MusterFace {
     for (const entry of recent) {
       const arrival = Math.max(1 - (Date.now() - entry.at) / ARRIVAL_MS, 0)
       context.fillStyle = withAlpha(arrival > 0 ? palette.goldHot : palette.alabaster, 0.82)
-      context.font = `${unit * 0.62}px ${palette.body}`
+      context.font = `${this.type(unit * 0.62)}px ${palette.body}`
       context.fillText(
         this.clip(entry.text, this.width - pad * 2, unit * 0.62, palette.body),
         pad,
@@ -893,6 +944,11 @@ export class MusterFace {
    * this has to render identically on both. Laying the glyphs out by hand is
    * version-proof, and it is what every other face in this kit does.
    */
+  /** A font size with the operator's type scale folded in. */
+  private type(size: number): number {
+    return size * this.typeScale
+  }
+
   private tracked(
     text: string,
     x: number,
@@ -902,7 +958,7 @@ export class MusterFace {
     face: 'display' | 'mono'
   ): void {
     const { context, palette } = this
-    context.font = `${size}px ${face === 'mono' ? palette.mono : palette.display}`
+    context.font = `${this.type(size)}px ${face === 'mono' ? palette.mono : palette.display}`
 
     const gap = size * tracking
     let cursor = x
@@ -921,7 +977,7 @@ export class MusterFace {
     face: 'display' | 'mono'
   ): string {
     const { context, palette } = this
-    context.font = `${size}px ${face === 'mono' ? palette.mono : palette.display}`
+    context.font = `${this.type(size)}px ${face === 'mono' ? palette.mono : palette.display}`
 
     const measure = (value: string): number => {
       let total = 0
@@ -939,7 +995,7 @@ export class MusterFace {
   /** Truncates plain (untracked) text to a pixel width. */
   private clip(text: string, width: number, size: number, family: string): string {
     const { context } = this
-    context.font = `${size}px ${family}`
+    context.font = `${this.type(size)}px ${family}`
     if (context.measureText(text).width <= width) return text
 
     let clipped = text

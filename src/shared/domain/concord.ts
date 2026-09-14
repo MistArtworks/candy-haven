@@ -19,6 +19,7 @@ import {
   POLL_DURATION_MAX_MS,
   VOTE_SYNTAXES
 } from './concord.constants'
+import { presentationShape } from './presentation'
 
 /**
  * Schema half of THE CONCORD — the chat-voted poll served by the OBSERVATORY
@@ -217,7 +218,15 @@ export const ConcordConfigSchema = z.object({
    * when it is not visible, so a cue living there would be silent exactly when
    * a poll was running behind a full-screen scene.
    */
-  sound: z.boolean().default(true)
+  sound: z.boolean().default(true),
+  /**
+   * Scale, type scale and opacity. See domain/presentation.ts.
+   *
+   * Spread flat rather than nested, because this config builds its patch
+   * schema by unwrapping defaults — and unwrapping a nested object would
+   * reintroduce the sibling-clobbering bug patch.ts exists to close.
+   */
+  ...presentationShape()
 })
 export type ConcordConfig = z.infer<typeof ConcordConfigSchema>
 

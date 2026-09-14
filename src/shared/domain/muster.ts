@@ -10,6 +10,7 @@ import {
   PER_CITIZEN_MAX,
   PER_CITIZEN_MIN
 } from './muster.constants'
+import { presentationShape } from './presentation'
 
 /**
  * Schema half of the muster domain — the open call.
@@ -61,7 +62,24 @@ export const MusterConfigSchema = z.object({
   showCount: z.boolean().default(true),
   showField: z.boolean().default(true),
   /** Fraction of the width held clear at the right, for compositing. */
-  reserveRight: z.number().min(0).max(0.6).default(0)
+  reserveRight: z.number().min(0).max(0.6).default(0),
+  /**
+   * The filing instruction, relative to the rest.
+   *
+   * Its own knob because it is the one element with an audience other than
+   * the operator: everything else on the roll is read by somebody already
+   * looking at it, while this has to be legible to a viewer who has not yet
+   * decided to take part.
+   */
+  instructionScale: z.number().min(0.8).max(2).default(1),
+  /**
+   * Scale, type scale and opacity. See domain/presentation.ts.
+   *
+   * Spread flat rather than nested, because this config builds its patch
+   * schema by unwrapping defaults — and unwrapping a nested object would
+   * reintroduce the sibling-clobbering bug patch.ts exists to close.
+   */
+  ...presentationShape()
 })
 export type MusterConfig = z.infer<typeof MusterConfigSchema>
 

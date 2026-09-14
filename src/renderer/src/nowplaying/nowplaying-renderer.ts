@@ -256,7 +256,9 @@ export class NowPlayingFace {
     }
 
     ctx.save()
-    ctx.globalAlpha = opacity
+    // The operator's setting folded into the reveal, not over it: the fade
+    // between tracks and how solid the plate sits are different questions.
+    ctx.globalAlpha = opacity * this.config.opacity
 
     if (!track) {
       this.drawIdle()
@@ -421,7 +423,7 @@ export class NowPlayingFace {
     const elapsed = trackProgressAt(track, now)
     // Callers laying type out proportionally pass their own size; the plate and
     // strip keep the fixed one they were tuned with.
-    const size = timeSize ?? (this.compact ? 9 : 10)
+    const size = timeSize ?? this.type(this.compact ? 9 : 10)
 
     ctx.fillStyle = withAlpha(palette.brass, 0.7)
     ctx.fillRect(x, y, width, 2)
@@ -456,11 +458,26 @@ export class NowPlayingFace {
    * `size` is passed by the styles that lay type out proportionally; the
    * default is the fixed size the plate and strip were tuned with.
    */
+  /**
+   * A type size with the operator's knobs folded in.
+   *
+   * Applied at each size's *declaration* rather than where the font string
+   * is built, because these sizes are layout as well as type — line advance,
+   * block heights and the label's own return value all derive from them.
+   * Scaling only the font string would grow the glyphs and leave the
+   * spacing behind, which is overlapping text rather than bigger text.
+   *
+   * `scale` masters both this and the cover; `typeScale` trims type alone.
+   */
+  private type(size: number): number {
+    return size * this.config.scale * this.config.typeScale
+  }
+
   private drawLabel(x: number, y: number, align: 'left' | 'centre', size?: number): number {
     const { context: ctx, palette } = this
     if (!this.config.showLabel) return 0
 
-    const resolved = size ?? (this.compact ? 8 : 9)
+    const resolved = size ?? this.type(this.compact ? 8 : 9)
     ctx.font = `${resolved}px ${palette.display}`
     ctx.textBaseline = 'top'
     ctx.fillStyle = this.accent
@@ -485,7 +502,7 @@ export class NowPlayingFace {
 
   private drawIdle(): void {
     const { context: ctx, palette, width, height } = this
-    const size = this.compact ? 9 : 11
+    const size = this.type(this.compact ? 9 : 11)
     ctx.font = `${size}px ${palette.display}`
     ctx.textBaseline = 'middle'
     ctx.fillStyle = palette.textFaint
@@ -507,7 +524,7 @@ export class NowPlayingFace {
     ctx.lineWidth = 1
     ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
 
-    const coverSize = config.showCover ? height - pad * 2 : 0
+    const coverSize = config.showCover ? (height - pad * 2) * config.scale * config.coverScale : 0
     if (config.showCover) this.drawCover(pad, pad, coverSize)
 
     const textX = pad + (config.showCover ? coverSize + pad : 0) + shift
@@ -516,14 +533,14 @@ export class NowPlayingFace {
 
     y += this.drawLabel(textX, y, 'left')
 
-    const titleSize = Math.min(height * 0.17, 26)
+    const titleSize = this.type(Math.min(height * 0.17, 26))
     ctx.font = `${titleSize}px ${palette.display}`
     ctx.textBaseline = 'top'
     ctx.fillStyle = palette.text
     this.scrolling(track.title.toUpperCase(), textX, y, textWidth, now, titleSize * 1.3)
     y += titleSize * 1.36
 
-    const metaSize = Math.min(height * 0.1, 14)
+    const metaSize = this.type(Math.min(height * 0.1, 14))
     ctx.font = `${metaSize}px ${palette.display}`
     ctx.fillStyle = palette.textDim
     const artistText = formatArtists(track.artists)
@@ -578,10 +595,10 @@ export class NowPlayingFace {
     ctx.lineWidth = 1
     ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
 
-    const labelSize = width * 0.034
-    const titleSize = width * 0.115
-    const metaSize = width * 0.062
-    const albumSize = width * 0.046
+    const labelSize = this.type(width * 0.034)
+    const titleSize = this.type(width * 0.115)
+    const metaSize = this.type(width * 0.062)
+    const albumSize = this.type(width * 0.046)
 
     const labelBlock = config.showLabel ? labelSize * 2.1 : 0
     const titleBlock = titleSize * 1.24
@@ -591,13 +608,23 @@ export class NowPlayingFace {
     const textBlock =
       titleBlock + artistBlock + albumBlock + (timelineBlock > 0 ? gap * 0.7 + timelineBlock : 0)
 
+    /*
+     * The knobs go inside the `Math.min`, not around it.
+     *
+     * The three terms are ceilings — the frame's width, a share of its height,
+     * and whatever the type has left over. Scaling the result would let a
+     * cranked-up cover push straight through all three and overlap the title;
+     * scaling the operator's *preference* and then clamping it keeps the
+     * ceilings doing their job.
+     */
+    const coverWish = config.scale * config.coverScale
     const coverSize = config.showCover
       ? Math.max(
           Math.min(
             width - pad * 2,
             // A share of the frame, so a tall source does not turn into a
             // poster with a caption.
-            height * 0.42,
+            height * 0.42 * coverWish,
             height - pad * 2 - labelBlock - gap - textBlock
           ),
           0
@@ -669,12 +696,12 @@ export class NowPlayingFace {
     ctx.fillStyle = this.accent
     ctx.fillRect(0, 0, 2, height)
 
-    const coverSize = config.showCover ? height - pad * 2 : 0
+    const coverSize = config.showCover ? (height - pad * 2) * config.scale * config.coverScale : 0
     if (config.showCover) this.drawCover(pad + 4, pad, coverSize)
 
     const textX = pad + 4 + (config.showCover ? coverSize + pad : 0) + shift
     const centreY = height / 2
-    const titleSize = Math.min(height * 0.3, 18)
+    const titleSize = this.type(Math.min(height * 0.3, 18))
     const metaSize = titleSize * 0.72
 
     // The two lines are set about the centreline so the strip reads as one bar.
@@ -742,10 +769,10 @@ export class NowPlayingFace {
 
     const pad = width * 0.06
     const gap = width * 0.045
-    const labelSize = width * 0.032
-    const titleSize = width * 0.078
-    const metaSize = width * 0.05
-    const timeSize = width * 0.038
+    const labelSize = this.type(width * 0.032)
+    const titleSize = this.type(width * 0.078)
+    const metaSize = this.type(width * 0.05)
+    const timeSize = this.type(width * 0.038)
 
     const labelBlock = config.showLabel ? labelSize * 2.1 : 0
     const titleBlock = titleSize * 1.26

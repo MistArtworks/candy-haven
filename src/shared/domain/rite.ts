@@ -11,6 +11,7 @@ import {
   SPIN_DURATION_MAX_MS,
   SPIN_DURATION_MIN_MS
 } from './rite.constants'
+import { presentationShape } from './presentation'
 
 /**
  * Schema half of the rite domain — the selection rite served by the OBSERVATORY
@@ -157,7 +158,15 @@ export const RiteConfigSchema = z.object({
   /** Per-petition odds in the roster column. Hidden keeps the draw opaque. */
   showOdds: z.boolean().default(true),
   /** The faint connection diagnostic at the foot of the overlay. */
-  showStatus: z.boolean().default(true)
+  showStatus: z.boolean().default(true),
+  /**
+   * Scale, type scale and opacity. See domain/presentation.ts.
+   *
+   * Spread flat rather than nested, because this config builds its patch
+   * schema by unwrapping defaults — and unwrapping a nested object would
+   * reintroduce the sibling-clobbering bug patch.ts exists to close.
+   */
+  ...presentationShape()
 })
 export type RiteConfig = z.infer<typeof RiteConfigSchema>
 

@@ -7,6 +7,7 @@ import {
   TIMER_MIN_MS,
   createDefaultTimerConfig
 } from './timer.constants'
+import { presentationShape } from './presentation'
 
 /**
  * Schema half of the timer domain — the countdown overlays served by the
@@ -64,7 +65,15 @@ export const TimerConfigSchema = z.object({
   sound: z.boolean().default(true),
   showLabel: z.boolean().default(true),
   /** Blink the readout once the time is gone. */
-  blinkOnElapsed: z.boolean().default(true)
+  blinkOnElapsed: z.boolean().default(true),
+  /**
+   * Scale, type scale and opacity. See domain/presentation.ts.
+   *
+   * Spread flat rather than nested, because this config builds its patch
+   * schema by unwrapping defaults — and unwrapping a nested object would
+   * reintroduce the sibling-clobbering bug patch.ts exists to close.
+   */
+  ...presentationShape()
 })
 export type TimerConfig = z.infer<typeof TimerConfigSchema>
 

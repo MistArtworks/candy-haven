@@ -370,6 +370,11 @@ export function petitionOdds(petitions: readonly Petition[]): number[] {
 
 export function createDefaultRiteConfig(): RiteConfig {
   return {
+    // Knobs at rest. Everything renders exactly as it did before
+    // presentation.ts existed until one of these is moved.
+    scale: 1,
+    typeScale: 1,
+    opacity: 1,
     mechanism: 'ring',
     title: 'RESONANCE SELECTION',
     prompt: 'THE FIELD WILL CHOOSE',

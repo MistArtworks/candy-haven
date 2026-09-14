@@ -160,6 +160,12 @@ export function musterAtRest(state: MusterState, now: number): boolean {
 
 export function createDefaultMusterConfig(): MusterConfig {
   return {
+    // Knobs at rest. Everything renders exactly as it did before
+    // presentation.ts existed until one of these is moved.
+    scale: 1,
+    typeScale: 1,
+    opacity: 1,
+    instructionScale: 1,
     title: 'THE MUSTER',
     prompt: 'WHAT SHOULD BE PLAYED?',
     command: DEFAULT_COMMAND,
