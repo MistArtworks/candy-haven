@@ -27,6 +27,18 @@ export type Accent = z.infer<typeof AccentSchema>
 export const PageTransitionSchema = z.enum(['sweep', 'fade', 'off'])
 export type PageTransition = z.infer<typeof PageTransitionSchema>
 
+/**
+ * Which pointer the console draws.
+ *
+ * `reticle` hides the system cursor and draws the survey instrument; `native`
+ * hands the arrow back untouched. Deliberately not folded into `motion`,
+ * because it is a different question — that one is accessibility, this is which
+ * instrument the operator wants in their hand. `motion: 'off'` does still force
+ * `native`, since the reticle is entirely movement.
+ */
+export const PointerSchema = z.enum(['reticle', 'native'])
+export type Pointer = z.infer<typeof PointerSchema>
+
 export const UpdateChannelSchema = z.enum(['latest', 'beta'])
 export type UpdateChannel = z.infer<typeof UpdateChannelSchema>
 
@@ -58,6 +70,15 @@ export const AppearanceSettingsSchema = z.object({
    * ceremony can turn it on; nobody has to turn it off to get work done.
    */
   pageTransition: PageTransitionSchema.default('off'),
+  /**
+   * The pointer the console draws over itself. See `PointerSchema`.
+   *
+   * On by default, unlike `pageTransition`. A transition sits between the
+   * operator and the page they asked for; the reticle sits *on* the pointer and
+   * costs them nothing — its focal dot tracks with no spring at all, so it is
+   * exactly as precise as the arrow it replaces.
+   */
+  pointer: PointerSchema.default('reticle'),
   /** Skip the boot cinematic once the sequence itself has completed. */
   fastBoot: z.boolean().default(false)
 })

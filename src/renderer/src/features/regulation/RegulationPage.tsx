@@ -305,6 +305,32 @@ export function RegulationPage(): ReactNode {
                   </div>
 
                   <div className={styles.control}>
+                    <span className={styles.controlLabel}>Pointer</span>
+                    <div className={styles.segmented} role="group" aria-label="Pointer">
+                      {(['reticle', 'native'] as const).map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          className={styles.segment}
+                          data-selected={appearance?.pointer === option || undefined}
+                          // Same treatment as the page transition: reported
+                          // unavailable rather than hidden, because the setting
+                          // still exists and still holds a value.
+                          disabled={appearance?.motion === 'off'}
+                          onClick={() => applySettings({ appearance: { pointer: option } })}
+                        >
+                          {option.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                    <p className={styles.controlHint}>
+                      {appearance?.motion === 'off'
+                        ? 'Motion is off, so the system pointer is used whatever is set here.'
+                        : 'The reticle replaces the system pointer with the console’s own survey instrument. Native hands the arrow back.'}
+                    </p>
+                  </div>
+
+                  <div className={styles.control}>
                     <span className={styles.controlLabel}>Accent</span>
                     <div className={styles.segmented} role="group" aria-label="Accent colour">
                       {(['crimson', 'gold'] as const).map((option) => (

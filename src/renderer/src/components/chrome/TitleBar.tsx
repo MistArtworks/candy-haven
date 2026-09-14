@@ -41,7 +41,17 @@ export function TitleBar(): ReactNode {
   const status = describeArchive(archive.state)
 
   return (
-    <header className={styles.titlebar} data-focused={windowState.isFocused || undefined}>
+    <header
+      className={styles.titlebar}
+      data-focused={windowState.isFocused || undefined}
+      /*
+        The whole bar is `-webkit-app-region: drag`, and Electron delivers no
+        mouse events at all over a drag region — so the renderer cannot track
+        the pointer here and must hand the system cursor back. See the chrome
+        note in `useReticle`.
+      */
+      data-reticle="native"
+    >
       <div className={styles.identity}>
         <Sigil size={16} weight={2.4} className={styles.mark} />
         <span className={styles.name}>{APP_NAME}</span>

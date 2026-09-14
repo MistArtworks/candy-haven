@@ -55,7 +55,11 @@ $z: (
   'transition': 50,
   'boot': 60,
   'modal': 70,
-  'toast': 80
+  'toast': 80,
+  // Above everything, including toasts and the boot cinematic: the pointer is
+  // the operator's own position in the interface and can never be behind
+  // something they are pointing at.
+  'reticle': 90
 );
 
 // -------------------------------------------------------------------- shapes

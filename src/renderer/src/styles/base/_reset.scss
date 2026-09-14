@@ -112,3 +112,36 @@ ol {
   background: var(--ch-accent-dim);
   color: var(--ch-text-primary);
 }
+
+// ------------------------------------------------------------- the reticle
+
+/*
+ * When the console draws its own pointer, the system's is hidden everywhere.
+ *
+ * The universal selector is doing real work and is not laziness: `cursor`
+ * inherits, but this very file sets `cursor: pointer` on every button and
+ * `not-allowed` on every disabled one, and those declarations beat an inherited
+ * value. Setting `none` only on `body` would therefore leave an arrow on top of
+ * the reticle over precisely the elements the operator points at most.
+ *
+ * Scoped to the root attribute so switching the setting back to `native`
+ * restores every one of those cursors untouched, with no second rule to
+ * maintain. `useThemePreferences` publishes the attribute.
+ */
+:root[data-pointer='reticle'],
+:root[data-pointer='reticle'] * {
+  cursor: none !important;
+}
+
+/*
+ * Except where the renderer cannot follow the pointer.
+ *
+ * `-webkit-app-region: drag` swallows mouse events outright in Electron, so
+ * over the title bar there is nothing to draw a reticle from — the system
+ * cursor has to come back or the operator is left with none at all. See the
+ * chrome note in `useReticle`.
+ */
+:root[data-pointer='reticle'] [data-reticle='native'],
+:root[data-pointer='reticle'] [data-reticle='native'] * {
+  cursor: default !important;
+}

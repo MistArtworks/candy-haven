@@ -1,0 +1,275 @@
+@use 'abstracts' as *;
+
+// The instrument's own dimensions, mirroring RETICLE_GEOMETRY. Kept here as
+// literals rather than imported, because the SVG is sized from the TS constant
+// and this only needs to centre what that produced.
+$field: 48px;
+$dot: 3px;
+$corner: 7px;
+$corner-inset: 3px;
+
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: z('reticle');
+
+  // The mark must never be a hit target. Without this the whole instrument
+  // sits between the operator and every control in the console.
+  pointer-events: none;
+
+  opacity: 0;
+  transition: opacity $duration-fast $ease-out-expo;
+}
+
+.layer[data-visible] {
+  opacity: 1;
+}
+
+// Every layer is positioned at the origin and moved by transform alone, which
+// keeps the work on the compositor. The negative margin does the centring, so
+// `transform-origin` stays the element's true middle and the ring's rotation
+// does not orbit its own corner.
+.layer > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+// ------------------------------------------------------------------- the ring
+
+.ring {
+  width: $field;
+  height: $field;
+  margin: (-0.5 * $field) 0 0 (-0.5 * $field);
+  transform-origin: 50% 50%;
+  overflow: visible;
+
+  opacity: 0;
+  transition:
+    opacity $duration-fast linear,
+    color $duration-base $ease-out-expo;
+
+  // Alabaster at rest. Every mark inside draws with `currentColor`, so a state
+  // recolours the whole instrument in one declaration.
+  color: var(--ch-alabaster-300);
+}
+
+.ring[data-on] {
+  opacity: 1;
+}
+
+.ringLine,
+.ringInner,
+.ticks line,
+.cross line,
+.strike {
+  stroke: currentColor;
+  fill: none;
+  // The mark is drawn in a 100-unit box scaled down to 48px, so an unscaled
+  // stroke would render at about a third of a pixel. This keeps every line
+  // exactly one device pixel however the instrument is stretched.
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.ringLine {
+  opacity: 0.55; // The Sigil's own ring opacity.
+  transition: opacity $duration-fast linear;
+}
+
+.ringInner {
+  opacity: 0;
+  transition: opacity $duration-base $ease-out-expo;
+}
+
+.ticks {
+  opacity: 0.6;
+  transition: opacity $duration-fast linear;
+}
+
+.cross,
+.strike {
+  opacity: 0;
+  transition: opacity $duration-fast linear;
+}
+
+// ---- LOCK: a target is held. Gold, ticks give way to the frame's corners.
+.ring[data-state='lock'] {
+  color: var(--ch-gold-300);
+}
+
+.ring[data-state='lock'] .ringLine {
+  opacity: 0.28;
+}
+
+.ring[data-state='lock'] .ticks {
+  opacity: 0;
+}
+
+.ring[data-state='lock'] .ringInner {
+  opacity: 0.4;
+}
+
+// ---- PRECISION: an exact point is wanted. The ring recedes behind the cross.
+.ring[data-state='precision'] {
+  color: var(--ch-gold-300);
+}
+
+.ring[data-state='precision'] .ringLine {
+  opacity: 0.18;
+}
+
+.ring[data-state='precision'] .ticks {
+  opacity: 0;
+}
+
+.ring[data-state='precision'] .cross {
+  opacity: 0.85;
+}
+
+// ---- CARRY: something can be lifted. The ring breaks into segments.
+.ring[data-state='carry'] .ringLine {
+  opacity: 0.8;
+  stroke-dasharray: 5 4;
+}
+
+.ring[data-state='carry'] .ticks {
+  opacity: 0.25;
+}
+
+// ---- REFUSED: the element declines. Drained to concrete and struck through.
+.ring[data-state='refused'] {
+  color: var(--ch-concrete-400);
+}
+
+.ring[data-state='refused'] .ticks {
+  opacity: 0;
+}
+
+.ring[data-state='refused'] .strike {
+  opacity: 0.9;
+}
+
+// ------------------------------------------------------------- the target frame
+
+.frame {
+  // Sized and positioned from motion values; only the corners are drawn.
+  opacity: 0;
+  transition: opacity $duration-fast $ease-out-expo;
+}
+
+.frame[data-on] {
+  opacity: 1;
+}
+
+.corner {
+  position: absolute;
+  width: $corner;
+  height: $corner;
+  border: 0 solid var(--ch-gold-300);
+}
+
+// Each corner is two edges of a box — an L, not a bracket glyph, so it scales
+// with the target rather than being a character at a fixed size.
+.corner[data-at='tl'] {
+  top: -$corner-inset;
+  left: -$corner-inset;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.corner[data-at='tr'] {
+  top: -$corner-inset;
+  right: -$corner-inset;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+
+.corner[data-at='bl'] {
+  bottom: -$corner-inset;
+  left: -$corner-inset;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+
+.corner[data-at='br'] {
+  bottom: -$corner-inset;
+  right: -$corner-inset;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+}
+
+// -------------------------------------------------------------- the focal dot
+
+.dot {
+  width: $dot;
+  height: $dot;
+  margin: (-0.5 * $dot) 0 0 (-0.5 * $dot);
+  background: var(--ch-alabaster-300);
+  border-radius: 50%;
+
+  opacity: 0;
+  // Deliberately no transform transition. The dot is the one thing here that
+  // must sit exactly where Windows says the pointer is — easing it would
+  // reintroduce the very lag the split between dot and ring exists to avoid.
+  transition:
+    opacity $duration-fast linear,
+    background-color $duration-fast linear;
+}
+
+.dot[data-on] {
+  opacity: 1;
+}
+
+// The stamp. The single moment crimson is spent — see the component's note on
+// why a press is allowed the reserved colour and a hover is not.
+.dot[data-pressed] {
+  background: var(--ch-crimson-400);
+}
+
+// --------------------------------------------------------------- the pulse
+
+.stamp {
+  width: $field;
+  height: $field;
+  margin: (-0.5 * $field) 0 0 (-0.5 * $field);
+  border: 1px solid var(--ch-crimson-500);
+  border-radius: 50%;
+
+  opacity: 0;
+  transform-origin: 50% 50%;
+}
+
+@include motion-safe {
+  .stamp[data-on] {
+    animation: stamp 340ms $ease-out-expo forwards;
+  }
+}
+
+@keyframes stamp {
+  from {
+    opacity: 0.7;
+    scale: 0.34;
+  }
+
+  to {
+    opacity: 0;
+    scale: 1.05;
+  }
+}
+
+// -------------------------------------------------------------------- caret
+
+.caret {
+  width: 1px;
+  background: var(--ch-alabaster-300);
+
+  opacity: 0;
+  transition: opacity $duration-fast linear;
+}
+
+.caret[data-on] {
+  opacity: 0.9;
+}

@@ -20,6 +20,21 @@ export function useThemePreferences(): void {
 
     root.dataset.motion = motion
     root.dataset.accent = accent
+
+    /*
+     * `data-pointer` is deliberately *not* set here.
+     *
+     * The reset hides the system cursor off that attribute, so whatever owns it
+     * is promising that something else is drawing a pointer in its place. This
+     * hook cannot keep that promise: it has no idea whether `Reticle` rendered,
+     * and it writes without a cleanup, so a crash inside the mark left the
+     * cursor hidden with nothing drawn — on an error screen the operator then
+     * had no pointer to click it with.
+     *
+     * `Reticle` owns it instead, and sets it from an effect that clears on
+     * unmount. The thing that hides the cursor and the thing that replaces it
+     * are now the same component, so they cannot get out of step.
+     */
     root.style.setProperty('--ch-grain-opacity', String(settings?.appearance.grain ?? 0.5))
 
     /*

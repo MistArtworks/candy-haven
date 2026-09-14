@@ -11,6 +11,7 @@ import { GuideCarousel } from '@renderer/components/guide/GuideCarousel'
 import { getGuide } from '@renderer/features/catechism/content'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
 import { MiniPlayer } from '@renderer/components/chrome/MiniPlayer'
+import { Reticle } from '@renderer/components/chrome/Reticle'
 import { CommandRail } from '@renderer/components/nav/CommandRail'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
@@ -275,6 +276,14 @@ export function ConsoleLayout(): ReactNode {
         whichever department is on screen, so it belongs under the rail as well.
       */}
       <MiniPlayer />
+
+      {/*
+        The console's own pointer, last because it draws over everything.
+        Mounted here rather than at the app root on purpose: the OBS browser
+        sources are separate Vite entry points that never mount this layout, so
+        a stream overlay can never have a cursor drawn into it.
+      */}
+      <Reticle />
     </motion.div>
   )
 }
