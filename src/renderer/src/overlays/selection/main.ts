@@ -185,6 +185,9 @@ function apply(next: RiteState): void {
     winnerIndex: next.winner?.index ?? null,
     winnerLabel: next.winner?.label ?? null,
     showField: next.config.showField,
+    scale: next.config.scale,
+    typeScale: next.config.typeScale,
+    opacity: next.config.opacity,
     mechanism: next.config.mechanism
   })
 

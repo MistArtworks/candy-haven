@@ -43,6 +43,7 @@ import { useSettings } from '@renderer/hooks/useSettings'
 import { ConcordTally } from './components/ConcordTally'
 import { OptionRoster } from './components/OptionRoster'
 import styles from './ConcordPage.module.scss'
+import { PresentationControls } from '../../components/PresentationControls'
 
 /**
  * Chat state as a status tone.
@@ -485,6 +486,17 @@ export function ConcordPage(): ReactNode {
         */}
         <Panel label="Presentation" index="05" className={styles.span2}>
           <div className={styles.config}>
+            <PresentationControls
+              values={state.config}
+              onChange={(patch) => void actions.configure(patch)}
+              onReset={() => void actions.configure({ scale: 1, typeScale: 1, opacity: 1 })}
+              adjusted={
+                state.config.scale !== 1 ||
+                state.config.typeScale !== 1 ||
+                state.config.opacity !== 1
+              }
+            />
+
             <SelectInput
               label="Presentation"
               value={state.config.presentation}

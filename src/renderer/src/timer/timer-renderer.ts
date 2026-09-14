@@ -100,6 +100,17 @@ export class TimerFace {
   private readonly context: CanvasRenderingContext2D
   private palette: typeof FALLBACK
   private compact: boolean
+
+  /** A type size with the operator's knobs folded in. */
+  private type(size: number): number {
+    const config = this.state?.config
+    return size * (config?.scale ?? 1) * (config?.typeScale ?? 1)
+  }
+
+  /** The level this face draws at, composed into every per-element alpha. */
+  private get baseAlpha(): number {
+    return this.state?.config.opacity ?? 1
+  }
   private motion: boolean
 
   private state: TimerState | null = null
@@ -276,7 +287,7 @@ export class TimerFace {
 
   private drawLabel(label: string, badge: string | null, accent: string): void {
     const { context: ctx, palette, width } = this
-    const size = Math.max(this.compact ? 9 : 11, this.height * 0.036)
+    const size = this.type(Math.max(this.compact ? 9 : 11, this.height * 0.036))
 
     ctx.font = `${size}px ${palette.display}`
     ctx.textAlign = 'center'
@@ -360,7 +371,7 @@ export class TimerFace {
 
     let x = (width - totalWidth) / 2
     ctx.save()
-    ctx.globalAlpha = alpha
+    ctx.globalAlpha = alpha * this.baseAlpha
 
     digits.forEach((digit, index) => {
       if (index > 0 && index % 2 === 0) {
@@ -438,7 +449,7 @@ export class TimerFace {
       // than sitting at full height inside a collapsing slab.
       ctx.translate(plateWidth / 2, height / 2)
       ctx.scale(1, squeeze)
-      ctx.font = `${plateHeight * 0.62}px ${palette.mono}`
+      ctx.font = `${this.type(plateHeight * 0.62)}px ${palette.mono}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillStyle = palette.text
@@ -456,7 +467,7 @@ export class TimerFace {
     if (y > this.height - 2) return
 
     ctx.save()
-    ctx.globalAlpha = alpha
+    ctx.globalAlpha = alpha * this.baseAlpha
     ctx.fillStyle = withAlpha(palette.brass, 0.6)
     ctx.fillRect(x, y, w, 1)
     ctx.fillStyle = accent
@@ -506,7 +517,7 @@ export class TimerFace {
     })
 
     const alpha = this.blink(now, elapsed)
-    const glyphSize = Math.min(region.height * 0.56, width * 0.2)
+    const glyphSize = this.type(Math.min(region.height * 0.56, width * 0.2))
     ctx.font = `${glyphSize}px ${palette.mono}`
 
     const cellWidth = ctx.measureText('0').width * 1.06
@@ -517,7 +528,7 @@ export class TimerFace {
     const centreY = region.top + region.height / 2
 
     ctx.save()
-    ctx.globalAlpha = alpha
+    ctx.globalAlpha = alpha * this.baseAlpha
     ctx.fillStyle = inGrace || elapsed ? palette.crimsonBright : palette.text
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -553,7 +564,7 @@ export class TimerFace {
         const outgoing = this.previousDigits[index]
         if (outgoing !== undefined) {
           ctx.save()
-          ctx.globalAlpha = alpha * (1 - t)
+          ctx.globalAlpha = alpha * (1 - t) * this.baseAlpha
           ctx.fillText(outgoing, centreX, centreY - cellHeight * t)
           ctx.restore()
         }
@@ -599,7 +610,7 @@ export class TimerFace {
     const top = -Math.PI / 2
 
     ctx.save()
-    ctx.globalAlpha = alpha
+    ctx.globalAlpha = alpha * this.baseAlpha
 
     // Rail.
     ctx.strokeStyle = withAlpha(palette.brass, 0.55)
@@ -700,7 +711,7 @@ export class TimerFace {
       : Math.max(1 - frame.progress, 0)
 
     ctx.save()
-    ctx.globalAlpha = alpha
+    ctx.globalAlpha = alpha * this.baseAlpha
 
     // Housing.
     ctx.fillStyle = withAlpha(palette.slab, 0.75)
@@ -743,7 +754,7 @@ export class TimerFace {
 
     // Readout to the right of the column, on its centreline.
     const readoutX = x + columnWidth + Math.min(width * 0.06, 34)
-    ctx.font = `${Math.min(region.height * 0.34, width * 0.16)}px ${palette.mono}`
+    ctx.font = `${this.type(Math.min(region.height * 0.34, width * 0.16))}px ${palette.mono}`
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = inGrace || elapsed ? palette.crimsonBright : palette.text
@@ -779,7 +790,7 @@ export class TimerFace {
     const urgent = frame.remainingMs > 0 && frame.remainingMs <= 10_000
 
     ctx.save()
-    ctx.globalAlpha = alpha
+    ctx.globalAlpha = alpha * this.baseAlpha
 
     for (const pulse of this.pulses) {
       const age = now - pulse.at
@@ -847,7 +858,7 @@ export class TimerFace {
   ): void {
     const { context: ctx, palette } = this
 
-    let size = targetWidth * 0.62
+    let size = this.type(targetWidth * 0.62)
     ctx.font = `${size}px ${palette.mono}`
     const measured = ctx.measureText(text).width
     if (measured > targetWidth * 1.5) {
@@ -875,11 +886,11 @@ export class TimerFace {
     const centreY = top + (this.height - top) / 2
 
     ctx.save()
-    ctx.globalAlpha = Math.min(t * 1.8, 1)
+    ctx.globalAlpha = Math.min(t * 1.8, 1) * this.baseAlpha
     ctx.translate(width / 2, centreY)
     ctx.scale(scale, scale)
 
-    const size = Math.min((this.height - top) * 0.46, width * 0.28)
+    const size = this.type(Math.min((this.height - top) * 0.46, width * 0.28))
     ctx.font = `${size}px ${palette.display}`
     ctx.textBaseline = 'middle'
     ctx.fillStyle = palette.text
@@ -891,7 +902,7 @@ export class TimerFace {
     // A rule beneath, drawing outward as the word settles.
     const ruleWidth = width * 0.34 * easeOutCubic(t)
     ctx.save()
-    ctx.globalAlpha = Math.min(t * 1.8, 1)
+    ctx.globalAlpha = Math.min(t * 1.8, 1) * this.baseAlpha
     ctx.fillStyle = withAlpha(palette.gold, 0.6)
     ctx.fillRect(width / 2 - ruleWidth / 2, centreY + size * 0.52, ruleWidth, 1)
     ctx.restore()

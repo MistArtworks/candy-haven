@@ -163,6 +163,17 @@ export class ConcordFace {
    * axis off to absurdity. Computed once per frame in `paint`.
    */
   private typeScale = 0
+
+  /**
+   * The alpha this frame is drawn at: the reveal, times the operator's
+   * opacity.
+   *
+   * Held because several passes drive `globalAlpha` themselves and then put
+   * it back. Putting it back to a literal 1 — which is what the casting halo
+   * did — discards both the reveal and the setting for everything drawn
+   * afterwards.
+   */
+  private baseAlpha = 1
   private frame = 0
   private running = false
   private lastFrameAt = 0
@@ -315,7 +326,8 @@ export class ConcordFace {
     const state = concordAtRest(live, wall) ? concordRestingProjection(live) : live
 
     this.resolvedAt = state.resolvedAt
-    ctx.globalAlpha = concordRevealAt(state, wall)
+    this.baseAlpha = concordRevealAt(state, wall) * state.config.opacity
+    ctx.globalAlpha = this.baseAlpha
     const cast = state.cast
     const castFrame = cast ? castFrameAt(cast, this.castClock(cast)) : null
 
@@ -346,7 +358,8 @@ export class ConcordFace {
     const left = pad
     const right = Math.max(usable - pad, left + 40)
     const contentWidth = right - left
-    this.typeScale = Math.min(contentWidth, this.height * 0.72)
+    this.typeScale =
+      Math.min(contentWidth, this.height * 0.72) * state.config.scale * state.config.typeScale
 
     if (!state.config.transparent) this.drawBackdrop()
 
@@ -436,7 +449,7 @@ export class ConcordFace {
 
     // The type scale is the plate, not the canvas — a widget in a wide source
     // should not grow its type just because the source is wide.
-    this.typeScale = Math.min(w, h * 1.4)
+    this.typeScale = Math.min(w, h * 1.4) * state.config.scale * state.config.typeScale
 
     // The plate.
     ctx.fillStyle = withAlpha(palette.slab, state.config.transparent ? 0.78 : 0.94)
@@ -1283,7 +1296,7 @@ export class ConcordFace {
             0.14,
             'display'
           )
-          ctx.globalAlpha = 1
+          ctx.globalAlpha = this.baseAlpha
           ctx.textAlign = 'left'
         }
       }

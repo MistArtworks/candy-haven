@@ -56,6 +56,9 @@ export function RiteRing({ state, compact = false, className }: RiteRingProps): 
       winnerIndex: state.winner?.index ?? null,
       winnerLabel: state.winner?.label ?? null,
       showField: state.config.showField,
+      scale: state.config.scale,
+      typeScale: state.config.typeScale,
+      opacity: state.config.opacity,
       mechanism: state.config.mechanism
     })
   }, [state])

@@ -31,6 +31,7 @@ import { useSettings } from '@renderer/hooks/useSettings'
 import { RiteRing } from './components/RiteRing'
 import { PetitionRoster } from './components/PetitionRoster'
 import styles from './SelectionPage.module.scss'
+import { PresentationControls } from '../../components/PresentationControls'
 
 /**
  * RESONANCE SELECTION — host surface.
@@ -327,6 +328,17 @@ export function SelectionPage(): ReactNode {
         */}
         <Panel label="Presentation" index="05" className={styles.span2}>
           <div className={styles.config}>
+            <PresentationControls
+              values={state.config}
+              onChange={(patch) => void actions.configure(patch)}
+              onReset={() => void actions.configure({ scale: 1, typeScale: 1, opacity: 1 })}
+              adjusted={
+                state.config.scale !== 1 ||
+                state.config.typeScale !== 1 ||
+                state.config.opacity !== 1
+              }
+            />
+
             {/*
               A presentation choice over one draw: the winner is decided in the
               main process and travels in the spin command, so switching

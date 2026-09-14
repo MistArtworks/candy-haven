@@ -30,6 +30,7 @@ import { useOverlayInfo } from '@renderer/hooks/useRite'
 import { useTimer, useTimerActions, useTimerFrame } from '@renderer/hooks/useTimers'
 import { TimerFacePreview } from './components/TimerFacePreview'
 import styles from './TimerPage.module.scss'
+import { PresentationControls } from '../../components/PresentationControls'
 
 export interface TimerPageProps {
   timerId: TimerId
@@ -305,6 +306,19 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
 
         <Panel label="Presentation" index="03" className={styles.span2}>
           <div className={styles.config}>
+            <PresentationControls
+              values={state.config}
+              onChange={(patch) => void actions.configure(timerId, patch)}
+              onReset={() =>
+                void actions.configure(timerId, { scale: 1, typeScale: 1, opacity: 1 })
+              }
+              adjusted={
+                state.config.scale !== 1 ||
+                state.config.typeScale !== 1 ||
+                state.config.opacity !== 1
+              }
+            />
+
             <SelectInput
               label="Countdown animation"
               value={state.config.animation}

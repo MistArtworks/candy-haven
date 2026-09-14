@@ -65,6 +65,32 @@ them.
 
 ---
 
+## The knobs
+
+Every overlay carries the same three, in its **PRESENTATION** panel. They are
+multipliers, not measurements — the style or theme you picked decides what the
+overlay looks like and these nudge it from there, which is why they read in
+multiples and why **Reset to preset** returns them to `1.00×`.
+
+| Knob          | Range     | What it moves                                      |
+| ------------- | --------- | -------------------------------------------------- |
+| **Scale**     | 0.5–2.0×  | The whole layout                                    |
+| **Type size** | 0.5–2.0×  | Text only, on top of scale. Spacing follows the type |
+| **Opacity**   | 10–100%   | The whole surface                                  |
+
+Two overlays add one of their own. **NOW TRANSMITTING** has a **Cover size**,
+because the artwork and the text compete for the same room in all four styles
+and making the whole plate bigger is not the same request. **THE MUSTER** has an
+**Instruction size**, because that line is the only thing on the broadcast
+written for the audience rather than for you.
+
+Opacity composes with whatever the overlay already does of its own accord — NOW
+TRANSMITTING still fades out between tracks, at your level rather than instead
+of it.
+
+Everything defaults to `1.00×`, so a scene you cut before these existed renders
+exactly as it did.
+
 ## THE MUSTER
 
 An open call. You put a question on the scene and chat files entries against it.

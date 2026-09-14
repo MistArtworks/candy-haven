@@ -62,6 +62,16 @@ export interface WheelState {
   mechanism?: RiteMechanism
   /** The rotating resonance field behind the ring. */
   showField?: boolean
+  /**
+   * The operator's presentation knobs. See domain/presentation.ts.
+   *
+   * Carried on the state rather than in `WheelOptions` because they change
+   * while the surface is live — options are constructor-time and these are
+   * dragged on a slider with the ring on screen.
+   */
+  scale?: number
+  typeScale?: number
+  opacity?: number
 }
 
 export interface WheelOptions {
@@ -241,11 +251,24 @@ export class RiteWheel {
     spin: null,
     winnerIndex: null,
     winnerLabel: null,
-    showField: true
+    showField: true,
+    scale: 1,
+    typeScale: 1,
+    opacity: 1
   }
 
   private width = 0
   private height = 0
+
+  /** A type size with the operator's knobs folded in. */
+  private type(size: number): number {
+    return size * (this.state.scale ?? 1) * (this.state.typeScale ?? 1)
+  }
+
+  /** The alpha this frame draws at, so a restore returns here, not to 1. */
+  private get baseAlpha(): number {
+    return this.state.opacity ?? 1
+  }
   /** The square the ring is drawn into: the shorter axis of the canvas. */
   private size = 0
   private frame = 0
@@ -419,6 +442,7 @@ export class RiteWheel {
     if (this.width <= 0 || this.height <= 0 || size <= 0) return
 
     ctx.clearRect(0, 0, this.width, this.height)
+    ctx.globalAlpha = this.baseAlpha
 
     const centre = size / 2
     const radius = size * 0.38
@@ -604,7 +628,9 @@ export class RiteWheel {
 
     const segmentDegrees = (segment * 180) / Math.PI
     const base = this.compact ? 11 : 13
-    const fontSize = Math.max(7, Math.min(base, base * (segmentDegrees / 26), radius * 0.075))
+    const fontSize = this.type(
+      Math.max(7, Math.min(base, base * (segmentDegrees / 26), radius * 0.075))
+    )
     const numberSize = Math.max(6, fontSize * 0.72)
 
     ctx.save()
@@ -780,7 +806,7 @@ export class RiteWheel {
 
   private drawEmptyLegend(x: number, y: number): void {
     const { context: ctx, palette } = this
-    const size = Math.max(8, Math.min(this.width, this.height) * 0.028)
+    const size = this.type(Math.max(8, Math.min(this.width, this.height) * 0.028))
     ctx.font = `${size}px ${palette.display}`
     ctx.fillStyle = palette.labelDim
     ctx.textAlign = 'center'
@@ -1058,7 +1084,7 @@ export class RiteWheel {
     ctx.translate(centre, y)
     ctx.scale(scale, scale)
     ctx.rotate(-0.014)
-    ctx.globalAlpha = alpha
+    ctx.globalAlpha = alpha * this.baseAlpha
 
     ctx.fillStyle = withAlpha(palette.crimsonDeep, 0.86)
     ctx.fillRect(-width / 2, -height / 2, width, height)
@@ -1066,8 +1092,8 @@ export class RiteWheel {
     ctx.lineWidth = 2
     ctx.strokeRect(-width / 2, -height / 2, width, height)
 
-    const titleSize = Math.max(8, height * 0.26)
-    const labelSize = Math.max(9, height * 0.34)
+    const titleSize = this.type(Math.max(8, height * 0.26))
+    const labelSize = this.type(Math.max(9, height * 0.34))
 
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -1279,7 +1305,7 @@ export class RiteWheel {
     }
 
     if (crisp > 0.02) {
-      const numberSize = Math.max(8, plateWidth * 0.115)
+      const numberSize = this.type(Math.max(8, plateWidth * 0.115))
       ctx.font = `${numberSize}px ${palette.mono}`
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
@@ -1295,7 +1321,7 @@ export class RiteWheel {
         )
       }
 
-      const labelSize = Math.max(9, plateWidth * 0.145)
+      const labelSize = this.type(Math.max(9, plateWidth * 0.145))
       const labelMax = plateHeight * 0.72
       ctx.font = `${labelSize}px ${palette.display}`
       ctx.textBaseline = 'middle'
@@ -1413,7 +1439,7 @@ export class RiteWheel {
   ): void {
     const { context: ctx, palette } = this
 
-    ctx.globalAlpha = slab.alpha
+    ctx.globalAlpha = slab.alpha * this.baseAlpha
 
     if (slab.lit) {
       // Crimson appears here and on the mark and nowhere else.
@@ -1447,14 +1473,15 @@ export class RiteWheel {
     // The held slab keeps its outline whatever the pace: by the time anything
     // is held the strip is crawling, and the ignition is the one edge in the
     // composition that must never be ambiguous.
-    ctx.globalAlpha = slab.alpha * (slab.lit ? 1 : 0.35 + crisp * 0.65)
+    ctx.globalAlpha = slab.alpha * (slab.lit ? 1 : 0.35 + crisp * 0.65) * this.baseAlpha
     ctx.strokeStyle = slab.lit
       ? withAlpha(palette.crimsonBright, 0.7 + Math.sin(now / 520) * 0.18)
       : palette.wedgeEdge
     ctx.lineWidth = slab.lit ? 1.6 : 1
     ctx.strokeRect(x + 0.5, y + 0.5, plateWidth - 1, plateHeight - 1)
 
-    ctx.globalAlpha = 1
+    // The operator's level, not opaque.
+    ctx.globalAlpha = this.baseAlpha
   }
 
   /**
@@ -1985,7 +2012,7 @@ export class RiteWheel {
   private paintDescent(plan: DescentPlan | null, revealIndex: number | null): void {
     const { context: ctx, palette } = this
     const takenMote = plan?.capturedMote ?? -1
-    const numberSize = Math.max(7, this.shaftSpan * 0.03)
+    const numberSize = this.type(Math.max(7, this.shaftSpan * 0.03))
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
 
@@ -2118,7 +2145,7 @@ export class RiteWheel {
       const at = motePosition(plan, takenMote, plan.capturedFrame)
       if (label) {
         this.project(at.x, at.y, at.z)
-        const size = Math.max(9, this.shaftSpan * 0.036)
+        const size = this.type(Math.max(9, this.shaftSpan * 0.036))
         ctx.font = `${size}px ${palette.display}`
         ctx.textAlign = 'center'
         ctx.fillStyle = withAlpha(palette.label, clamp01((this.descentAbsorbed - 0.35) * 2.4))
@@ -2142,7 +2169,7 @@ export class RiteWheel {
    */
   private drawDescentGauge(): void {
     const { context: ctx, palette } = this
-    const size = Math.max(6, this.shaftSpan * 0.022)
+    const size = this.type(Math.max(6, this.shaftSpan * 0.022))
     const x = Math.max(this.shaftX - this.shaftSpan * 1.16, size)
 
     ctx.font = `${size}px ${palette.mono}`
@@ -2216,7 +2243,7 @@ export class RiteWheel {
     ctx.translate(centreX, centreY)
     ctx.scale(scale, scale)
     ctx.rotate(-0.014)
-    ctx.globalAlpha = alpha
+    ctx.globalAlpha = alpha * this.baseAlpha
 
     ctx.fillStyle = withAlpha(palette.crimsonDeep, 0.88)
     ctx.fillRect(-width / 2, -height / 2, width, height)
@@ -2224,8 +2251,8 @@ export class RiteWheel {
     ctx.lineWidth = 2
     ctx.strokeRect(-width / 2, -height / 2, width, height)
 
-    const titleSize = Math.max(8, height * 0.26)
-    const labelSize = Math.max(9, height * 0.34)
+    const titleSize = this.type(Math.max(8, height * 0.26))
+    const labelSize = this.type(Math.max(9, height * 0.34))
 
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
