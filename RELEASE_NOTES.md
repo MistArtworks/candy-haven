@@ -1,4 +1,4 @@
-Two new overlays and a set of knobs for every one of them. OBSERVATORY gains a standing frame for the whole broadcast, a stream-starting scene, and — at last — a way to change how any of it is drawn.
+A stream-starting scene, and knobs for every overlay in the kit. OBSERVATORY gains THE GATE — and, at last, a way to change how any of the broadcast kit is drawn.
 
 ## THE GATE
 
@@ -17,14 +17,6 @@ The marque sits beside the band rather than centred, because the portal is the o
 | **Band width**         | The share of the frame held for chat. Zero removes it            |
 | **Top / lower colour** | The two stops of the band's gradient                             |
 | **Band strength**      | How present the band is overall                                  |
-
-## THE ENCLOSURE
-
-A standing frame for the whole broadcast. Gold registration brackets at the four corners, one obsidian plinth along the bottom carrying your marque, and a single crimson pip for when you are live.
-
-Nothing runs along the edges, and that is the design rather than an omission — this is on screen for hours at a stretch, so the frame has to say where the boundary is without spending it. Roughly 96% of the canvas stays unobstructed and the centre is fully transparent, so it dresses a capture rather than replacing one.
-
-The pip is dark until you declare the broadcast live, so the frame carries no colour at all in its resting state. Append `?guides=1` while cutting the scene to outline the inset the brackets sit on; the guide never appears on air.
 
 ## Knobs on everything
 
