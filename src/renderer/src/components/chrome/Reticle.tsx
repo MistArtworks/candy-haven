@@ -52,7 +52,14 @@ const centred = (_latest: unknown, generated: string): string =>
  */
 export function Reticle(): ReactNode {
   const settings = useSystemStore(selectSettings)
-  const preference = settings?.appearance.pointer ?? 'reticle'
+  /*
+   * `native` while the settings are still null, whatever the schema's default
+   * is. Every other preference here can be guessed at and corrected a frame
+   * later; this one hides the system cursor, and guessing it wrong — before
+   * hydration, or for good if the store never hydrates at all — takes the
+   * arrow away on the strength of something nobody has actually said yet.
+   */
+  const preference = settings?.appearance.pointer ?? 'native'
   const motionPreference = settings?.appearance.motion ?? 'full'
   const animated = useAnimationsEnabled()
 

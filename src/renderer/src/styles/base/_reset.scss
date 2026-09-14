@@ -126,10 +126,20 @@ ol {
  *
  * Scoped to the root attribute so switching the setting back to `native`
  * restores every one of those cursors untouched, with no second rule to
- * maintain. `useThemePreferences` publishes the attribute.
+ * maintain. `Reticle` publishes the attribute; see the note in
+ * `useThemePreferences` for why it and not the hook that publishes the rest.
+ *
+ * `[data-cursor-probe]` is exempt, and that exemption is what makes the
+ * instrument work at all. The reticle decides what to draw by reading the
+ * `cursor` this file computes — so a rule that writes `none` over every one of
+ * them reports "no cursor here" everywhere, the mark stands itself down, and
+ * the operator is left with no pointer at all. That is exactly what shipped in
+ * 1.11.0. `useReticle` marks the element it is measuring, and its ancestors,
+ * for the length of one synchronous read; nothing is painted in between, so the
+ * arrow never flickers back. See `CURSOR_PROBE_ATTR`, which owns the string.
  */
-:root[data-pointer='reticle'],
-:root[data-pointer='reticle'] * {
+:root[data-pointer='reticle']:not([data-cursor-probe]),
+:root[data-pointer='reticle'] *:not([data-cursor-probe]) {
   cursor: none !important;
 }
 

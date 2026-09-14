@@ -20,7 +20,7 @@ Motion, interface scale and the accent this console draws with.
 | **Accent**          | `crimson` or `gold`. Shifts every interactive affordance                                                                             |
 | **Grain**           | `0` to `1`. The film grain over the whole console                                                                                    |
 | **Page transition** | `sweep`, `fade` or `off`. How a department arrives. **Off by default**                                                               |
-| **Pointer**         | `reticle` or `native`. Which pointer the console draws. **`native` by default**                                                      |
+| **Pointer**         | `reticle` or `native`. Which pointer the console draws. **`reticle` by default**                                                     |
 
 > The accent setting does not touch the boot orb, which stays crimson. It is the
 > focal object, and the palette reserves that colour for focal points.
@@ -41,8 +41,9 @@ control says so rather than disappearing.
 
 ### THE RETICLE
 
-Off by default, and deliberately so while the mark is still being finished.
-Turning it on hides the system arrow, so it has to earn that.
+On by default. It was switched off for 1.11.1, after a version in which it hid
+the system arrow and drew nothing in its place; that fault is fixed and the mark
+draws, so it is back on.
 
 On `reticle`, the console hides the system arrow and draws its own pointer: a
 survey instrument rather than a cursor. It tracks, acquires a target, and

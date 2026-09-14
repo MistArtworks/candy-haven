@@ -77,18 +77,18 @@ export const AppearanceSettingsSchema = z.object({
    * operator and the page they asked for; the reticle sits *on* the pointer and
    * costs them nothing — its focal dot tracks with no spring at all, so it is
    * exactly as precise as the arrow it replaces.
-   */
-  /*
-   * Opt-in, not opt-out.
    *
-   * It shipped defaulting to `reticle` in 1.11.0 and hid the system cursor on
-   * every fresh install while drawing nothing in its place — an empty setting
-   * falls through to this default, so an operator who had never heard of the
-   * feature lost their pointer. The mark is still unfinished; until it is
-   * demonstrably drawing, the console must not take away the one thing the
-   * operator needs to reach the setting that turns it off.
+   * It was turned off after 1.11.0, and the reason is worth keeping: it hid the
+   * system cursor on every fresh install and drew nothing in its place, so an
+   * operator who had never heard of the feature simply lost their pointer. The
+   * cause was not the default. The mark read the app's own `cursor`
+   * declarations to decide what to draw, and the same stylesheet had already
+   * overwritten every one of them with `none` to hide the arrow — so it
+   * resolved "no cursor here" over the entire interface and stood itself down.
+   * `CURSOR_PROBE_ATTR` is the fix, and `resolveState` no longer has a branch
+   * that can blank the instrument. It draws, so it is back on.
    */
-  pointer: PointerSchema.default('native'),
+  pointer: PointerSchema.default('reticle'),
   /** Skip the boot cinematic once the sequence itself has completed. */
   fastBoot: z.boolean().default(false)
 })

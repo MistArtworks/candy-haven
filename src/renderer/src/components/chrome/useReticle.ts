@@ -9,6 +9,7 @@ import {
 } from 'motion/react'
 import type { ReticleState } from '@shared/domain/reticle'
 import {
+  CURSOR_PROBE_ATTR,
   RETICLE_SPRINGS,
   RETICLE_SPRINGS_REDUCED,
   STEER_THRESHOLD,
@@ -55,8 +56,79 @@ export interface Reticle {
 /** How long a hit test may stand before it is re-run regardless. */
 const RETEST_INTERVAL_MS = 250
 
-/** Guard on the walk up to the framed ancestor. */
+/**
+ * How far up the probe lifts the hiding rule.
+ *
+ * `cursor` inherits, so exempting only the hit element would leave it
+ * inheriting `none` from its still-hidden parent and nothing would be learned.
+ * The chain has to reach whichever ancestor actually declared the cursor —
+ * `<button>` for the span inside it, `[data-selectable]` for a word inside a
+ * paragraph inside a dossier. Twelve clears every such case in this interface
+ * with room to spare.
+ *
+ * It stops short of `<body>`, deliberately. Body carries the app-wide
+ * `cursor: default`, so including it would exempt the one element whose subtree
+ * is the entire document and make every probe a full style recalculation. Left
+ * out, an element with nothing declared above it resolves to `none` instead —
+ * which `resolveState` reads as "nothing in reach declared a cursor" and treats
+ * exactly as it treats body's `default`.
+ */
+const PROBE_DEPTH = 12
+
+/** Guard on the walk up to the framed ancestor. Never beyond what was probed. */
 const FRAME_WALK_LIMIT = 6
+
+/** One element and its ancestors, measured with the hiding rule lifted. */
+interface CursorProbe {
+  /** The chain that was measured, hit element first. */
+  chain: Element[]
+  /** Each one's `cursor`, in the same order. */
+  cursors: string[]
+  /** The hit element's line box, for the caret. */
+  lineHeight: number
+  fontSize: number
+}
+
+/**
+ * What the stylesheet would draw here if the reticle were not hiding it.
+ *
+ * This is the whole trick, and it is the piece 1.11.0 was missing. The reset
+ * writes `cursor: none !important` over every element to take the system arrow
+ * away, which also erases the very declarations this instrument reads to decide
+ * what to draw. So the chain is marked with `CURSOR_PROBE_ATTR`, which that
+ * rule excludes, measured, and unmarked — all inside one synchronous block, so
+ * no frame is ever painted with the arrow back.
+ *
+ * Marked in one pass and read in another on purpose: the first `getComputedStyle`
+ * flushes style for the whole batch, so a twelve-deep walk costs one
+ * recalculation rather than twelve. And because the topmost link's parent stays
+ * hidden, an ancestor that declares nothing still computes `none` and its own
+ * subtree is left untouched — only the branch below a genuine declaration is
+ * recalculated, which in practice is one control.
+ */
+function probeCursors(element: Element): CursorProbe {
+  const chain: Element[] = [element]
+
+  let current = element.parentElement
+  while (chain.length < PROBE_DEPTH && current && current !== document.body) {
+    chain.push(current)
+    current = current.parentElement
+  }
+
+  for (const node of chain) node.setAttribute(CURSOR_PROBE_ATTR, '')
+
+  const style = getComputedStyle(element)
+  const probe: CursorProbe = {
+    chain,
+    cursors: chain.map((node) => getComputedStyle(node).cursor),
+    lineHeight: parseFloat(style.lineHeight),
+    fontSize: parseFloat(style.fontSize)
+  }
+
+  for (const node of chain) node.removeAttribute(CURSOR_PROBE_ATTR)
+
+  return probe
+}
 
 /**
  * The element the frame should measure, given what the pointer is actually on.
@@ -67,16 +139,20 @@ const FRAME_WALK_LIMIT = 6
  * ancestor is *also* declaring itself interactive. `cursor` inherits, so the
  * span inside a button reports `pointer` and so does the button; the button's
  * container does not, and that is where the walk stops.
+ *
+ * It reads the chain the probe already measured rather than measuring again,
+ * because a second `getComputedStyle` after the marks came off would read the
+ * hiding rule's `none` and stop at the first step every time.
  */
-function framedAncestor(element: Element): Element {
-  let current = element
-  for (let depth = 0; depth < FRAME_WALK_LIMIT; depth += 1) {
-    const parent = current.parentElement
-    if (!parent || parent === document.body) break
-    if (getComputedStyle(parent).cursor !== 'pointer') break
-    current = parent
+function framedAncestor(probe: CursorProbe): Element {
+  let framed = probe.chain[0]
+
+  for (let depth = 1; depth <= FRAME_WALK_LIMIT && depth < probe.chain.length; depth += 1) {
+    if (probe.cursors[depth] !== 'pointer') break
+    framed = probe.chain[depth]
   }
-  return current
+
+  return framed
 }
 
 /**
@@ -148,6 +224,8 @@ export function useReticle(enabled: boolean, animated: boolean): Reticle {
     seen: false,
     state: 'idle' as ReticleState,
     visible: false,
+    /** The element the last probe measured, so an unchanged one is not re-measured. */
+    probed: null as Element | null,
     element: null as Element | null,
     box: null as ReticleTarget | null,
     /** Bottom edge of the window chrome, measured rather than hard-coded. */
@@ -309,22 +387,35 @@ export function useReticle(enabled: boolean, animated: boolean): Reticle {
 
       // ---- hit test, only when something might have changed
       if (store.dirty || now - store.lastTest > RETEST_INTERVAL_MS) {
+        const stale = now - store.lastTest > RETEST_INTERVAL_MS
         store.dirty = false
-        store.lastTest = now
 
         const element = store.seen ? document.elementFromPoint(store.px, store.py) : null
 
+        /*
+         * The probe writes to the DOM, so it is the one part of this loop worth
+         * being stingy with. Travelling within a single element — which is most
+         * frames of most mouse movements — reuses the last answer, and only a
+         * change of element or the retest interval buys a new one. The interval
+         * is what catches a button that became disabled under a pointer that
+         * never moved.
+         */
         if (!element) {
+          store.lastTest = now
+          store.probed = null
           if (store.state !== 'idle') {
             store.state = 'idle'
             setState('idle')
           }
           store.element = null
-        } else {
-          const style = getComputedStyle(element)
+        } else if (stale || element !== store.probed) {
+          store.lastTest = now
+          store.probed = element
+
+          const probe = probeCursors(element)
           const overrideHost = element.closest('[data-reticle]')
           const next = resolveState({
-            cursor: style.cursor,
+            cursor: probe.cursors[0],
             tagName: element.tagName,
             override: overrideHost?.getAttribute('data-reticle') ?? null,
             selectable: element.closest('[data-selectable]') !== null
@@ -336,12 +427,11 @@ export function useReticle(enabled: boolean, animated: boolean): Reticle {
           }
 
           if (next === 'text') {
-            const line = parseFloat(style.lineHeight)
-            const size = parseFloat(style.fontSize)
-            setCaretHeight(Number.isFinite(line) ? line : (size || 12) * 1.4)
+            const { lineHeight, fontSize } = probe
+            setCaretHeight(Number.isFinite(lineHeight) ? lineHeight : (fontSize || 12) * 1.4)
           }
 
-          store.element = next === 'lock' ? framedAncestor(element) : null
+          store.element = next === 'lock' ? framedAncestor(probe) : null
         }
       }
 

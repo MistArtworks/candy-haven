@@ -48,6 +48,25 @@ export const RETICLE_PURPOSE: Record<ReticleState, string> = {
 /** Values `data-reticle` accepts, for the rare element that needs to override. */
 export const RETICLE_OVERRIDES: readonly ReticleState[] = RETICLE_STATES
 
+/**
+ * The attribute that lifts the system-cursor hiding rule off one element.
+ *
+ * The instrument reads the app's own `cursor` declarations to decide what to
+ * draw, and the same stylesheet overwrites every one of them with `none` to
+ * hide the arrow. Left alone those two facts cancel out: the probe sees `none`
+ * everywhere, and 1.11.0 shipped with the cursor hidden and nothing drawn in
+ * its place.
+ *
+ * So `_reset.scss` exempts anything carrying this, and `useReticle` marks the
+ * element it is about to measure — and its ancestors, because `cursor` inherits
+ * — for the length of one synchronous read. No frame is painted in between, so
+ * the arrow never reappears.
+ *
+ * Declared here rather than inlined at both ends because the stylesheet and the
+ * hook have to agree on the string and cannot import from each other.
+ */
+export const CURSOR_PROBE_ATTR = 'data-cursor-probe'
+
 // --------------------------------------------------------------- resolution
 
 /**
@@ -87,6 +106,15 @@ function isOverride(value: string): value is ReticleState {
  * identically over an `<input>` and over a plain `<div>` — so that branch falls
  * back to the tag and to `[data-selectable]`, which is exactly the distinction
  * the reset was making when it set the value.
+ *
+ * `none` lands in the same branch, and the reason is worth stating because the
+ * obvious reading of it is wrong. Nothing in this app ever *asks* for `none`:
+ * it is what the reset writes to hide the system arrow, so the probe sees it
+ * only where no element in reach declared a cursor at all — which is precisely
+ * what `auto` means here too. Reading it as "this element wants no pointer" and
+ * standing the instrument down is what blacked the pointer out in 1.11.0. An
+ * element that genuinely wants the system cursor says so with
+ * `data-reticle="native"`, which is explicit, and which is checked first.
  */
 export function resolveState(probe: ReticleProbe): ReticleState {
   const override = probe.override?.trim()
@@ -109,8 +137,9 @@ export function resolveState(probe: ReticleProbe): ReticleState {
     case 'text':
     case 'vertical-text':
       return 'text'
+    // The reset's own hiding value. See the note above — it means "nothing in
+    // reach declared a cursor", not "draw nothing".
     case 'none':
-      return 'native'
     case 'auto': {
       const tag = probe.tagName.toLowerCase()
       if (tag === 'input' || tag === 'textarea') return 'text'
