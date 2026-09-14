@@ -442,9 +442,84 @@ export function mountScene(canvas: HTMLCanvasElement, options: SceneMount): () =
     options.onResize(width, height)
   }
 
-  resize()
-  const observer = new ResizeObserver(resize)
-  observer.observe(canvas)
+  /*
+   * Measuring and repainting, together.
+   *
+   * Setting `canvas.width` in `resize` *clears the canvas*, so a resize not
+   * followed by a draw leaves a black frame standing. In the console that never
+   * showed, because the loop is always running and repaints within
+   * milliseconds. In an OBS browser source it is the whole bug: switching away
+   * from a scene suspends `requestAnimationFrame`, and switching back resizes
+   * the surface — so the canvas is cleared at exactly the moment nothing is
+   * scheduled to redraw it, and the source stays black.
+   *
+   * Paired here rather than inside `resize` so each event paints once: `resize`
+   * calling `kick` *and* the caller calling it drew this scene twice on every
+   * switch, and it is three thousand lines of arithmetic a frame.
+   */
+  const remeasure = (): void => {
+    resize()
+    kick()
+  }
+
+  /**
+   * Draws now, and leaves exactly one frame armed.
+   *
+   * Cancels before arming so this can be called from anywhere — a resize, a
+   * visibility change, the initial mount — without ever ending up with two
+   * loops running and the field animating at double speed.
+   */
+  const kick = (): void => {
+    cancelAnimationFrame(frame)
+    /*
+     * Painted synchronously, not merely scheduled.
+     *
+     * The failure being recovered from here is a stalled `requestAnimationFrame`
+     * — so arming another one and hoping is the one thing that cannot work.
+     * Drawing on the spot guarantees a painted frame, and `draw` re-arms the
+     * loop itself when the scene is animated.
+     */
+    draw(performance.now())
+  }
+
+  /*
+   * Repaint when the page comes back.
+   *
+   * `requestAnimationFrame` does not fire while a document is hidden, which is
+   * correct — a scene nobody is looking at should not burn a GPU. What it means
+   * is that the loop stops, and whether it restarts cleanly is up to the
+   * embedder. OBS composites browser sources offscreen and stops pumping frames
+   * for a scene that is not live; coming back needs an explicit nudge rather
+   * than trust.
+   */
+  const onVisibility = (): void => {
+    if (document.visibilityState !== 'visible') return
+    remeasure()
+  }
+
+  document.addEventListener('visibilitychange', onVisibility)
+
+  /*
+   * A 2D context can be lost and restored, as a WebGL one can — Chromium does
+   * it under memory pressure and when a surface is recreated. The restored
+   * context comes back blank, so it has to be redrawn.
+   */
+  const onRestored = (): void => {
+    remeasure()
+  }
+
+  canvas.addEventListener('contextrestored', onRestored)
+
+  /*
+   * Sized and observed *after* `draw` exists, not before.
+   *
+   * `resize` now repaints through `kick`, and `kick` closes over `draw` — so
+   * measuring before that declaration would reach it in its temporal dead zone
+   * and throw on the very first mount, taking every scene down with it. The
+   * observer is armed here for the same reason: it can fire synchronously on
+   * `observe`.
+   */
+  const observer = new ResizeObserver(remeasure)
 
   const draw = (now: number): void => {
     if (width === 0 || height === 0) {
@@ -496,11 +571,14 @@ export function mountScene(canvas: HTMLCanvasElement, options: SceneMount): () =
     if (options.animated) frame = requestAnimationFrame(draw)
   }
 
-  if (options.animated) frame = requestAnimationFrame(draw)
-  else draw(performance.now())
+  resize()
+  observer.observe(canvas)
+  kick()
 
   return () => {
     observer.disconnect()
+    document.removeEventListener('visibilitychange', onVisibility)
+    canvas.removeEventListener('contextrestored', onRestored)
     cancelAnimationFrame(frame)
   }
 }
