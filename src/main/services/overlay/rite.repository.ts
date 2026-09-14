@@ -30,7 +30,7 @@ export class RiteRepository {
   constructor(private readonly archive: ArchiveService) {}
 
   private collection(): Collection<RiteDocument> | null {
-    if (!this.archive.isOnline()) return null
+    if (!this.archive.isConnected()) return null
     try {
       return this.archive.getDb().collection<RiteDocument>(Collections.Overlays)
     } catch {

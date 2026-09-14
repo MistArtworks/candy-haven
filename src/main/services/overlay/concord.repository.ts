@@ -44,7 +44,7 @@ export class ConcordRepository {
   constructor(private readonly archive: ArchiveService) {}
 
   private collection(): Collection<ConcordDocument> | null {
-    if (!this.archive.isOnline()) return null
+    if (!this.archive.isConnected()) return null
     try {
       return this.archive.getDb().collection<ConcordDocument>(Collections.Overlays)
     } catch {

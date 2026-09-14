@@ -65,6 +65,28 @@ export class ArchiveService extends TypedEmitter<ArchiveEvents> {
     return this.state.state === 'online' && this.db !== null
   }
 
+  /**
+   * Whether the database can be read and written *now*.
+   *
+   * Deliberately weaker than `isOnline`, and the distinction is load-bearing.
+   * `online` means the whole boot sequence finished and the archive passed its
+   * health check — it is what the console reports to the operator. This asks
+   * only whether there is a live connection to talk to.
+   *
+   * They are not the same moment. The connection opens and the schema is
+   * reconciled in the `archive-schema` stage; `markOnline` is not called until
+   * `harmonics`, two stages later. Every overlay restored its stored settings
+   * in between, guarded on `isOnline`, so every one of those reads returned
+   * nothing and every overlay came up at its defaults — which is exactly what
+   * an operator saw as "my settings reset every time I open the app".
+   *
+   * Storage guards want this. Anything reporting state to a human wants
+   * `isOnline`.
+   */
+  isConnected(): boolean {
+    return this.db !== null
+  }
+
   // ---------------------------------------------------------------- discovery
 
   async locate(configuredPath: string | null): Promise<ArchiveBinaryInfo | null> {

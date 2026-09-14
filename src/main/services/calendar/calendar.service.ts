@@ -62,8 +62,8 @@ export class CalendarService extends TypedEmitter<CalendarEvents> {
   private async hydrate(): Promise<void> {
     // Once loaded from a connected archive, stay loaded. A hydration that ran
     // while the archive was down is not a load, so it is retried.
-    if (this.hydrated && this.archive.isOnline()) return
-    if (!this.archive.isOnline()) return
+    if (this.hydrated && this.archive.isConnected()) return
+    if (!this.archive.isConnected()) return
 
     if (this.hydrating) return this.hydrating
 

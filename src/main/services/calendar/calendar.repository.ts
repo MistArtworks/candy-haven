@@ -30,7 +30,7 @@ export class CalendarRepository {
   }
 
   get attached(): boolean {
-    return this.archive.isOnline()
+    return this.archive.isConnected()
   }
 
   async list(): Promise<CalendarEntry[]> {

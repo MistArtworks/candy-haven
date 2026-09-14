@@ -450,7 +450,7 @@ export class MusterService extends TypedEmitter<MusterEvents> {
   // ------------------------------------------------------------- persistence
 
   private collection(): Collection<MusterDocument> | null {
-    if (!this.archive.isOnline()) return null
+    if (!this.archive.isConnected()) return null
     try {
       return this.archive.getDb().collection<MusterDocument>(Collections.Overlays)
     } catch {

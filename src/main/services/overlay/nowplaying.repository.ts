@@ -29,7 +29,7 @@ export class NowPlayingRepository {
   constructor(private readonly archive: ArchiveService) {}
 
   private collection(): Collection<NowPlayingDocument> | null {
-    if (!this.archive.isOnline()) return null
+    if (!this.archive.isConnected()) return null
     try {
       return this.archive.getDb().collection<NowPlayingDocument>(Collections.Overlays)
     } catch {

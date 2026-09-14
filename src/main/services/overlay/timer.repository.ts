@@ -30,7 +30,7 @@ export class TimerRepository {
   constructor(private readonly archive: ArchiveService) {}
 
   private collection(): Collection<TimerDocument> | null {
-    if (!this.archive.isOnline()) return null
+    if (!this.archive.isConnected()) return null
     try {
       return this.archive.getDb().collection<TimerDocument>(Collections.Overlays)
     } catch {
