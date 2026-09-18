@@ -138,17 +138,16 @@ export function createServiceContainer(): ServiceContainer {
   projects.setArtistResolver(() => artists.listPlain())
   projects.setAppearanceResolver(() => discography.appearances())
   /*
-   * Naming a final master raises a single for the project.
+   * A project's final master changing, in either direction.
    *
    * The last of the four callbacks that break the projects/discography cycle,
    * and the only one that *writes*: the others hand data back, this one asks
-   * the catalogue to create a record. Same inversion for the same reason —
-   * discography reads the register through projects, so projects cannot import
-   * discography.
+   * the catalogue to create or remove a record. Same inversion for the same
+   * reason — discography reads the register through projects, so projects
+   * cannot import discography.
    */
-  projects.setReleaseRaiser(async (projectId) => {
-    const release = await discography.ensureSingleFor(projectId)
-    return release?.id ?? null
+  projects.setReleaseReconciler(async (projectId) => {
+    await discography.reconcileAutoSingle(projectId)
   })
 
   /*

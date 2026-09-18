@@ -793,6 +793,14 @@ either department; in summary:
   (`PRODUCED BY` rather than `PRODUCER`). `BILLED AS` is relabelled **MAIN
   ARTIST**; the stored field is still `artistIds`.
 - The release sheet is **five tabs**, mirroring `ProjectDossier`'s strip.
+- **Naming a final master raises a single; clearing it withdraws that single**
+  (D17, D18). `reconcileAutoSingle` is called from both branches of
+  `setFinalMaster` through the `ReleaseReconciler` callback, and reads the
+  project's stored `masters.final` to decide which way to go. The withdraw is
+  confined to a release still carrying `raisedFor` — **any** operator edit
+  (`update`, `writeTracks`, `setAsset`) sets that to null, after which nothing
+  removes the entry on their behalf. Entries raised before D18 read as
+  hand-raised and are never withdrawn.
 - **Tracks are capped per kind** (D11): `maxTracksFor` gives one for `single`
   and `remix`, forty for the rest. Enforced in `addTrack` *and* on a kind
   change that would overflow, or the rule is escaped in two presses.

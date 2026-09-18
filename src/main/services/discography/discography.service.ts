@@ -185,7 +185,7 @@ export class DiscographyService {
    * for the reason `TagDraft.attachTo` is: doing it as create-then-add-track
    * would leave an empty release behind whenever the second failed.
    */
-  async create(draft: ReleaseDraft): Promise<DiscographyRelease> {
+  async create(draft: ReleaseDraft, raisedFor: string | null = null): Promise<DiscographyRelease> {
     const title = draft.title.trim()
     if (!title) {
       throw new AppError('A release needs a title.', {
@@ -260,6 +260,7 @@ export class DiscographyService {
       colour: randomTagColour(),
       notes: '',
       favourite: false,
+      raisedFor,
       createdAt: now,
       updatedAt: now
     }
@@ -295,26 +296,53 @@ export class DiscographyService {
    * Returns the release it made, or null when it made nothing. The caller logs
    * and never fails on it.
    */
-  async ensureSingleFor(projectId: string): Promise<DiscographyRelease | null> {
+  async reconcileAutoSingle(projectId: string): Promise<DiscographyRelease | null> {
+    const project = await this.projects.get(projectId)
     const releases = await this.repository.listAll()
 
-    const existing = releases.find((release) =>
+    if (project.masters.final === null) {
+      /*
+       * The master has been cleared, so the single it raised goes with it.
+       *
+       * Confined to a release still carrying `raisedFor`, and that is the whole
+       * guard. An entry the operator has edited has had it set to null, and
+       * deleting a record somebody has put a label, a catalogue number and
+       * artwork onto — because they cleared an unrelated field on a project —
+       * is a far worse outcome than leaving a stray single behind.
+       */
+      const raised = releases.find((release) => release.raisedFor === projectId)
+      if (!raised) return null
+
+      await this.repository.deleteById(raised.id)
+      logger.info(`Withdrew "${raised.title}", raised automatically and never edited`)
+      return null
+    }
+
+    /*
+     * Idempotent, and that is the whole of its correctness.
+     *
+     * This runs again on every re-pick, so it creates nothing when the project
+     * already appears anywhere in the catalogue, on a release of any kind — a
+     * track already on an album does not also want a single raised for it.
+     */
+    const already = releases.find((release) =>
       release.tracks.some((track) => track.projectId === projectId)
     )
-    if (existing) return null
+    if (already) return null
 
-    const project = await this.projects.get(projectId)
-
-    const release = await this.create({
-      title: project.name,
-      kind: 'single',
-      // Not RELEASED: naming the master says the work is finished, not that it
-      // is out in the world. `scheduled` with no date is exactly "going out,
-      // when is not fixed yet" — see `RELEASE_STATUSES`.
-      status: 'scheduled',
-      artistIds: [...project.artistIds],
-      fromProjectId: projectId
-    })
+    const release = await this.create(
+      {
+        title: project.name,
+        kind: 'single',
+        // Not RELEASED: naming the master says the work is finished, not that
+        // it is out in the world. `scheduled` with no date is exactly "going
+        // out, when is not fixed yet" — see `RELEASE_STATUSES`.
+        status: 'scheduled',
+        artistIds: [...project.artistIds],
+        fromProjectId: projectId
+      },
+      projectId
+    )
 
     logger.info(`Raised "${release.title}" automatically for its final master`)
     return release
@@ -455,6 +483,9 @@ export class DiscographyService {
       ...(patch.favourite !== undefined ? { favourite: patch.favourite } : {}),
       status,
       releaseDate,
+      // The operator has edited it, so it is theirs — see `raisedFor`.
+      // From here on nothing removes it on their behalf.
+      raisedFor: null,
       updatedAt: Date.now()
     }
 
@@ -494,7 +525,7 @@ export class DiscographyService {
 
     if (sourcePath === null) {
       await clearMedia(wrapperPath, 'releases', key)
-      const next = { ...release, [asset]: noMedia(), updatedAt: Date.now() }
+      const next = { ...release, [asset]: noMedia(), raisedFor: null, updatedAt: Date.now() }
       await this.repository.replace(next)
       return next
     }
@@ -508,7 +539,7 @@ export class DiscographyService {
       maxBytes: MAX_ARTWORK_BYTES
     })
 
-    const next = { ...release, [asset]: stored, updatedAt: Date.now() }
+    const next = { ...release, [asset]: stored, raisedFor: null, updatedAt: Date.now() }
     await this.repository.replace(next)
     return next
   }
@@ -965,6 +996,9 @@ export class DiscographyService {
     const next: DiscographyRelease = {
       ...release,
       tracks: tracks.map((track, index) => ({ ...track, position: index + 1 })),
+      // Every tracklist change funnels through here, so this is where a
+      // hand-edited running order disowns its automatic provenance.
+      raisedFor: null,
       updatedAt: Date.now()
     }
 

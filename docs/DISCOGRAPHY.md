@@ -863,3 +863,77 @@ RECORD's RELEASES panel carries **OPEN IN DISCOGRAPHY** per appearance — per
 appearance, not once for the panel, because a project on a single and then an
 album has two and a single control would have to ask which. Navigating closes
 the dossier for free, since the open dossier is itself a URL parameter.
+
+---
+
+## 25. D18 — clearing the master withdraws the single it raised
+
+D17 raised a single when a master was named and left nothing to undo it. The
+operator cleared a master and the single stayed: an entry they had never asked
+for, which they then had to find and delete by hand.
+
+### Why this is not simply "delete the release for that project"
+
+Because by the time the master is cleared, the entry may be **theirs**. A label,
+a catalogue number, artwork, a second track, a changed title — deleting a
+record somebody has filled in, because they cleared an unrelated field on a
+project, is a far worse outcome than leaving a stray single behind.
+
+So the entry records its own provenance. `DiscographyRelease.raisedFor` holds
+the project id **only while the entry is still untouched**, and **any operator
+edit sets it back to null**:
+
+- `update` — any field
+- `writeTracks` — the funnel every tracklist change goes through
+- `setAsset` — artwork or canvas, set or cleared
+
+Null therefore means either "raised by hand" or "raised automatically and since
+edited", and both say the same thing to every reader: do not touch it.
+
+A boolean would have done, but the project id is strictly more useful — it
+records *why* the entry exists and lets the withdraw find its target directly
+rather than inferring it from the tracklist.
+
+The alternative considered and rejected was a "still pristine" check: compare
+the release against what the auto-raise would have produced. It needs no schema
+field, and it rots the moment a field is added — every new column is one more
+thing to remember to compare.
+
+### One reconciler, both directions
+
+`ensureSingleFor` became `reconcileAutoSingle(projectId)`, and
+`ReleaseRaiser` became `ReleaseReconciler`. It reads the project's stored
+`masters.final` and decides for itself:
+
+| Stored state | What it does |
+| --- | --- |
+| a master is named, project not in the catalogue | raises a single, stamping `raisedFor` |
+| a master is named, project already on any release | nothing |
+| no master, a release still carries `raisedFor` | deletes that release |
+| no master, nothing carries `raisedFor` | nothing |
+
+`setFinalMaster` calls it from **both** branches through one private
+`syncCatalogue`. The caller does not say which way the change went — the
+discography reads the record — so there is one source of truth for the decision
+and no way for the caller to describe it wrongly.
+
+Still swallowed on failure, for the reason D17 records: the master pick is what
+the operator asked for, and the catalogue entry is a convenience on top of it.
+
+### Verified
+
+Twelve assertions, and the ones that matter are the four where the release must
+*survive*: after a field edit, after a tracklist edit, when raised by hand, and
+when the project is already on an album.
+
+One of them caught a probe bug rather than a code bug, which is worth recording
+— `addTrack` on the auto-raised single was refused, because a single holds one
+track (D11) and it already had its seeded one. The cap and the auto-raise agree.
+
+### Existing entries are not retrofitted
+
+`raisedFor` defaults to null, so a single raised automatically **before** this
+change reads as hand-raised and will not be withdrawn. There is no honest way
+to tell the two apart after the fact, and guessing would risk deleting real
+work. Delete such an entry by hand once; everything raised from now on carries
+its provenance.

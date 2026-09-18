@@ -111,16 +111,20 @@ export type ArtistResolver = () => Promise<ArtistRecord[]>
 export type AppearanceResolver = () => Promise<Map<string, ReleaseAppearance[]>>
 
 /**
- * Raises a single for a project that has just named its final master.
+ * Makes the catalogue agree with whether a project has a shipping master.
+ *
+ * Called whenever `masters.final` changes, in **either** direction: naming one
+ * raises a single, clearing one withdraws the single that naming it raised.
+ *
+ * The discography reads the project's stored state itself rather than being
+ * told which way it went, so there is one source of truth for the decision and
+ * no way for this caller to describe the change wrongly.
  *
  * Inverted into a callback for the same reason every other cross-service link
  * here is: the discography service reads the register through *this* service,
  * so this one cannot import it back. See the composition root.
- *
- * Returns the release id when it raised one, or null when the project was
- * already in the catalogue — which is the ordinary case on every re-pick.
  */
-export type ReleaseRaiser = (projectId: string) => Promise<string | null>
+export type ReleaseReconciler = (projectId: string) => Promise<void>
 
 /**
  * Owns the project registry: what exists on disk, what the operator has said
@@ -141,7 +145,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   private tagResolver: TagResolver | null = null
   private artistResolver: ArtistResolver | null = null
   private appearanceResolver: AppearanceResolver | null = null
-  private releaseRaiser: ReleaseRaiser | null = null
+  private releaseReconciler: ReleaseReconciler | null = null
 
   constructor(private readonly archive: ArchiveService) {
     super()
@@ -168,8 +172,8 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   }
 
   /** Wired by the container once the discography service exists. */
-  setReleaseRaiser(raiser: ReleaseRaiser): void {
-    this.releaseRaiser = raiser
+  setReleaseReconciler(reconciler: ReleaseReconciler): void {
+    this.releaseReconciler = reconciler
   }
 
   setTagResolver(resolver: TagResolver): void {
@@ -672,9 +676,15 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
         )
       }
 
-      const next = { ...current, masters: { ...current.masters, final: null } }
-      await this.repository.replace({ ...next, updatedAt: Date.now() })
-      return { ...next, updatedAt: Date.now() }
+      const cleared = { ...current, masters: { ...current.masters, final: null } }
+      const stamped = { ...cleared, updatedAt: Date.now() }
+      await this.repository.replace(stamped)
+
+      // Withdraws the single that naming a master raised, if it is still
+      // untouched. Same call as the set branch: the catalogue reads the
+      // stored record and decides for itself which way this went.
+      await this.syncCatalogue(id, current.name)
+      return stamped
     }
 
     /*
@@ -702,28 +712,29 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
     await this.repository.replace(next)
     logger.info(`Final master for ${current.name}: ${file.fileName}`)
 
-    /*
-     * The catalogue picks the work up from here.
-     *
-     * Naming the file that ships is the operator saying this is finished and
-     * going out, so a single is raised for it — see `ensureSingleFor`, which
-     * does nothing when the project is already on a release, because this
-     * runs again every time the master is re-picked.
-     *
-     * **After the write, and never in front of it.** The master pick is what
-     * the operator asked for; the catalogue entry is a convenience on top of
-     * it, so a failure there is logged and swallowed. Refusing the pick
-     * because a second record could not be created would be the tail wagging
-     * the dog — and it would leave the RELEASED gate unsatisfiable for a
-     * reason that has nothing to do with the file.
-     */
-    try {
-      await this.releaseRaiser?.(id)
-    } catch (cause) {
-      logger.warn(`Could not raise a release for ${current.name}`, cause)
-    }
-
+    await this.syncCatalogue(id, current.name)
     return next
+  }
+
+  /**
+   * Lets the catalogue react to this project's master having changed.
+   *
+   * **After the write, and never in front of it.** The master pick is what the
+   * operator asked for; the catalogue entry is a convenience on top of it, so
+   * a failure here is logged and swallowed. Refusing the pick because a second
+   * record could not be written would be the tail wagging the dog — and it
+   * would leave the RELEASED gate unsatisfiable for a reason that has nothing
+   * to do with the file.
+   *
+   * Called from both branches of `setFinalMaster`, because the catalogue has
+   * something to do either way: raise a single, or withdraw the one it raised.
+   */
+  private async syncCatalogue(projectId: string, name: string): Promise<void> {
+    try {
+      await this.releaseReconciler?.(projectId)
+    } catch (cause) {
+      logger.warn(`Could not reconcile the catalogue for ${name}`, cause)
+    }
   }
 
   /**

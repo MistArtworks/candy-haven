@@ -231,6 +231,29 @@ export const DiscographyReleaseSchema = z.object({
   colour: ColourSchema.default(DEFAULT_FOLDER_COLOUR),
   notes: z.string().default(''),
   favourite: z.boolean().default(false),
+
+  /**
+   * The project this entry was raised **automatically** for, and only while it
+   * is still untouched.
+   *
+   * Naming a final master raises a single by itself (D17). Clearing that
+   * master has to be able to take the single back with it — otherwise a pick
+   * made and immediately undone leaves a release the operator never asked for
+   * and has to find and delete.
+   *
+   * So it cannot simply be "the id of the project this was raised for": that
+   * would authorise deleting a record the operator has since *worked on* —
+   * added a label, a catalogue number, artwork, a second track — which is a
+   * far worse outcome than a stray entry. **Any operator edit sets this back
+   * to null**, and from that moment the entry is theirs and is never removed
+   * on their behalf. See `reconcileAutoSingle`.
+   *
+   * Null therefore means either "raised by hand" or "raised automatically and
+   * since edited", and both of those mean exactly the same thing to every
+   * reader: do not touch it.
+   */
+  raisedFor: z.string().nullable().default(null),
+
   createdAt: z.number().default(0),
   updatedAt: z.number().default(0)
 })

@@ -280,6 +280,12 @@ knows.
 It happens **once**. Re-picking the master does not raise a second single, and
 a project already on a release — an album track, say — gets nothing new.
 
+**Clearing the master takes the single back**, but only while you have not
+touched it. The moment you edit that entry — a label, a catalogue number,
+artwork, the running order — it becomes yours, and clearing the master leaves
+it alone. Deleting a record you had filled in would be far worse than leaving a
+stray one behind, so the rule errs that way.
+
 Nothing is created if the catalogue write fails; the master pick stands
 regardless, because that is what you asked for and the entry is a convenience
 on top of it.
