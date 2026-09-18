@@ -85,17 +85,26 @@ It opens straight into the sheet, where the artwork and codes go.
 
 ### It opens as a record, not a form
 
-Everything reads until you press **EDIT**. Press it and the fields come
-alive; press **DONE** and they settle again.
+A release opens as a **details page**: six numbered panels on one scroll —
+the release, the cover, the credits, the paperwork, the running order and the
+platforms. No tabs, no input boxes. Read it top to bottom.
+
+Press **EDIT** and you get the form instead, in the five tabs below. Press
+**DONE** and it settles back to the record.
 
 There is no save button because there is nothing to save — every field is
 written the moment you change it, which is how the whole console works. EDIT
 is there so that reading a finished release cannot accidentally rewrite it.
 
-Three things still work while it is reading: the tabs, the **OPEN** links
-beside a platform, and a track's master filename, which shows the file in
-Explorer. Going and looking at something is not editing it. You can also
-publish and remove without pressing EDIT.
+Everything a release *could* hold is on the page, and anything it does not
+hold reads as a dash. That is deliberate: it makes the record its own
+pre-flight check, so you can see at a glance which of the things READY TO
+PUBLISH insists on is still missing.
+
+Plenty still works while you are reading — the **OPEN** links beside a
+platform, **REVEAL** on a track's master or on the cover, and both footer
+buttons. Going and looking at something is not editing it, and you can
+publish or remove without pressing EDIT.
 
 > An entry the app raised for you is read-only for a second reason as well,
 > and shows an **ADOPT** bar instead of an EDIT button. Adopting it starts

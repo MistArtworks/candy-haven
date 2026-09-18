@@ -1135,3 +1135,216 @@
     @include focus-ring(1px);
   }
 }
+
+// ------------------------------------------------- the details view (reading)
+
+/*
+ * The record, as against the form.
+ *
+ * Its own grid rather than the catalogue's `.grid` above: that one lays out
+ * square sleeves across the whole page and collapses to two, and this one lays
+ * out panels inside a sheet that is narrower than the page to begin with. One
+ * class serving both would tie a change in either to the other.
+ */
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(4);
+  align-items: stretch;
+}
+
+.detailsGrid > * {
+  height: 100%;
+}
+
+// Explicit spans, never positional rules — §7.4. Same vocabulary the dossier
+// uses, so the two record surfaces are laid out by the same numbers.
+.detailsSpan2 {
+  grid-column: span 2;
+}
+
+.detailsSpan3 {
+  grid-column: span 3;
+}
+
+.detailsSpan4 {
+  grid-column: span 4;
+}
+
+.detailsSpan6 {
+  grid-column: span 6;
+}
+
+// A sheet is not a page. The two-up rows fold a breakpoint earlier than the
+// dossier's, because the overlay is already inset from both edges.
+@include below('lg') {
+  .detailsSpan2,
+  .detailsSpan3,
+  .detailsSpan4 {
+    grid-column: span 6;
+  }
+}
+
+.detailsStack {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+// Said in words rather than left blank. An empty panel that explains itself is
+// the pre-flight check; an empty panel that says nothing is a bug.
+.detailsEmpty {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  max-width: 64ch;
+}
+
+// Outstanding, as against merely absent — a countdown still running, or a
+// stream link a released record does not have. Gold, never crimson: neither is
+// a fault, and crimson is for live state and destruction only.
+.detailsLive {
+  color: var(--ch-gold-300);
+}
+
+.detailsArtefacts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: space(3);
+}
+
+// ------------------------------------------------------------ running order
+
+.detailsTracks {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailsTrack {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(3);
+  padding: space(3) 0;
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+}
+
+.detailsTrackNumber {
+  @include readout(12px);
+  color: var(--ch-text-faint);
+}
+
+.detailsTrackBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  min-width: 0;
+}
+
+.detailsTrackTitle {
+  font-size: rem(12px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.detailsTrackFeature {
+  color: var(--ch-text-secondary);
+}
+
+.detailsTrackMeta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.detailsTrackNote {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.detailsTrackMaster {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  min-width: 0;
+}
+
+.detailsTrackFile {
+  @include readout(9px);
+  color: var(--ch-alabaster-500);
+  max-width: rem(220px);
+  @include truncate;
+}
+
+.detailsTrackBytes {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// A gap that costs something at publish time, so it says what it costs.
+.detailsTrackNone {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// ------------------------------------------------------------- distribution
+
+.detailsPlatforms {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailsPlatform {
+  display: grid;
+  grid-template-columns: minmax(rem(120px), auto) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: space(3);
+  padding: space(3) 0;
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+}
+
+.detailsPlatformName {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-primary);
+}
+
+.detailsSlot {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  min-width: 0;
+}
+
+.detailsSlotLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.detailsSlotNone {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+@include below('md') {
+  .detailsPlatform {
+    grid-template-columns: minmax(0, 1fr);
+    gap: space(2);
+  }
+
+  .detailsTrack {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .detailsTrackMaster {
+    grid-column: 2;
+  }
+}

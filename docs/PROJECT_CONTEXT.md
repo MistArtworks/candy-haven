@@ -881,6 +881,33 @@ D20-D22 in `docs/DISCOGRAPHY.md`.
   button is never disabled for these; re-deriving five service conditions in
   the renderer would be a second opinion that could disagree with the first.
 
+### The release sheet is a record, and a form behind EDIT — 2026-09-18
+
+D25 in `docs/DISCOGRAPHY.md`, which completes D24 below.
+
+- **`ReleaseDetails.tsx` is the read view** — six numbered `Panel`s in a
+  six-column grid holding `Field`/`FieldGrid` pairs, the same idiom
+  `DossierRecord` uses. One page, no tabs. It takes `release`, `roster` and
+  `projects` and **no mutation props at all**: the read view cannot write
+  rather than declining to, which is the whole correction to D24.
+- **The tab strip lives inside the editing branch.** `{readOnly ? <details/>
+  : <><nav/><fieldset/></>}`. The masthead, the ADOPT bar and the footer sit
+  outside both.
+- **This does not undo D12.** Its cost — "twelve fields, a credit picker, a
+  tracklist, six identifiers and two asset wells in a single scroll" — is a
+  list of *editing* affordances, none of which exist in a read view. The
+  tabs are unchanged and still navigate the form.
+- **`ReleaseDetails` must drive `gridVariants` itself.** `Panel` inherits
+  `initial`/`animate` from its parent, so a grid of panels in a plain `div`
+  renders at `opacity: 0` — present, sized, invisible. `DossierGrid` exists
+  only to prevent that; this repeats it deliberately.
+- RUNNING ORDER is the single `focal` panel, per the one-per-view house
+  rule. Every panel is always drawn, with empty ones saying so in words, so
+  nothing renumbers the way `DossierRecord`'s conditional panel forces.
+- A track's `notes` and the release's `labelUrl` are drawn here and nowhere
+  else — both were stored with no surface at all. `durationMs`,
+  `createdAt` and `updatedAt` stay unshown, on purpose.
+
 ### The release sheet reads before it writes — 2026-09-18
 
 D24 in `docs/DISCOGRAPHY.md`.
@@ -895,13 +922,15 @@ D24 in `docs/DISCOGRAPHY.md`.
   (the operator not having asked, answered by EDIT). `readOnly` is the
   disjunction and is what the `fieldset` reads. EDIT is not offered while
   `locked`; ADOPT sets `editing` on its way through.
-- **Read-only affordances are anchors, not buttons** — the track master's
-  reveal-in-Explorer and DISTRIBUTION's OPEN. `fieldset[disabled]` applies
-  to form-associated elements and an anchor is not one, so they survive the
-  lock by construction rather than by an exception list. Both carry
-  `role="button"`, `tabIndex={0}` and an Enter/Space handler. **Do not turn
-  either back into a `Button`** — it would go dead whenever the sheet is
-  being read, which is most of the time.
+- **Read-only affordances inside the fieldset are anchors, not buttons** —
+  the track master's reveal-in-Explorer and DISTRIBUTION's OPEN.
+  `fieldset[disabled]` applies to form-associated elements and an anchor is
+  not one, so they survive the lock by construction rather than by an
+  exception list. Both carry `role="button"`, `tabIndex={0}` and an
+  Enter/Space handler. **Do not turn either back into a `Button`** — an
+  unadopted entry keeps that fieldset disabled, and they would go dead.
+  `ReleaseDetails` (D25) is outside the fieldset entirely and uses ordinary
+  `Button`s; the rule is about the lock, not about house style.
 - READY TO PUBLISH and REMOVE stay live while reading: neither is an edit
   to the record, and needing EDIT to publish would put a lock in front of
   the thing the record exists for.

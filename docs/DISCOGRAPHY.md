@@ -1384,6 +1384,11 @@ field could join it without touching anything that reads one.
 
 ## 29. D24 — the sheet opens as a record, and EDIT is asked for
 
+> **Superseded in part by D25.** The rule below stands; the *implementation*
+> described here — disabling the form — lasted one commit and was replaced by
+> a real details view. Read this for why reading and writing are separate
+> acts, and D25 for what reading actually looks like.
+
 *"Not sure why you are not making this read only? This is the third time I am
 telling you this — this should be read only with an edit button to edit the
 discography item, right now everything is editable as default."*
@@ -1456,3 +1461,120 @@ PUBLISH, and the two anchors above. Publishing is deliberately among them:
 writing a distributor folder changes no record, so it is not an edit, and
 having to press EDIT to publish a finished release would be a lock standing in
 front of the thing the record exists for.
+
+## 30. D25 — the details view, which is what D24 should have been
+
+*"This was hella lazy. I meant I need a new UI for the modal so we can have a
+details sort of a view, and when you edit, the view we have rn is what we are
+supposed to see."*
+
+Correct, and the word was fair. D24 got the *rule* right — the sheet opens as a
+record — and then implemented it by switching a form off. A greyed-out form is
+not a record. It is twelve input boxes with their affordances removed, which
+reads as broken rather than as finished, and it left the operator looking at
+empty grey wells where a released record should have been telling them things.
+
+So there are two renderings of one release now:
+
+| | |
+| --- | --- |
+| **Reading** | `ReleaseDetails` — one page, the default on open |
+| **Editing** | the five-tab form, unchanged, behind EDIT |
+
+### It cannot write, rather than declining to
+
+`ReleaseDetails` takes `release`, `roster` and `projects`. No `onPatch`, no
+mutation props, no state. The read view's inability to change the record is
+**structural**: there is nothing in it to disable, and nothing for a later edit
+to leak through. That is the difference from D24 in one line — a disabled
+writer is still a writer.
+
+### The house record idiom, not a sixth one
+
+Numbered `Panel`s in a six-column grid holding `Field`/`FieldGrid` pairs. That
+is exactly what `DossierRecord` does for a project, and a release and a project
+are the console's two record surfaces; they should not be read differently.
+Inventing a new presentation for this sheet is how a design language dies.
+
+Six panels, in the order the tabs already use — what it is, what it looks like,
+who made it, the paperwork, what is on it, where it goes:
+
+```
+01 THE RELEASE   span 4      02 ARTEFACTS  span 2   (the cover, large)
+03 CREDITS       span 3      04 TRADE      span 3
+05 RUNNING ORDER span 6, focal
+06 DISTRIBUTION  span 6
+```
+
+RUNNING ORDER is the one `focal` panel, as set analysis is on a project's
+record: it is the substance of a release. The cover is drawn large in ARTEFACTS
+because D12 had already settled that it is *"the one thing on a release worth
+drawing large"* — the masthead's 96px plate says which record is open, and this
+says what the record is.
+
+### One page, and this does not undo D12
+
+D12 moved the *form* off a single scroll for reasons it stated precisely:
+
+> twelve fields, a credit picker, a tracklist, six identifiers and two asset
+> wells in a single scroll
+
+Every item on that list is an **editing** affordance, and none of them is in a
+read view: twelve fields are twelve lines of type, the credit picker is two
+lines of credits, the two wells are one cover. What D12 costed was working at
+one altitude, not reading at it. The tabs are untouched and still navigate the
+form — they simply live inside the editing branch now, because a live tab strip
+above a page that ignored it would be a control that does nothing.
+
+The operator chose one page over keeping the strip in both.
+
+### Every field shows, and a gap reads as a dash
+
+Not hidden. This sheet's job is getting a release complete enough to go out,
+and `publish` refuses on a missing date, artwork or master — so the panels
+double as the pre-flight check that says which one is missing. `formatIsoDate`
+already returns `—` for a null date, which is where the convention comes from,
+and `DossierRecord`'s own rule applies: a labelled column can carry an em dash
+and still mean something.
+
+Empty *sections* say so in words rather than standing blank — *"No tracks yet.
+A release cannot be published without at least one."* A consequence worth
+having: because nothing is conditional, no panel renumbers itself the way
+`DossierRecord`'s conditional RELEASES panel forces the one after it to.
+
+### Two fields that had no surface at all
+
+A track's `notes` is written by `TrackDialog` and was then drawn **nowhere** —
+the running order has no room for it and the form never asks again. A record
+that claims to tell you everything is the right home for the one field that had
+none, so it reads under the track.
+
+`labelUrl` was in the same position and is now a field in TRADE. Still not
+*editable* anywhere, which is a separate gap and left as one.
+
+`durationMs` stays unshown: it is stored, never populated, and a running order
+of `0:00`s would be worse than silence. The release's `createdAt`/`updatedAt`
+stay unshown too — both feature-local `formatStamp` helpers live in other
+departments, and a third copy of a date formatter is not worth two lines of
+provenance.
+
+### Buttons here, anchors there
+
+D24 turned the track master's reveal and DISTRIBUTION's OPEN into anchors,
+because `fieldset[disabled]` reaches every form control beneath it and those
+two only *read*. That still holds **in the editing branch**, where an unadopted
+entry keeps the form disabled — do not turn them back into `Button`s.
+
+`ReleaseDetails` is outside that fieldset entirely, so its REVEAL COVER, REVEAL
+and OPEN are ordinary `Button`s. The distinction is the presence of the lock,
+not a house style: where a fieldset can disable a control that ought to keep
+working, it must not be a form control.
+
+### The stagger, which is a trap
+
+`Panel` declares `panelVariants` but no `initial`/`animate` of its own — it
+inherits them from whatever lays it out. A grid of panels in a plain `div`
+therefore renders at `opacity: 0`: present, taking up space, and completely
+invisible. `DossierGrid` exists solely to stop that regressing, and
+`ReleaseDetails` drives `gridVariants` itself for the same reason. Worth
+reading its comment before touching that element.
