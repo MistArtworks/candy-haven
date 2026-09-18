@@ -881,6 +881,31 @@ D20-D22 in `docs/DISCOGRAPHY.md`.
   button is never disabled for these; re-deriving five service conditions in
   the renderer would be a second opinion that could disagree with the first.
 
+### The release sheet reads before it writes — 2026-09-18
+
+D24 in `docs/DISCOGRAPHY.md`.
+
+- **`ReleaseSheet` opens read-only for every release**, with EDIT/DONE in
+  the header. `editing` starts `false`, and the sheet is keyed by release
+  id at its call site so a mode cannot carry to the next record. Nothing
+  here is staged — fields commit as they change — so the lock is against
+  accidental writes over finished work, not a transaction.
+- **Two separate refusals:** `locked` (`raisedFor !== null`, D19 — the app
+  saying the record is not yours yet, answered by ADOPT) and `!editing`
+  (the operator not having asked, answered by EDIT). `readOnly` is the
+  disjunction and is what the `fieldset` reads. EDIT is not offered while
+  `locked`; ADOPT sets `editing` on its way through.
+- **Read-only affordances are anchors, not buttons** — the track master's
+  reveal-in-Explorer and DISTRIBUTION's OPEN. `fieldset[disabled]` applies
+  to form-associated elements and an anchor is not one, so they survive the
+  lock by construction rather than by an exception list. Both carry
+  `role="button"`, `tabIndex={0}` and an Enter/Space handler. **Do not turn
+  either back into a `Button`** — it would go dead whenever the sheet is
+  being read, which is most of the time.
+- READY TO PUBLISH and REMOVE stay live while reading: neither is an edit
+  to the record, and needing EDIT to publish would put a lock in front of
+  the thing the record exists for.
+
 ### Distribution — 2026-09-18
 
 D23 in `docs/DISCOGRAPHY.md`.

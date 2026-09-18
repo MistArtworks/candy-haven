@@ -126,6 +126,38 @@ function DraftField({
   )
 }
 
+/**
+ * The way out to an address, and an anchor rather than a button.
+ *
+ * Load-bearing: the sheet's body sits inside a disabled `fieldset` whenever it
+ * is being read rather than edited, and that reaches every form control
+ * beneath it — which is what makes it the right lock — but it does not reach
+ * an `a`. Following a link is reading, and the most likely thing anybody wants
+ * from a finished release is to go and hear it, so this one affordance has to
+ * survive the lock.
+ */
+function OpenLink({ url }: { url: string }): ReactNode {
+  const open = (): void => void window.candy.shell.openExternal(url)
+
+  return (
+    <a
+      className={styles.distOpen}
+      role="button"
+      tabIndex={0}
+      title={url}
+      onClick={open}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          open()
+        }
+      }}
+    >
+      Open
+    </a>
+  )
+}
+
 /** Refuses an address the operating system would not open. Empty is fine. */
 function refuseUrl(value: string): string | null {
   if (!value) return null
@@ -242,17 +274,7 @@ export function DistributionEditor({ entries, out, onChange }: DistributionEdito
                 maxLength={MAX_LINK_URL}
                 refuse={refuseUrl}
                 onCommit={(presaveUrl) => update(entry.id, { presaveUrl })}
-                action={
-                  entry.presaveUrl ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => void window.candy.shell.openExternal(entry.presaveUrl)}
-                    >
-                      Open
-                    </Button>
-                  ) : undefined
-                }
+                action={entry.presaveUrl ? <OpenLink url={entry.presaveUrl} /> : undefined}
               />
 
               <DraftField
@@ -263,17 +285,7 @@ export function DistributionEditor({ entries, out, onChange }: DistributionEdito
                 maxLength={MAX_LINK_URL}
                 refuse={refuseUrl}
                 onCommit={(streamUrl) => update(entry.id, { streamUrl })}
-                action={
-                  entry.streamUrl ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => void window.candy.shell.openExternal(entry.streamUrl)}
-                    >
-                      Open
-                    </Button>
-                  ) : undefined
-                }
+                action={entry.streamUrl ? <OpenLink url={entry.streamUrl} /> : undefined}
               />
             </li>
           ))}

@@ -1381,3 +1381,78 @@ these basic features done."*
 The shape is chosen so that can land without another migration: a row already
 exists per platform with an empty stream slot, and a `source` or `fetchedAt`
 field could join it without touching anything that reads one.
+
+## 29. D24 — the sheet opens as a record, and EDIT is asked for
+
+*"Not sure why you are not making this read only? This is the third time I am
+telling you this — this should be read only with an edit button to edit the
+discography item, right now everything is editable as default."*
+
+Said three times, and the third time was a correction of me rather than of the
+code: I had been reading it as D19's adopt lock, which is a different rule
+about a different thing. This is every release, always.
+
+### Why the request is right
+
+Nothing in this sheet is staged. Every field commits as it changes — through
+`useEchoedText` for text, immediately for a chip — which is what the rest of
+this console does and what makes a catalogue quick to keep. The cost of that is
+an open form over finished work: on a record that is already correct, anything
+the operator brushes past while reading is a write.
+
+So reading and writing become separate acts and the second one is asked for.
+`editing` is `false` on every open, and the sheet is keyed by release id at its
+call site, so opening the next record cannot inherit the last one's mode.
+
+### Two refusals, kept apart
+
+```ts
+const locked = release.raisedFor !== null   // the app: not yours yet (D19)
+const readOnly = locked || !editing         // the operator: not asked to change it
+```
+
+They are different statements and the ways past them differ: ADOPT for the
+first, EDIT for the second. An unadopted entry is therefore read-only twice
+over, and its ADOPT button now sets `editing` on the way through — which is
+what the bar beside it has always promised (*"adopt it to make it yours and
+start editing"*).
+
+The EDIT button is not offered while `locked`. There the ADOPT bar is the only
+honest way in, and a second button claiming to unlock the same form would be a
+dead end.
+
+### DONE, not SAVE
+
+There is nothing to save. Every field has already written, several keystrokes
+ago, and a button labelled SAVE would promise a commit that had already
+happened — and imply that pressing CLOSE instead would discard something.
+
+### The anchors, which are load-bearing
+
+`fieldset[disabled]` was already the lock (D19) and it does the job properly:
+it reaches every input, select, textarea and button beneath it, keyboard
+included. Reusing it for view mode exposed something that had not mattered
+while the only locked entries were unadopted ones — it reaches the affordances
+that only *read*, too:
+
+- the track master's `♪ filename`, which shows the file in Explorer
+- DISTRIBUTION's OPEN, which follows a pre-save or stream link
+
+Both now render as `a` elements rather than `button`s. `disabled` on a fieldset
+applies to form-associated elements, and an anchor is not one, so these survive
+the lock by construction rather than by a list of exceptions somebody has to
+maintain. Each carries `role="button"`, `tabIndex={0}` and an Enter/Space
+handler, so nothing is lost to the keyboard.
+
+That distinction is the same one D19 drew in words — *"reading and discarding
+are not editing"* — finally applied to the two controls that were quietly on
+the wrong side of it. The most likely thing anybody wants from a finished
+release is to go and hear it.
+
+### What stays live while reading
+
+The tab strip, CLOSE, REMOVE FROM CATALOGUE (behind its confirmation), READY TO
+PUBLISH, and the two anchors above. Publishing is deliberately among them:
+writing a distributor folder changes no record, so it is not an edit, and
+having to press EDIT to publish a finished release would be a lock standing in
+front of the thing the record exists for.

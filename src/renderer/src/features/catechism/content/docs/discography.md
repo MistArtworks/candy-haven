@@ -83,6 +83,24 @@ than letting the service refuse after you press Raise.
 
 It opens straight into the sheet, where the artwork and codes go.
 
+### It opens as a record, not a form
+
+Everything reads until you press **EDIT**. Press it and the fields come
+alive; press **DONE** and they settle again.
+
+There is no save button because there is nothing to save — every field is
+written the moment you change it, which is how the whole console works. EDIT
+is there so that reading a finished release cannot accidentally rewrite it.
+
+Three things still work while it is reading: the tabs, the **OPEN** links
+beside a platform, and a track's master filename, which shows the file in
+Explorer. Going and looking at something is not editing it. You can also
+publish and remove without pressing EDIT.
+
+> An entry the app raised for you is read-only for a second reason as well,
+> and shows an **ADOPT** bar instead of an EDIT button. Adopting it starts
+> editing straight away.
+
 ### The sheet is five tabs
 
 Ordered by when you learn each thing, not by importance:

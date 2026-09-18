@@ -187,17 +187,33 @@ export function TrackList({
                       could have come from.
                     */}
                     {track.master ? (
-                      <button
-                        type="button"
+                      /*
+                       * An anchor rather than a button, and that is
+                       * load-bearing. `fieldset[disabled]` reaches every
+                       * form control beneath it — which is what makes it
+                       * the right lock for the sheet body — and it does
+                       * not reach an `a`. Showing a file in Explorer is
+                       * reading, and the sheet is read-only by default,
+                       * so this has to survive the lock.
+                       */
+                      <a
                         className={styles.master}
+                        role="button"
+                        tabIndex={0}
                         title={`${track.master.path} — click to show in Explorer`}
                         onClick={() => void window.candy.shell.reveal(track.master!.path)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            void window.candy.shell.reveal(track.master!.path)
+                          }
+                        }}
                       >
                         ♪ {track.master.fileName}
                         <span className={styles.masterBytes}>
                           {formatBytes(track.master.sizeBytes)}
                         </span>
-                      </button>
+                      </a>
                     ) : project ? (
                       <span className={styles.noMaster}>No master chosen</span>
                     ) : null}

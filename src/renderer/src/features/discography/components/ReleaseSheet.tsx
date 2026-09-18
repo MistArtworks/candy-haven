@@ -145,6 +145,20 @@ export function ReleaseSheet({
 }: ReleaseSheetProps): ReactNode {
   const [confirming, setConfirming] = useState(false)
   const [tab, setTab] = useState<SheetTab>('release')
+  /*
+   * The sheet opens as a record, not as a form.
+   *
+   * Nothing here is staged — every field commits as it is changed, which is
+   * what the rest of this console does and what makes a catalogue quick to
+   * keep. The cost of that is an open form over finished work: anything the
+   * operator brushes past while reading is a write to a record that was
+   * already right. So reading and writing are separate acts, and the second
+   * one has to be asked for.
+   *
+   * `false` on every open, and the sheet is keyed by release id at its call
+   * site, so opening the next record cannot inherit the last one's mode.
+   */
+  const [editing, setEditing] = useState(false)
   const animate = useAnimationsEnabled()
   /*
    * Pressing the scrim closes, but a text selection dragged out of a field
@@ -207,6 +221,19 @@ export function ReleaseSheet({
    */
   const locked = release.raisedFor !== null
 
+  /*
+   * The two reasons the body does not take input, folded into the one flag
+   * the fieldset reads.
+   *
+   * They are different refusals and both are worth keeping. `locked` is the
+   * app saying *this record is not yours yet*, and the way past it is ADOPT.
+   * `!editing` is the operator not having asked to change anything, and the
+   * way past it is EDIT. An unadopted entry is therefore read-only twice
+   * over, and adopting it drops straight into editing — which is what its
+   * own bar promises.
+   */
+  const readOnly = locked || !editing
+
   return (
     <Portal>
       <motion.div
@@ -257,6 +284,33 @@ export function ReleaseSheet({
             </div>
 
             <div className={styles.sheetActions}>
+              {/*
+                The way in, and the way back out again.
+
+                Not offered while the entry is unadopted: there the ADOPT bar
+                is the only honest way in, and a second button claiming to
+                unlock the same form would be a dead end.
+
+                DONE rather than SAVE, deliberately. There is nothing to
+                save — every field has already written — and a button
+                labelled SAVE would promise a commit that had happened
+                several keystrokes ago.
+              */}
+              {locked ? null : (
+                <Button
+                  size="sm"
+                  variant={editing ? 'primary' : 'ghost'}
+                  onClick={() => setEditing((on) => !on)}
+                  title={
+                    editing
+                      ? 'Stop editing — everything is already saved'
+                      : 'Edit this release'
+                  }
+                >
+                  {editing ? 'Done' : 'Edit'}
+                </Button>
+              )}
+
               <Button size="sm" variant="ghost" onClick={onClose}>
                 Close
               </Button>
@@ -351,7 +405,17 @@ export function ReleaseSheet({
                 Raised automatically when this project named its final master. Clearing that master
                 withdraws this entry again — adopt it to make it yours and start editing.
               </span>
-              <Button size="sm" variant="primary" busy={busy} onClick={onAdopt}>
+              <Button
+                size="sm"
+                variant="primary"
+                busy={busy}
+                onClick={() => {
+                  // Straight into editing, because that is what the bar beside
+                  // this button says adopting is for.
+                  setEditing(true)
+                  onAdopt()
+                }}
+              >
                 Adopt this release
               </Button>
             </div>
@@ -370,7 +434,7 @@ export function ReleaseSheet({
               flex column the body used to be, so the stagger and the gaps are
               unchanged. See `locked`.
             */}
-            <fieldset className={styles.sheetForm} disabled={locked}>
+            <fieldset className={styles.sheetForm} disabled={readOnly}>
               {/* ------------------------------------------------ what it is */}
 
               {tab === 'release' ? (

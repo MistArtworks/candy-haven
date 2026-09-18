@@ -1113,3 +1113,25 @@
   @include readout(9px);
   color: var(--ch-text-faint);
 }
+
+// Shaped like a ghost button because it does a button's job; an anchor
+// because a disabled fieldset must not reach it. See `OpenLink`.
+.distOpen {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  padding: space(2) space(3);
+  @include hairline(all, 0.16);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-strong);
+    background: rgba(182, 158, 124, 0.05);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
