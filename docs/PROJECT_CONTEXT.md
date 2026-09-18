@@ -818,6 +818,56 @@ either department; in summary:
   `scheduled`. Do not re-litigate; do not re-add one without reading D9's
   "what this costs".
 
+### The catalogue reaches the register — 2026-09-18
+
+D20-D22 in `docs/DISCOGRAPHY.md`.
+
+- **Release dates are projected onto the CALENDAR, never filed as entries.**
+  `CalendarState.releases` sits *beside* `entries`, and `entries` stays what
+  `calendar.ts` says it is: the operator's own dated statements.
+  `CalendarRelease` is `{ releaseId, title, kind, status, date }`.
+  `CalendarService.setReleaseDateReader` is the fifth cross-service callback;
+  `DiscographyService.scheduledDates()` answers it with **every** dated
+  release, out or coming. Nothing is stored twice and there is no migration.
+- **`CalendarService.state()` is async, and must stay that way.** It reads the
+  projection on every build. A synchronous variant that returned
+  `releases: []` for `publish()` to use meant **filing any entry erased every
+  release marker** until the page was reopened. The comment on it records
+  this; do not undo it.
+- **`DiscographyService.setCatalogueListener`** is the return path — a
+  payload-free "something changed", called after create, update, delete and
+  auto-withdrawal, wired to `calendar.refresh()` in the container. Failures are
+  logged and swallowed: a stale marker is not worth failing a write.
+- **`ReleaseMark` is read-only in all four views.** Gold seal, not a chip; no
+  dialog, no done toggle, no drag. It navigates to
+  `/discography?release=<id>`. In `MonthView` it is drawn ahead of the chips
+  and is **never** counted by `CHIPS_PER_CELL`; in `TimeGrid` it joins the
+  all-day band; `DayView` gets a ruled band and `THE DAY IS CLEAR.` now checks
+  both lists; `AgendaView` folds release dates into its **grouping**, which is
+  why that day list is now sorted explicitly instead of inheriting order from
+  the sorted entry list.
+- **READY TO PUBLISH** writes `Candy Haven\RELEASES\<billing> - <title>
+  [ (feat. ...)]\`: the master(s), `Cover Art.<ext>`, `Spotify Canvas.<ext>`
+  and `Release Details.txt`. One track is named exactly as the folder; several
+  are `NN <mains> - <title>[ (feat. ...)]`. **Copies, never moves.** A second
+  publish **overwrites the same folder** rather than making `... (2)`.
+- **The naming helpers are pure and zod-free**, in
+  `discography.constants.ts`: `safeSegment`, `billedAs`, `featuring`,
+  `releaseFolderName`, `trackFileName`, `trackFeatureIds`. `safeSegment` scans
+  code points rather than matching a character class, for the reason
+  `stacks.constants.ts` documents. A track's `(feat. ...)` is its own
+  `artistIds` **minus** the release's mains, or a release prints
+  `(feat. Candy Heist)` on Candy Heist's own record.
+- **The filesystem half is `publish.ts`**, not in the service, beside
+  `media.store.ts` and for the same reason. It takes the releases root and an
+  artist-name resolver as arguments, which is what let a probe drive it against
+  a real temp directory with no Electron around it.
+- **`publish` refuses** on no tracks, no master on any track, no artwork, no
+  date, or an **unadopted** entry — each naming the gap. A track with no master
+  is **skipped**, not fatal: a label master legitimately has no file here. The
+  button is never disabled for these; re-deriving five service conditions in
+  the renderer would be a second opinion that could disagree with the first.
+
 Reserved sections render `ReservedPage` with a commissioning scope list (defined
 inline in `src/renderer/src/app/router.tsx`) — deliberately not an empty page, so
 the shape of the finished product is legible.
@@ -1094,8 +1144,10 @@ tab strip they cost no vertical space, sit on every tab, and are a full row
 away from CLOSE.
 
 **Releases copy, never move.** The project stays filed under its genre; the
-master, cover and canvas are duplicated into `RELEASES/<title>/`. Moving them
-would leave the genre tree full of holes the moment anything shipped.
+master, cover and canvas are duplicated into `RELEASES/`. Moving them would
+leave the genre tree full of holes the moment anything shipped. The folder is
+now written by `discography/publish.ts` and named after the billing rather than
+the title alone — see D21.
 
 **Disk first, database second**, everywhere both are touched. A failed
 filesystem operation leaves the database untouched and the operator sees a

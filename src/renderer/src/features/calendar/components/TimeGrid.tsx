@@ -13,10 +13,20 @@ import { todayIso } from '@renderer/lib/format'
 import { EntryChip } from './EntryChip'
 import styles from '../CalendarPage.module.scss'
 
+import type { CalendarRelease } from '@shared/domain/calendar'
+import { ReleaseMark } from './ReleaseMark'
+
 export interface TimeGridProps {
   /** The columns, left to right. One date for the day view, seven for the week. */
   dates: readonly string[]
   entries: readonly CalendarEntry[]
+  /**
+   * Release dates projected from the catalogue — see `CalendarReleaseSchema`.
+   *
+   * Separate from `entries` all the way down, so no view can accidentally
+   * treat one as editable.
+   */
+  releases: readonly CalendarRelease[]
   onOpenEntry: (entry: CalendarEntry) => void
   /** Files a new entry on a date, at the hour that was clicked. */
   onOpenSlot: (date: string, startMinute: number) => void
@@ -105,6 +115,7 @@ function layoutDay(entries: readonly CalendarEntry[]): PlacedEntry[] {
 export function TimeGrid({
   dates,
   entries,
+  releases,
   onOpenEntry,
   onOpenSlot,
   onInspectDate
@@ -123,9 +134,14 @@ export function TimeGrid({
 
   const allDayByDate = dates.map((date) => ({
     date,
-    entries: entriesOn(entries, date).filter((entry) => entry.startMinute === null)
+    entries: entriesOn(entries, date).filter((entry) => entry.startMinute === null),
+    // A release has no time of day, so it belongs in the band an all-day
+    // entry already uses rather than pinned to midnight on the clock.
+    releases: releases.filter((release) => release.date === date)
   }))
-  const hasAllDay = allDayByDate.some((column) => column.entries.length > 0)
+  const hasAllDay = allDayByDate.some(
+    (column) => column.entries.length > 0 || column.releases.length > 0
+  )
 
   return (
     <div className={styles.timeGrid}>
@@ -157,6 +173,16 @@ export function TimeGrid({
           <span className={styles.allDayLabel}>ALL DAY</span>
           {allDayByDate.map((column) => (
             <div key={column.date} className={styles.allDayCell}>
+              {/* Ahead of the chips: a release date is fixed and an
+                  all-day entry can be moved, so the immovable thing
+                  holds the top of the cell. */}
+              {column.releases.map((release) => (
+                <ReleaseMark
+                  key={release.releaseId}
+                  release={release}
+                  terse={dates.length > 1}
+                />
+              ))}
               {column.entries.map((entry) => (
                 <EntryChip key={entry.id} entry={entry} onOpen={onOpenEntry} compact />
               ))}

@@ -264,6 +264,14 @@ export interface CandyHavenApi {
      * operator's and nothing removes it on their behalf.
      */
     adopt(id: string): Promise<DiscographyRelease>
+    /**
+     * Writes a distributor-ready folder for this release.
+     *
+     * Reports the folder, what landed in it, and any track skipped for want
+     * of a master. Refused while the entry is unadopted, or while it has no
+     * running order, master, artwork or date.
+     */
+    publish(id: string): Promise<{ folder: string; files: string[]; skipped: string[] }>
     /** Copies artwork or a canvas in. A null path clears it. */
     setAsset(
       id: string,

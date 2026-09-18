@@ -12,10 +12,20 @@ import { todayIso } from '@renderer/lib/format'
 import { EntryChip } from './EntryChip'
 import styles from '../CalendarPage.module.scss'
 
+import type { CalendarRelease } from '@shared/domain/calendar'
+import { ReleaseMark } from './ReleaseMark'
+
 export interface MonthViewProps {
   /** Any date within the month being shown. */
   anchor: string
   entries: readonly CalendarEntry[]
+  /**
+   * Release dates projected from the catalogue — see `CalendarReleaseSchema`.
+   *
+   * Separate from `entries` all the way down, so no view can accidentally
+   * treat one as editable.
+   */
+  releases: readonly CalendarRelease[]
   onOpenEntry: (entry: CalendarEntry) => void
   onOpenDate: (date: string) => void
   /** Jumps to the day view for a date. */
@@ -36,6 +46,7 @@ const CHIPS_PER_CELL = 3
 export function MonthView({
   anchor,
   entries,
+  releases,
   onOpenEntry,
   onOpenDate,
   onInspectDate
@@ -56,6 +67,7 @@ export function MonthView({
       <div className={styles.monthGrid}>
         {days.map((date) => {
           const filed = entriesOn(entries, date)
+          const out = releases.filter((release) => release.date === date)
           const shown = filed.slice(0, CHIPS_PER_CELL)
           const overflow = filed.length - shown.length
           const { day } = parseIsoDate(date)
@@ -91,6 +103,15 @@ export function MonthView({
               </div>
 
               <div className={styles.monthCellBody}>
+                {/*
+                  Releases lead the cell, and are never truncated by
+                  `CHIPS_PER_CELL`. A day with four sessions on it can
+                  summarise the fourth; a day a record comes out cannot
+                  hide that it does.
+                */}
+                {out.map((release) => (
+                  <ReleaseMark key={release.releaseId} release={release} terse />
+                ))}
                 {shown.map((entry) => (
                   <EntryChip key={entry.id} entry={entry} onOpen={onOpenEntry} />
                 ))}

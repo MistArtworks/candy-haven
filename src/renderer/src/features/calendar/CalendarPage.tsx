@@ -312,6 +312,7 @@ export function CalendarPage(): ReactNode {
             <MonthView
               anchor={anchor}
               entries={state.entries}
+              releases={state.releases}
               onOpenEntry={openEntry}
               onOpenDate={(date) => openDate(date)}
               onInspectDate={inspectDate}
@@ -322,6 +323,7 @@ export function CalendarPage(): ReactNode {
             <TimeGrid
               dates={week}
               entries={state.entries}
+              releases={state.releases}
               onOpenEntry={openEntry}
               onOpenSlot={(date, startMinute) => openDate(date, startMinute)}
               onInspectDate={inspectDate}
@@ -332,6 +334,7 @@ export function CalendarPage(): ReactNode {
             <DayView
               date={anchor}
               entries={state.entries}
+              releases={state.releases}
               onOpenEntry={openEntry}
               onOpenSlot={(date, startMinute) => openDate(date, startMinute)}
               onToggleDone={toggleDone}
@@ -342,6 +345,7 @@ export function CalendarPage(): ReactNode {
             <AgendaView
               from={anchor}
               entries={state.entries}
+              releases={state.releases}
               onOpenEntry={openEntry}
               onToggleDone={toggleDone}
               onInspectDate={inspectDate}

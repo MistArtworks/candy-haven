@@ -259,6 +259,7 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.discography.reorderTracks(id, trackIds)
   )
   router.handle('discography:adopt', ({ id }) => services.discography.adopt(id))
+  router.handle('discography:publish', ({ id }) => services.discography.publish(id))
   router.handle('discography:track-set-master', ({ id, trackId, path }) =>
     services.discography.setTrackMaster(id, trackId, path)
   )

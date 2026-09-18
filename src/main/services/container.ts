@@ -151,6 +151,21 @@ export function createServiceContainer(): ServiceContainer {
   })
 
   /*
+   * Release dates, projected onto the dated register.
+   *
+   * The calendar stores nothing about releases — see `CalendarReleaseSchema`
+   * for why that is the whole design — so it reads them afresh on every
+   * snapshot through this. Built after the discography for the same reason
+   * every other callback here is: the reader cannot exist before the thing it
+   * reads from.
+   */
+  const calendar = new CalendarService(archive)
+  calendar.setReleaseDateReader(() => discography.scheduledDates())
+  // And back the other way, so a date moved in the catalogue reaches the
+  // register without the calendar holding a copy of it. See `CatalogueListener`.
+  discography.setCatalogueListener(() => calendar.refresh())
+
+  /*
    * Hoisted out of the literal because THE MUSTER holds both.
    *
    * A finished roll is handed to the ring or to the chamber, so the muster
@@ -171,7 +186,7 @@ export function createServiceContainer(): ServiceContainer {
     tags,
     artists,
     discography,
-    calendar: new CalendarService(archive),
+    calendar,
     overlayServer,
     chat,
     rite,

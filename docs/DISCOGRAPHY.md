@@ -994,3 +994,198 @@ layer. Idempotent, and a no-op on anything raised by hand.
 Worth noting why opening a locked sheet cannot adopt it by accident:
 `useEchoedText` adopts the remote value in an effect by calling `setLocal`, not
 `commit`, so mounting the form writes nothing.
+
+## 27. D20–D22 — release dates on the calendar, and a publishable folder
+
+*"Once a discography item is scheduled for release with a date and it's saved,
+then we add the release date in the calender for the day of release. So once
+all the details are entered, I need to add a button saying 'Ready to publish'.
+This basically exports a folder with all assets in `/RELEASES`."*
+
+Two things, asked for together and independent of each other: the date has to
+leave the department, and the assets have to leave the app.
+
+---
+
+### D20 — the calendar reading is derived, never written
+
+`calendar.ts` had already specified this, before there was anything to project:
+
+> Anything that later wants to appear on the calendar without being one of
+> these — a release date held on a release record — belongs in a projection
+> over this, not in this schema.
+
+Following it costs one callback and avoids the whole class of problem D17 and
+D18 needed `raisedFor` to solve. The alternative — filing a real
+`CalendarEntry` on the release date — means two records holding one fact, a
+sync on every edit of either, a rule for who wins when they disagree, and a
+migration for every release already in the catalogue.
+
+- `CalendarState` gains `releases`, **beside** `entries` rather than merged
+  into it, so `entries` stays exactly what the domain note says it is: the
+  operator's own dated statements. `CalendarRelease` is
+  `{ releaseId, title, kind, status, date }` and nothing more — a marker needs
+  a label and a destination, not a copy of the record.
+- `CalendarService` reads them through `setReleaseDateReader`, the fifth
+  cross-service callback wired in the composition root, for the same reason as
+  the four before it: the calendar cannot import the discography service.
+- `scheduledDates()` returns every release carrying a date, **whatever its
+  status**. A released record is still a thing that happened on a day, and the
+  register is a register.
+
+#### It is read on every build, and that is the point
+
+`state()` had to become async. An earlier pass kept a synchronous one for
+`publish()` to use, reasoning that filing an entry should not wait on the
+catalogue — and that pass was wrong in a way worth writing down: the push it
+emitted carried an empty `releases`, so **filing any entry erased every
+release marker on the page** until it was reopened. The read is against a
+local database and an entry write is a deliberate act behind a dialog. There
+was nothing to buy and a whole projection to lose.
+
+#### The other direction: `CatalogueListener`
+
+A date moving in the catalogue is invisible to a service that holds no copy of
+one, so the discography tells it. `setCatalogueListener` is the first callback
+here that exists purely to say *something changed* — no payload, because
+anything more specific would be the catalogue guessing at what the calendar
+draws. Called after create, update, delete and auto-withdrawal, and swallowed
+on failure: a calendar that did not hear is a stale marker, which is not worth
+failing a write the operator asked for.
+
+#### `ReleaseMark`, and why it is not a chip
+
+Read-only, and built out of different parts so that reads at 10px: a gold seal
+instead of a tone bar, an institutional title instead of sentence text, and no
+mark to tick. Pressing it leaves for `/discography?release=<id>` — the link
+added in D17 — because there is nothing here to open. A dialog over a
+projection would be a form that keeps nothing, and a marker that could be
+dragged would make the calendar a second writer of a date the catalogue owns.
+
+It lands in all four views, and each one had something to say about it:
+
+| View | Where |
+| --- | --- |
+| `MonthView` | ahead of the chips, and **never** counted by `CHIPS_PER_CELL` — a release is not something to hide behind "+2 more" |
+| `TimeGrid` | the existing **all-day band**, which a release qualifies for by having no time of day; `terse` in the week's narrow columns, full in the day's one wide one |
+| `DayView` | a ruled band above the sheet's entries — and `THE DAY IS CLEAR.` now checks both lists, because a day with a release out is not clear |
+| `AgendaView` | folded into the **grouping**, not drawn per-section: a day whose only business is a release has no entry to group under, and the ledger is the last view to hide "what is coming" from |
+
+Folding release dates into the agenda's grouping cost it its free sort order —
+the day list was in insertion order and correct only because every day came
+from an already-sorted entry list. A release can open a day in the middle of
+it, so the order is now made rather than inherited.
+
+---
+
+### D21 — the export handles every kind
+
+The request described a single. Numbering falls out of `maxTracksFor` already
+allowing forty, so an EP, album or compilation exports as one folder of
+numbered files.
+
+| Kind | Audio |
+| --- | --- |
+| one track | `<folder name>.<ext>` — named exactly as the folder, as asked |
+| many tracks | `NN <main artists> - <track title>[ (feat. …)].<ext>` |
+
+Plus, in both cases: `Cover Art.<ext>`, `Spotify Canvas.<ext>` — each keeping
+its own extension rather than being converted — and `Release Details.txt`.
+
+**Three conventions chosen rather than specified**, since the request only
+described the single:
+
+1. `NN` is the running-order position, zero-padded to two. Positions are
+   already contiguous: `writeTracks` renumbers on every tracklist change.
+2. A track's `(feat. …)` is its **own** `artistIds` minus the release's main
+   artists. `addTrack` copies a project's credits into the track, so those ids
+   routinely include the main artist, and using them raw would print
+   `(feat. Candy Heist)` on Candy Heist's own record.
+3. A track with **no master is skipped, not fatal** — named in
+   `Release Details.txt` and returned in `skipped` so the sheet says so.
+   Blocking would make a back catalogue unpublishable: a label master is a
+   track that legitimately has no file here.
+
+#### Copied, never moved
+
+The master in the folder is a copy. The project's own pick keeps pointing at
+the bounce where the operator put it, and a distributor folder is a thing you
+can delete without having deleted your work.
+
+#### Re-publishing replaces
+
+A second publish writes into the **same** folder and overwrites what is in it,
+rather than making `… (2)`. Publishing again after fixing the artwork is the
+common case, and `freePath` would leave a litter of near-identical folders with
+no way to tell which one the distributor actually got.
+
+#### What it refuses
+
+Only what makes the export meaningless, and each refusal names the gap: no
+tracks, no master on **any** track, no artwork, no release date — and while the
+entry is **unadopted**, because publishing presumes the record is real and an
+unadopted entry is one the app will withdraw if the master is cleared (D18).
+
+The button is offered even when the record is incomplete, and the service
+refuses with the list. A disabled button would have to re-derive those five
+conditions in the renderer, and would then be a second opinion about them that
+could disagree with the first.
+
+#### `Release Details.txt`
+
+Everything a filename cannot carry: title, subtitle, kind, status, date, main
+and featured artists, the liner-note credits, label and label URL, catalogue
+number, UPC, ℗ and ©, the platform links, notes, and a per-track block with
+position, title, ISRC and which file shipped as it — including `no master` for
+anything skipped. An empty field is **omitted** rather than printed with a
+dash: a distributor reading a blank UPC line learns nothing that its absence
+does not say better.
+
+---
+
+### D22 — features read `(feat. …)`
+
+Main artists join with commas and a final `&`:
+
+```
+Candy Heist
+Candy Heist & Nasko
+Candy Heist, Nasko & Mist
+```
+
+and the folder is `<main artists> - <title>[ (feat. <featured>)]`, with the
+bracket omitted entirely when there are none.
+
+#### `safeSegment`, and why it scans
+
+Every segment goes through it, so a title carrying `:` or `/` cannot produce an
+unwritable path. `/`, `:` and `\` become `-`; `"`, `*`, `?`, `<`, `>` and `|`
+are dropped; tabs and newlines fold to spaces; control characters go.
+
+It scans code points rather than matching a character class, the same choice
+`stacks.constants.ts` documents for its own validator — a regex class of
+control characters is a thing nobody can read six months later, and this one
+got written twice because a literal NUL in a patch script is invisible until
+git calls the file binary.
+
+`billedAs`, `featuring`, `releaseFolderName`, `trackFileName` and
+`trackFeatureIds` are all pure and live in `discography.constants.ts`, zod-free,
+so the renderer can show the operator the name before anything is written.
+
+#### The filesystem half is not in the service
+
+`publish.ts`, beside `media.store.ts` and for the same reason: the service
+decides *whether* to publish and what the refusals are, and this decides where
+the bytes go. It takes the releases root and an artist-name resolver as
+arguments rather than reaching for either, which is what let a probe run it
+against a real temp directory — a single, an album with a masterless track, and
+a re-publish, 13 assertions — without an Electron app around it.
+
+---
+
+### Still open
+
+Nothing here fetches anything. A release date passing does not go and find the
+Spotify link — the platform set, the pre-save links before release and the
+stream links after it are the next piece of work, and automatic retrieval after
+that.

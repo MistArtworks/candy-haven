@@ -306,6 +306,10 @@ single generally produced and wrote it too.
 The label field autocompletes from labels already used, which is what keeps
 the spelling consistent across a catalogue.
 
+A release with a **date** also appears on the CALENDAR, on that day, in every
+lens. The date is held here and only here — the calendar reads it, and changing
+it here moves the marker there.
+
 > ISRC on the track and UPC on the release is not a layout choice — it is what
 > the two codes identify. An album has one UPC and eleven ISRCs.
 
@@ -317,6 +321,52 @@ be moved or deleted afterwards without the catalogue losing its artwork.
 The canvas — the vertical looping video — is reported rather than drawn. A
 still frame of a nine-second loop tells you less than knowing it is attached,
 and decoding video for a thumbnail is work with no payoff.
+
+## Ready to publish
+
+The button at the foot of the sheet writes a distributor-ready folder into
+`Candy Haven\RELEASES`, named the way the release is billed:
+
+```
+Candy Heist, Nasko & Mist - Moves Like Jaggar (feat. Ekali)
+```
+
+Inside it:
+
+| File | What it is |
+| --- | --- |
+| `<folder name>.wav` | the master, when the release has **one** track |
+| `01 Candy Heist - Solstice.wav` | numbered, when it has **several** |
+| `Cover Art.png` | the artwork, in whatever format you attached |
+| `Spotify Canvas.mp4` | the canvas, likewise |
+| `Release Details.txt` | everything a filename cannot carry |
+
+The details file holds the title, kind, status, date, artists, credits, label,
+catalogue number, UPC, ℗ and ©, links, notes, and a block per track with its
+position, ISRC and which file shipped as it.
+
+Masters are **copied**, never moved. The project keeps pointing at the bounce
+where you put it, and the folder is something you can delete without having
+deleted your work.
+
+Publishing twice writes the **same folder again** rather than making a second
+one, so fixing the artwork and publishing again is the normal way to work.
+
+### What it will refuse, and what it will not
+
+It refuses, naming the gap, when the release has no tracks, no master on any
+track, no cover art, or no date — and while the entry is still **auto-raised**,
+because an entry the app might withdraw is not one to hand to a distributor.
+Adopt it first.
+
+It does **not** refuse a track with no master. That track is skipped, named in
+`Release Details.txt`, and counted in the sheet — a label master is a track
+that legitimately has no file here, and a back catalogue has to stay
+publishable.
+
+A title carrying `/`, `:` or `?` is safe. Those characters cannot go in a
+Windows path, so they are folded or dropped in the name and left untouched on
+the record.
 
 ## Removing an entry
 

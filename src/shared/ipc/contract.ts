@@ -432,6 +432,21 @@ export const IPC_INVOKE = {
    * empty `update`, because "I am adopting this record" is a statement in
    * its own right and should read as one at every layer.
    */
+  /**
+   * Writes a distributor-ready folder into `Candy Haven\RELEASES`.
+   *
+   * Returns what was actually written rather than void, so the sheet can
+   * report the folder, the files in it and any track that had no master —
+   * "published" with no detail would be a claim the operator cannot check.
+   */
+  'discography:publish': {
+    input: z.object({ id: z.string() }),
+    output: z.object({
+      folder: z.string(),
+      files: z.array(z.string()),
+      skipped: z.array(z.string())
+    })
+  },
   'discography:adopt': {
     input: z.object({ id: z.string() }),
     output: DiscographyReleaseSchema

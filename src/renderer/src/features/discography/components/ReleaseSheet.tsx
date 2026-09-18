@@ -31,6 +31,7 @@ import { TextInput } from '@renderer/components/primitives/Input'
 import { Plate } from '@renderer/components/primitives/Plate'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { useBackdropDismiss } from '@renderer/hooks/useBackdropDismiss'
+import type { PublishReport } from '@renderer/hooks/useDiscography'
 import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import {
@@ -82,6 +83,11 @@ export interface ReleaseSheetProps {
   onPatch: (patch: ReleasePatch) => void
   /** Takes over an automatically raised entry, unlocking the sheet. */
   onAdopt: () => void
+  /** Writes the distributor folder into `RELEASES`. */
+  onPublish: () => void
+  /** What the last publish wrote, or null if none has run. */
+  published: PublishReport | null
+  publishing: boolean
   onSetAsset: (asset: 'artwork' | 'canvas', sourcePath: string | null) => void
   /** Opens the add-a-track dialog, which the page owns. */
   onAddTrack: () => void
@@ -125,6 +131,9 @@ export function ReleaseSheet({
   error,
   onPatch,
   onAdopt,
+  onPublish,
+  published,
+  publishing,
   onSetAsset,
   onAddTrack,
   onPatchTrack,
@@ -730,9 +739,56 @@ export function ReleaseSheet({
                 </Button>
               </>
             ) : (
-              <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
-                Remove from catalogue
-              </Button>
+              <>
+                <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
+                  Remove from catalogue
+                </Button>
+
+                <span className={styles.footSpacer} />
+
+                {/*
+                  What the last publish wrote, beside the button that wrote
+                  it. Reported rather than announced: "published" on its own
+                  is a claim the operator cannot check, and the thing they
+                  actually want to know is which folder to go and look in.
+                */}
+                {published ? (
+                  <button
+                    type="button"
+                    className={styles.publishedAt}
+                    title={`${published.folder} — click to show in Explorer`}
+                    onClick={() => void window.candy.shell.reveal(published.folder)}
+                  >
+                    {published.files.length} file
+                    {published.files.length === 1 ? '' : 's'} written
+                    {published.skipped.length > 0
+                      ? `, ${published.skipped.length} track without a master`
+                      : ''}
+                  </button>
+                ) : null}
+
+                {/*
+                  Offered even when the record is incomplete, and refused by
+                  the service with the list of what is missing. A disabled
+                  button here would have to re-derive those four conditions
+                  in the renderer, and would then be a second opinion about
+                  them that could disagree with the first.
+                */}
+                <Button
+                  size="md"
+                  variant="primary"
+                  busy={publishing}
+                  disabled={locked}
+                  title={
+                    locked
+                      ? 'Adopt this release first'
+                      : 'Write the folder into Candy Haven\\RELEASES'
+                  }
+                  onClick={onPublish}
+                >
+                  Ready to publish
+                </Button>
+              </>
             )}
           </motion.footer>
         </motion.section>

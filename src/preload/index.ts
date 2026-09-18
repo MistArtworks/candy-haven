@@ -182,6 +182,7 @@ const api: CandyHavenApi = {
     update: (id, patch) => invoke('discography:update', { id, patch }),
     remove: (id) => invoke('discography:delete', { id }),
     adopt: (id) => invoke('discography:adopt', { id }),
+    publish: (id) => invoke('discography:publish', { id }),
     setAsset: (id, asset, sourcePath) => invoke('discography:set-asset', { id, asset, sourcePath }),
     addTrack: (id, draft) => invoke('discography:track-add', { id, draft }),
     updateTrack: (id, trackId, patch) => invoke('discography:track-update', { id, trackId, patch }),

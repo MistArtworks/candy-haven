@@ -15,6 +15,13 @@ import type {
   TrackPatch
 } from '@shared/domain/discography'
 
+/** What `publish` resolves to. See `discography:publish`. */
+export interface PublishReport {
+  folder: string
+  files: string[]
+  skipped: string[]
+}
+
 /**
  * Data access for DISCOGRAPHY — the public record of what shipped.
  *
@@ -69,6 +76,8 @@ export interface DiscographyMutations {
   remove: UseMutationResult<void, Error, string>
   /** Takes over an automatically raised entry, making it editable. */
   adopt: UseMutationResult<DiscographyRelease, Error, string>
+  /** Writes the distributor folder; resolves to what was written. */
+  publish: UseMutationResult<PublishReport, Error, string>
   setAsset: UseMutationResult<
     DiscographyRelease,
     Error,
@@ -109,6 +118,15 @@ export function useDiscographyMutations(): DiscographyMutations {
     adopt: useMutation({
       mutationFn: (id: string) => window.candy.discography.adopt(id),
       onSuccess
+    }),
+    publish: useMutation({
+      mutationFn: (id: string) => window.candy.discography.publish(id),
+      /*
+       * No invalidation. Publishing writes to disk and changes no record,
+       * so there is nothing here for a query to have gone stale about —
+       * and refetching the catalogue to report a folder write would be a
+       * round trip for a result the mutation already resolved with.
+       */
     }),
     setAsset: useMutation({
       mutationFn: ({ id, asset, sourcePath }) =>

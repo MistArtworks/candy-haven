@@ -330,3 +330,143 @@ export function releaseYear(releaseDate: string | null): number | null {
   const year = Number.parseInt(releaseDate.slice(0, 4), 10)
   return Number.isFinite(year) ? year : null
 }
+
+// ------------------------------------------------------------------ publish
+
+/**
+ * Whether a character is one the filesystem refuses.
+ *
+ * Written as a scan rather than a regex class, for the reason
+ * `stacks.constants.ts` records beside its own: a control-character range in a
+ * literal is unreadable and a lint violation that has to be suppressed, and
+ * comparing code points says the same thing plainly.
+ */
+function isUnwritable(character: string): boolean {
+  const code = character.codePointAt(0)
+  // Below the space, minus the ones that *are* whitespace — those are folded
+  // to a space instead, because deleting a tab from `two<tab>words` joins them
+  // into one and corrupts the name silently.
+  if (code !== undefined && code < 0x20 && !isWhitespaceControl(code)) return true
+  return '"*?<>|'.includes(character)
+}
+
+/** Tab, line feed, vertical tab, form feed, carriage return. */
+function isWhitespaceControl(code: number): boolean {
+  return code === 0x09 || (code >= 0x0a && code <= 0x0d)
+}
+
+/**
+ * One path segment, made safe to write without refusing the operator's text.
+ *
+ * `validateFolderName` in stacks.constants.ts **rejects** these characters,
+ * which is right for a folder the operator is naming: they typed it, so they
+ * can retype it. It is wrong here. A release legitimately called
+ * `Moves Like Jaggar: Reprise` must not be unpublishable because a colon
+ * cannot be written to NTFS — the title is the record and the filename is a
+ * derivation of it, so the derivation bends.
+ *
+ * The separators become a hyphen, because `/` and `:` are almost always
+ * standing in for one. The rest are dropped, because `Who?` should not become
+ * `Who-`.
+ */
+export function safeSegment(value: string): string {
+  const swept = [...value]
+    .map((character) => {
+      if (character === '/' || character === ':' || character === '\\') return '-'
+      const code = character.codePointAt(0)
+      // Folded to a space so the whitespace collapse below joins the words
+      // with one separator rather than none.
+      if (code !== undefined && isWhitespaceControl(code)) return ' '
+      return isUnwritable(character) ? '' : character
+    })
+    .join('')
+
+  return (
+    swept
+      .replace(/\s+/g, ' ')
+      .trim()
+      // A trailing dot or space is legal in the string and silently dropped by
+      // the filesystem, which leaves the record and the folder disagreeing
+      // about the folder's own name. Stripped here so they cannot.
+      .replace(/[. ]+$/, '')
+  )
+}
+
+/**
+ * Names joined as a credit reads: commas, and `&` before the last.
+ *
+ * `A`, `A & B`, `A, B & C`. No Oxford comma — no record sleeve has ever
+ * carried one.
+ */
+export function billedAs(names: readonly string[]): string {
+  const clean = names.map(safeSegment).filter(Boolean)
+  if (clean.length === 0) return ''
+  if (clean.length === 1) return clean[0]
+  return `${clean.slice(0, -1).join(', ')} & ${clean[clean.length - 1]}`
+}
+
+/** The `(feat. …)` clause, or an empty string when nobody is featured. */
+export function featuring(names: readonly string[]): string {
+  const billed = billedAs(names)
+  return billed ? ` (feat. ${billed})` : ''
+}
+
+/**
+ * The folder a release is published into, and the file a single ships as.
+ *
+ * `<main artists> - <title> (feat. <featured>)`, with the clause omitted
+ * entirely when there is nobody to name. An uncredited release falls back to
+ * the title alone rather than printing a stray separator.
+ */
+export function releaseFolderName(
+  mainArtists: readonly string[],
+  title: string,
+  featuredArtists: readonly string[] = []
+): string {
+  const billed = billedAs(mainArtists)
+  const stem = safeSegment(title) || 'Untitled'
+  return `${billed ? `${billed} - ` : ''}${stem}${featuring(featuredArtists)}`
+}
+
+/**
+ * One track of a multi-track release.
+ *
+ * `NN <main artists> - <track title> (feat. …)`. The number is the running
+ * order, zero-padded to two so the folder sorts the way the record plays.
+ *
+ * A single is **not** named this way: its one file takes the folder's own
+ * name, which is what was asked for and what a distributor expects.
+ */
+export function trackFileName(
+  position: number,
+  mainArtists: readonly string[],
+  title: string,
+  featuredArtists: readonly string[] = []
+): string {
+  const number = String(position).padStart(2, '0')
+  return `${number} ${releaseFolderName(mainArtists, title, featuredArtists)}`
+}
+
+/**
+ * A track's own features: whoever it credits that the release does not bill.
+ *
+ * `addTrack` copies a linked project's credits onto the track, so a track's
+ * `artistIds` routinely includes the main artist — printing those raw would
+ * put `(feat. Candy Heist)` on Candy Heist's own record. Subtracting the
+ * billing leaves the people the track adds, which is what a feature is.
+ */
+export function trackFeatureIds(
+  trackArtistIds: readonly string[],
+  mainArtistIds: readonly string[]
+): string[] {
+  const billed = new Set(mainArtistIds)
+  return trackArtistIds.filter((id) => !billed.has(id))
+}
+
+/** The fixed names inside a published folder. */
+export const COVER_ART_STEM = 'Cover Art'
+export const CANVAS_STEM = 'Spotify Canvas'
+export const DETAILS_FILE_NAME = 'Release Details.txt'
+
+/** What an unrecognised credit role prints as in the details file. */
+export const ARTIST_ROLE_CREDIT_FALLBACK = 'CREDITED'

@@ -12,9 +12,19 @@ import { formatIsoDate, formatCountdown, todayIso } from '@renderer/lib/format'
 import { TimeGrid } from './TimeGrid'
 import styles from '../CalendarPage.module.scss'
 
+import type { CalendarRelease } from '@shared/domain/calendar'
+import { ReleaseMark } from './ReleaseMark'
+
 export interface DayViewProps {
   date: string
   entries: readonly CalendarEntry[]
+  /**
+   * Release dates projected from the catalogue — see `CalendarReleaseSchema`.
+   *
+   * Separate from `entries` all the way down, so no view can accidentally
+   * treat one as editable.
+   */
+  releases: readonly CalendarRelease[]
   onOpenEntry: (entry: CalendarEntry) => void
   onOpenSlot: (date: string, startMinute: number) => void
   onToggleDone: (entry: CalendarEntry) => void
@@ -31,11 +41,13 @@ export interface DayViewProps {
 export function DayView({
   date,
   entries,
+  releases,
   onOpenEntry,
   onOpenSlot,
   onToggleDone
 }: DayViewProps): ReactNode {
   const filed = entriesOn(entries, date)
+  const out = releases.filter((release) => release.date === date)
   const isToday = date === todayIso()
 
   return (
@@ -43,6 +55,7 @@ export function DayView({
       <TimeGrid
         dates={[date]}
         entries={entries}
+        releases={releases}
         onOpenEntry={onOpenEntry}
         onOpenSlot={onOpenSlot}
         onInspectDate={() => undefined}
@@ -57,9 +70,26 @@ export function DayView({
           </span>
         </header>
 
-        {filed.length === 0 ? (
+        {/*
+          A release out today is business, so the day is not clear. Two
+          conditions rather than one ternary because the sheet can now
+          hold either list, both, or neither.
+        */}
+        {filed.length === 0 && out.length === 0 ? (
           <p className={styles.sheetEmpty}>THE DAY IS CLEAR.</p>
-        ) : (
+        ) : null}
+
+        {out.length > 0 ? (
+          <ul className={styles.sheetReleases}>
+            {out.map((release) => (
+              <li key={release.releaseId}>
+                <ReleaseMark release={release} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {filed.length > 0 ? (
           <ul className={styles.sheetList}>
             {filed.map((entry) => {
               const kind = CALENDAR_KIND[entry.kind]
@@ -100,7 +130,7 @@ export function DayView({
               )
             })}
           </ul>
-        )}
+        ) : null}
       </aside>
     </div>
   )

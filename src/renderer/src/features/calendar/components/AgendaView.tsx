@@ -12,10 +12,20 @@ import {
 import { MONTHS, formatCountdown, todayIso } from '@renderer/lib/format'
 import styles from '../CalendarPage.module.scss'
 
+import type { CalendarRelease } from '@shared/domain/calendar'
+import { ReleaseMark } from './ReleaseMark'
+
 export interface AgendaViewProps {
   /** Entries from this date onward are listed; earlier ones are summarised. */
   from: string
   entries: readonly CalendarEntry[]
+  /**
+   * Release dates projected from the catalogue — see `CalendarReleaseSchema`.
+   *
+   * Separate from `entries` all the way down, so no view can accidentally
+   * treat one as editable.
+   */
+  releases: readonly CalendarRelease[]
   onOpenEntry: (entry: CalendarEntry) => void
   onToggleDone: (entry: CalendarEntry) => void
   onInspectDate: (date: string) => void
@@ -36,6 +46,7 @@ export interface AgendaViewProps {
 export function AgendaView({
   from,
   entries,
+  releases,
   onOpenEntry,
   onToggleDone,
   onInspectDate
@@ -52,11 +63,33 @@ export function AgendaView({
       else grouped.set(entry.date, [entry])
     }
 
+    /*
+     * A release date opens a day of its own.
+     *
+     * Folded into the grouping rather than drawn per-section, because a
+     * day whose only business is a release has no entry to group under
+     * and would otherwise never appear here at all — and the ledger is
+     * the one view whose whole question is "what is coming".
+     */
+    const out = releases.filter((release) => release.date >= from)
+    for (const release of out) {
+      if (!grouped.has(release.date)) grouped.set(release.date, [])
+    }
+
     return {
-      days: [...grouped.entries()].map(([date, filed]) => ({ date, filed })),
+      days: [...grouped.entries()]
+        .map(([date, filed]) => ({
+          date,
+          filed,
+          out: out.filter((release) => release.date === date)
+        }))
+        // Insertion order was sorted while every day came from the
+        // sorted entry list. A release can open a day in the middle of
+        // it, so the order is now made rather than inherited.
+        .sort((left, right) => left.date.localeCompare(right.date)),
       past: entries.length - forward.length
     }
-  }, [entries, from])
+  }, [entries, releases, from])
 
   if (days.length === 0) {
     return (
@@ -79,7 +112,7 @@ export function AgendaView({
         </p>
       ) : null}
 
-      {days.map(({ date, filed }) => {
+      {days.map(({ date, filed, out }) => {
         const { day, month } = parseIsoDate(date)
 
         return (
@@ -103,6 +136,15 @@ export function AgendaView({
             </button>
 
             <ul className={styles.agendaList}>
+              {out.map((release) => (
+                <li
+                  key={release.releaseId}
+                  className={`${styles.agendaRow} ${styles.agendaRelease}`}
+                >
+                  <ReleaseMark release={release} />
+                </li>
+              ))}
+
               {filed.map((entry) => {
                 const kind = CALENDAR_KIND[entry.kind]
                 const span = entrySpan(entry)

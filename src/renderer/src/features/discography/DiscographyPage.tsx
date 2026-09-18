@@ -449,6 +449,12 @@ export function DiscographyPage(): ReactNode {
             }
             error={notice}
             onPatch={patch}
+            onPublish={() => {
+              setNotice(null)
+              mutations.publish.mutate(openId, { onError: report })
+            }}
+            published={mutations.publish.data ?? null}
+            publishing={mutations.publish.isPending}
             onAdopt={() => {
               setNotice(null)
               mutations.adopt.mutate(openId, { onError: report })

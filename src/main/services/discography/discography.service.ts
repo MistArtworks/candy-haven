@@ -27,6 +27,7 @@ import {
   releaseYear,
   seedsOneTrack
 } from '@shared/domain/discography.constants'
+import type { CalendarRelease } from '@shared/domain/calendar'
 import type { MediaFile, ProjectRecord } from '@shared/domain/projects'
 import { getStage } from '@shared/domain/projects.constants'
 import { checkLinkUrl, guessPlatform } from '@shared/domain/artists.constants'
@@ -39,6 +40,7 @@ import type { ArtistsService } from '@main/services/artists/artists.service'
 import type { ProjectsService } from '@main/services/projects/projects.service'
 import type { StacksService } from '@main/services/stacks/stacks.service'
 import { clearMedia, noMedia, storeMedia } from '@main/services/media/media.store'
+import { publishRelease, type PublishResult } from './publish'
 import { DiscographyRepository } from './discography.repository'
 
 const logger = getLogger('discography')
@@ -73,6 +75,18 @@ const logger = getLogger('discography')
  * audio that ships in a second place competing with
  * `Release Mastered Tracks`, which is the confusion D2 exists to end.
  */
+/**
+ * How the catalogue says it has changed, without knowing who is listening.
+ *
+ * The CALENDAR projects release dates and stores none of them, so it cannot
+ * see one move — it has to be told its projection is stale. Handed in by the
+ * composition root, like every other cross-service link here, and deliberately
+ * carrying no payload: "something about the catalogue is different" is all the
+ * listener needs, and anything more specific would be this service guessing at
+ * what the other one draws.
+ */
+export type CatalogueListener = () => Promise<void>
+
 export class DiscographyService {
   constructor(
     private readonly archive: ArchiveService,
@@ -80,6 +94,28 @@ export class DiscographyService {
     private readonly artists: ArtistsService,
     private readonly stacks: StacksService
   ) {}
+
+  private catalogueListener: CatalogueListener | null = null
+
+  /** Wired by the container once the calendar service exists. */
+  setCatalogueListener(listener: CatalogueListener): void {
+    this.catalogueListener = listener
+  }
+
+  /**
+   * Tells whoever is listening that the catalogue moved.
+   *
+   * Swallowed on failure: a calendar that did not hear is a calendar showing a
+   * marker on yesterday's date until it is reopened, which is not worth
+   * failing a write the operator asked for.
+   */
+  private async notifyCatalogue(): Promise<void> {
+    try {
+      await this.catalogueListener?.()
+    } catch (cause) {
+      logger.warn('Could not notify the calendar of a catalogue change', cause)
+    }
+  }
 
   private get repository(): DiscographyRepository {
     return new DiscographyRepository(this.archive.getDb())
@@ -164,6 +200,35 @@ export class DiscographyService {
     }
 
     return index
+  }
+
+  /**
+   * Every dated release, for the CALENDAR to draw.
+   *
+   * The projected half of D20. Handed to the calendar service by the
+   * composition root, exactly as `appearances()` is handed to projects — the
+   * calendar stores nothing about releases, so this is read afresh each time
+   * and a date moved here moves there with no reconciliation at all.
+   *
+   * Released entries are included, not just scheduled ones. A record that came
+   * out on a date is still a thing that happened on that date, and a register
+   * that forgot it the moment it shipped would be a worse diary than a paper
+   * one.
+   */
+  async scheduledDates(): Promise<CalendarRelease[]> {
+    const releases = await this.repository.listAll()
+
+    return releases
+      .filter((release): release is DiscographyRelease & { releaseDate: string } =>
+        Boolean(release.releaseDate)
+      )
+      .map((release) => ({
+        releaseId: release.id,
+        title: release.title,
+        kind: release.kind,
+        status: release.status,
+        date: release.releaseDate
+      }))
   }
 
   /** Every release's credits, for the roster's counts. See `ArtistsService`. */
@@ -271,6 +336,7 @@ export class DiscographyService {
     // project that is already finished, so the stage has to follow here too
     // and not only on a later status change.
     await this.reconcileLinkedStages(null, release)
+    await this.notifyCatalogue()
 
     logger.info(`Raised "${release.title}" in the catalogue`)
     return release
@@ -314,6 +380,7 @@ export class DiscographyService {
       if (!raised) return null
 
       await this.repository.deleteById(raised.id)
+      await this.notifyCatalogue()
       logger.info(`Withdrew "${raised.title}", raised automatically and never edited`)
       return null
     }
@@ -491,6 +558,7 @@ export class DiscographyService {
 
     await this.repository.replace(next)
     await this.reconcileLinkedStages(release, next)
+    await this.notifyCatalogue()
     return next
   }
 
@@ -516,6 +584,76 @@ export class DiscographyService {
     return next
   }
 
+  /**
+   * Writes a distributor-ready folder for this release.
+   *
+   * The filesystem work is `publishRelease`; this is the policy in front of
+   * it — what must be true before a folder is worth writing, and the roster
+   * lookup the namer needs.
+   *
+   * ## What it refuses, and why only these
+   *
+   * Four things, each named rather than hidden behind one message: no tracks,
+   * no master on any track, no artwork, and no date. Those are the conditions
+   * under which the folder would be a lie — an empty delivery, or one a label
+   * cannot act on.
+   *
+   * Everything else is allowed through and *recorded*. A missing catalogue
+   * number is a field the operator has not been given yet, not a reason to
+   * refuse; a single track without a master on a five-track album is a label
+   * master they do not hold. Those are named in `Release Details.txt` and
+   * returned in `skipped`, because the honest thing is to hand over what
+   * exists and say what does not.
+   *
+   * ## And it refuses an unadopted entry
+   *
+   * An entry the app raised is a projection the app will withdraw again if the
+   * master is cleared (D18, D19). Publishing presumes the record is real, so
+   * the operator has to say so first — the ADOPT bar is already on the sheet.
+   */
+  async publish(id: string): Promise<PublishResult> {
+    const release = await this.get(id)
+
+    if (release.raisedFor !== null) {
+      throw new AppError('This entry has not been adopted yet.', {
+        code: ErrorCode.Validation,
+        hint: 'Adopt it on its RELEASE tab, then publish.',
+        recoverable: false
+      })
+    }
+
+    const missing: string[] = []
+    if (release.tracks.length === 0) missing.push('a running order')
+    else if (release.tracks.every((track) => track.master === null)) {
+      missing.push('a final master on at least one track')
+    }
+    if (!release.artwork.copiedPath) missing.push('cover art')
+    if (!release.releaseDate) missing.push('a release date')
+
+    if (missing.length > 0) {
+      throw new AppError(`This release still needs ${missing.join(', ')}.`, {
+        code: ErrorCode.Validation,
+        hint: 'Fill those in and publish again — nothing is written until it can be complete.',
+        recoverable: false
+      })
+    }
+
+    const root = this.stacks.resolveReleasesRoot()
+    if (!root) {
+      throw new AppError('The ARCHIVE has not been set up, so there is nowhere to publish to.', {
+        code: ErrorCode.Validation,
+        hint: 'Set a filing root in REGULATION.',
+        recoverable: false
+      })
+    }
+
+    // One read of the roster, turned into a lookup. `publishRelease` never
+    // touches the artists service itself — it is handed a resolver, so the
+    // filesystem half stays testable without one.
+    const roster = new Map((await this.artists.listPlain()).map((a) => [a.id, a.name]))
+    return publishRelease(release, root, (artistId) => roster.get(artistId) ?? null)
+  }
+
   async remove(id: string): Promise<void> {
     const release = await this.get(id)
 
@@ -531,6 +669,7 @@ export class DiscographyService {
     // on claiming it was put out by a release that no longer exists, and the
     // operator can always set the stage back by hand if it really did ship.
     await this.reconcileLinkedStages(release, null)
+    await this.notifyCatalogue()
 
     logger.info(`Removed "${release.title}" from the catalogue`)
   }

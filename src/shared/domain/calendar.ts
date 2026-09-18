@@ -78,9 +78,43 @@ export const CalendarPatchSchema = z.object({
 })
 export type CalendarPatch = z.infer<typeof CalendarPatchSchema>
 
+/**
+ * A release date, projected onto the register.
+ *
+ * The note at the top of this module called this shot: a release date "belongs
+ * in a projection over this, not in this schema". This is that projection, and
+ * it is deliberately **not** a `CalendarEntry`.
+ *
+ * Keeping it a separate shape is the whole point. An entry is the operator's
+ * own dated statement and they own every field of it; this is a *reading* of a
+ * record that lives in DISCOGRAPHY, where the date is set and where it stays.
+ * Merging the two would have given the calendar rows it must not let anybody
+ * edit, and the catalogue a second copy of a date to keep in step.
+ *
+ * Derived on every read rather than stored, so moving a release moves the
+ * marker and deleting one removes it, with nothing to reconcile.
+ */
+export const CalendarReleaseSchema = z.object({
+  releaseId: z.string(),
+  title: z.string(),
+  /** From `RELEASE_KINDS`; carried as a string so this module needs no import. */
+  kind: z.string(),
+  /** From `RELEASE_STATUSES`; likewise. */
+  status: z.string(),
+  date: IsoDateSchema
+})
+export type CalendarRelease = z.infer<typeof CalendarReleaseSchema>
+
 export const CalendarStateSchema = z.object({
   /** Every entry held, sorted by date then start time. */
   entries: z.array(CalendarEntrySchema).default([]),
+  /**
+   * Release dates read from the catalogue — see `CalendarReleaseSchema`.
+   *
+   * Beside `entries` rather than among them, because they are a different kind
+   * of thing: these are read, those are written.
+   */
+  releases: z.array(CalendarReleaseSchema).default([]),
   /**
    * Whether the register is backed by a connected archive.
    *
@@ -93,5 +127,5 @@ export const CalendarStateSchema = z.object({
 export type CalendarState = z.infer<typeof CalendarStateSchema>
 
 export function createCalendarState(): CalendarState {
-  return { entries: [], attached: false }
+  return { entries: [], releases: [], attached: false }
 }

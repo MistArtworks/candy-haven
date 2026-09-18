@@ -343,6 +343,88 @@ $kind-tones: (
   background: transparent;
 }
 
+// -------------------------------------------------- release markers
+
+// A release date on the register — see `ReleaseMark`.
+//
+// Deliberately not a chip. A chip is an entry: the operator wrote it, can
+// strike it, and can move it. This is a reading of a date the catalogue owns,
+// so it is built out of different parts — a seal instead of a tone bar, a
+// title in institutional caps instead of sentence text, and no mark to tick.
+// Telling them apart has to survive being 10px tall in a month cell.
+.releaseMark {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  width: 100%;
+  min-width: 0;
+  padding: 2px space(1) 2px 0;
+  text-align: left;
+  transition: background-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.09);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-1px);
+  }
+
+  /*
+   * Out in the world, as against coming.
+   *
+   * Dimmed rather than recoloured. Crimson is live state and a release that is
+   * already out is the opposite of that, so the only honest variable left is
+   * weight — and the same reading the month grid gives a day that has passed.
+   */
+  &[data-out] {
+    .releaseMarkSeal {
+      opacity: 0.5;
+    }
+
+    .releaseMarkTitle {
+      color: var(--ch-text-muted);
+    }
+  }
+}
+
+.releaseMarkSeal {
+  flex-shrink: 0;
+  font-size: rem(7px);
+  line-height: 1;
+  color: var(--ch-gold-400);
+}
+
+.releaseMarkTitle {
+  @include label(9px, 0.08em);
+  color: var(--ch-gold-300);
+  @include truncate;
+}
+
+.releaseMarkKind {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+// The band above the day sheet's entries. Ruled off, because what is below it
+// is a different kind of object and the rule is what says the sheet has two
+// halves rather than one mixed list.
+.sheetReleases {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(3) space(5);
+  @include hairline(bottom, 0.1);
+}
+
+// A release takes the whole width of a ledger row: it has no clock to sit
+// under, no mark to tick, and nothing to put in the other three columns.
+.agendaRelease {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 // ----------------------------------------------------------- time grid
 
 // Shared by the week and the day. Positions inside it are percentages of the

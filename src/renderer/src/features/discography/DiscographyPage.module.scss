@@ -490,6 +490,30 @@
   }
 }
 
+// Pushes the destructive control away from the constructive one, so REMOVE
+// and READY TO PUBLISH are never adjacent under the pointer.
+.footSpacer {
+  flex: 1;
+  min-width: space(4);
+}
+
+// What the last publish wrote. A button, because the useful thing to do with a
+// folder path is open it.
+.publishedAt {
+  @include label(9px);
+  color: var(--ch-text-muted);
+  text-align: right;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
 .sheetFoot {
   display: flex;
   align-items: center;
