@@ -258,7 +258,15 @@ export function TrackList({
                     disabled={busy}
                     onClick={() => setLinking(linking === track.id ? null : track.id)}
                   >
-                    {track.projectId ? 'Relink' : 'Link'}
+                    {/*
+                      Named after what it changes, not after the verb for the
+                      relationship. It read "RELINK", which says a link is
+                      being remade without saying of what — and the row shows
+                      two links, a project and a master. Now it pairs with
+                      CHANGE MASTER beside it, and the two read as the two
+                      things a track points at.
+                    */}
+                    {track.projectId ? 'Change project' : 'Link a project'}
                   </Button>
 
                   {/*

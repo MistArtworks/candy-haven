@@ -1147,6 +1147,23 @@ export function ArchivePage(): ReactNode {
       return 'Nothing loose. Every project the scan found is on a shelf.'
     }
     if (browsing) {
+      /*
+       * A shelf holding shelves is not empty, and must not say it is.
+       *
+       * This read "Nothing on this shelf yet" whenever no project was filed
+       * *directly* here — which is the ordinary state of every category and
+       * every subdivided genre. Standing in PERSONAL with a DUBSTEP shelf
+       * above it, tile and sentence contradicted each other: one said
+       * `1 project`, the other said there was nothing, and the sentence then
+       * told the operator to create a project or run an intake when the
+       * obvious action was to open the shelf they were looking at.
+       *
+       * The BIN branch above already drew this distinction. Same phrasing, so
+       * the two read as one voice.
+       */
+      if (visibleFolders.length > 0) {
+        return 'No projects filed directly here — the shelves above hold them.'
+      }
       return 'Nothing on this shelf yet. Create a project here, or bring one in from INTAKE.'
     }
     return 'No projects match the current filters.'

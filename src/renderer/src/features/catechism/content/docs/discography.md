@@ -220,8 +220,14 @@ than showing an empty list.
 A track that _already_ links to a project keeps showing it whatever its stage.
 The rule governs what can be picked, not what has been.
 
-Once a track is on the list: **Link** and **Relink** attach or change its
-project, the arrows nudge it up or down, and positions renumber themselves.
+Once a track is on the list: **LINK A PROJECT** / **CHANGE PROJECT** points it
+at an ARCHIVE project — or at nothing, by choosing **No project** — the arrows
+nudge it up or down, and positions renumber themselves.
+
+Re-pointing a track takes the new project'''s final master with it, and
+unlinking clears the master. The old file belonged to the project that was
+there a moment ago, so keeping it would have the release claiming a bounce from
+one project shipped as a track now credited to another.
 
 ### The release master
 
