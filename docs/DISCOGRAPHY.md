@@ -464,3 +464,111 @@ Clearing the master is refused while the project is at RELEASED, for the same
 reason: it would produce the one state the gate forbids. Step the stage back
 first. The panel hides the CLEAR control there rather than offering one whose
 only outcome is an explanation.
+
+---
+
+## 18. D11 — tracks are capped per kind, 2026-09-17
+
+The operator opened a SINGLE holding its one track and asked why ADD A TRACK
+was still offered. Nothing stopped it: the only ceiling was a flat
+`MAX_TRACKS = 60`, the same for a single as for an album.
+
+`maxTracksFor(kind)` — **one** for `single` and `remix`, **forty** for the
+rest. Chosen over two softer options that were put alongside it: flagging the
+mismatch without refusing, and leaving the counts alone while explaining what
+each kind means.
+
+### The cost, which was stated and accepted
+
+A single that ships with its own remix or an extended edit — `Original Mix`
+plus `Nasko Remix` — is a normal two-track single on most stores. Under this
+rule it must be filed as an `EP`. The operator was told this before choosing.
+
+It also runs against the direction §7 took when `reconcileCategory`'s volume
+invariant was removed and category became "the operator's own label, audited by
+nothing". A release's *kind* is now audited. That inconsistency is deliberate
+and worth knowing about: category describes a project, where nothing downstream
+depends on it, whereas kind decides the shape of the record itself.
+
+### Where it is enforced
+
+- `addTrack` refuses past the ceiling, and the message names the way out —
+  change the kind — rather than only the refusal.
+- **`update` refuses a kind change that would overflow**, naming the count.
+  Without it the rule is escaped in two presses: file four tracks as an EP,
+  then change the kind to SINGLE. Truncating the tracklist to fit was the
+  alternative and is worse — it destroys the operator's record to satisfy a
+  label they can change back.
+- `TrackList` hides ADD A TRACK at the ceiling and says what the kind holds.
+  A live control whose only outcome is an explanation teaches less.
+
+### `MAX_TRACKS` stays at 60, deliberately above every rule
+
+`DiscographyReleaseSchema` is `safeParse`d by `toRelease`, which **skips** a
+record it cannot read. Tightening the schema's own `.max()` to 40 would make
+any stored release exceeding it vanish from the catalogue rather than merely
+refuse the next write — losing data visibility to enforce a rule.
+
+So the storage bound and the rule are two numbers on purpose: a rule can be
+lowered safely at any time, a storage bound cannot. Verified by probe: an
+over-long single still parses and still draws.
+
+`maxTracksFor` is expressed through `seedsOneTrack` rather than re-listing the
+kinds, because it is the same statement read twice — the kinds that *arrive*
+with one track are the kinds that name one recording, so they are the kinds
+that may *hold* one.
+
+---
+
+## 19. D12 — the sheet is centred, and the tab swap is animated
+
+Two reports on the sheet as built, both fallout from splitting it into tabs.
+
+### It was not centred
+
+`.sheetBackdrop` used `align-items: flex-start` with 40px of top padding and
+scrolled the backdrop itself. That is the correct pattern for a modal taller
+than the viewport — centring one puts its top out of reach — and it was correct
+while the sheet was a single long column.
+
+Tabs made the sheet short, and a short sheet pinned 40px below the top of a
+1000px window reads as a mistake. It now matches `ProjectDossier`, which had
+this right all along: the backdrop centres, `.sheet` takes `max-height: 100%`,
+and `.sheetBody` scrolls internally with `flex: 1; min-height: 0`.
+
+That last declaration is load-bearing — without it a flex child will not shrink
+below its content and the sheet grows past its own `max-height` instead of
+scrolling. Bounding the sheet also keeps the masthead, the tab strip and CLOSE
+in view at all times, which is the point of having tabs at all.
+
+**ARTISTS got the same treatment**, because the header of
+`DiscographyPage.module.scss` says to: the two sheets are read side by side and
+the rules are deliberately duplicated rather than shared.
+
+### The height jumped between tabs
+
+`layout` on the sheet, with `sheetResizeTransition`.
+
+The three fixed rows — masthead, tab strip, footer — carry `layout="position"`
+rather than plain `layout`, and that distinction is the whole fix: motion
+resizes a layout element by **scaling** it, so a masthead without the
+positional variant is visibly squashed for the length of the animation.
+Position-only means they travel and never distort.
+
+The body is keyed by tab and **not** wrapped in `AnimatePresence`. With an exit
+animation the outgoing tab must finish before the incoming one mounts, which
+empties the body and collapses the sheet to a bare strip between every press.
+Replacing outright and animating only the arrival keeps the height monotonic.
+
+Rows arrive staggered through `sheetTabVariants` / `sheetTabItemVariants`,
+which are new rather than `gridVariants` / `panelVariants`. Those are tuned for
+a page arriving once — `y: 14`, `DURATION.slow`, a lead-in delay — and a tab
+strip is pressed repeatedly. Shorter throw, no delay, tighter stagger: no tab
+has more than four rows, so the last one lands about 90ms after the first.
+
+All of it is gated on `useAnimationsEnabled()`. Note that a `layout` prop still
+animates under `prefers-reduced-motion`, so gating has to *remove* the prop
+rather than shorten its transition.
+
+`ProjectDossier` needed none of this: it already staggers every tab through
+`DossierGrid`, and its sheet has always been height-bounded.

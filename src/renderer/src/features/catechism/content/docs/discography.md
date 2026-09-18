@@ -115,13 +115,31 @@ EPs, albums and compilations do not: those genuinely start empty and are
 filled over time, and inventing a first track for them would be guessing at a
 running order.
 
-The seeded track is an ordinary one — rename it, link a project to it, or
-remove it if the single turns out to be two edits and a dub.
+The seeded track is an ordinary one — rename it, or link a project to it. If
+the single turns out to be two edits and a dub, change the **kind** to `EP`:
+a single holds one track, so the kind is the field that has to give.
 
 ## Kind and status are different questions
 
-**Kind** is what the object is: `SINGLE`, `EP`, `ALBUM`, `COMPILATION`,
-`REMIX`.
+**Kind** is what the object is, and it decides how many tracks the release may
+hold:
+
+| Kind                              | Tracks   |
+| --------------------------------- | -------- |
+| `SINGLE` · `REMIX`                | one      |
+| `EP` · `ALBUM` · `COMPILATION`    | up to 40 |
+
+A single and a remix each name one recording, so ADD A TRACK disappears once
+the track is there rather than refusing when pressed.
+
+Note what that refuses: a single shipping with its own remix or an extended
+edit — `Original Mix` plus `Nasko Remix` — is a normal two-track single on most
+stores, and here it has to be filed as an `EP`. That is the deliberate cost of
+the kinds meaning exactly what they say.
+
+Changing the kind of a release that already has more tracks than the new kind
+allows is **refused**, naming the count. Nothing is ever silently dropped to
+make a record fit its label.
 
 **Status** is how public it is, and it is **two states**: either it is out or it
 is not.

@@ -793,6 +793,12 @@ either department; in summary:
   (`PRODUCED BY` rather than `PRODUCER`). `BILLED AS` is relabelled **MAIN
   ARTIST**; the stored field is still `artistIds`.
 - The release sheet is **five tabs**, mirroring `ProjectDossier`'s strip.
+- **Tracks are capped per kind** (D11): `maxTracksFor` gives one for `single`
+  and `remix`, forty for the rest. Enforced in `addTrack` *and* on a kind
+  change that would overflow, or the rule is escaped in two presses.
+  `MAX_TRACKS` stays at 60 as the **storage** bound, deliberately above every
+  rule — `toRelease` skips a record it cannot parse, so tightening the schema's
+  `.max()` would make an over-long release vanish rather than refuse a write.
 - `MediaFileSchema` moved to a leaf, `domain/media.ts`, for the §6.2 reason —
   that rule has now paid for itself twice.
 - **`RELEASE_STATUSES` is two: `scheduled` · `released`** (D9). `idea`,

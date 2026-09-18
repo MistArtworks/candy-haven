@@ -21,7 +21,8 @@ import {
   RELEASE_STATUSES,
   RELEASE_STATUS_LABEL,
   RELEASE_STATUS_PURPOSE,
-  isValidUpc
+  isValidUpc,
+  maxTracksFor
 } from '@shared/domain/discography.constants'
 import type { ProjectSummary } from '@shared/domain/projects'
 import { Portal } from '@renderer/components/primitives/Portal'
@@ -30,6 +31,12 @@ import { TextInput } from '@renderer/components/primitives/Input'
 import { Plate } from '@renderer/components/primitives/Plate'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { useEchoedText } from '@renderer/hooks/useEchoedText'
+import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
+import {
+  sheetResizeTransition,
+  sheetTabItemVariants,
+  sheetTabVariants
+} from '@renderer/motion/transitions'
 import { LinkEditor } from '@renderer/features/artists/components/LinkEditor'
 import { TrackList } from './TrackList'
 import { CreditPicker } from './CreditPicker'
@@ -125,6 +132,7 @@ export function ReleaseSheet({
 }: ReleaseSheetProps): ReactNode {
   const [confirming, setConfirming] = useState(false)
   const [tab, setTab] = useState<SheetTab>('release')
+  const animate = useAnimationsEnabled()
 
   const [title, setTitle] = useEchoedText(release.title, (value) => {
     if (value.trim()) onPatch({ title: value })
@@ -165,8 +173,22 @@ export function ReleaseSheet({
         exit={{ opacity: 0 }}
         onClick={onClose}
       >
+        {/*
+          `layout` is what animates the height when a tab is swapped, and the
+          three fixed rows carry `layout="position"` rather than plain
+          `layout` on purpose: motion resizes a layout element by scaling it,
+          so a masthead without the positional variant is squashed vertically
+          for the length of the animation. Position-only means they travel and
+          never distort.
+
+          Both are dropped entirely when animation is off — a `layout` prop
+          still animates under `prefers-reduced-motion`, so gating has to
+          remove it rather than shorten it.
+        */}
         <motion.section
           className={styles.sheet}
+          layout={animate ? true : undefined}
+          transition={animate ? sheetResizeTransition : { duration: 0 }}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 8 }}
@@ -174,7 +196,7 @@ export function ReleaseSheet({
           aria-label={release.title}
           onClick={(event) => event.stopPropagation()}
         >
-          <header className={styles.sheetHead}>
+          <motion.header layout={animate ? 'position' : undefined} className={styles.sheetHead}>
             <Plate
               path={release.artwork.copiedPath}
               fallback={RELEASE_KIND_LABEL[release.kind].slice(0, 2)}
@@ -196,7 +218,7 @@ export function ReleaseSheet({
                 Close
               </Button>
             </div>
-          </header>
+          </motion.header>
 
           {error ? (
             <p className={styles.sheetError} role="alert">
@@ -208,7 +230,11 @@ export function ReleaseSheet({
             The tab strip, as a horizontal row rather than a column. Same shape
             as the dossier's, badges included.
           */}
-          <nav className={styles.sheetTabs} aria-label="Release sections">
+          <motion.nav
+            layout={animate ? 'position' : undefined}
+            className={styles.sheetTabs}
+            aria-label="Release sections"
+          >
             {TABS.map((entry) => (
               <button
                 key={entry}
@@ -244,14 +270,31 @@ export function ReleaseSheet({
                 ) : null}
               </button>
             ))}
-          </nav>
+          </motion.nav>
 
-          <div className={styles.sheetBody}>
+          {/*
+            Keyed by tab, so React swaps the subtree in one commit and the
+            stagger replays. Deliberately **not** inside `AnimatePresence`:
+            with an exit animation the outgoing tab has to finish before the
+            incoming one mounts, which empties the body and collapses the sheet
+            to a bare strip between every press. Replacing outright and
+            animating only the arrival is what keeps the height monotonic.
+          */}
+          <motion.div
+            key={tab}
+            className={styles.sheetBody}
+            variants={animate ? sheetTabVariants : undefined}
+            initial={animate ? 'initial' : false}
+            animate={animate ? 'animate' : undefined}
+          >
             {/* ------------------------------------------------ what it is */}
 
             {tab === 'release' ? (
               <>
-                <div className={styles.sheetFields}>
+                <motion.div
+                  className={styles.sheetFields}
+                  variants={animate ? sheetTabItemVariants : undefined}
+                >
                   <TextInput
                     label="Title"
                     value={title}
@@ -265,9 +308,12 @@ export function ReleaseSheet({
                     maxLength={MAX_RELEASE_SUBTITLE}
                     placeholder="Nasko Remix · Deluxe Edition"
                   />
-                </div>
+                </motion.div>
 
-                <div className={styles.field}>
+                <motion.div
+                  className={styles.field}
+                  variants={animate ? sheetTabItemVariants : undefined}
+                >
                   <span className={styles.fieldLabel}>Kind</span>
                   <div className={styles.chips}>
                     {RELEASE_KINDS.map((kind: ReleaseKind) => (
@@ -283,9 +329,12 @@ export function ReleaseSheet({
                       </button>
                     ))}
                   </div>
-                </div>
+                </motion.div>
 
-                <div className={styles.field}>
+                <motion.div
+                  className={styles.field}
+                  variants={animate ? sheetTabItemVariants : undefined}
+                >
                   <span className={styles.fieldLabel}>Status</span>
                   <div className={styles.chips}>
                     {RELEASE_STATUSES.map((status: ReleaseStatus) => (
@@ -333,9 +382,12 @@ export function ReleaseSheet({
                         : 'Marking this RELEASED will move every linked project to the RELEASED stage in the ARCHIVE.'}
                     </p>
                   ) : null}
-                </div>
+                </motion.div>
 
-                <div className={styles.field}>
+                <motion.div
+                  className={styles.field}
+                  variants={animate ? sheetTabItemVariants : undefined}
+                >
                   <span className={styles.fieldLabel}>Notes</span>
                   <textarea
                     className={styles.notes}
@@ -344,7 +396,7 @@ export function ReleaseSheet({
                     placeholder="Who mastered it, what the deal was, what to remember next time."
                     onChange={(event) => setNotes(event.target.value)}
                   />
-                </div>
+                </motion.div>
               </>
             ) : null}
 
@@ -361,15 +413,20 @@ export function ReleaseSheet({
                   usually is — the main artist of a single generally produced
                   and wrote it too.
                 */}
-                <CreditPicker
-                  roster={roster}
-                  billed={release.artistIds}
-                  featured={release.featuredArtistIds}
-                  onBilled={(artistIds) => onPatch({ artistIds })}
-                  onFeatured={(featuredArtistIds) => onPatch({ featuredArtistIds })}
-                />
+                <motion.div variants={animate ? sheetTabItemVariants : undefined}>
+                  <CreditPicker
+                    roster={roster}
+                    billed={release.artistIds}
+                    featured={release.featuredArtistIds}
+                    onBilled={(artistIds) => onPatch({ artistIds })}
+                    onFeatured={(featuredArtistIds) => onPatch({ featuredArtistIds })}
+                  />
+                </motion.div>
 
-                <div className={styles.field}>
+                <motion.div
+                  className={styles.field}
+                  variants={animate ? sheetTabItemVariants : undefined}
+                >
                   <span className={styles.fieldLabel}>Credits</span>
                   <CreditRows
                     credits={release.credits}
@@ -377,7 +434,7 @@ export function ReleaseSheet({
                     busy={busy}
                     onChange={(credits: ReleaseCredit[]) => onPatch({ credits })}
                   />
-                </div>
+                </motion.div>
               </>
             ) : null}
 
@@ -388,6 +445,7 @@ export function ReleaseSheet({
                 <span className={styles.fieldLabel}>Running order</span>
                 <TrackList
                   tracks={release.tracks}
+                  maxTracks={maxTracksFor(release.kind)}
                   projects={projects}
                   linkable={linkable}
                   roster={roster}
@@ -405,7 +463,10 @@ export function ReleaseSheet({
 
             {tab === 'trade' ? (
               <>
-                <div className={styles.sheetFields}>
+                <motion.div
+                  className={styles.sheetFields}
+                  variants={animate ? sheetTabItemVariants : undefined}
+                >
                   <TextInput
                     label="Label"
                     value={label}
@@ -442,9 +503,12 @@ export function ReleaseSheet({
                     maxLength={MAX_CATALOGUE_NUMBER}
                     mono
                   />
-                </div>
+                </motion.div>
 
-                <div className={styles.sheetFields}>
+                <motion.div
+                  className={styles.sheetFields}
+                  variants={animate ? sheetTabItemVariants : undefined}
+                >
                   <TextInput
                     label="UPC"
                     value={upc}
@@ -463,24 +527,29 @@ export function ReleaseSheet({
                     maxLength={MAX_COPYRIGHT_LINE}
                     placeholder="2026 Candy Heist"
                   />
-                </div>
+                </motion.div>
 
-                <TextInput
-                  label="© Copyright"
-                  value={copyright}
-                  onChange={setCopyright}
-                  maxLength={MAX_COPYRIGHT_LINE}
-                  placeholder="2026 Candy Heist"
-                />
+                <motion.div variants={animate ? sheetTabItemVariants : undefined}>
+                  <TextInput
+                    label="© Copyright"
+                    value={copyright}
+                    onChange={setCopyright}
+                    maxLength={MAX_COPYRIGHT_LINE}
+                    placeholder="2026 Candy Heist"
+                  />
+                </motion.div>
 
-                <div className={styles.field}>
+                <motion.div
+                  className={styles.field}
+                  variants={animate ? sheetTabItemVariants : undefined}
+                >
                   <span className={styles.fieldLabel}>Where it is</span>
                   <LinkEditor
                     links={release.links}
                     max={MAX_RELEASE_LINKS}
                     onChange={(links) => onPatch({ links })}
                   />
-                </div>
+                </motion.div>
               </>
             ) : null}
 
@@ -488,7 +557,10 @@ export function ReleaseSheet({
 
             {tab === 'artwork' ? (
               <>
-                <div className={styles.assets}>
+                <motion.div
+                  className={styles.assets}
+                  variants={animate ? sheetTabItemVariants : undefined}
+                >
                   <div className={styles.asset}>
                     {/*
                       Drawn large here, where there is room for it. The sheet
@@ -546,7 +618,7 @@ export function ReleaseSheet({
                       ) : null}
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/*
                   Where each copy came from. Both are *copies* — the archive
@@ -555,25 +627,27 @@ export function ReleaseSheet({
                   first time they tidy up. This says what was copied, long
                   after that folder has been emptied.
                 */}
-                <FieldGrid columns={2}>
-                  <Field
-                    label="Cover source"
-                    value={release.artwork.sourcePath ?? 'None'}
-                    mono
-                    selectable
-                  />
-                  <Field
-                    label="Canvas source"
-                    value={release.canvas.sourcePath ?? 'None'}
-                    mono
-                    selectable
-                  />
-                </FieldGrid>
+                <motion.div variants={animate ? sheetTabItemVariants : undefined}>
+                  <FieldGrid columns={2}>
+                    <Field
+                      label="Cover source"
+                      value={release.artwork.sourcePath ?? 'None'}
+                      mono
+                      selectable
+                    />
+                    <Field
+                      label="Canvas source"
+                      value={release.canvas.sourcePath ?? 'None'}
+                      mono
+                      selectable
+                    />
+                  </FieldGrid>
+                </motion.div>
               </>
             ) : null}
-          </div>
+          </motion.div>
 
-          <footer className={styles.sheetFoot}>
+          <motion.footer layout={animate ? 'position' : undefined} className={styles.sheetFoot}>
             {confirming ? (
               <>
                 <span className={styles.confirmText}>
@@ -594,7 +668,7 @@ export function ReleaseSheet({
                 Remove from catalogue
               </Button>
             )}
-          </footer>
+          </motion.footer>
         </motion.section>
       </motion.div>
     </Portal>

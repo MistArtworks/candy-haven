@@ -245,3 +245,45 @@ export const consoleEnterVariants: Variants = {
     transition: { duration: 1, ease: EASE_OUT_EXPO, delay: 0.12 }
   }
 }
+
+/**
+ * Swapping the body of a tabbed record sheet.
+ *
+ * ## Why this is not `gridVariants` / `panelVariants`
+ *
+ * Those are tuned for a page arriving: `y: 14`, `DURATION.slow`, a 0.08s
+ * delay before the first child. That is right once, on entry. A tab strip is
+ * pressed repeatedly and often in sequence, and 0.6s of travel per press turns
+ * five tabs into something the operator waits for rather than reads.
+ *
+ * So: shorter throw, no lead-in delay, a tighter stagger, and `DURATION.base`
+ * — enough that the eye registers the content as new, not enough to hold it up.
+ */
+export const sheetTabVariants: Variants = {
+  initial: {},
+  animate: {
+    transition: { staggerChildren: 0.03 }
+  }
+}
+
+export const sheetTabItemVariants: Variants = {
+  initial: { opacity: 0, y: 6 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: DURATION.base, ease: EASE_OUT_EXPO }
+  }
+}
+
+/**
+ * The size change a tabbed sheet makes when its body is swapped.
+ *
+ * Used with motion's `layout` on the sheet itself. `DURATION.base` rather than
+ * `slow`, for the reason above: the height change and the content arriving
+ * should finish together, or the sheet is still settling after the text has
+ * stopped moving.
+ */
+export const sheetResizeTransition: Transition = {
+  duration: DURATION.base,
+  ease: EASE_OUT_EXPO
+}

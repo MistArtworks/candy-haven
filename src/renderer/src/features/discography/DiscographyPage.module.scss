@@ -233,19 +233,32 @@
   z-index: z('overlay');
   background: var(--ch-surface-overlay);
   display: flex;
-  align-items: flex-start;
+  // Centred, with the sheet bounded and its body scrolling inside — the same
+  // arrangement `ProjectDossier` uses, and this now matches it.
+  //
+  // It was `flex-start` with the backdrop itself scrolling, which was right
+  // while the sheet was one long column: a modal taller than the viewport
+  // cannot be centred without putting its top out of reach. Splitting the
+  // sheet into five tabs made it short, and a short sheet pinned 40px from the
+  // top of a 1000px window reads as broken rather than as deliberate.
+  align-items: center;
   justify-content: center;
-  padding: space(10) space(6);
-  overflow-y: auto;
+  padding: space(6);
 }
 
 .sheet {
   width: min(#{rem(880px)}, 100%);
+  // Bounded so a long tracklist scrolls the body rather than the backdrop.
+  // That keeps the masthead, the tab strip and CLOSE in view at all times,
+  // which is the point of the tabs — navigating a record you have scrolled
+  // away from is how the flat sheet lost people.
+  max-height: 100%;
   background: var(--ch-surface);
   border: $hairline solid var(--ch-line-strong);
   box-shadow: var(--ch-shadow-panel);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .sheetHead {
@@ -363,6 +376,12 @@
   flex-direction: column;
   gap: space(5);
   padding: space(5);
+  // `min-height: 0` is load-bearing: without it a flex child refuses to
+  // shrink below its content and the sheet grows past `max-height` instead of
+  // scrolling here.
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .sheetFields {

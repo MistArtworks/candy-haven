@@ -292,19 +292,26 @@
   z-index: z('overlay');
   background: var(--ch-surface-overlay);
   display: flex;
-  align-items: flex-start;
+  // Centred, with the sheet bounded and its body scrolling inside — matching
+  // `ProjectDossier` and DISCOGRAPHY's sheet. It was `flex-start` with the
+  // backdrop scrolling, which pinned a short sheet 40px below the top of the
+  // window and read as broken.
+  align-items: center;
   justify-content: center;
-  padding: space(10) space(6);
-  overflow-y: auto;
+  padding: space(6);
 }
 
 .sheet {
   width: min(#{rem(880px)}, 100%);
+  // Bounded, so a roster entry with a dozen links scrolls its body rather
+  // than the whole backdrop, keeping the picture and CLOSE in view.
+  max-height: 100%;
   background: var(--ch-surface);
   border: $hairline solid var(--ch-line-strong);
   box-shadow: var(--ch-shadow-panel);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .sheetHead {
@@ -356,6 +363,11 @@
   flex-direction: column;
   gap: space(5);
   padding: space(5);
+  // `min-height: 0` is load-bearing — without it a flex child will not shrink
+  // below its content and the sheet grows past `max-height` instead.
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .sheetFields {

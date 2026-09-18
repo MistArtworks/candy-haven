@@ -11,6 +11,13 @@ import styles from './TrackList.module.scss'
 export interface TrackListProps {
   tracks: readonly ReleaseTrack[]
   /**
+   * How many tracks this release's kind may hold — see `maxTracksFor`.
+   *
+   * Passed in rather than derived from a `kind` prop, so this component never
+   * has to know the taxonomy. It draws a list against a ceiling.
+   */
+  maxTracks: number
+  /**
    * The whole register, for *resolving* a link a track already holds.
    *
    * Deliberately not the same list the picker offers. A track can legitimately
@@ -84,6 +91,7 @@ export interface TrackListProps {
  */
 export function TrackList({
   tracks,
+  maxTracks,
   projects,
   linkable,
   roster,
@@ -303,16 +311,30 @@ export function TrackList({
         </ol>
       )}
 
-      <div className={styles.add}>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={onAdd}>
-          Add a track
-        </Button>
-        <span className={styles.addHint}>
-          {tracks.length > 0
-            ? 'Joins the end of the running order.'
-            : 'By name, or linked to a project in the ARCHIVE.'}
-        </span>
-      </div>
+      {/*
+        The control disappears at the ceiling rather than refusing when
+        pressed. A single already holding its track is the ordinary case, and
+        a live button whose only outcome is an explanation teaches less than
+        a sentence saying what the kind means.
+      */}
+      {tracks.length < maxTracks ? (
+        <div className={styles.add}>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={onAdd}>
+            Add a track
+          </Button>
+          <span className={styles.addHint}>
+            {tracks.length > 0
+              ? 'Joins the end of the running order.'
+              : 'By name, or linked to a project in the ARCHIVE.'}
+          </span>
+        </div>
+      ) : (
+        <p className={styles.addHint}>
+          {maxTracks === 1
+            ? 'This kind holds one track. Change it to EP if the release carries more than one recording.'
+            : `That is the ceiling of ${maxTracks} tracks.`}
+        </p>
+      )}
     </div>
   )
 }

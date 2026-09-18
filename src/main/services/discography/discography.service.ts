@@ -19,8 +19,9 @@ import {
   MAX_ARTWORK_BYTES,
   MAX_CREDITS,
   MAX_RELEASE_LINKS,
-  MAX_TRACKS,
+  RELEASE_KIND_LABEL,
   isLinkableStage,
+  maxTracksFor,
   normaliseIsrc,
   normaliseUpc,
   releaseYear,
@@ -284,6 +285,30 @@ export class DiscographyService {
       })
     }
 
+    /*
+     * Refused rather than silently truncating the tracklist.
+     *
+     * Without this the ceiling is trivially escaped: file four tracks as an
+     * EP, then change the kind to SINGLE. Dropping the extra tracks to fit
+     * would be destroying the operator's record to satisfy a label they can
+     * change back, so the refusal names the count instead.
+     */
+    if (patch.kind !== undefined && patch.kind !== release.kind) {
+      const ceiling = maxTracksFor(patch.kind)
+      if (release.tracks.length > ceiling) {
+        throw new AppError(
+          `A ${RELEASE_KIND_LABEL[patch.kind].toLowerCase()} holds ${
+            ceiling === 1 ? 'one track' : `at most ${ceiling} tracks`
+          }, and this has ${release.tracks.length}.`,
+          {
+            code: ErrorCode.Validation,
+            hint: 'Remove the extra tracks first, or leave the kind as it is.',
+            recoverable: false
+          }
+        )
+      }
+    }
+
     if (patch.credits && patch.credits.length > MAX_CREDITS) {
       throw new AppError(`A release holds at most ${MAX_CREDITS} credit lines.`, {
         code: ErrorCode.Validation,
@@ -455,11 +480,29 @@ export class DiscographyService {
   async addTrack(id: string, draft: TrackDraft): Promise<DiscographyRelease> {
     const release = await this.get(id)
 
-    if (release.tracks.length >= MAX_TRACKS) {
-      throw new AppError(`A release holds at most ${MAX_TRACKS} tracks.`, {
-        code: ErrorCode.Validation,
-        recoverable: false
-      })
+    const ceiling = maxTracksFor(release.kind)
+    if (release.tracks.length >= ceiling) {
+      /*
+       * Per kind, not a flat ceiling. A single already holding its track is
+       * the case that produced this rule.
+       *
+       * The hint names the way out rather than only the refusal: the operator
+       * with a single and a remix to file is not making a mistake, they are
+       * filing a two-track record, and the kind is the field that has to give.
+       */
+      throw new AppError(
+        ceiling === 1
+          ? `A ${RELEASE_KIND_LABEL[release.kind].toLowerCase()} holds one track.`
+          : `A ${RELEASE_KIND_LABEL[release.kind].toLowerCase()} holds at most ${ceiling} tracks.`,
+        {
+          code: ErrorCode.Validation,
+          hint:
+            ceiling === 1
+              ? 'Change the kind to EP if this release carries more than one recording.'
+              : undefined,
+          recoverable: false
+        }
+      )
     }
 
     let title = draft.title?.trim() ?? ''

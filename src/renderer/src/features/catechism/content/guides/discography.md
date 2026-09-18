@@ -15,7 +15,12 @@ because a single _is_ a recording; the longer kinds start empty.
 
 ## Kind, and status
 
-**Kind** is what it is — single, EP, album, compilation, remix.
+**Kind** is what it is — single, EP, album, compilation, remix — and it sets
+the track ceiling. A single or a remix holds **one** track; the rest hold up to
+40.
+
+> A single that ships with its own remix is two recordings, so file it as an
+> EP. The kinds mean what they say here.
 
 **Status** is how public it is, and there are two: **scheduled** or
 **released**. Either it is out or it is not.

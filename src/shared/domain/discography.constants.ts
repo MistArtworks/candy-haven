@@ -185,7 +185,45 @@ export const MAX_RELEASE_TITLE = 120
 export const MAX_RELEASE_SUBTITLE = 96
 export const MAX_LABEL_NAME = 96
 export const MAX_CATALOGUE_NUMBER = 32
+/**
+ * The storage ceiling on a tracklist, **deliberately above the rule.**
+ *
+ * `maxTracksFor` is what the operator meets; this is only the bound the schema
+ * declares. Keeping them apart is not fussiness — `DiscographyReleaseSchema`
+ * is `safeParse`d by `toRelease`, which *skips* a record it cannot read, so
+ * tightening the schema's own `.max()` to match a rule would make any release
+ * already exceeding it vanish from the catalogue rather than merely refuse the
+ * next write. A rule can be lowered safely; a storage bound cannot.
+ */
 export const MAX_TRACKS = 60
+
+/**
+ * How many tracks a release of this kind may hold.
+ *
+ * **One** for a single and a remix. Both words name a single recording, and a
+ * release claiming to be one while listing four is the register disagreeing
+ * with itself — which was the actual complaint that produced this rule: the
+ * sheet offered ADD A TRACK on a single that already had its track.
+ *
+ * Note what this refuses, because it is a real trade the operator accepted: a
+ * single that ships with its own remix or an extended edit — `Original Mix`
+ * plus `Nasko Remix` — is a normal two-track single on every store, and it has
+ * to be filed as an EP here. That was put to them alongside a softer option
+ * that flagged the mismatch without refusing it, and the hard limit is what
+ * they chose.
+ *
+ * **Forty** for everything else. Ample for an album or a compilation without
+ * leaving the ceiling effectively absent.
+ *
+ * Expressed through `seedsOneTrack` rather than re-listing the kinds, because
+ * it is the same statement read twice: the kinds that *arrive* with one track
+ * are exactly the kinds that name one recording, so they are exactly the kinds
+ * that may *hold* one. A new kind that seeds a track would want this limit
+ * too, and coupling them means it gets it without a second edit.
+ */
+export function maxTracksFor(kind: ReleaseKind): number {
+  return seedsOneTrack(kind) ? 1 : 40
+}
 export const MAX_TRACK_TITLE = 120
 export const MAX_RELEASE_LINKS = 16
 export const MAX_COPYRIGHT_LINE = 160
