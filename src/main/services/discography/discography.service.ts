@@ -275,6 +275,51 @@ export class DiscographyService {
     return release
   }
 
+  /**
+   * Raises a single around a project, unless the catalogue already holds it.
+   *
+   * Called by the projects service — through a callback wired in the
+   * composition root, because that service cannot import this one — the moment
+   * a final master is named. Naming the file that ships is the operator saying
+   * the work is finished and going out, and the entry they would then raise by
+   * hand would carry exactly the fields this can fill in itself: the project,
+   * its title, its credits, and the master they just picked.
+   *
+   * **Idempotent, and that is the whole of its correctness.** It is driven by
+   * an event that repeats — a master can be re-picked any number of times, and
+   * each one would otherwise leave another single behind. So it returns null
+   * rather than creating when the project already appears anywhere in the
+   * catalogue, on any release of any kind: a track that is already on an album
+   * does not also want a single raised for it.
+   *
+   * Returns the release it made, or null when it made nothing. The caller logs
+   * and never fails on it.
+   */
+  async ensureSingleFor(projectId: string): Promise<DiscographyRelease | null> {
+    const releases = await this.repository.listAll()
+
+    const existing = releases.find((release) =>
+      release.tracks.some((track) => track.projectId === projectId)
+    )
+    if (existing) return null
+
+    const project = await this.projects.get(projectId)
+
+    const release = await this.create({
+      title: project.name,
+      kind: 'single',
+      // Not RELEASED: naming the master says the work is finished, not that it
+      // is out in the world. `scheduled` with no date is exactly "going out,
+      // when is not fixed yet" — see `RELEASE_STATUSES`.
+      status: 'scheduled',
+      artistIds: [...project.artistIds],
+      fromProjectId: projectId
+    })
+
+    logger.info(`Raised "${release.title}" automatically for its final master`)
+    return release
+  }
+
   async update(id: string, patch: ReleasePatch): Promise<DiscographyRelease> {
     const release = await this.get(id)
 

@@ -898,6 +898,14 @@ $list-cap: min(#{rem(280px)}, 24vh);
   flex-shrink: 0;
 }
 
+// Crossing to the catalogue. Trailing edge of the line it belongs to, so a
+// project on two releases has one of these against each rather than a single
+// control that would have to ask which.
+.appearanceOpen {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .appearanceMaster {
   display: flex;
   align-items: center;

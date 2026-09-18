@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PROJECT_CATEGORY_LABEL, getStage } from '@shared/domain/projects.constants'
 import { RELEASE_KIND_LABEL, RELEASE_STATUS_LABEL } from '@shared/domain/discography.constants'
 import { Button } from '@renderer/components/primitives/Button'
@@ -36,6 +37,19 @@ const HISTORY_SHOWN = 10
  * distinction.
  */
 export function DossierRecord({ project, artists }: DossierTabProps): ReactNode {
+  /*
+   * Crossing to the catalogue, which is a navigation rather than an overlay.
+   *
+   * The dossier can report an appearance but not edit it — DISCOGRAPHY owns the
+   * running order, and it is the only surface that can see the whole of it. So
+   * the control leaves: it addresses the release in the URL and the operator
+   * lands on it, which also closes this sheet, because the ARCHIVE's open
+   * dossier is itself a URL parameter.
+   *
+   * `?release=<id>` is the same shape as the `?project=<id>` that opened this
+   * record. Two record surfaces, addressed the same way.
+   */
+  const navigate = useNavigate()
   const primary = project.sets.find((set) => set.isPrimary) ?? project.sets[0] ?? null
   const analysis = primary?.analysis ?? null
 
@@ -230,6 +244,16 @@ export function DossierRecord({ project, artists }: DossierTabProps): ReactNode 
                       .filter(Boolean)
                       .join(' · ')}
                   </span>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={styles.appearanceOpen}
+                    title="Open this release in DISCOGRAPHY"
+                    onClick={() => navigate(`/discography?release=${entry.releaseId}`)}
+                  >
+                    Open in DISCOGRAPHY
+                  </Button>
                 </span>
 
                 {/*

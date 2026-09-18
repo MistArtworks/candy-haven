@@ -268,10 +268,28 @@ both the sorting and the move are gone.
 > The panel says so. The marks you made in the three buckets are still in the
 > archive too; nothing reads them, and nothing has been deleted.
 
-The DISCOGRAPHY track takes a **copy** of this pick when you link the project,
-and the dossier's **RECORD** tab reports it back under RELEASES with a REVEAL
-button. The copy is why changing the project's master later does not rewrite
-what an already-released entry claims to have shipped.
+### Naming it raises a single
+
+The moment you name a final master, DISCOGRAPHY raises a **single** for the
+project — titled after it, credited to whoever the project credits, carrying
+the master you just picked, and filed as `SCHEDULED` with no date. Naming the
+file that ships is you saying the work is finished and going out, and every
+field of the entry you would then have made by hand is one the app already
+knows.
+
+It happens **once**. Re-picking the master does not raise a second single, and
+a project already on a release — an album track, say — gets nothing new.
+
+Nothing is created if the catalogue write fails; the master pick stands
+regardless, because that is what you asked for and the entry is a convenience
+on top of it.
+
+The dossier's **RECORD** tab then lists it under RELEASES, with **OPEN IN
+DISCOGRAPHY** beside each entry to go straight to that release's sheet.
+
+The DISCOGRAPHY track takes a **copy** of the pick when the project is linked,
+which is why changing the project's master later does not rewrite what an
+already-released entry claims to have shipped.
 
 ## Volumes are now DISCOGRAPHY
 

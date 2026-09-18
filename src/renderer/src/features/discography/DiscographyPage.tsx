@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { getSection } from '@shared/domain/navigation'
 import type {
@@ -71,7 +72,36 @@ export function DiscographyPage(): ReactNode {
   const [kinds, setKinds] = useState<ReleaseKind[]>([])
   const [search, setSearch] = useState('')
   const [labelFilter, setLabelFilter] = useState('')
-  const [openId, setOpenId] = useState<string | null>(null)
+  /*
+   * The open release lives in the URL, as the ARCHIVE's open dossier does.
+   *
+   * Local state would have been enough for opening a card. It is not enough to
+   * be *arrived at*: naming a final master raises a single for the project,
+   * and the dossier offers to go and see it — which needs a link that says
+   * which one. `?release=<id>` is the same shape as ARCHIVE's `?project=<id>`,
+   * deliberately, so the two record surfaces are addressed the same way.
+   *
+   * Replaced rather than pushed, for the reason recorded on ARCHIVE's own
+   * helper: opening and closing a sheet should not build a history stack the
+   * operator has to walk back out of.
+   */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const openId = searchParams.get('release')
+
+  const setOpenId = useCallback(
+    (id: string | null) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current)
+          if (id) next.set('release', id)
+          else next.delete('release')
+          return next
+        },
+        { replace: true }
+      )
+    },
+    [setSearchParams]
+  )
   const [raising, setRaising] = useState(false)
   const [addingTrack, setAddingTrack] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)

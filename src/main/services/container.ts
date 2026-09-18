@@ -137,6 +137,19 @@ export function createServiceContainer(): ServiceContainer {
   // a track on, derived rather than stored. See `DiscographyService`.
   projects.setArtistResolver(() => artists.listPlain())
   projects.setAppearanceResolver(() => discography.appearances())
+  /*
+   * Naming a final master raises a single for the project.
+   *
+   * The last of the four callbacks that break the projects/discography cycle,
+   * and the only one that *writes*: the others hand data back, this one asks
+   * the catalogue to create a record. Same inversion for the same reason —
+   * discography reads the register through projects, so projects cannot import
+   * discography.
+   */
+  projects.setReleaseRaiser(async (projectId) => {
+    const release = await discography.ensureSingleFor(projectId)
+    return release?.id ?? null
+  })
 
   /*
    * Hoisted out of the literal because THE MUSTER holds both.

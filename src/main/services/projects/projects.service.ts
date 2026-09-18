@@ -111,6 +111,18 @@ export type ArtistResolver = () => Promise<ArtistRecord[]>
 export type AppearanceResolver = () => Promise<Map<string, ReleaseAppearance[]>>
 
 /**
+ * Raises a single for a project that has just named its final master.
+ *
+ * Inverted into a callback for the same reason every other cross-service link
+ * here is: the discography service reads the register through *this* service,
+ * so this one cannot import it back. See the composition root.
+ *
+ * Returns the release id when it raised one, or null when the project was
+ * already in the catalogue — which is the ordinary case on every re-pick.
+ */
+export type ReleaseRaiser = (projectId: string) => Promise<string | null>
+
+/**
  * Owns the project registry: what exists on disk, what the operator has said
  * about it, and where each project sits in the production pipeline.
  *
@@ -129,6 +141,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   private tagResolver: TagResolver | null = null
   private artistResolver: ArtistResolver | null = null
   private appearanceResolver: AppearanceResolver | null = null
+  private releaseRaiser: ReleaseRaiser | null = null
 
   constructor(private readonly archive: ArchiveService) {
     super()
@@ -152,6 +165,11 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   /** Wired by the container once the discography service exists. */
   setAppearanceResolver(resolver: AppearanceResolver): void {
     this.appearanceResolver = resolver
+  }
+
+  /** Wired by the container once the discography service exists. */
+  setReleaseRaiser(raiser: ReleaseRaiser): void {
+    this.releaseRaiser = raiser
   }
 
   setTagResolver(resolver: TagResolver): void {
@@ -683,6 +701,28 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
 
     await this.repository.replace(next)
     logger.info(`Final master for ${current.name}: ${file.fileName}`)
+
+    /*
+     * The catalogue picks the work up from here.
+     *
+     * Naming the file that ships is the operator saying this is finished and
+     * going out, so a single is raised for it — see `ensureSingleFor`, which
+     * does nothing when the project is already on a release, because this
+     * runs again every time the master is re-picked.
+     *
+     * **After the write, and never in front of it.** The master pick is what
+     * the operator asked for; the catalogue entry is a convenience on top of
+     * it, so a failure there is logged and swallowed. Refusing the pick
+     * because a second record could not be created would be the tail wagging
+     * the dog — and it would leave the RELEASED gate unsatisfiable for a
+     * reason that has nothing to do with the file.
+     */
+    try {
+      await this.releaseRaiser?.(id)
+    } catch (cause) {
+      logger.warn(`Could not raise a release for ${current.name}`, cause)
+    }
+
     return next
   }
 

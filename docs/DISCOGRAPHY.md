@@ -798,3 +798,68 @@ Three details that are each load-bearing:
   Chromium counts gestures per document, and the press that detached the player
   happened in a different window. Without it the popout arrives loaded, seeked
   and silently paused.
+
+---
+
+## 24. D17 — naming a master raises a single, and the dossier links to it
+
+*"Once we have selected the master track, the discography automatically creates
+a single (default) item with that respective project. The user will then have an
+option to go to that specific modal through the archive project modal."*
+
+### The auto-raise
+
+`DiscographyService.ensureSingleFor(projectId)`, called from
+`ProjectsService.setFinalMaster` **after** the record is written.
+
+The entry is a `single`, titled after the project, credited to whatever the
+project credits, carrying the master just picked (via `masterFromProject`), and
+`scheduled` with no date — **not** `released`. Naming the file that ships says
+the work is finished, not that it is out in the world, and a null `releaseDate`
+on a scheduled entry is exactly "going out, when is not fixed yet" (D9).
+
+### Idempotency is the whole of its correctness
+
+This is driven by an event that **repeats**: a master can be re-picked any
+number of times. So it returns null rather than creating when the project
+already appears anywhere in the catalogue, on a release of any kind — a track
+already on an album does not also want a single raised for it.
+
+Probed: three consecutive calls leave one entry, and a project already on an
+album gets nothing.
+
+### It cannot break the pick
+
+The raise is wrapped and swallowed with a warning. The master pick is what the
+operator asked for; the catalogue entry is a convenience on top of it. Refusing
+the pick because a second record could not be created would be the tail wagging
+the dog — and it would leave the RELEASED gate unsatisfiable for a reason that
+has nothing to do with the file.
+
+Ordering matters: the repository write happens first, so the release's track
+copies a master that is already stored.
+
+### A fourth callback, and the first that writes
+
+`projects.setReleaseRaiser()`, wired in the composition root beside
+`setFilingResolver`, `setTagResolver`, `setArtistResolver` and
+`setAppearanceResolver`. Same inversion for the same reason — discography reads
+the register through projects, so projects cannot import discography — but the
+first of them that asks the other service to *create* something rather than
+hand data back.
+
+### The crossing
+
+`?release=<id>` on DISCOGRAPHY, read with `useSearchParams`, replacing the
+local `openId` state.
+
+Local state was enough to open a card by clicking it. It is not enough to be
+*arrived at*, which is what a link from the dossier requires. The shape
+deliberately matches ARCHIVE's own `?project=<id>`: two record surfaces,
+addressed the same way, both replaced rather than pushed so opening and closing
+a sheet does not build a history stack.
+
+RECORD's RELEASES panel carries **OPEN IN DISCOGRAPHY** per appearance — per
+appearance, not once for the panel, because a project on a single and then an
+album has two and a single control would have to ask which. Navigating closes
+the dossier for free, since the open dossier is itself a URL parameter.
