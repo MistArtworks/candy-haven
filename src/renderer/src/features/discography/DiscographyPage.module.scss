@@ -989,9 +989,17 @@
   }
 }
 
+/*
+ * The two artefacts, side by side and the same height.
+ *
+ * `align-items: flex-start` rather than stretch: the wells set their own
+ * height and the action buttons beneath them should sit under each well
+ * rather than being pulled to a common baseline below the taller one.
+ */
 .assets {
   display: flex;
-  gap: space(6);
+  align-items: flex-start;
+  gap: space(5);
   flex-wrap: wrap;
 }
 
@@ -1013,8 +1021,13 @@
  * video for a thumbnail is work with no payoff.
  */
 .canvasPlate {
-  width: rem(68px);
-  height: rem(120px);
+  /*
+   * 9:16 at the height the cover is drawn — `ARTEFACT_HEIGHT` in
+   * `ReleaseSheet`. The two wells match in height and differ in width,
+   * because that is what a square sleeve and a phone-shaped loop are.
+   */
+  height: rem(200px);
+  width: rem(112px);
   display: flex;
   flex-direction: column;
   align-items: center;

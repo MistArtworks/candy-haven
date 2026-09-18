@@ -62,6 +62,15 @@ import styles from '../DiscographyPage.module.scss'
 const TABS = ['release', 'credits', 'tracks', 'trade', 'artwork'] as const
 type SheetTab = (typeof TABS)[number]
 
+/**
+ * How tall both artefact wells are drawn, in pixels.
+ *
+ * Declared here and matched by `.canvasPlate` in the stylesheet, because the
+ * cover's height comes from a `Plate` prop and the canvas's from CSS. Two
+ * numbers that must agree; if this moves, that moves.
+ */
+const ARTEFACT_HEIGHT = 200
+
 const TAB_LABEL: Record<SheetTab, string> = {
   release: 'RELEASE',
   credits: 'CREDITS',
@@ -739,74 +748,83 @@ export function ReleaseSheet({
                         className={styles.gutterForm}
                         variants={animate ? sheetTabItemVariants : undefined}
                       >
+                        {/*
+                          Both artefacts in one row, at one height.
+
+                          They are two faces of the same record — the square a
+                          store shows and the vertical loop a phone plays — so
+                          they are worth reading side by side. Equal height and
+                          unequal width is what those two formats *are*;
+                          matching their widths instead would mean cropping one
+                          of them into a shape it is not.
+                        */}
                         <div className={styles.gutterRow}>
-                          <span className={styles.gutterLabel}>Cover art</span>
-                          <div className={styles.asset}>
-                            {/*
+                          <span className={styles.gutterLabel}>Artefacts</span>
+                          <div className={styles.assets}>
+                            <div className={styles.asset}>
+                              {/*
                           Drawn large here, where there is room for it. The sheet
                           used to give the cover a 120px well between the links and
                           the paperwork, which is a thumbnail of the one thing on a
                           release anybody recognises it by.
                         */}
-                            <Plate
-                              path={release.artwork.copiedPath}
-                              fallback="COVER"
-                              size={320}
-                              alt="Cover art"
-                            />
-                            <div className={styles.assetActions}>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => void chooseAsset('artwork')}
-                              >
-                                {release.artwork.copiedPath ? 'Replace cover' : 'Add cover'}
-                              </Button>
-                              {release.artwork.copiedPath ? (
+                              <Plate
+                                path={release.artwork.copiedPath}
+                                fallback="COVER"
+                                size={ARTEFACT_HEIGHT}
+                                alt="Cover art"
+                              />
+                              <div className={styles.assetActions}>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => onSetAsset('artwork', null)}
+                                  onClick={() => void chooseAsset('artwork')}
                                 >
-                                  Clear
+                                  {release.artwork.copiedPath ? 'Replace cover' : 'Add cover'}
                                 </Button>
-                              ) : null}
+                                {release.artwork.copiedPath ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => onSetAsset('artwork', null)}
+                                  >
+                                    Clear
+                                  </Button>
+                                ) : null}
+                              </div>
                             </div>
-                          </div>
-                        </div>
 
-                        <div className={styles.gutterRow}>
-                          <span className={styles.gutterLabel}>Canvas</span>
-                          <div className={styles.asset}>
-                            {/*
+                            <div className={styles.asset}>
+                              {/*
                           The canvas is a looping video, so it is reported rather
                           than drawn — a still frame of a 9:16 loop tells you less
                           than its filename does, and decoding video for a
                           thumbnail is work this department has no reason to do.
                         */}
-                            <div className={styles.canvasPlate}>
-                              <span className={styles.canvasMark}>CANVAS</span>
-                              <span className={styles.canvasState}>
-                                {release.canvas.copiedPath ? 'Attached' : 'None'}
-                              </span>
-                            </div>
-                            <div className={styles.assetActions}>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => void chooseAsset('canvas')}
-                              >
-                                {release.canvas.copiedPath ? 'Replace canvas' : 'Add canvas'}
-                              </Button>
-                              {release.canvas.copiedPath ? (
+                              <div className={styles.canvasPlate}>
+                                <span className={styles.canvasMark}>CANVAS</span>
+                                <span className={styles.canvasState}>
+                                  {release.canvas.copiedPath ? 'Attached' : 'None'}
+                                </span>
+                              </div>
+                              <div className={styles.assetActions}>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => onSetAsset('canvas', null)}
+                                  onClick={() => void chooseAsset('canvas')}
                                 >
-                                  Clear
+                                  {release.canvas.copiedPath ? 'Replace canvas' : 'Add canvas'}
                                 </Button>
-                              ) : null}
+                                {release.canvas.copiedPath ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => onSetAsset('canvas', null)}
+                                  >
+                                    Clear
+                                  </Button>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
                         </div>
