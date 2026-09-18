@@ -42,8 +42,8 @@ export function CreditPicker({
 }: CreditPickerProps): ReactNode {
   if (roster.length === 0) {
     return (
-      <div className={styles.field}>
-        <span className={styles.fieldLabel}>Credits</span>
+      <div className={styles.gutterRow}>
+        <span className={styles.gutterLabel}>Credits</span>
         <p className={styles.hint}>
           Nobody on the roster yet. Add people in ARTISTS and they can be credited here.
         </p>
@@ -57,8 +57,8 @@ export function CreditPicker({
 
   return (
     <div className={styles.credits}>
-      <div className={styles.field}>
-        <span className={styles.fieldLabel}>Main artist</span>
+      <div className={styles.gutterRow}>
+        <span className={styles.gutterLabel}>Main artist</span>
         <div className={styles.chips}>
           {roster.map((artist) => (
             <button
@@ -77,8 +77,8 @@ export function CreditPicker({
         </div>
       </div>
 
-      <div className={styles.field}>
-        <span className={styles.fieldLabel}>Featuring</span>
+      <div className={styles.gutterRow}>
+        <span className={styles.gutterLabel}>Featuring</span>
         <div className={styles.chips}>
           {roster.map((artist) => (
             <button

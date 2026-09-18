@@ -458,6 +458,7 @@ Tokens: `$titlebar-height: 40px`, `$rail-width: 232px`,
 | `Panel`               | The standard slab container. Props: `label`, `index`, `aside`, `focal`, `flush`, `animated`. |
 | `PageHeader`          | Section masthead: numbered label, purpose line, rule, epigraph, actions.                     |
 | `Field` / `FieldGrid` | Labelled readout; grid supports 1–4 columns.                                                 |
+| `Input` exports       | `TextInput`, `TextArea`, `SelectInput`, `DateInput`, `Checkbox`, `SearchInput`. Ruled fields; optional label gutter via `layout`. See D27. |
 | `Button`              | `variant: primary\|ghost\|danger`, `size: sm\|md`, `busy`.                                   |
 | `Meter`               | Linear progress with quarter ticks; `null` value = indeterminate sweep.                      |
 | `StatusDot`           | Square state indicator; **always pass `label`** — never colour alone.                        |
@@ -880,6 +881,38 @@ D20-D22 in `docs/DISCOGRAPHY.md`.
   is **skipped**, not fatal: a label master legitimately has no file here. The
   button is never disabled for these; re-deriving five service conditions in
   the renderer would be a second opinion that could disagree with the first.
+
+### Form fields are ruled, with their labels in a gutter — 2026-09-18
+
+D27 in `docs/DISCOGRAPHY.md`. **A change to the shared primitives**, so it
+reaches every form in the console.
+
+- **`%entry` in `primitives/Input.module.scss` is the restyle.** A field is
+  label, value, one hairline under it — the writable twin of `Field`. No fill,
+  no border box, no radius. `.input`, `.textarea` and `.select` all extend it,
+  so 45 call sites across seven features moved without an edit.
+- **Focus doubles the rule via `box-shadow`, in `--ch-accent`.** Not a
+  hard-coded colour (the accent can be re-pointed to gold in REGULATION); not a
+  thicker border (that reflows by a pixel per field).
+- **`:disabled` draws the rule dotted** — a constant state since D24.
+- **`layout="gutter"`** puts the label in a fixed 124px column so values share
+  one spine. Opt-in per call site. Placed by child order, because
+  `ControlShell` renders exactly three slots in a fixed sequence. **`.gutter`
+  (primitive) and `.gutterRow` (page) declare the same measure and must
+  agree** — chip rows and lists are not primitives and take theirs from the
+  page.
+- **Two additive props**, both defaulting to the old behaviour: `invalid`
+  (reddens the rule and the hint — nothing could say this before) and
+  `size="lg"` (display face, one field per form at most).
+- **The native date picker glyph is replaced, not hidden** —
+  `::-webkit-calendar-picker-indicator` goes transparent over a gold mark, so
+  the OS picker and keyboard entry both still work. The displayed *text* stays
+  in the platform format; a native date input cannot be told otherwise.
+- All five release-sheet tabs use the gutter. It costs the value column ~160px,
+  which `TrackList` and `DistributionEditor` feel.
+- There is **no component gallery or visual test in this repo**, so this
+  compiles clean and still has to be eyeballed on ARTISTS, DISPATCH,
+  REGULATION, an OBSERVATORY overlay and a Dialog.
 
 ### The cover leads the record, and the canvas plays — 2026-09-18
 

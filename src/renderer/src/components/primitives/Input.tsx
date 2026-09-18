@@ -14,8 +14,12 @@ import styles from './Input.module.scss'
  * The console had only readouts and switches until now; the project registry is
  * the first department where the operator authors data rather than adjusts it.
  * These follow the same rules as the rest of the design system — square
- * corners, hairline borders, institutional labels above the control — so a form
- * reads as a filed record rather than as a web form dropped into the shell.
+ * corners, institutional labels above the control — so a form reads as a filed
+ * record rather than as a web form dropped into the shell.
+ *
+ * A field is **ruled, not boxed**: the value sits on the surface with one
+ * hairline under it, which is `Field` — the read primitive — made writable.
+ * See `%entry` for why that replaced the sunken slot these started as.
  */
 
 interface ControlShellProps {
@@ -24,6 +28,10 @@ interface ControlShellProps {
   hint?: string
   /** Right-aligned slot in the label row: counts, units, inline actions. */
   aside?: ReactNode
+  /** Reddens the hint, for when it is a refusal rather than a note. */
+  invalid?: boolean
+  /** `gutter` puts the label in a fixed left column. See `.gutter`. */
+  layout?: 'stacked' | 'gutter'
   children: ReactNode
   className?: string
 }
@@ -33,11 +41,17 @@ function ControlShell({
   htmlFor,
   hint,
   aside,
+  invalid = false,
+  layout = 'stacked',
   children,
   className
 }: ControlShellProps): ReactNode {
   return (
-    <div className={[styles.control, className ?? ''].filter(Boolean).join(' ')}>
+    <div
+      className={[styles.control, layout === 'gutter' ? styles.gutter : '', className ?? '']
+        .filter(Boolean)
+        .join(' ')}
+    >
       <div className={styles.labelRow}>
         <label className={styles.label} htmlFor={htmlFor}>
           {label}
@@ -45,7 +59,9 @@ function ControlShell({
         {aside ? <span className={styles.aside}>{aside}</span> : null}
       </div>
       {children}
-      {hint ? <p className={styles.hint}>{hint}</p> : null}
+      {hint ? (
+        <p className={`${styles.hint} ${invalid ? styles.hintInvalid : ''}`}>{hint}</p>
+      ) : null}
     </div>
   )
 }
@@ -72,6 +88,17 @@ export interface TextInputProps {
   onEnter?: () => void
   maxLength?: number
   disabled?: boolean
+  /**
+   * The value has been refused, so the rule reddens with the hint.
+   *
+   * Additive and defaulted, because the alternative every caller reached for
+   * was passing a `hint` and leaving the field itself looking correct.
+   */
+  invalid?: boolean
+  /** `lg` sets the field in the display face. One per form, at most. */
+  size?: 'md' | 'lg'
+  /** `gutter` puts the label in a fixed left column beside the value. */
+  layout?: 'stacked' | 'gutter'
   className?: string
 }
 
@@ -87,16 +114,34 @@ export function TextInput({
   onEnter,
   maxLength,
   disabled = false,
+  invalid = false,
+  size = 'md',
+  layout = 'stacked',
   className
 }: TextInputProps): ReactNode {
   const id = useId()
 
   return (
-    <ControlShell label={label} htmlFor={id} hint={hint} aside={aside} className={className}>
+    <ControlShell
+      label={label}
+      htmlFor={id}
+      hint={hint}
+      aside={aside}
+      invalid={invalid}
+      layout={layout}
+      className={className}
+    >
       <input
         id={id}
         type={password ? 'password' : 'text'}
-        className={`${styles.input} ${mono || password ? styles.mono : ''}`}
+        className={[
+          styles.input,
+          mono || password ? styles.mono : '',
+          size === 'lg' ? styles.lg : '',
+          invalid ? styles.invalid : ''
+        ]
+          .filter(Boolean)
+          .join(' ')}
         value={value}
         placeholder={placeholder}
         maxLength={maxLength}
@@ -113,7 +158,7 @@ export function TextInput({
   )
 }
 
-export interface TextAreaProps extends Omit<TextInputProps, 'mono'> {
+export interface TextAreaProps extends Omit<TextInputProps, 'mono' | 'size'> {
   rows?: number
 }
 
@@ -124,18 +169,28 @@ export function TextArea({
   placeholder,
   hint,
   aside,
-  rows = 4,
+  rows = 3,
   maxLength,
   disabled = false,
+  invalid = false,
+  layout = 'stacked',
   className
 }: TextAreaProps): ReactNode {
   const id = useId()
 
   return (
-    <ControlShell label={label} htmlFor={id} hint={hint} aside={aside} className={className}>
+    <ControlShell
+      label={label}
+      htmlFor={id}
+      hint={hint}
+      aside={aside}
+      invalid={invalid}
+      layout={layout}
+      className={className}
+    >
       <textarea
         id={id}
-        className={styles.textarea}
+        className={`${styles.textarea} ${invalid ? styles.invalid : ''}`}
         rows={rows}
         value={value}
         placeholder={placeholder}
@@ -203,9 +258,25 @@ export interface DateInputProps {
   hint?: string
   aside?: ReactNode
   disabled?: boolean
+  invalid?: boolean
+  layout?: 'stacked' | 'gutter'
   className?: string
 }
 
+/**
+ * A date, with the operating system taken off it.
+ *
+ * Still a native `input[type=date]`, deliberately: it brings keyboard entry,
+ * locale handling and the platform picker, and replacing all three with a
+ * bespoke month popover is a feature rather than a restyle. What goes is the
+ * *chrome* — Chromium's pale picker glyph is made transparent and our own gold
+ * mark is drawn beneath it, at the same size and position, so the control the
+ * operator presses is the one they can see.
+ *
+ * The displayed text stays in the platform's format and cannot be changed
+ * while this is a native control. No loss: ISO in the monospace face is how
+ * the register writes dates everywhere else.
+ */
 export function DateInput({
   label,
   value,
@@ -213,20 +284,40 @@ export function DateInput({
   hint,
   aside,
   disabled = false,
+  invalid = false,
+  layout = 'stacked',
   className
 }: DateInputProps): ReactNode {
   const id = useId()
 
   return (
-    <ControlShell label={label} htmlFor={id} hint={hint} aside={aside} className={className}>
-      <input
-        id={id}
-        type="date"
-        className={`${styles.input} ${styles.mono} ${styles.date}`}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-      />
+    <ControlShell
+      label={label}
+      htmlFor={id}
+      hint={hint}
+      aside={aside}
+      invalid={invalid}
+      layout={layout}
+      className={className}
+    >
+      <span className={styles.dateWrap}>
+        <input
+          id={id}
+          type="date"
+          className={[styles.input, styles.mono, styles.date, invalid ? styles.invalid : '']
+            .filter(Boolean)
+            .join(' ')}
+          value={value}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        {/* Hidden from the tree: the input beneath it is the control. */}
+        {disabled ? null : (
+          <span className={styles.dateMark} aria-hidden="true">
+            ◆
+          </span>
+        )}
+      </span>
     </ControlShell>
   )
 }

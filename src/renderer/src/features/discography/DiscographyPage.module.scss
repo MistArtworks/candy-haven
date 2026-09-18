@@ -422,6 +422,91 @@
   gap: space(4);
 }
 
+/*
+ * The escape hatch this grid never had — the dossier's `formGridWide`.
+ *
+ * Kept for the tabs that still pair fields two-up. The RELEASE tab no longer
+ * needs it: pairing a chip row with a text field put two different heights in
+ * one row and nothing lined up, so that tab is a single gutter column now.
+ */
+.sheetFieldsWide {
+  grid-column: 1 / -1;
+}
+
+/*
+ * The gutter form: labels in a fixed column, values on one spine.
+ *
+ * The measure matches `.gutter` in `Input.module.scss` exactly, because half
+ * these rows are primitives carrying their own label and half are chip rows
+ * carrying the page's. Two numbers that have to agree — if one moves the
+ * other must, and the form is visibly wrong the moment they disagree.
+ */
+.gutterForm {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.gutterRow {
+  display: grid;
+  grid-template-columns: rem(124px) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: space(4);
+}
+
+// The primitive's own label, restated for the rows it does not draw.
+.gutterLabel {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-muted);
+}
+
+// A read-only value sitting on the gutter — the artwork sources, which are
+// reported and never typed into. `Field` draws these elsewhere, but its own
+// label-above layout would break the spine every other row sits on.
+.gutterValue {
+  @include readout(11px);
+  color: var(--ch-alabaster-400);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * A label in a 124px column cannot also hold a select beside it, so in the
+ * gutter the label row stacks and its aside takes the full width of the
+ * column. Only the LABEL field uses one — the "used before" list.
+ */
+.gutterRow .inlineSelect,
+.gutter .inlineSelect {
+  width: 100%;
+  min-width: 0;
+}
+
+/*
+ * A consequence worth knowing, not a warning.
+ *
+ * Sits in the value column so it reads as belonging to the controls above it
+ * rather than to the form as a whole. No `max-width`: at 78ch it stopped
+ * half way across the sheet and looked like a column that had failed to
+ * span, which is the opposite of quiet.
+ */
+.gutterNote {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin-left: calc(#{rem(124px)} + #{space(4)});
+}
+
+@include below('md') {
+  .gutterRow {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: space(2);
+  }
+
+  .gutterNote {
+    margin-left: 0;
+  }
+}
+
 @include below('md') {
   .sheetFields {
     grid-template-columns: minmax(0, 1fr);
@@ -455,11 +540,19 @@
   color: var(--ch-text-secondary);
   background: var(--ch-surface-sunken);
   border: $hairline solid var(--ch-line);
-  padding: space(1) space(3);
+  /*
+   * The same scale `DialogChip` uses, which matters more than it sounds:
+   * RAISE A RELEASE and the sheet edit the same kind and status, and they
+   * were drawing that one choice at two different sizes. Also brings the row
+   * up to the height of the ruled fields beside it, instead of reading as a
+   * smaller system tucked underneath them.
+   */
+  padding: space(2) space(3);
   cursor: pointer;
   transition:
     color $duration-fast linear,
-    border-color $duration-fast linear;
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
 
   &:hover {
     color: var(--ch-text-primary);
@@ -468,6 +561,7 @@
   &[data-on] {
     color: var(--ch-gold-200);
     border-color: var(--ch-line-gold);
+    background: var(--ch-surface-raised);
   }
 
   &:focus-visible {
@@ -475,20 +569,6 @@
   }
 }
 
-.notes {
-  @include readout(11px);
-  color: var(--ch-text-primary);
-  background: var(--ch-surface-sunken);
-  border: $hairline solid var(--ch-line);
-  padding: space(3);
-  resize: vertical;
-  line-height: 1.6;
-  font-family: var(--ch-font-body);
-
-  &:focus-visible {
-    @include focus-ring(1px);
-  }
-}
 
 // Pushes the destructive control away from the constructive one, so REMOVE
 // and READY TO PUBLISH are never adjacent under the pointer.
@@ -778,18 +858,32 @@
   color: var(--ch-text-faint);
 }
 
+/*
+ * `ReleaseDialog`'s date. Ruled like the primitive, because the dialog that
+ * raises a release and the sheet that edits it should not draw one field two
+ * ways. It stays a raw input here rather than becoming `DateInput`: it sits
+ * inside a `DialogField`, which already supplies the label a `DateInput`
+ * would draw a second time.
+ */
 .date {
   @include readout(11px);
   color: var(--ch-text-primary);
-  background: var(--ch-surface-sunken);
-  border: $hairline solid var(--ch-line);
-  padding: space(2) space(3);
+  background: none;
+  border: 0;
+  border-bottom: $hairline solid var(--ch-line);
+  padding: space(2) 0;
   width: rem(180px);
   // Without this the native picker draws its glyph as black-on-black.
   color-scheme: dark;
 
+  &:hover {
+    border-bottom-color: var(--ch-line-strong);
+  }
+
   &:focus-visible {
-    @include focus-ring(1px);
+    outline: none;
+    border-bottom-color: var(--ch-accent);
+    box-shadow: 0 1px 0 0 var(--ch-accent);
   }
 }
 

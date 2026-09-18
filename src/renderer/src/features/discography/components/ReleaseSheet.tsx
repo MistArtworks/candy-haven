@@ -27,9 +27,8 @@ import {
 import type { ProjectSummary } from '@shared/domain/projects'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
-import { TextInput } from '@renderer/components/primitives/Input'
+import { DateInput, TextArea, TextInput } from '@renderer/components/primitives/Input'
 import { Plate } from '@renderer/components/primitives/Plate'
-import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { useBackdropDismiss } from '@renderer/hooks/useBackdropDismiss'
 import type { PublishReport } from '@renderer/hooks/useDiscography'
 import { useEchoedText } from '@renderer/hooks/useEchoedText'
@@ -303,9 +302,7 @@ export function ReleaseSheet({
                   variant={editing ? 'primary' : 'ghost'}
                   onClick={() => setEditing((on) => !on)}
                   title={
-                    editing
-                      ? 'Stop editing — everything is already saved'
-                      : 'Edit this release'
+                    editing ? 'Stop editing — everything is already saved' : 'Edit this release'
                   }
                 >
                   {editing ? 'Done' : 'Edit'}
@@ -461,110 +458,124 @@ export function ReleaseSheet({
 
                   {tab === 'release' ? (
                     <>
+                      {/*
+                        One column with the labels in a gutter.
+
+                        It was a two-column grid pairing fields by meaning, and the pairing
+                        was the problem: a chip row and a text field in the same row have
+                        different heights, so nothing lined up and the eye had no spine to
+                        run down. With the labels in a fixed column every value starts at
+                        the same x by construction — which is what the read view's
+                        `FieldGrid columns={1}` already does, and what a register looks
+                        like.
+                      */}
                       <motion.div
-                        className={styles.sheetFields}
+                        className={styles.gutterForm}
                         variants={animate ? sheetTabItemVariants : undefined}
                       >
+                        {/* A release has one name, and it leads. */}
                         <TextInput
                           label="Title"
                           value={title}
                           onChange={setTitle}
                           maxLength={MAX_RELEASE_TITLE}
+                          size="lg"
+                          layout="gutter"
                         />
+
                         <TextInput
                           label="Subtitle"
                           value={subtitle}
                           onChange={setSubtitle}
                           maxLength={MAX_RELEASE_SUBTITLE}
                           placeholder="Nasko Remix · Deluxe Edition"
+                          layout="gutter"
                         />
-                      </motion.div>
 
-                      <motion.div
-                        className={styles.field}
-                        variants={animate ? sheetTabItemVariants : undefined}
-                      >
-                        <span className={styles.fieldLabel}>Kind</span>
-                        <div className={styles.chips}>
-                          {RELEASE_KINDS.map((kind: ReleaseKind) => (
-                            <button
-                              key={kind}
-                              type="button"
-                              className={styles.chip}
-                              data-on={release.kind === kind || undefined}
-                              aria-pressed={release.kind === kind}
-                              onClick={() => onPatch({ kind })}
-                            >
-                              {RELEASE_KIND_LABEL[kind]}
-                            </button>
-                          ))}
+                        {/*
+                          The chip rows are not primitives, so they get the gutter from the
+                          page rather than from `ControlShell` — same two columns, same
+                          measure, so they sit on the one spine as everything else.
+                        */}
+                        <div className={styles.gutterRow}>
+                          <span className={styles.gutterLabel}>Kind</span>
+                          <div className={styles.chips}>
+                            {RELEASE_KINDS.map((kind: ReleaseKind) => (
+                              <button
+                                key={kind}
+                                type="button"
+                                className={styles.chip}
+                                data-on={release.kind === kind || undefined}
+                                aria-pressed={release.kind === kind}
+                                onClick={() => onPatch({ kind })}
+                              >
+                                {RELEASE_KIND_LABEL[kind]}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </motion.div>
 
-                      <motion.div
-                        className={styles.field}
-                        variants={animate ? sheetTabItemVariants : undefined}
-                      >
-                        <span className={styles.fieldLabel}>Status</span>
-                        <div className={styles.chips}>
-                          {RELEASE_STATUSES.map((status: ReleaseStatus) => (
-                            <button
-                              key={status}
-                              type="button"
-                              className={styles.chip}
-                              data-on={release.status === status || undefined}
-                              aria-pressed={release.status === status}
-                              title={RELEASE_STATUS_PURPOSE[status]}
-                              onClick={() => onPatch({ status })}
-                            >
-                              {RELEASE_STATUS_LABEL[status]}
-                            </button>
-                          ))}
+                        <div className={styles.gutterRow}>
+                          <span className={styles.gutterLabel}>Status</span>
+                          <div className={styles.chips}>
+                            {RELEASE_STATUSES.map((status: ReleaseStatus) => (
+                              <button
+                                key={status}
+                                type="button"
+                                className={styles.chip}
+                                data-on={release.status === status || undefined}
+                                aria-pressed={release.status === status}
+                                title={RELEASE_STATUS_PURPOSE[status]}
+                                onClick={() => onPatch({ status })}
+                              >
+                                {RELEASE_STATUS_LABEL[status]}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <input
-                          type="date"
-                          className={styles.date}
+
+                        {/*
+                          The primitive, not a third raw `input type=date`. The refusal rides
+                          on the field as its hint rather than standing underneath as a loose
+                          paragraph, so the thing that is wrong and the thing that says so
+                          are the same object.
+                        */}
+                        <DateInput
+                          label="Release date"
                           value={release.releaseDate ?? ''}
-                          aria-label="Release date"
-                          onChange={(event) => onPatch({ releaseDate: event.target.value || null })}
+                          onChange={(value) => onPatch({ releaseDate: value || null })}
+                          invalid={release.status === 'released' && !release.releaseDate}
+                          layout="gutter"
+                          hint={
+                            release.status === 'released' && !release.releaseDate
+                              ? 'A released entry needs the date it came out.'
+                              : undefined
+                          }
                         />
-                        {/*
-                        The service refuses RELEASED without a date, so the field
-                        says so before it is pressed rather than after.
-                      */}
-                        {release.status === 'released' && !release.releaseDate ? (
-                          <p className={styles.warn}>A released entry needs the date it came out.</p>
-                        ) : null}
 
                         {/*
-                        What flipping this does to the ARCHIVE, said before it is
-                        pressed.
-
-                        RELEASED moves every project behind a track to the RELEASED
-                        stage, which is a write into another department — the kind
-                        of consequence that should never be a surprise, however
-                        much it is the interlink the operator asked for.
-                      */}
+                          What flipping the status does to the ARCHIVE, said before it is
+                          pressed. RELEASED moves every project behind a track to the
+                          RELEASED stage — a write into another department, and never
+                          something to discover after the fact. In the value column, under
+                          the two controls it is about, and quiet: a consequence to be aware
+                          of rather than a warning.
+                        */}
                         {release.tracks.some((track) => track.projectId !== null) ? (
-                          <p className={styles.hint}>
+                          <p className={styles.gutterNote}>
                             {release.status === 'released'
-                              ? 'The linked projects are at RELEASED in the ARCHIVE. Moving this back returns them to TRACK READY.'
-                              : 'Marking this RELEASED will move every linked project to the RELEASED stage in the ARCHIVE.'}
+                              ? 'Linked projects sit at RELEASED in the ARCHIVE. Moving this back returns them to TRACK READY.'
+                              : 'Marking this RELEASED moves every linked project to RELEASED in the ARCHIVE.'}
                           </p>
                         ) : null}
-                      </motion.div>
 
-                      <motion.div
-                        className={styles.field}
-                        variants={animate ? sheetTabItemVariants : undefined}
-                      >
-                        <span className={styles.fieldLabel}>Notes</span>
-                        <textarea
-                          className={styles.notes}
+                        <TextArea
+                          label="Notes"
                           value={notes}
-                          rows={4}
+                          onChange={setNotes}
+                          rows={3}
                           placeholder="Who mastered it, what the deal was, what to remember next time."
-                          onChange={(event) => setNotes(event.target.value)}
+                          layout="gutter"
                         />
                       </motion.div>
                     </>
@@ -583,7 +594,10 @@ export function ReleaseSheet({
                       usually is — the main artist of a single generally produced
                       and wrote it too.
                     */}
-                      <motion.div variants={animate ? sheetTabItemVariants : undefined}>
+                      <motion.div
+                        className={styles.gutterForm}
+                        variants={animate ? sheetTabItemVariants : undefined}
+                      >
                         <CreditPicker
                           roster={roster}
                           billed={release.artistIds}
@@ -591,19 +605,16 @@ export function ReleaseSheet({
                           onBilled={(artistIds) => onPatch({ artistIds })}
                           onFeatured={(featuredArtistIds) => onPatch({ featuredArtistIds })}
                         />
-                      </motion.div>
 
-                      <motion.div
-                        className={styles.field}
-                        variants={animate ? sheetTabItemVariants : undefined}
-                      >
-                        <span className={styles.fieldLabel}>Credits</span>
-                        <CreditRows
-                          credits={release.credits}
-                          roster={roster}
-                          busy={busy}
-                          onChange={(credits: ReleaseCredit[]) => onPatch({ credits })}
-                        />
+                        <div className={styles.gutterRow}>
+                          <span className={styles.gutterLabel}>Credits</span>
+                          <CreditRows
+                            credits={release.credits}
+                            roster={roster}
+                            busy={busy}
+                            onChange={(credits: ReleaseCredit[]) => onPatch({ credits })}
+                          />
+                        </div>
                       </motion.div>
                     </>
                   ) : null}
@@ -611,8 +622,8 @@ export function ReleaseSheet({
                   {/* ------------------------------------------------ the tracks */}
 
                   {tab === 'tracks' ? (
-                    <div className={styles.field}>
-                      <span className={styles.fieldLabel}>Running order</span>
+                    <div className={styles.gutterRow}>
+                      <span className={styles.gutterLabel}>Running order</span>
                       <TrackList
                         tracks={release.tracks}
                         maxTracks={maxTracksFor(release.kind)}
@@ -634,7 +645,7 @@ export function ReleaseSheet({
                   {tab === 'trade' ? (
                     <>
                       <motion.div
-                        className={styles.sheetFields}
+                        className={styles.gutterForm}
                         variants={animate ? sheetTabItemVariants : undefined}
                       >
                         <TextInput
@@ -642,6 +653,7 @@ export function ReleaseSheet({
                           value={label}
                           onChange={setLabel}
                           maxLength={MAX_LABEL_NAME}
+                          layout="gutter"
                           placeholder="Empty means self-released"
                           // Autocompletes from labels already used, which is what
                           // keeps the strings consistent without an id behind them
@@ -672,53 +684,49 @@ export function ReleaseSheet({
                           onChange={setCatalogue}
                           maxLength={MAX_CATALOGUE_NUMBER}
                           mono
+                          layout="gutter"
                         />
-                      </motion.div>
 
-                      <motion.div
-                        className={styles.sheetFields}
-                        variants={animate ? sheetTabItemVariants : undefined}
-                      >
                         <TextInput
                           label="UPC"
                           value={upc}
                           onChange={setUpc}
                           mono
+                          layout="gutter"
+                          invalid={Boolean(upc) && !isValidUpc(upc)}
                           hint={
                             upc && !isValidUpc(upc)
                               ? 'A UPC is twelve to fourteen digits.'
                               : 'Identifies the product. An ISRC identifies a recording and lives on the track.'
                           }
                         />
+
                         <TextInput
                           label="℗ Phonographic"
                           value={phonographic}
                           onChange={setPhonographic}
                           maxLength={MAX_COPYRIGHT_LINE}
                           placeholder="2026 Candy Heist"
+                          layout="gutter"
                         />
-                      </motion.div>
 
-                      <motion.div variants={animate ? sheetTabItemVariants : undefined}>
                         <TextInput
                           label="© Copyright"
                           value={copyright}
                           onChange={setCopyright}
                           maxLength={MAX_COPYRIGHT_LINE}
                           placeholder="2026 Candy Heist"
+                          layout="gutter"
                         />
-                      </motion.div>
 
-                      <motion.div
-                        className={styles.field}
-                        variants={animate ? sheetTabItemVariants : undefined}
-                      >
-                        <span className={styles.fieldLabel}>Distribution</span>
-                        <DistributionEditor
-                          entries={release.distribution}
-                          out={release.status === 'released'}
-                          onChange={(distribution) => onPatch({ distribution })}
-                        />
+                        <div className={styles.gutterRow}>
+                          <span className={styles.gutterLabel}>Distribution</span>
+                          <DistributionEditor
+                            entries={release.distribution}
+                            out={release.status === 'released'}
+                            onChange={(distribution) => onPatch({ distribution })}
+                          />
+                        </div>
                       </motion.div>
                     </>
                   ) : null}
@@ -728,98 +736,101 @@ export function ReleaseSheet({
                   {tab === 'artwork' ? (
                     <>
                       <motion.div
-                        className={styles.assets}
+                        className={styles.gutterForm}
                         variants={animate ? sheetTabItemVariants : undefined}
                       >
-                        <div className={styles.asset}>
-                          {/*
+                        <div className={styles.gutterRow}>
+                          <span className={styles.gutterLabel}>Cover art</span>
+                          <div className={styles.asset}>
+                            {/*
                           Drawn large here, where there is room for it. The sheet
                           used to give the cover a 120px well between the links and
                           the paperwork, which is a thumbnail of the one thing on a
                           release anybody recognises it by.
                         */}
-                          <Plate
-                            path={release.artwork.copiedPath}
-                            fallback="COVER"
-                            size={320}
-                            alt="Cover art"
-                          />
-                          <div className={styles.assetActions}>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => void chooseAsset('artwork')}
-                            >
-                              {release.artwork.copiedPath ? 'Replace cover' : 'Add cover'}
-                            </Button>
-                            {release.artwork.copiedPath ? (
+                            <Plate
+                              path={release.artwork.copiedPath}
+                              fallback="COVER"
+                              size={320}
+                              alt="Cover art"
+                            />
+                            <div className={styles.assetActions}>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => onSetAsset('artwork', null)}
+                                onClick={() => void chooseAsset('artwork')}
                               >
-                                Clear
+                                {release.artwork.copiedPath ? 'Replace cover' : 'Add cover'}
                               </Button>
-                            ) : null}
+                              {release.artwork.copiedPath ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => onSetAsset('artwork', null)}
+                                >
+                                  Clear
+                                </Button>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
 
-                        <div className={styles.asset}>
-                          {/*
+                        <div className={styles.gutterRow}>
+                          <span className={styles.gutterLabel}>Canvas</span>
+                          <div className={styles.asset}>
+                            {/*
                           The canvas is a looping video, so it is reported rather
                           than drawn — a still frame of a 9:16 loop tells you less
                           than its filename does, and decoding video for a
                           thumbnail is work this department has no reason to do.
                         */}
-                          <div className={styles.canvasPlate}>
-                            <span className={styles.canvasMark}>CANVAS</span>
-                            <span className={styles.canvasState}>
-                              {release.canvas.copiedPath ? 'Attached' : 'None'}
-                            </span>
-                          </div>
-                          <div className={styles.assetActions}>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => void chooseAsset('canvas')}
-                            >
-                              {release.canvas.copiedPath ? 'Replace canvas' : 'Add canvas'}
-                            </Button>
-                            {release.canvas.copiedPath ? (
+                            <div className={styles.canvasPlate}>
+                              <span className={styles.canvasMark}>CANVAS</span>
+                              <span className={styles.canvasState}>
+                                {release.canvas.copiedPath ? 'Attached' : 'None'}
+                              </span>
+                            </div>
+                            <div className={styles.assetActions}>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => onSetAsset('canvas', null)}
+                                onClick={() => void chooseAsset('canvas')}
                               >
-                                Clear
+                                {release.canvas.copiedPath ? 'Replace canvas' : 'Add canvas'}
                               </Button>
-                            ) : null}
+                              {release.canvas.copiedPath ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => onSetAsset('canvas', null)}
+                                >
+                                  Clear
+                                </Button>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
-                      </motion.div>
 
-                      {/*
-                      Where each copy came from. Both are *copies* — the archive
-                      takes its own, under `Media\releases\`, because a path into
-                      somebody's Downloads folder is a cover that disappears the
-                      first time they tidy up. This says what was copied, long
-                      after that folder has been emptied.
-                    */}
-                      <motion.div variants={animate ? sheetTabItemVariants : undefined}>
-                        <FieldGrid columns={2}>
-                          <Field
-                            label="Cover source"
-                            value={release.artwork.sourcePath ?? 'None'}
-                            mono
-                            selectable
-                          />
-                          <Field
-                            label="Canvas source"
-                            value={release.canvas.sourcePath ?? 'None'}
-                            mono
-                            selectable
-                          />
-                        </FieldGrid>
+                        {/*
+                          Where each copy came from. Both are *copies* — the
+                          archive takes its own under `Media\releases\`, because a
+                          path into somebody's Downloads folder is a cover that
+                          disappears the first time they tidy up. This says what
+                          was copied, long after that folder has been emptied.
+                        */}
+                        <div className={styles.gutterRow}>
+                          <span className={styles.gutterLabel}>Cover source</span>
+                          <span className={styles.gutterValue} data-selectable>
+                            {release.artwork.sourcePath ?? 'None'}
+                          </span>
+                        </div>
+
+                        <div className={styles.gutterRow}>
+                          <span className={styles.gutterLabel}>Canvas source</span>
+                          <span className={styles.gutterValue} data-selectable>
+                            {release.canvas.sourcePath ?? 'None'}
+                          </span>
+                        </div>
                       </motion.div>
                     </>
                   ) : null}

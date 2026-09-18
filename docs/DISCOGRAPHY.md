@@ -1695,3 +1695,147 @@ at in memory.
 collapsed the `\r` in `Media\releases\` into a real newline — the same
 accident that once committed a NUL byte into `FolderTrail.tsx`. Repaired, and
 worth recording as the third instance of one class of bug.
+
+## 32. D27 — a field is ruled, and its label sits in a gutter
+
+*"Make this look modern, better UX and UI, but also fitting to the aesthetic."*
+
+D25 and D26 designed the half of the sheet that reads. Pressing EDIT dropped
+into the half that had never been designed: six tall grey boxes with a Windows
+date widget among them, labels stacked above each one, and no two values
+starting at the same height.
+
+Fixed **in the shared primitives** at the operator's choice, so every form in
+the console moves together rather than DISCOGRAPHY drifting away from ARTISTS,
+DISPATCH, REGULATION and the overlay forms.
+
+### Part one: the field is ruled, not boxed
+
+Label, value, one hairline underneath. No fill, no four-sided border, no
+radius.
+
+```
+  before                        after
+
+  TITLE                         TITLE      Moves Like Jaggar
+  +------------------------+               ──────────────────────────
+  |  Moves Like Jaggar     |
+  +------------------------+
+```
+
+Not a generic modernisation: `Field` — the *read* primitive the whole console
+is built from, and now the details view — is already label, value, no frame. A
+ruled input is that control made writable, so the form and the record are two
+states of one object instead of two products. Denser as a side effect, since
+the box chrome was about a third of every field's height.
+
+| Part | Before | After |
+| --- | --- | --- |
+| Frame | sunken fill, hairline all round, 2px radius | one rule under the value |
+| Focus | outline suppressed, border recoloured, background darkened | the rule doubles, in `--ch-accent` |
+| Invalid | the hint said so; the field looked fine | the rule reddens and the hint with it |
+| Disabled | greyed text in a live-looking box | the rule goes **dotted** |
+| Chip entry | its own box | ruled, so it shares the baseline |
+
+Focus uses `--ch-accent` rather than a hard-coded colour because the operator
+can re-point the accent to gold in REGULATION, and a focus treatment that
+ignored that would be the only control in the console that did. The doubling is
+a `box-shadow`, not a thicker border, so nothing reflows by a pixel as the
+caret moves down a form. `:disabled` earns its detail: the sheet is read-only
+by default since D24, so a disabled field is constant rather than an edge case.
+
+### Part two: the label moves into a gutter
+
+The first attempt kept labels stacked above their fields and paired the fields
+two-up by meaning — subtitle beside kind, status beside date. The operator's
+verdict was *"I don't like the way this is structured"*, and they were right
+about the cause: **a chip row and a text field in the same row have different
+heights**, so nothing lined up, and every label cost a line that pushed the
+next value to a new altitude. A form of eight fields had no spine to read down.
+
+So labels sit in a fixed 124px column and values begin at the same x by
+construction. It is what `FieldGrid columns={1}` already does on the read side,
+and what a register looks like.
+
+```
+TITLE           Moves Like Jaggar
+                ──────────────────────────────────
+SUBTITLE        Mist Remix
+                ──────────────────────────────────
+KIND            [SINGLE] [EP] [ALBUM] [COMP] [REMIX]
+STATUS          [SCHEDULED] [RELEASED]
+RELEASE DATE    2026-09-19  ◆
+                ─────────────────
+                Marking this RELEASED moves every linked
+                project to RELEASED in the ARCHIVE.
+NOTES           Who mastered it, what the deal was…
+```
+
+`layout="gutter"` on `ControlShell` and everything that wraps it, opt-in per
+call site — a dialog with three fields does not want it. Placed by child order
+rather than by class, because the shell renders exactly three slots in a fixed
+sequence and naming them in CSS would only restate that.
+
+**Applied to all five tabs**, at the operator's instruction. The rows that are
+not primitives — the kind and status chips, the running order, the credits, the
+distribution list — get the same two columns from the page's `.gutterRow`, and
+`CreditPicker` drew its own two labels and now draws them on the gutter too.
+The measure is declared in two places, `.gutter` and `.gutterRow`, and they
+have to agree; the form is visibly wrong the moment they do not.
+
+One trade worth stating: a 124px gutter takes that width off the value column,
+so `TrackList` and `DistributionEditor` draw in about 620px rather than 780px.
+Consistency was the explicit instruction and this is what it costs.
+
+### The date field
+
+Chromium's picker glyph was the one piece of Windows visible on the page — a
+pale square in a system face, and `::-webkit-calendar-picker-indicator` was
+styled nowhere in the renderer. It is now transparent with a gold mark drawn
+beneath it at the same size and position, so the control pressed is the one
+seen, and keyboard entry and the OS picker both keep working.
+
+**What the plan promised and this does not deliver:** the field reading
+`19 SEP 2026`. A native date input always renders in the platform's format and
+no stylesheet reaches that text; changing it means replacing the control, which
+is a feature. No real loss — ISO in the monospace face is how the register
+writes a date everywhere else, and it sorts.
+
+### Two additive props, so no call site had to change
+
+The restyle reaches 45 existing call sites across seven features and none
+needed an edit.
+
+- **`invalid`**, because nothing could say it. Every caller signalled a bad
+  value with a `hint` and left the control looking correct — the UPC field in
+  this sheet did exactly that. It now marks itself.
+- **`size='lg'`**, display face, for the field a record is called by. The
+  release title and nowhere else: one per form, the same single-focal-object
+  rule the page grid follows.
+
+### Three findings that changed the work
+
+1. **`DateInput` had one consumer — CALENDAR.** DISCOGRAPHY drew its own raw
+   `<input type="date">` **twice**, in the sheet and in `ReleaseDialog`. The
+   sheet now uses the primitive; the dialog keeps a raw input because it sits
+   in a `DialogField` that already supplies the label, but it is ruled to match.
+2. **The sheet's chips were a different size from `DialogChip`'s** — 4px of
+   vertical padding against 8px. RAISE A RELEASE and the sheet edited the same
+   two fields at two different scales. Closed by adopting the dialog's.
+3. **`Notes` was a bare `<textarea>`** with a hand-rolled class, the last of
+   the sheet's shadow controls. It is the `TextArea` primitive now, at three
+   rows rather than five — it had been the largest object on the tab for the
+   field that matters least.
+
+### Still open
+
+- **A drawn date control.** `Select` already solves every hard part —
+  portalled, flips up when there is no room below, closes on scroll, full
+  keyboard model, and a `button` trigger that `fieldset[disabled]` still
+  reaches. It is also **unused**: its last call site went with TRANSMISSIONS
+  and nobody removed it. A date popover on that pattern would finish this.
+- **`Input` and its exports were absent from `PROJECT_CONTEXT` §7.3's
+  primitives table.** Added, but they had been undocumented since they were
+  written.
+- **No component gallery exists in this repo**, so a primitives change
+  compiles clean and still has to be looked at on every form it reaches.

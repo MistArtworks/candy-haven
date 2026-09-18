@@ -7,6 +7,52 @@
   min-width: 0;
 }
 
+/*
+ * The label in a gutter, the value beside it.
+ *
+ * Stacked labels are right for a sparse form and wrong for a dense one: with
+ * eight fields down a sheet, every label costs a line and every value starts
+ * at a different height, so the eye has no spine to run down. In a gutter the
+ * values all begin at the same x and the labels read as a column of their own
+ * — which is what a register looks like, and what `Field` already does on the
+ * read side at `FieldGrid columns={1}`.
+ *
+ * Opt-in per call site. A dialog with three fields does not want it.
+ *
+ * Placed by child order rather than by class, because `ControlShell` renders
+ * exactly three slots in a fixed sequence — label row, control, optional hint
+ * — and naming them here would only restate that.
+ */
+.gutter {
+  display: grid;
+  grid-template-columns: rem(124px) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: space(4);
+  row-gap: space(1);
+
+  > *:nth-child(1) {
+    grid-column: 1;
+  }
+
+  > *:nth-child(2) {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  > *:nth-child(3) {
+    grid-column: 2;
+  }
+}
+
+// The label row stops being a row: in a gutter the aside would be pushed to
+// the far side of a 124px column, which reads as a stray number.
+.gutter .labelRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
 .labelRow {
   display: flex;
   align-items: baseline;
@@ -30,42 +76,80 @@
   line-height: 1.5;
 }
 
+// The same line, when it is a refusal rather than a note.
+.hintInvalid {
+  color: var(--ch-crimson-400);
+}
+
 // --------------------------------------------------------------- text entry
 
-// A recessed slot. The field is darker than the panel it sits in so entry areas
-// read as cut into the surface rather than raised off it.
+/*
+ * A ruled field, not a recessed slot.
+ *
+ * It used to be a box — sunken fill, hairline on four sides, a 2px radius —
+ * which made a form the most chrome-heavy surface in a console otherwise built
+ * from rules and institutional labels. Six of them stacked down a sheet read
+ * as a web form dropped into the shell, which is the one thing the comment at
+ * the top of this file says these controls exist not to be.
+ *
+ * Now a field is the writable twin of `Field`, the read primitive: label
+ * above, value on the surface, one rule underneath. The form and the record
+ * are two states of one object rather than two products — which is the whole
+ * point now that the release sheet draws both (D25). Losing the box also takes
+ * about a third off every field's height without touching the type size.
+ */
 %entry {
   width: 100%;
   min-width: 0;
-  background: var(--ch-surface-sunken);
-  @include hairline(all, 0.12);
-  border-radius: $radius-control;
-  padding: space(2) space(3);
+  background: none;
+  border: 0;
+  border-bottom: $hairline solid var(--ch-line);
+  border-radius: 0;
+  padding: space(2) 0;
   color: var(--ch-text-primary);
   font-family: var(--ch-font-body);
   font-size: rem(13px);
   line-height: 1.5;
   transition:
     border-color $duration-fast linear,
-    background-color $duration-fast linear;
+    box-shadow $duration-fast linear;
 
   &::placeholder {
     color: var(--ch-text-faint);
   }
 
   &:hover:not(:disabled) {
-    border-color: var(--ch-line-strong);
+    border-bottom-color: var(--ch-line-strong);
   }
 
+  /*
+   * Focus doubles the rule rather than drawing a ring around the field.
+   *
+   * Through `box-shadow` rather than a thicker border, so nothing reflows by a
+   * pixel as the caret moves down a form. `--ch-accent` rather than a
+   * hard-coded colour: the operator can re-point the accent to gold in
+   * REGULATION, and a focus treatment that ignored that would be the only
+   * control in the console that did.
+   */
   &:focus-visible {
     outline: none;
-    border-color: var(--ch-accent);
-    background: var(--ch-obsidian-800);
+    border-bottom-color: var(--ch-accent);
+    box-shadow: 0 1px 0 0 var(--ch-accent);
   }
 
+  /*
+   * A field that cannot be written says so in the rule.
+   *
+   * Dotted, which stays legible at a hairline where a lighter solid does not.
+   * Worth the care: the release sheet is read-only by default now (D24), so a
+   * disabled field is a state the operator sees constantly rather than an
+   * edge case.
+   */
   &:disabled {
     color: var(--ch-text-muted);
     cursor: not-allowed;
+    border-bottom-style: dotted;
+    border-bottom-color: var(--ch-line);
   }
 }
 
@@ -73,10 +157,40 @@
   @extend %entry;
 }
 
+/*
+ * The record's own name, and the only field allowed to be bigger.
+ *
+ * In the display face, because at this size the body face reads as a heading
+ * that forgot to be one. One per form, on the field the record is called by —
+ * the same single-focal-object rule the page grid follows.
+ */
+.lg {
+  font-family: var(--ch-font-display);
+  font-size: rem(17px);
+  letter-spacing: 0.06em;
+}
+
+/*
+ * Refused, and the field says so rather than only the hint beneath it.
+ *
+ * Callers used to signal a bad value by passing a `hint` and nothing else, so
+ * the field itself went on looking perfectly fine while a line of grey text
+ * under it disagreed — the UPC field did exactly that. Crimson is right here
+ * on the palette's own terms: this is live state, not decoration.
+ */
+.invalid {
+  border-bottom-color: var(--ch-crimson-400);
+
+  &:focus-visible {
+    border-bottom-color: var(--ch-crimson-400);
+    box-shadow: 0 1px 0 0 var(--ch-crimson-400);
+  }
+}
+
 .textarea {
   @extend %entry;
   resize: vertical;
-  min-height: rem(72px);
+  min-height: rem(58px);
   line-height: 1.6;
 
   /*
@@ -108,11 +222,56 @@
   @include readout(12px);
 }
 
+/*
+ * The date field, with the operating system taken off it.
+ *
+ * Chromium's own picker glyph is the one piece of Windows visible on the page:
+ * a pale square in a system face, sized and coloured by the platform. It is
+ * made transparent rather than removed, and our own mark is drawn underneath
+ * at the same size and position — so the thing the operator presses is the
+ * thing they see, and the OS picker and keyboard entry both keep working.
+ *
+ * What cannot be changed is the *text*: a native date input always renders in
+ * the platform's own format, so this reads `2026-09-19` rather than
+ * `19 SEP 2026`. That is no loss here — ISO in the monospace face is how the
+ * register writes a date everywhere else, and it sorts.
+ */
+.dateWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: rem(190px);
+}
+
 .date {
-  // Chromium draws the picker glyph from the colour scheme; declaring dark
-  // keeps it from rendering as a bright white square on the obsidian field.
+  // Declaring dark keeps Chromium from drawing its furniture for a light page.
   color-scheme: dark;
-  max-width: rem(180px);
+  padding-right: space(6);
+
+  &::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 0;
+    width: rem(16px);
+    height: rem(16px);
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  &:disabled::-webkit-calendar-picker-indicator {
+    cursor: not-allowed;
+  }
+}
+
+// Gold, because an unset date is the thing the sheet is waiting for.
+.dateMark {
+  position: absolute;
+  right: 0;
+  color: var(--ch-gold-400);
+  font-size: rem(10px);
+  line-height: 1;
+  pointer-events: none;
 }
 
 // ------------------------------------------------------------------- select
@@ -213,14 +372,15 @@
   flex-wrap: wrap;
   align-items: center;
   gap: space(1);
-  background: var(--ch-surface-sunken);
-  @include hairline(all, 0.12);
-  border-radius: $radius-control;
-  padding: space(1) space(2);
-  min-height: rem(34px);
+  // Ruled like every other field, so a chip entry and a text entry sit on one
+  // baseline instead of one being a box beside the other.
+  border-bottom: $hairline solid var(--ch-line);
+  padding: space(1) 0;
+  min-height: rem(30px);
 
   &:focus-within {
-    border-color: var(--ch-accent);
+    border-bottom-color: var(--ch-accent);
+    box-shadow: 0 1px 0 0 var(--ch-accent);
   }
 }
 
