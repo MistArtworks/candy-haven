@@ -1031,10 +1031,30 @@ $list-cap: min(#{rem(280px)}, 24vh);
   padding: space(1);
 }
 
+// The tile and its play control, as siblings.
+//
+// A wrapper exists because a button cannot be nested inside a button, and both
+// of these have to be real ones — see `FinalMaster.tsx`. The hover lift lives
+// here rather than on the tile so the play control travels with it instead of
+// staying behind.
+.finalTileWrap {
+  position: relative;
+  display: flex;
+  transition: transform $duration-base $ease-out-expo;
+
+  &:hover {
+    @include motion-safe {
+      transform: translateY(-2px);
+    }
+  }
+}
+
 // Constructed as `stacks.module.scss`'s `.tile` is, so the two read as one
 // system: a column, centred, hairline border, the mark on top.
 .finalTile {
   position: relative;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1046,15 +1066,10 @@ $list-cap: min(#{rem(280px)}, 24vh);
   cursor: pointer;
   transition:
     border-color $duration-fast linear,
-    background $duration-fast linear,
-    transform $duration-base $ease-out-expo;
+    background $duration-fast linear;
 
   &:hover:not(:disabled) {
     border-color: var(--ch-line-strong);
-
-    @include motion-safe {
-      transform: translateY(-2px);
-    }
   }
 
   &:focus-visible {
@@ -1100,6 +1115,73 @@ $list-cap: min(#{rem(280px)}, 24vh);
       color: var(--ch-gold-200);
     }
   }
+
+  /*
+   * Currently audible. Deliberately a *different* signal from selection.
+   *
+   * Auditioning a file is not choosing it, so the two states have to be
+   * distinguishable when they disagree — which they do exactly when the
+   * operator is comparing one bounce against the one already committed. The
+   * mark brightens rather than the border changing, so the gold ring keeps
+   * meaning one thing only.
+   */
+  &[data-sounding] .finalTileIcon {
+    color: var(--ch-alabaster-400);
+  }
+}
+
+/*
+ * Play, in the tile's corner.
+ *
+ * Square, and a geometric glyph rather than a rounded transport button: this
+ * is the one place in the ARCHIVE that makes a sound, and it still has to look
+ * like it belongs to a console built out of hairlines and right angles.
+ */
+.finalPlay {
+  position: absolute;
+  top: space(2);
+  right: space(2);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: rem(22px);
+  height: rem(22px);
+  font-size: rem(9px);
+  line-height: 1;
+  color: var(--ch-text-muted);
+  background: var(--ch-obsidian-800);
+  @include hairline(all, 0.16);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  // Sounding. Crimson is right here and nowhere else in this panel: this is
+  // live state, which is exactly what the accent is reserved for.
+  &[data-on] {
+    color: var(--ch-accent-bright);
+    border-color: var(--ch-accent);
+  }
+}
+
+.finalPlayError {
+  @include label(9px);
+  color: var(--ch-crimson-400);
 }
 
 .finalTileIcon {

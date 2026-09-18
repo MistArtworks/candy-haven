@@ -240,10 +240,18 @@ not survive in the set file.
 READY`. It asks one question: which of this project's bounces is the finished
 master — the file that actually goes out.
 
-1. Move the project to **TRACK READY**. The panel appears.
-2. Press **CHOOSE**. It lists every audio file in the project folder, minus the
-   imported samples.
-3. Pick one. The project can now reach `RELEASED`.
+1. Move the project to **TRACK READY**. The panel appears, showing every audio
+   file in the project folder as a tile — minus the imported samples.
+2. Press the **▶** in a tile's corner to hear it. Playback goes to the
+   console's transport bar at the bottom of the window, so the clock, scrub and
+   volume are the same controls AUDITORIUM uses, and it keeps playing while you
+   work elsewhere.
+3. Click a tile to select it. It takes a gold border.
+4. Press **SET AS FINAL MASTER**. The project can now reach `RELEASED`.
+
+Listening is not choosing: the gold border says which file you have picked, the
+crimson ▶ says which one is audible, and auditioning a second bounce does not
+move your selection. A double click on a tile selects and sets in one go.
 
 **Nothing moves.** The record stores the path to the file where it already sits,
 beside the set that made it. Clicking the name afterwards opens the folder in

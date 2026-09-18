@@ -646,3 +646,65 @@ the release sheet's, every dialog. It led the row for a revision, beside a grey
 line explaining the disabled states; both are gone. The selected tile is the
 subject and the button is the verb, and the line between them was narrating
 what the operator could already see.
+
+---
+
+## 21. D14 — auditioning a bounce goes through the shared transport
+
+*"I need to be able to play the track before I set the master."* Obviously
+right: four renders of one track are not told apart by their filenames.
+
+### The mistake worth recording
+
+A `useBouncePreview` hook was written first — its own `<audio>` element, its
+own blob URL, its own play/stop state, scoped to the panel. It worked, and it
+was wrong, and it was thrown away before it shipped.
+
+The console already has **one transport for the whole application**.
+`PlaybackProvider` sits above the router in `App.tsx` and owns a single
+`<audio>` element for the console's life; `usePlayback()` reaches it from
+anywhere; `MiniPlayer` draws its controls as chrome in `ConsoleLayout`.
+
+Both of the things needed here were already built *for this case* and said so
+in their own comments:
+
+- `MiniPlayer` — "something admitted in AUDITORIUM, **or played from a release
+  in the ARCHIVE**, keeps playing while the operator works anywhere else — and
+  this is where they can still reach it."
+- `isPlayableAudio` — "used to decide whether to **offer** playback beside a
+  file elsewhere in the console."
+
+The local hook gave the operator two transports that could both be sounding,
+and it stopped when the dossier closed — the opposite of what a shared one is
+for. **Read the comments on the seam before building a second one.**
+
+### What the panel does now
+
+Each tile carries a `▶` that calls `playback.open(file.path)`, or
+`playback.toggle()` when that file is already loaded — reopening would re-read
+the whole file over IPC and restart it from zero, which is not what a second
+press means anywhere else. The control is drawn only for extensions
+`isPlayableAudio` accepts.
+
+**Listening is not choosing**, and the two are separate states: the gold ring
+says which file is selected, a crimson `▶` says which is audible. Crimson is
+correct there and nowhere else in the panel — it is live state, which is what
+the accent is reserved for. The play button stops propagation so auditioning
+cannot move the selection.
+
+Committing deliberately does **not** stop playback. The local preview did, on
+the reasoning that the question had been answered; that was right for a
+transport the panel owned and wrong for a console-wide one, which must not stop
+because an unrelated field was written.
+
+### Also found while doing this
+
+**zod is in the renderer bundle** — 351 matches in the app chunk. §6.2 of
+PROJECT_CONTEXT claims the domain split "keeps zod entirely out of the renderer
+bundle — worth ~170 kB", and that has not been true for some time: ten domain
+modules that import zod are value-imported by renderer code, including
+`auditorium`, `calendar`, `projects`, `stacks`, `discography` and `timer`.
+
+Not caused by this change and not fixed by it — the remedy is a `.constants.ts`
+half for each, which is its own job. Recorded so the claim in §6.2 is not
+mistaken for a fact.
