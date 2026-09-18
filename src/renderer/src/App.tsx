@@ -129,7 +129,7 @@ export default function App(): ReactNode {
         <QueryClientProvider client={queryClient}>
           <SystemBridge>
             <PopoutShell>
-              <AuditoriumPopout file={POPOUT.file} />
+              <AuditoriumPopout file={POPOUT.file} at={POPOUT.at} playing={POPOUT.playing} />
             </PopoutShell>
           </SystemBridge>
         </QueryClientProvider>

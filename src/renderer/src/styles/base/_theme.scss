@@ -1,3 +1,5 @@
+@use 'abstracts' as *;
+
 // Runtime theme.
 //
 // The palette is locked to the five materials named in the world brief —
@@ -123,4 +125,41 @@
 
 :root[data-motion='reduced'] {
   --ch-grain-opacity: 0;
+}
+
+/*
+ * The console's chrome insets, for overlays to centre inside.
+ *
+ * Declared on `:root` rather than on the shell because **every overlay is
+ * portalled to `document.body`** — see the note on `Portal`. A variable set on
+ * `.shell` inherits down to the page, not sideways to a body-level portal, so
+ * the shell is the one place these cannot live.
+ *
+ * `--ch-titlebar-height` is static: the console always draws a title bar, and
+ * this mirrors `$titlebar-height` so the two cannot drift. It is deliberately
+ * a plain value and not read from the Sass token at the point of use, because
+ * the consumers are `calc()` expressions in a mixin that has no business
+ * knowing whether the number came from Sass or from JavaScript.
+ *
+ * `--ch-transport-height` is zero until a transport bar exists — it is absent
+ * until something is playing — and `$transport-height` when one does. The
+ * switch is `data-transport` on the root element, which `MiniPlayer` sets.
+ *
+ * **An attribute rather than a measured pixel value**, deliberately. The
+ * obvious implementation reads the bar's `offsetHeight` back in an effect and
+ * writes it here, which works and depends on when that effect runs relative to
+ * the bar mounting. This way the number lives in exactly one place — the Sass
+ * token the bar itself is sized from — and JavaScript only says whether the
+ * bar is there, which is the one thing CSS cannot know.
+ *
+ * Consumed through the `overlay-field()` mixin. Nothing should read these
+ * directly; the mixin is what guarantees eleven overlays agree.
+ */
+:root {
+  --ch-titlebar-height: #{$titlebar-height};
+  --ch-transport-height: 0px;
+}
+
+:root[data-transport] {
+  --ch-transport-height: #{$transport-height};
 }

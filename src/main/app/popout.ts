@@ -32,7 +32,7 @@ export class PopoutManager {
    * audio graph, and pushing it a file to start on is the whole of what the two
    * windows need to say to each other.
    */
-  openAuditorium(file: string | null): void {
+  openAuditorium(file: string | null, at: number | null = null, playing = false): void {
     if (this.window && !this.window.isDestroyed()) {
       if (this.window.isMinimized()) this.window.restore()
       this.window.focus()
@@ -58,7 +58,16 @@ export class PopoutManager {
         contextIsolation: true,
         nodeIntegration: false,
         webviewTag: false,
-        spellcheck: false
+        spellcheck: false,
+        /*
+         * Required for the handover to actually resume.
+         *
+         * Chromium's autoplay policy counts gestures per document, and the
+         * press that detached the player happened in a *different* window —
+         * so without this the popout arrives loaded, seeked, and silently
+         * paused, which reads as the handover having failed.
+         */
+        autoplayPolicy: 'no-user-gesture-required'
       }
     })
 
@@ -77,6 +86,10 @@ export class PopoutManager {
 
     const query: Record<string, string> = { popout: 'auditorium' }
     if (file) query.file = file
+    // Only when there is something to resume, so the query string stays
+    // readable and a fresh popout carries no stale position.
+    if (file && at !== null && at > 0) query.at = String(at)
+    if (file && playing) query.playing = '1'
 
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
       const url = new URL(process.env['ELECTRON_RENDERER_URL'])
@@ -86,7 +99,11 @@ export class PopoutManager {
       void window.loadFile(join(__dirname, '../renderer/index.html'), { query })
     }
 
-    logger.info(`Auditorium popout opened${file ? ' with a file' : ''}`)
+    logger.info(
+      `Auditorium popout opened${file ? ' with a file' : ''}${
+        at !== null && at > 0 ? ` at ${at.toFixed(1)}s` : ''
+      }`
+    )
   }
 
   /** Whether the popout is currently pinned above other windows. */

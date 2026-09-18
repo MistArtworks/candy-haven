@@ -1,14 +1,8 @@
 @use 'abstracts' as *;
 
 .scrim {
-  position: fixed;
-  inset: 0;
-  z-index: z('modal');
+  @include overlay-field(6);
   background: var(--ch-surface-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: space(6);
   // A long form has to be reachable on a short window. The scrim scrolls
   // rather than the slab, so the dialog stays whole and the backdrop keeps
   // covering everything behind it.

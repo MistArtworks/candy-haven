@@ -16,6 +16,16 @@ export interface PopoutIntent {
   mode: PopoutMode
   /** A file to start on, handed over by the window that opened this one. */
   file: string | null
+  /**
+   * Seconds to resume from, and whether to start sounding.
+   *
+   * The handover, not a synchronisation. Detaching a player at 0:20 and having
+   * it restart from zero is the one thing that gesture plainly does not mean —
+   * but once this window has arrived the two transports are independent again
+   * and agree only on which file is open.
+   */
+  at: number | null
+  playing: boolean
 }
 
 /** The popout this window was opened as, or null for the console proper. */
@@ -24,5 +34,15 @@ export function readPopoutIntent(): PopoutIntent | null {
   const mode = params.get('popout')
   if (mode !== 'auditorium') return null
 
-  return { mode, file: params.get('file') }
+  const at = Number(params.get('at'))
+
+  return {
+    mode,
+    file: params.get('file'),
+    // Guarded rather than trusted: this is a query string, and a `NaN`
+    // reaching `seek` would be a silent no-op that looks like the handover
+    // simply not working.
+    at: Number.isFinite(at) && at > 0 ? at : null,
+    playing: params.get('playing') === '1'
+  }
 }

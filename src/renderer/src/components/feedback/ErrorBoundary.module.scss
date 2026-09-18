@@ -1,6 +1,15 @@
 @use 'abstracts' as *;
 
 .fallback {
+  /*
+   * Full-bleed, and deliberately **not** `overlay-field()`.
+   *
+   * Every other overlay centres inside the console's chrome so it cannot sit
+   * under the title bar or the transport. This one is the crash screen: the
+   * render tree that draws that chrome is the thing that has just failed, so
+   * reserving room for it would leave a gap where nothing is painted. It
+   * covers the window, including where the chrome would have been.
+   */
   position: fixed;
   inset: 0;
   z-index: z('modal');

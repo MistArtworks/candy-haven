@@ -708,3 +708,93 @@ modules that import zod are value-imported by renderer code, including
 Not caused by this change and not fixed by it — the remedy is a `.constants.ts`
 half for each, which is its own job. Recorded so the claim in §6.2 is not
 mistaken for a fact.
+
+---
+
+## 22. D15 — the chrome is always on top, and overlays centre inside it
+
+Three reports in sequence, and the third is the one that mattered: *"the modal
+should be in the center of the container which is excluding the title bar's
+height and the music player's height."*
+
+### The chrome outranks modals now
+
+`$z` was reordered. The title bar and the transport share a new **`chrome`**
+layer at 75, above `modal` at 70. Both sat on 30, below every overlay, which
+was harmless only while nothing could start playback from inside a modal — the
+moment a bounce could be auditioned from the dossier, the controls for a sound
+the operator had just started were behind the sheet that started it.
+
+**`boot` moved to 85, above `chrome`.** `App.tsx` renders the console *and* the
+boot screen together while the boot screen exits — `showConsole` and `showBoot`
+are both true for the length of that transition — so a title bar above the boot
+layer would punch through the cinematic on every launch. That is not a
+hypothetical: it is why the layer could not simply be raised.
+
+### `overlay-field()`
+
+Eleven overlays had each written out the same thing by hand — `position: fixed;
+inset: 0`, a z-index, flex centring, some padding. Eleven chances to disagree,
+and they did, on padding and on whether they scrolled. They now share one
+mixin, which is also the only place that knows about the chrome:
+
+```scss
+padding: calc(#{space($pad)} + var(--ch-titlebar-height, 0px)) #{space($pad)}
+  calc(#{space($pad)} + var(--ch-transport-height, 0px));
+```
+
+**Padding, not `top`/`bottom` insets.** The scrim still has to reach the
+window's edges — the dim means "the page is not interactive", which is true of
+the page behind the title bar too — while the *centring* happens inside the
+chrome-free region. A child with `max-height: 100%` is then bounded by the
+content box, which is exactly that region, so the sheets needed no change.
+
+`ErrorBoundary` is deliberately excluded and says so: it is the crash screen,
+and the tree that draws the chrome is what has just failed, so reserving room
+for it would leave a gap where nothing is painted.
+
+### One number for the transport's height
+
+`--ch-transport-height` is `0px` by default and `$transport-height` under
+`:root[data-transport]`, which `MiniPlayer` sets while it exists.
+
+An attribute rather than a measured pixel value. The obvious implementation
+reads the bar's `offsetHeight` in an effect and writes it to the root — it
+works, and it makes the correct value depend on when that effect runs relative
+to the bar mounting. This way the number exists once, as the Sass token the bar
+is sized from, and JavaScript reports only the thing CSS cannot know: whether
+the bar is there.
+
+On `:root` and not on the shell, because **every overlay is portalled to
+`document.body`** — a variable set inside the shell inherits down to the page,
+never sideways to a body-level portal.
+
+## 23. D16 — popping the player out carries its position
+
+*"If it is playing and we're at 0:20 and we popped it out, it needs to continue
+playing from that moment in the popped window."*
+
+`auditorium:popout` now takes `at` and `playing` alongside the file, and they
+travel in the popout's query string beside it. The popout seeks and resumes on
+arrival; the window that handed over **pauses itself**, so the sound moves
+rather than sounding twice a few milliseconds apart.
+
+A one-shot, not a synchronisation. After arrival the two windows are
+independent transports again and agree only on which file is open, over
+`auditorium:announce` — which is the arrangement `PlaybackProvider` documents
+and this does not change.
+
+Three details that are each load-bearing:
+
+- **The seek waits for `duration`.** `seek` refuses while it is not finite, and
+  the element has the blob long before it has read the metadata — so a seek
+  fired when `open` resolves is silently dropped and the handover looks broken.
+  The effect watches `duration`, which is watching for the moment seeking
+  becomes possible.
+- **It is guarded by a ref.** Without one, pausing at 0:05 in the popout
+  re-runs the effect on the next `duration` change and throws the operator back
+  to the handover point — a player that fights being used.
+- **`autoplayPolicy: 'no-user-gesture-required'` on the popout window.**
+  Chromium counts gestures per document, and the press that detached the player
+  happened in a different window. Without it the popout arrives loaded, seeked
+  and silently paused.

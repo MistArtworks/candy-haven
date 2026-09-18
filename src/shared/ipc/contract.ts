@@ -178,14 +178,6 @@ export const IPC_INVOKE = {
    * many needed it so the readout can say so rather than claim success.
    */
   /**
-   * Promotes a bounce to the project's final mix and master.
-   *
-   * Moves the file into `Release Mastered Tracks` under `name`. Its own
-   * channel rather than a field on `projects:patch` because it puts the
-   * operator's audio somewhere else, and that must not be something a patch
-   * can do by accident.
-   */
-  /**
    * Files several projects and folders into one destination.
    *
    * Returns what moved and what did not, rather than throwing on the first
@@ -725,11 +717,23 @@ eleases\`. Null clears it. */
    * Opens the listening room in its own window, carrying the current file.
    *
    * The popout is an independent player — its own transport, its own audio
-   * graph — so the file travels as a path and nothing else is synchronised
-   * between the two. See app/popout.ts.
+   * graph — so nothing is *synchronised* between the two windows after this.
+   * What travels is a **handover**: the file, where it had got to, and whether
+   * it was sounding. Detaching a player at 0:20 and having it restart from
+   * zero is the one thing the gesture plainly does not mean.
+   *
+   * A one-shot. The console pauses its own transport as it hands over, so the
+   * sound moves rather than doubling, and after that the two windows agree
+   * only on which file is open — see `auditorium:announce`.
    */
   'auditorium:popout': {
-    input: z.object({ file: z.string().nullable() }),
+    input: z.object({
+      file: z.string().nullable(),
+      /** Seconds to resume from. Null starts at the beginning. */
+      at: z.number().min(0).nullable().default(null),
+      /** Whether to start sounding on arrival. */
+      playing: z.boolean().default(false)
+    }),
     output: z.void()
   },
   /**

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { getSection } from '@shared/domain/navigation'
@@ -23,10 +23,47 @@ import styles from './MiniPlayer.module.scss'
  * There is no queue, so there are no skip controls. A next-track button with
  * nothing to go to is worse than no button, and a queue is a real feature —
  * an ordered list, persisted, with a source — rather than two arrows.
+ *
+ * ## It publishes its own height
+ *
+ * This bar sits *above* modals by rule — see `$z` — because the controls for a
+ * sound started from inside a sheet cannot be behind that sheet. The
+ * consequence is that every overlay has to know how much room the bar is
+ * taking, or it centres partly underneath it.
+ *
+ * So the bar marks the document element with `data-transport` while it exists,
+ * and the theme turns that into `--ch-transport-height` for `overlay-field()`
+ * to read. On the root and not on the shell, because overlays are portalled to
+ * `document.body`: a variable set inside the shell inherits *down* to the page,
+ * never sideways to a body-level portal.
+ *
+ * **An attribute rather than a measured height.** Reading `offsetHeight` back
+ * in an effect also works, and makes the correct value depend on when that
+ * effect runs relative to the bar mounting. This way the number exists once,
+ * as the `$transport-height` token the bar is sized from, and JavaScript only
+ * reports the one thing CSS cannot know: whether the bar is there at all.
  */
 export function MiniPlayer(): ReactNode {
   const { source, playing, position, duration, volume, toggle, seek, setVolume } = usePlayback()
   const navigate = useNavigate()
+
+  /*
+   * Marked while the bar exists, cleared when it does not.
+   *
+   * Keyed on `source`, because that is what decides whether the bar is
+   * rendered at all. The cleanup runs on unmount too, so tearing the console
+   * down cannot leave every overlay padding itself for a bar that has gone.
+   */
+  useEffect(() => {
+    const root = document.documentElement
+    if (!source) {
+      root.removeAttribute('data-transport')
+      return
+    }
+
+    root.setAttribute('data-transport', '')
+    return () => root.removeAttribute('data-transport')
+  }, [source])
 
   const seekable = source !== null && Number.isFinite(duration) && duration > 0
   const progress = seekable ? position / duration : 0
@@ -102,7 +139,17 @@ export function MiniPlayer(): ReactNode {
           <button
             type="button"
             className={styles.detach}
-            onClick={() => void window.candy.auditorium.popout(source.path)}
+            /*
+              Hands the transport over rather than starting a second one.
+              The position and the playing state travel with the file, and
+              this window stops — otherwise the same track sounds twice, a
+              few milliseconds apart, which is worse than either window
+              having it alone.
+            */
+            onClick={() => {
+              void window.candy.auditorium.popout(source.path, position, playing)
+              if (playing) toggle()
+            }}
             title="Play in its own window"
           >
             POP OUT

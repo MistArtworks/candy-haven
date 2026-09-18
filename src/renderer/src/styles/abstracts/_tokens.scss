@@ -12,6 +12,10 @@
 // overlay; that overlay was removed for duplicating the custom title bar, and
 // the constant went with it rather than being left to drift out of step.
 $titlebar-height: 40px;
+// The transport bar. Read by `MiniPlayer` for its own height *and* by the
+// theme, which publishes it as `--ch-transport-height` for overlays to
+// centre inside. One number, two consumers, no chance of drift.
+$transport-height: 46px;
 $rail-width: 232px;
 $rail-width-collapsed: 72px;
 
@@ -46,16 +50,39 @@ $duration-cinematic: 1200ms;
 
 // ------------------------------------------------------------------- z-index
 
+/*
+ * The stacking order, read top to bottom as precedence.
+ *
+ * The scale is ordered by *what must never be hidden by what*, which is not
+ * the order the interface is built in. Two entries are worth the explanation:
+ *
+ * - **`chrome` sits above `modal`.** The title bar and the transport are the
+ *   console's furniture: the way out of the window, and the controls for
+ *   whatever is sounding. Both were on 30, below every overlay, which was
+ *   harmless only while nothing could start playback from inside a modal. A
+ *   bounce can now be auditioned from the ARCHIVE's dossier, so the controls
+ *   for a sound the operator had just started were behind the sheet that
+ *   started it. They are always reachable now, by rule.
+ *
+ * - **`boot` sits above `chrome`.** `App.tsx` renders the console *and* the
+ *   boot screen together while the boot screen exits — `showConsole` and
+ *   `showBoot` are both true for the length of that transition — so a title
+ *   bar above the boot layer would punch through the cinematic on every
+ *   launch. Boot is a full takeover and only the reticle clears it.
+ */
 $z: (
   'base': 0,
   'raised': 10,
   'rail': 20,
-  'titlebar': 30,
   'overlay': 40,
   'transition': 50,
-  'boot': 60,
   'modal': 70,
+  // The title bar and the transport. See the note above.
+  'chrome': 75,
   'toast': 80,
+  // Above the chrome, because the console is mounted behind it during the
+  // handover. See the note above.
+  'boot': 85,
   // Above everything, including toasts and the boot cinematic: the pointer is
   // the operator's own position in the interface and can never be behind
   // something they are pointing at.

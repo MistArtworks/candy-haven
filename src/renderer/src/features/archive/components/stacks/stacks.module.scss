@@ -522,14 +522,8 @@
 // ----------------------------------------------------------------- dialog
 
 .scrim {
-  position: fixed;
-  inset: 0;
-  z-index: z('modal');
+  @include overlay-field(6);
   background: var(--ch-surface-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: space(6);
 }
 
 .dialog {

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   AUDIO_EXTENSIONS,
   AUDIO_PRESET,
@@ -15,6 +15,9 @@ import styles from './AuditoriumPopout.module.scss'
 export interface AuditoriumPopoutProps {
   /** A file handed over by the window that opened this one. */
   file: string | null
+  /** Seconds to resume from, and whether to start sounding. */
+  at: number | null
+  playing: boolean
 }
 
 /**
@@ -31,8 +34,18 @@ export interface AuditoriumPopoutProps {
  * one engine driving two windows — means routing audio state through the main
  * process at frame rate, which is a great deal of machinery to make two
  * windows agree about a thing either of them can simply do.
+ *
+ * ## The handover
+ *
+ * Independent does not mean amnesiac. Detaching a player at 0:20 while it is
+ * sounding and having it arrive at 0:00 and silent is the one reading of that
+ * gesture nobody intends, so the position and the playing state travel in the
+ * query string with the file — see `readPopoutIntent`.
+ *
+ * It is a **one-shot**, not a sync. After arrival the two transports are
+ * independent again and agree only on which file is open.
  */
-export function AuditoriumPopout({ file }: AuditoriumPopoutProps): ReactNode {
+export function AuditoriumPopout({ file, at, playing: resume }: AuditoriumPopoutProps): ReactNode {
   const {
     elementRef,
     analyserRef,
@@ -60,6 +73,33 @@ export function AuditoriumPopout({ file }: AuditoriumPopoutProps): ReactNode {
   useEffect(() => {
     if (file) void open(file)
   }, [file, open])
+
+  /*
+   * Resuming where the console left off, once and only once.
+   *
+   * Deferred until `duration` is a real number, because `seek` refuses while
+   * it is not — the element has the blob but has not read its metadata yet, so
+   * a seek fired straight after `open` resolves is silently dropped and the
+   * handover looks broken. Watching `duration` is watching for exactly the
+   * moment seeking becomes possible.
+   *
+   * The ref is what makes it one-shot. Without it, pausing at 0:05 in this
+   * window would re-run the effect on the next `duration` change and throw the
+   * operator back to the handover point, which is a player that fights being
+   * used.
+   */
+  const handedOver = useRef(false)
+  useEffect(() => {
+    if (handedOver.current) return
+    if (!file || (at === null && !resume)) return
+    if (!Number.isFinite(duration) || duration <= 0) return
+
+    handedOver.current = true
+    if (at !== null) seek(at)
+    // `toggle` starts a paused element; the popout arrives paused because
+    // `open` loads without playing.
+    if (resume) toggle()
+  }, [file, at, resume, duration, seek, toggle])
 
   const choose = async (): Promise<void> => {
     const path = await window.candy.shell.selectFile({

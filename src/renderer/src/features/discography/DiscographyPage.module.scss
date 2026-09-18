@@ -228,22 +228,17 @@
 // -------------------------------------------------------------------- sheet
 
 .sheetBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: z('overlay');
-  background: var(--ch-surface-overlay);
-  display: flex;
-  // Centred, with the sheet bounded and its body scrolling inside — the same
-  // arrangement `ProjectDossier` uses, and this now matches it.
+  // Centred inside the chrome, with the sheet bounded and its body scrolling
+  // inside. `overlay` rather than `modal` because a dialog raised *from* this
+  // sheet has to sit above it — see `TrackDialog`.
   //
   // It was `flex-start` with the backdrop itself scrolling, which was right
-  // while the sheet was one long column: a modal taller than the viewport
-  // cannot be centred without putting its top out of reach. Splitting the
-  // sheet into five tabs made it short, and a short sheet pinned 40px from the
-  // top of a 1000px window reads as broken rather than as deliberate.
-  align-items: center;
-  justify-content: center;
-  padding: space(6);
+  // while the sheet was one long column: a sheet taller than the viewport
+  // cannot be centred without putting its top out of reach. Splitting it into
+  // five tabs made it short, and a short sheet pinned 40px from the top of a
+  // 1000px window reads as broken rather than as deliberate.
+  @include overlay-field(6, 'overlay');
+  background: var(--ch-surface-overlay);
 }
 
 .sheet {

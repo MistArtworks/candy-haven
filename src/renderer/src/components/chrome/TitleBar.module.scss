@@ -2,7 +2,7 @@
 
 .titlebar {
   position: relative;
-  z-index: z('titlebar');
+  z-index: z('chrome');
   display: grid;
   // Equal flexible gutters either side of an auto-width centre, so the
   // telemetry sits at the true midpoint of the window regardless of how long

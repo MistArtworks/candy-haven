@@ -294,7 +294,8 @@ const api: CandyHavenApi = {
   },
   auditorium: {
     read: (path) => invoke('auditorium:read', { path }),
-    popout: (file) => invoke('auditorium:popout', { file }),
+    popout: (file, at = null, playing = false) =>
+      invoke('auditorium:popout', { file, at, playing }),
     pin: (pinned) => invoke('auditorium:popout-pin', { pinned }),
     announce: (file) => invoke('auditorium:announce', { file }),
     onFile: (listener) => subscribe('auditorium:file', listener)

@@ -106,3 +106,36 @@
 @mixin window-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/// The field a portalled overlay lives in.
+///
+/// Every full-window overlay in this console is the same object: a fixed box
+/// over the whole viewport, a centred child, and a scrim. Eleven of them had
+/// written that out by hand, which is eleven chances to disagree — and they
+/// did, on padding and on whether they scrolled.
+///
+/// **The scrim covers the window; the centring happens inside the chrome.**
+/// That split is the whole point. The dim means "the page is not interactive",
+/// which is true of the page behind the title bar too, so the box is the full
+/// viewport. But the title bar and the transport sit *above* modals by rule
+/// (see `$z`), so a sheet centred on the viewport is centred partly underneath
+/// two things it can never cover — which is what put the dossier's bottom edge
+/// beneath the transport the moment a bounce could be played from it.
+///
+/// Padding rather than `top`/`bottom` insets, so the scrim still reaches the
+/// window's edges. A child with `max-height: 100%` is bounded by the content
+/// box, which is exactly the chrome-free region.
+///
+/// @param {Number} $pad - Breathing room around the sheet, on the 4px grid.
+/// @param {String} $layer - A `$z` key. `modal` unless the overlay is
+///   deliberately beneath one, as the record sheets are.
+@mixin overlay-field($pad: 6, $layer: 'modal') {
+  position: fixed;
+  inset: 0;
+  z-index: z($layer);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(#{space($pad)} + var(--ch-titlebar-height, 0px)) #{space($pad)}
+    calc(#{space($pad)} + var(--ch-transport-height, 0px));
+}

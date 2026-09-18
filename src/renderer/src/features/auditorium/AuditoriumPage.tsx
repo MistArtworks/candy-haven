@@ -206,7 +206,11 @@ export function AuditoriumPage(): ReactNode {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => void window.candy.auditorium.popout(source?.path ?? null)}
+              // Hands over the position and stops here — see `MiniPlayer`.
+              onClick={() => {
+                void window.candy.auditorium.popout(source?.path ?? null, position, playing)
+                if (playing) toggle()
+              }}
             >
               Pop out
             </Button>

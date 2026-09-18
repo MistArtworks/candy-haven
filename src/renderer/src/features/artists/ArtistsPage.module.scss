@@ -287,18 +287,11 @@
 // -------------------------------------------------------------------- sheet
 
 .sheetBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: z('overlay');
+  // Centred inside the chrome, matching `ProjectDossier` and DISCOGRAPHY's
+  // sheet. It was `flex-start` with the backdrop scrolling, which pinned a
+  // short sheet 40px below the top of the window and read as broken.
+  @include overlay-field(6, 'overlay');
   background: var(--ch-surface-overlay);
-  display: flex;
-  // Centred, with the sheet bounded and its body scrolling inside — matching
-  // `ProjectDossier` and DISCOGRAPHY's sheet. It was `flex-start` with the
-  // backdrop scrolling, which pinned a short sheet 40px below the top of the
-  // window and read as broken.
-  align-items: center;
-  justify-content: center;
-  padding: space(6);
 }
 
 .sheet {

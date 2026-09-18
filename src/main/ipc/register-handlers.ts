@@ -454,8 +454,8 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     }
   })
 
-  router.handle('auditorium:popout', ({ file }) => {
-    popouts.openAuditorium(file)
+  router.handle('auditorium:popout', ({ file, at, playing }) => {
+    popouts.openAuditorium(file, at, playing)
   })
 
   router.handle('auditorium:announce', ({ file }) => {

@@ -1,13 +1,7 @@
 @use 'abstracts' as *;
 
 .layer {
-  position: fixed;
-  inset: 0;
-  z-index: z('modal');
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: space(8);
+  @include overlay-field(8);
   background: var(--ch-surface-overlay);
   backdrop-filter: blur(6px);
 }

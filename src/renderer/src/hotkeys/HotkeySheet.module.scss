@@ -5,14 +5,8 @@
 // no numbered index, no epigraph, nothing that would make it look like a page.
 
 .layer {
-  position: fixed;
-  inset: 0;
-  z-index: z('modal');
+  @include overlay-field(8);
   background: var(--ch-surface-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: space(8);
 }
 
 .sheet {

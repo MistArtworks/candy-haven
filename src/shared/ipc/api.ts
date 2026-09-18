@@ -431,7 +431,13 @@ export interface CandyHavenApi {
     /** Reads a chosen audio file whole. See the contract for why. */
     read(path: string): Promise<AudioPayload>
     /** Opens the room in its own window, starting on `file` if one is given. */
-    popout(file: string | null): Promise<void>
+    /**
+     * Detaches the player, carrying the position and whether it was sounding.
+     *
+     * The caller is expected to pause its own transport: the sound moves, it
+     * does not double.
+     */
+    popout(file: string | null, at?: number | null, playing?: boolean): Promise<void>
     /** Pins the popout above other windows; resolves to the settled state. */
     pin(pinned: boolean): Promise<boolean>
     /** Tells every window which file the room is on. */
