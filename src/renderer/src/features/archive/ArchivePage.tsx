@@ -285,7 +285,19 @@ export function ArchivePage(): ReactNode {
    * Read before the query is assembled, not alongside it: the register's
    * folder scope now depends on the shape of the tree. See `subtree` below.
    */
-  const { data: stacksTree } = useStacksTree(ready)
+  /*
+   * `isLoading` is taken, not discarded, and that is the whole of a real bug.
+   *
+   * Without it the tree's first read renders as an *answer*: `folders` is
+   * empty, so the browser drew "No categories yet." beside a NEW CATEGORY
+   * tile — a confident statement that the operator has no filing, made before
+   * anything had been read. On a warm archive it flickers; on a cold one it
+   * sits there long enough to believe.
+   *
+   * `isLoading` is only true on a first read with nothing cached, so a refetch
+   * after a rename does not flash a skeleton over a tree already on screen.
+   */
+  const { data: stacksTree, isLoading: treeLoading } = useStacksTree(ready)
 
   const search = useDebounced(filters.search, 180)
   const browsing = isFolderLens(lens)
@@ -1253,17 +1265,28 @@ export function ArchivePage(): ReactNode {
             being visited, so it should say how much is in it rather than making
             the operator count tiles.
           */}
-          <p className={styles.hint}>
-            {binnedFolders.length > 0
-              ? `${binnedFolders.length} folder${binnedFolders.length === 1 ? '' : 's'} and `
-              : ''}
-            {registry?.trashedCount ?? 0} project
-            {(registry?.trashedCount ?? 0) === 1 ? '' : 's'} deleted. A folder came here with
-            everything that was inside it, so restoring one puts the whole shelf back. Nothing is
-            removed from the drive until you delete it permanently.
-          </p>
+          {/*
+            Held until both reads have landed. The sentence is a count of two
+            things — binned folders from the tree, binned projects from the
+            register — so drawn early it reports "0 projects deleted" about a
+            bin nobody has opened yet, which is the same false statement the
+            stacks browser used to make about categories.
+          */}
+          {treeLoading || isLoading ? null : (
+            <p className={styles.hint}>
+              {binnedFolders.length > 0
+                ? `${binnedFolders.length} folder${binnedFolders.length === 1 ? '' : 's'} and `
+                : ''}
+              {registry?.trashedCount ?? 0} project
+              {(registry?.trashedCount ?? 0) === 1 ? '' : 's'} deleted. A folder came here with
+              everything that was inside it, so restoring one puts the whole shelf back. Nothing is
+              removed from the drive until you delete it permanently.
+            </p>
+          )}
 
-          {binnedFolderTiles.length > 0 ? (
+          {treeLoading ? (
+            <SkeletonTiles count={3} label="Reading the bin" />
+          ) : binnedFolderTiles.length > 0 ? (
             <TileGrid tiles={binnedFolderTiles} onOpen={() => undefined} onMenu={onTileMenu} />
           ) : null}
 
@@ -1317,10 +1340,19 @@ export function ArchivePage(): ReactNode {
             trail={trail}
             onNavigate={openFolder}
             onFileProject={fileProject}
-            shown={projects.length}
+            // Abstains while the register is loading rather than claiming
+            // zero — see `FolderTrail`.
+            shown={isLoading ? null : projects.length}
           />
 
-          {folders.length === 0 && folderId === null ? (
+          {treeLoading ? (
+            /*
+              In the shape of what is coming, as the register's own skeleton
+              is. The alternative — a sentence, or nothing — makes the panel
+              jump when the folders land, and says less than the shape does.
+            */
+            <SkeletonTiles count={4} label="Reading the stacks" />
+          ) : folders.length === 0 && folderId === null ? (
             <div className={styles.stackEmpty}>
               <p className={styles.stackEmptyTitle}>No categories yet.</p>
               <p className={styles.stackEmptyHint}>
@@ -1338,60 +1370,64 @@ export function ArchivePage(): ReactNode {
             and are rendered below in their own view instead — the folders stay
             as tiles either way, because they are navigation rather than data.
           */}
-          <TileGrid
-            /*
-             * Projects join the grid only *inside* a folder.
-             *
-             * At the root, "filed here" resolves to "filed nowhere", so
-             * including them turned the top of the archive into a wall of every
-             * unsorted project on disk — the opposite of what the shelves are
-             * for. The root shows what has been organised; everything else has
-             * the UNFILED lens and the panel to the right.
-             */
-            tiles={
-              view === 'grid' && folderId !== null ? [...folderTiles, ...projectTiles] : folderTiles
-            }
-            onOpen={(id) => {
-              // The grid is mixed, so the id decides what opening means:
-              // walk into a folder, or open a project's record.
-              if (folders.some((folder) => folder.id === id)) openFolder(id)
-              else selectProject(id)
-            }}
-            onMenu={onTileMenu}
-            onDropMany={fileMany}
-            onDropProject={fileProject}
-            onDropFolder={nestFolder}
-            selectedId={tileSelection}
-            onSelect={setTileSelection}
-            marked={marked}
-            onMark={toggleMarked}
-            onToggleFavourite={favouriteById}
-            disabled={scanning || locked}
-            adds={[
-              {
-                label: addFolderLabel,
-                mark: 'add',
-                onClick: () => {
-                  setDialogError(null)
-                  setFolderDialog({ mode: 'create', parentId: folderId })
-                }
-              },
-              // Only on a shelf that holds work. The root holds categories and
-              // a category holds genres and artists, so neither takes a project.
-              ...(canCreateProjectHere && currentFolder
-                ? [
-                    {
-                      label: 'New project',
-                      mark: 'add-project' as const,
-                      onClick: () => {
-                        setDialogError(null)
-                        setProjectDialog(currentFolder)
+          {treeLoading ? null : (
+            <TileGrid
+              /*
+               * Projects join the grid only *inside* a folder.
+               *
+               * At the root, "filed here" resolves to "filed nowhere", so
+               * including them turned the top of the archive into a wall of every
+               * unsorted project on disk — the opposite of what the shelves are
+               * for. The root shows what has been organised; everything else has
+               * the UNFILED lens and the panel to the right.
+               */
+              tiles={
+                view === 'grid' && folderId !== null
+                  ? [...folderTiles, ...projectTiles]
+                  : folderTiles
+              }
+              onOpen={(id) => {
+                // The grid is mixed, so the id decides what opening means:
+                // walk into a folder, or open a project's record.
+                if (folders.some((folder) => folder.id === id)) openFolder(id)
+                else selectProject(id)
+              }}
+              onMenu={onTileMenu}
+              onDropMany={fileMany}
+              onDropProject={fileProject}
+              onDropFolder={nestFolder}
+              selectedId={tileSelection}
+              onSelect={setTileSelection}
+              marked={marked}
+              onMark={toggleMarked}
+              onToggleFavourite={favouriteById}
+              disabled={scanning || locked}
+              adds={[
+                {
+                  label: addFolderLabel,
+                  mark: 'add',
+                  onClick: () => {
+                    setDialogError(null)
+                    setFolderDialog({ mode: 'create', parentId: folderId })
+                  }
+                },
+                // Only on a shelf that holds work. The root holds categories and
+                // a category holds genres and artists, so neither takes a project.
+                ...(canCreateProjectHere && currentFolder
+                  ? [
+                      {
+                        label: 'New project',
+                        mark: 'add-project' as const,
+                        onClick: () => {
+                          setDialogError(null)
+                          setProjectDialog(currentFolder)
+                        }
                       }
-                    }
-                  ]
-                : [])
-            ]}
-          />
+                    ]
+                  : [])
+              ]}
+            />
+          )}
 
           {/*
             The register appears below the tiles only when it has something to
