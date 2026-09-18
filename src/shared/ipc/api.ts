@@ -56,6 +56,7 @@ import type {
   ReleaseAsset,
   ReleaseDraft,
   ReleasePatch,
+  CanvasPayload,
   TrackDraft,
   TrackPatch
 } from '../domain/discography'
@@ -272,6 +273,14 @@ export interface CandyHavenApi {
      * running order, master, artwork or date.
      */
     publish(id: string): Promise<{ folder: string; files: string[]; skipped: string[] }>
+    /**
+     * Reads a canvas so it can be played in the sheet.
+     *
+     * Returns the bytes; the renderer wraps them in a blob URL, because the
+     * CSP forbids `file:` and permits `media-src blob:`. Refused for a
+     * format that is not a canvas, or a file over the ceiling.
+     */
+    canvas(path: string): Promise<CanvasPayload>
     /** Copies artwork or a canvas in. A null path clears it. */
     setAsset(
       id: string,

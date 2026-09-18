@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { ArtistRecord } from '@shared/domain/artists'
 import type { DiscographyRelease, ReleaseTrack } from '@shared/domain/discography'
@@ -6,7 +6,10 @@ import {
   RELEASE_KIND_LABEL,
   RELEASE_STATUS_LABEL,
   billedAs,
+  canvasIsVideo,
+  canvasMimeFor,
   distributionLabel,
+  extensionOf,
   featuring,
   formatIsrc,
   trackFeatureIds,
@@ -32,6 +35,9 @@ export interface ReleaseDetailsProps {
 /** Nothing recorded. One dash, everywhere, so a gap always looks the same. */
 const NONE = '—'
 
+/** Which artefact the hero is showing. */
+type Facet = 'cover' | 'canvas'
+
 /**
  * A release, read rather than edited.
  *
@@ -41,22 +47,37 @@ const NONE = '—'
  * it by disabling the form — which the operator called what it was. A greyed
  * out form is not a record: it is twelve input boxes with their affordances
  * switched off, and it reads as broken rather than as finished. So there are
- * two renderings of one release now, and this is the one you get on open.
+ * two renderings of one release, and this is the one you get on open.
  *
  * ## It cannot write, rather than declining to
  *
- * No `onPatch`, no mutation props, no local state. The read view's inability
- * to change the record is structural — there is nothing here to disable, and
- * nothing for a future edit to leak through. `ReleaseSheet` still owns the
- * form and hands out the same props it always did.
+ * No `onPatch`, no mutation props, no state beyond which artefact the hero is
+ * showing. The read view's inability to change the record is structural —
+ * there is nothing here to disable, and nothing for a future edit to leak
+ * through. `ReleaseSheet` still owns the form.
  *
- * ## The house record idiom, not a new one
+ * ## The cover leads
+ *
+ * *"The cover art should be the highlight, along with the title and artist
+ * name, the user has a chance to swap to see the canvas too."*
+ *
+ * So the record opens on a hero band rather than a field grid: the artefact
+ * large on the left, the title set as a title on the right, and who it is by
+ * under it. D12 had already said the cover is "the one thing on a release
+ * worth drawing large" and then only honoured it on a tab you had to go and
+ * find; here it is the first thing the record says.
+ *
+ * **No panel carries `focal`.** The house rule is at most one, and the
+ * accent's job — say which object the view is about — is done here by scale.
+ * A crimson edge drawn around artwork would fight the artwork, which is the
+ * one thing on this page that must not be competed with.
+ *
+ * ## The house record idiom below it
  *
  * Numbered `Panel`s in a six-column grid holding `Field`/`FieldGrid` pairs —
  * the same language `DossierRecord` uses for a project, because a release and
  * a project are the console's two record surfaces and should not be read
- * differently. The alternative was inventing a sixth presentation, which is
- * how a design language dies.
+ * differently.
  *
  * ## One page, no tabs, and this does not undo D12
  *
@@ -64,7 +85,7 @@ const NONE = '—'
  * "twelve fields, a credit picker, a tracklist, six identifiers and two asset
  * wells in a single scroll". Every item on that list is an editing affordance.
  * None of them is here — twelve fields are twelve lines of type, the credit
- * picker is two lines of credits, the two wells are one cover. What D12 costed
+ * picker is two lines of credits, the two wells are one hero. What D12 costed
  * was working at one altitude, not reading at it.
  *
  * ## Every field shows, and a gap reads as a dash
@@ -87,6 +108,7 @@ export function ReleaseDetails({ release, roster, projects }: ReleaseDetailsProp
   const mastered = release.tracks.filter((track) => track.master !== null).length
   const missing = withoutStream(release.distribution)
   const order = [...release.tracks].sort((left, right) => left.position - right.position)
+  const featured = nameOf(release.featuredArtistIds)
 
   return (
     /*
@@ -104,127 +126,102 @@ export function ReleaseDetails({ release, roster, projects }: ReleaseDetailsProp
       initial="initial"
       animate="animate"
     >
-      <Panel label="The release" index="01" className={styles.detailsSpan4}>
-        <div className={styles.detailsStack}>
-          <FieldGrid columns={2}>
-            <Field label="Subtitle" value={release.subtitle || NONE} />
-            <Field label="Kind" value={RELEASE_KIND_LABEL[release.kind]} />
-            <Field label="Status" value={RELEASE_STATUS_LABEL[release.status]} />
-            <Field label="Release date" value={formatIsoDate(release.releaseDate)} mono />
-            {/*
-              How long until it is out, and gold while that is still a live
-              question. `formatCountdown` reads UNDATED for a null date, which
-              is the honest answer for a release nobody has fixed a day for.
-            */}
-            <Field
-              label={out ? 'Out' : 'Countdown'}
-              value={
-                out ? (
-                  formatIsoDate(release.releaseDate)
-                ) : (
-                  <span className={styles.detailsLive}>{formatCountdown(release.releaseDate)}</span>
-                )
-              }
-              mono
-            />
-          </FieldGrid>
-
-          <FieldGrid columns={1}>
-            <Field label="Notes" value={release.notes || NONE} selectable />
-          </FieldGrid>
-        </div>
-      </Panel>
-
       {/*
-        The cover, large, because D12 already settled that it is "the one thing
-        on a release worth drawing large" — the masthead's 96px plate says
-        which record is open, and this is the record.
+        Unnumbered and unlabelled, like the dossier's masthead: the numbered
+        panels are the sections of a record, and this is the record's face.
       */}
-      <Panel label="Artefacts" index="02" className={styles.detailsSpan2}>
-        <div className={styles.detailsArtefacts}>
-          <Plate path={release.artwork.copiedPath} fallback="COVER" size={168} alt="Cover art" />
+      <Panel className={styles.detailsSpan6} flush>
+        <div className={styles.hero}>
+          <Artefacts release={release} />
 
-          <FieldGrid columns={1}>
-            <Field label="Cover art" value={release.artwork.copiedPath ? 'Attached' : NONE} />
-            <Field label="Spotify canvas" value={release.canvas.copiedPath ? 'Attached' : NONE} />
-          </FieldGrid>
+          <div className={styles.heroIdentity}>
+            <h3 className={styles.heroTitle}>{release.title}</h3>
 
-          {release.artwork.copiedPath ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              title={release.artwork.copiedPath}
-              onClick={() => void window.candy.shell.reveal(release.artwork.copiedPath!)}
-            >
-              Reveal cover
-            </Button>
-          ) : null}
-        </div>
-      </Panel>
+            {release.subtitle ? (
+              <p className={styles.heroSubtitle}>{release.subtitle}</p>
+            ) : null}
 
-      <Panel label="Credits" index="03" className={styles.detailsSpan3}>
-        <div className={styles.detailsStack}>
-          {/*
-            How it is billed, then who did the work — the distinction
-            `ReleaseCreditSchema` draws. `billedAs` is the same function that
-            names the published folder, so the sheet and the distributor read
-            the record the same way.
-          */}
-          <FieldGrid columns={1}>
-            <Field label="Main artist" value={billedAs(nameOf(release.artistIds)) || NONE} />
-            <Field
-              label="Featuring"
-              value={billedAs(nameOf(release.featuredArtistIds)) || NONE}
-            />
-          </FieldGrid>
-
-          {release.credits.length === 0 ? (
-            <p className={styles.detailsEmpty}>
-              No liner-note credits. A single put out alone carries none, and an empty list is the
-              honest record of that.
+            {/*
+              Billed as, then featuring — the distinction the schema draws
+              between how a release is *titled* and who worked on it. Drawn
+              even when nobody is credited, because `Uncredited` is a fact
+              about the record and a blank line is not.
+            */}
+            <p className={styles.heroBy} data-none={release.artistIds.length === 0 || undefined}>
+              {billedAs(nameOf(release.artistIds)) || 'Uncredited'}
+              {featured.length > 0 ? (
+                <span className={styles.heroFeature}>{featuring(featured)}</span>
+              ) : null}
             </p>
-          ) : (
-            <FieldGrid columns={1}>
-              {release.credits.map((credit) => (
-                <Field
-                  key={credit.id}
-                  label={ARTIST_ROLE_CREDIT[credit.role]}
-                  value={billedAs(nameOf(credit.artistIds)) || NONE}
-                  hint={credit.note || undefined}
-                />
-              ))}
-            </FieldGrid>
-          )}
+
+            {/*
+              The register's own line: a run of readings separated by rules
+              rather than a set of boxes, exactly as the dossier masthead
+              draws a project's figures.
+            */}
+            <div className={styles.heroFigures}>
+              <span className={styles.heroFigureKind} title="Kind">
+                {RELEASE_KIND_LABEL[release.kind]}
+              </span>
+              <span className={styles.heroFigure} title="Status">
+                {RELEASE_STATUS_LABEL[release.status]}
+              </span>
+              <span className={styles.heroFigure} title="Release date">
+                {formatIsoDate(release.releaseDate)}
+              </span>
+              {/*
+                Gold only while it is still a live question. Once the record is
+                out the countdown is history and the date above says it.
+              */}
+              {out ? null : (
+                <span className={`${styles.heroFigure} ${styles.detailsLive}`} title="Countdown">
+                  {formatCountdown(release.releaseDate)}
+                </span>
+              )}
+              <span className={styles.heroFigure} title="Running order">
+                {order.length} track{order.length === 1 ? '' : 's'}
+              </span>
+            </div>
+          </div>
         </div>
       </Panel>
 
-      <Panel label="Trade" index="04" className={styles.detailsSpan3}>
+      <Panel label="Credits" index="01" className={styles.detailsSpan3}>
+        {release.credits.length === 0 ? (
+          <p className={styles.detailsEmpty}>
+            No liner-note credits. A single put out alone carries none, and an empty list is the
+            honest record of that.
+          </p>
+        ) : (
+          <FieldGrid columns={1}>
+            {release.credits.map((credit) => (
+              <Field
+                key={credit.id}
+                label={ARTIST_ROLE_CREDIT[credit.role]}
+                value={billedAs(nameOf(credit.artistIds)) || NONE}
+                hint={credit.note || undefined}
+              />
+            ))}
+          </FieldGrid>
+        )}
+      </Panel>
+
+      <Panel label="Trade" index="02" className={styles.detailsSpan3}>
         <FieldGrid columns={2}>
           <Field label="Label" value={release.label || 'Self-released'} />
           <Field label="Catalogue number" value={release.catalogueNumber || NONE} mono selectable />
-          <Field
-            label="UPC"
-            value={release.upc || NONE}
-            mono
-            selectable
-            hint="Identifies the product. An ISRC identifies a recording and sits on the track."
-          />
+          <Field label="UPC" value={release.upc || NONE} mono selectable />
+          <Field label="Label URL" value={release.labelUrl || NONE} mono selectable />
           <Field label="℗ Phonographic" value={release.phonographicLine || NONE} />
           <Field label="© Copyright" value={release.copyrightLine || NONE} />
-          <Field label="Label URL" value={release.labelUrl || NONE} mono selectable />
         </FieldGrid>
       </Panel>
 
-      {/*
-        The substance of a release, and so the one focal panel — as set
-        analysis is on a project's record. At most one per view, by house rule.
-      */}
       <Panel
         label="Running order"
-        index="05"
+        index="03"
         className={styles.detailsSpan6}
         aside={order.length > 0 ? `${mastered}/${order.length} mastered` : undefined}
-        focal
       >
         {order.length === 0 ? (
           <p className={styles.detailsEmpty}>
@@ -247,11 +244,15 @@ export function ReleaseDetails({ release, roster, projects }: ReleaseDetailsProp
 
       <Panel
         label="Distribution"
-        index="06"
+        index="04"
         className={styles.detailsSpan6}
         // Only once it is out: before then an empty stream slot is simply
         // where a release starts, and counting it would warn about nothing.
-        aside={out && missing > 0 ? `${release.distribution.length - missing}/${release.distribution.length} live` : undefined}
+        aside={
+          out && missing > 0
+            ? `${release.distribution.length - missing}/${release.distribution.length} live`
+            : undefined
+        }
       >
         {release.distribution.length === 0 ? (
           <p className={styles.detailsEmpty}>
@@ -276,7 +277,185 @@ export function ReleaseDetails({ release, roster, projects }: ReleaseDetailsProp
           </ul>
         )}
       </Panel>
+
+      <Panel label="Notes" index="05" className={styles.detailsSpan6}>
+        {release.notes ? (
+          <p className={styles.detailsNotes}>{release.notes}</p>
+        ) : (
+          <p className={styles.detailsEmpty}>
+            Nothing noted. Who mastered it, what the deal was, what to remember next time.
+          </p>
+        )}
+      </Panel>
     </motion.div>
+  )
+}
+
+/**
+ * The cover, large, and the canvas behind a swap.
+ *
+ * Two artefacts in one well rather than two wells side by side. They are the
+ * same object seen two ways — the square a store shows and the vertical loop a
+ * phone plays — and putting them next to each other at half size each would
+ * make neither the highlight, which is the one thing the operator asked for.
+ */
+function Artefacts({ release }: { release: DiscographyRelease }): ReactNode {
+  const [facet, setFacet] = useState<Facet>('cover')
+
+  const canvasPath = release.canvas.copiedPath
+  const showing: Facet = facet === 'canvas' && canvasPath ? 'canvas' : 'cover'
+  const reveal = showing === 'canvas' ? canvasPath : release.artwork.copiedPath
+
+  return (
+    <div className={styles.heroArtefacts}>
+      <div className={styles.heroWell}>
+        {showing === 'cover' ? (
+          <Plate path={release.artwork.copiedPath} fallback="COVER" fill alt="Cover art" />
+        ) : (
+          <CanvasFilm path={canvasPath as string} />
+        )}
+      </div>
+
+      {/*
+        Two chips rather than one toggle. A single button reading CANVAS would
+        have to be read as either "you are looking at the canvas" or "press to
+        see the canvas" and cannot say which; a pair with one lit says both at
+        once. The same chip the sheet's form uses for kind and status.
+      */}
+      <div className={styles.heroSwap}>
+        <button
+          type="button"
+          className={styles.chip}
+          data-on={showing === 'cover' || undefined}
+          aria-pressed={showing === 'cover'}
+          onClick={() => setFacet('cover')}
+        >
+          Cover
+        </button>
+        <button
+          type="button"
+          className={styles.chip}
+          data-on={showing === 'canvas' || undefined}
+          aria-pressed={showing === 'canvas'}
+          disabled={!canvasPath}
+          title={canvasPath ?? 'No canvas attached'}
+          onClick={() => setFacet('canvas')}
+        >
+          Canvas
+        </button>
+
+        {reveal ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className={styles.heroReveal}
+            title={reveal}
+            onClick={() => void window.candy.shell.reveal(reveal)}
+          >
+            Reveal
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The canvas, played.
+ *
+ * ## Why the bytes come over the bridge
+ *
+ * The renderer's CSP is `media-src 'self' blob:` and there is no `file:`
+ * anywhere in it, which is not an oversight — it is what stops a compromised
+ * renderer reading the drive through a media element. So `discography:canvas`
+ * hands over the bytes and this wraps them in a blob URL, which is the same
+ * route the listening room takes for a master.
+ *
+ * The media type on the `Blob` is **load-bearing**, for the reason
+ * `AUDIO_MIME` documents at length: Chromium does not sniff a blob the way it
+ * sniffs a network response, so a wrong type produces an element that loads,
+ * reports a size, and then fails to decode without saying why.
+ *
+ * ## One piece of state, keyed by its path
+ *
+ * Copied from `Plate`, and for its reason: separate `url` and `error` flags
+ * would both have to be *cleared* when the path changes, and clearing them in
+ * the body of an effect is a synchronous `setState` that cascades a second
+ * render before paint — which `react-hooks/set-state-in-effect` refuses, and
+ * rightly. Holding the value beside the path it belongs to lets render decide
+ * whether what is held is still the right film, with nothing to reset.
+ *
+ * A GIF never reaches here: `canvasIsVideo` sends it to `Plate` instead,
+ * because `img-src` does not allow `blob:` and widening it to animate a format
+ * nobody delivers a canvas in would be the wrong trade.
+ */
+function CanvasFilm({ path }: { path: string }): ReactNode {
+  const [held, setHeld] = useState<{ path: string; url: string | null; reason: string | null } | null>(
+    null
+  )
+
+  useEffect(() => {
+    if (!canvasIsVideo(extensionOf(path))) return
+
+    let alive = true
+    let made: string | null = null
+
+    void window.candy.discography
+      .canvas(path)
+      .then((payload) => {
+        if (!alive) return
+        made = URL.createObjectURL(
+          new Blob([payload.bytes], { type: canvasMimeFor(payload.extension) })
+        )
+        setHeld({ path, url: made, reason: null })
+      })
+      .catch((cause: unknown) => {
+        if (!alive) return
+        setHeld({
+          path,
+          url: null,
+          reason: cause instanceof Error ? cause.message : 'That canvas could not be read.'
+        })
+      })
+
+    return () => {
+      alive = false
+      // Revoked as the path changes, not only on unmount: a session spent
+      // reading through a catalogue would otherwise hold every canvas it had
+      // looked at in memory.
+      if (made) URL.revokeObjectURL(made)
+    }
+  }, [path])
+
+  // A GIF is an image. It goes through the thumbnail channel and draws as a
+  // still — see `canvasIsVideo`.
+  if (!canvasIsVideo(extensionOf(path))) {
+    return <Plate path={path} fallback="CANVAS" fill alt="Canvas" />
+  }
+
+  const ready = held && held.path === path ? held : null
+
+  if (!ready) {
+    return <span className={styles.heroWait}>LOADING CANVAS</span>
+  }
+
+  if (!ready.url) {
+    return <span className={styles.heroWait}>{ready.reason}</span>
+  }
+
+  return (
+    <video
+      className={styles.heroFilm}
+      src={ready.url}
+      // Muted, looped and silent by default: a canvas is a nine-second loop
+      // with no sound of its own, and the operator pressed CANVAS to watch it
+      // rather than to be asked a second time.
+      autoPlay
+      loop
+      muted
+      playsInline
+      controls={false}
+    />
   )
 }
 
@@ -319,14 +498,12 @@ function TrackRow({ track, release, nameOf, projectName }: TrackRowProps): React
 
         {/*
           Drawn here and nowhere else in the department. A track note is
-          stored by `TrackDialog` and then has no surface at all — the
-          running order has no room for it and the form never asks again.
-          A record that claims to tell you everything is the right place
-          for the one field that had nothing.
+          stored by `TrackDialog` and then has no surface at all — the running
+          order has no room for it and the form never asks again. A record
+          that claims to tell you everything is the right place for the one
+          field that had nothing.
         */}
-        {track.notes ? (
-          <span className={styles.detailsTrackNote}>{track.notes}</span>
-        ) : null}
+        {track.notes ? <span className={styles.detailsTrackNote}>{track.notes}</span> : null}
       </span>
 
       {/*

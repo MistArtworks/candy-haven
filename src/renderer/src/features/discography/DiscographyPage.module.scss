@@ -1207,12 +1207,6 @@
   color: var(--ch-gold-300);
 }
 
-.detailsArtefacts {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: space(3);
-}
 
 // ------------------------------------------------------------ running order
 
@@ -1347,4 +1341,188 @@
   .detailsTrackMaster {
     grid-column: 2;
   }
+}
+
+// -------------------------------------------------------------- the hero band
+
+/*
+ * The face of the record: the artefact large, the title set as a title.
+ *
+ * Two columns rather than a stack, because a square sleeve above a title fills
+ * the sheet with picture and pushes every fact below the fold — and the point
+ * of a details view is that the whole record is readable at once.
+ */
+.hero {
+  display: grid;
+  grid-template-columns: rem(248px) minmax(0, 1fr);
+  gap: space(5);
+  padding: space(5);
+  align-items: start;
+}
+
+.heroArtefacts {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  min-width: 0;
+}
+
+/*
+ * One well, two artefacts.
+ *
+ * Square, because the cover defines the shape and is the thing a store shows.
+ * A canvas is 9:16 and is `contain`ed inside it rather than cropped — letterbox
+ * bars are honest about the aspect the file actually has, and cropping the one
+ * artefact whose whole purpose is a phone screen would be a lie about it.
+ */
+.heroWell {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.heroFilm {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: var(--ch-obsidian-900);
+}
+
+// Loading, or the reason it could not be read. One place, because at this size
+// either message is the whole of what the well has to say.
+.heroWait {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+  text-align: center;
+  padding: space(4);
+  line-height: 1.6;
+}
+
+.heroSwap {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.heroReveal {
+  margin-left: auto;
+}
+
+// ------------------------------------------------------------- the identity
+
+.heroIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+  padding-top: space(1);
+}
+
+/*
+ * The title, and the largest type in the sheet.
+ *
+ * The masthead above says which record is open in institutional small-caps;
+ * this says what the record *is*. Same face and treatment as the catalogue
+ * card's title, one step up in size, so opening a sleeve from the grid lands
+ * on the same object drawn larger.
+ */
+.heroTitle {
+  font-family: var(--ch-font-display);
+  font-size: rem(24px);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.heroSubtitle {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+// Who it is by. Alabaster rather than gold: the artist is the record's second
+// fact, and gold here would put it level with the cover.
+.heroBy {
+  @include readout(13px);
+  color: var(--ch-alabaster-400);
+  line-height: 1.4;
+  margin-top: space(1);
+  overflow-wrap: anywhere;
+
+  &[data-none] {
+    color: var(--ch-text-faint);
+    font-style: italic;
+  }
+}
+
+.heroFeature {
+  color: var(--ch-text-secondary);
+}
+
+/*
+ * The register's own line.
+ *
+ * Ruled between readings rather than boxed around each, which is how the
+ * dossier masthead draws a project's figures: the row is a run of readings on
+ * one instrument, not a set of separate cards.
+ */
+.heroFigures {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: space(2) space(4);
+  margin-top: space(3);
+  padding-top: space(3);
+  @include hairline(top, 0.08);
+}
+
+.heroFigure {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  white-space: nowrap;
+}
+
+// The kind reads first and reads loudest of the four, because it is the only
+// one of them that says what sort of thing this is.
+.heroFigureKind {
+  @include label(10px, 0.16em);
+  color: var(--ch-text-primary);
+  white-space: nowrap;
+}
+
+.heroFigures > * + * {
+  @include hairline(left, 0.1);
+  padding-left: space(4);
+}
+
+// A sheet is not a page. Below the two-up breakpoint the well would be wider
+// than it is tall and stop being a sleeve, so the hero stacks.
+@include below('md') {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heroWell {
+    max-width: rem(248px);
+  }
+}
+
+// Prose kept to a readable measure, as the page's own hint is.
+.detailsNotes {
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  line-height: 1.7;
+  max-width: 78ch;
+  white-space: pre-wrap;
 }

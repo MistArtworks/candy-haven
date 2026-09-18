@@ -5,6 +5,7 @@ import { is } from '@electron-toolkit/utils'
 import { APP_NAME } from '@shared/constants'
 import { browseDirectory } from '@main/services/projects/scanner'
 import { AUDIO_EXTENSIONS, MAX_AUDIO_BYTES } from '@shared/domain/auditorium'
+import { CANVAS_EXTENSIONS, MAX_CANVAS_BYTES } from '@shared/domain/discography.constants'
 import { bundleFilename } from '@shared/domain/settings-bundle'
 import type { RuntimeInfo } from '@shared/domain/system'
 import { AppError, ErrorCode } from '@main/core/errors'
@@ -395,6 +396,60 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('calendar:patch', ({ id, patch }) => services.calendar.patch(id, patch))
   router.handle('calendar:delete', async ({ id }) => {
     await services.calendar.remove(id)
+  })
+
+  /**
+   * Hands a release's canvas to the sheet so it can be watched.
+   *
+   * Checked rather than trusted for the reason `auditorium:read` states: by the
+   * time the path arrives here it is a renderer-supplied string, and without
+   * these three refusals the channel would read any file on the disk into the
+   * renderer for anything that could reach the bridge. That the app copied this
+   * particular file into its own media folder does not change what the channel
+   * would do if asked for something else.
+   */
+  router.handle('discography:canvas', async ({ path }) => {
+    const extension = extname(path).slice(1).toLowerCase()
+
+    if (!CANVAS_EXTENSIONS.includes(extension as (typeof CANVAS_EXTENSIONS)[number])) {
+      throw new AppError(`${extension ? `.${extension}` : 'That file'} is not a canvas format.`, {
+        code: ErrorCode.Validation,
+        hint: `Supported: ${CANVAS_EXTENSIONS.map((value) => `.${value}`).join(', ')}`,
+        recoverable: false
+      })
+    }
+
+    const info = await stat(path).catch(() => null)
+    if (!info?.isFile()) {
+      throw new AppError('That canvas is no longer where it was.', {
+        code: ErrorCode.NotFound,
+        recoverable: false
+      })
+    }
+
+    if (info.size > MAX_CANVAS_BYTES) {
+      throw new AppError('That canvas is too large to play here.', {
+        code: ErrorCode.Validation,
+        hint: `The ceiling is ${Math.round(MAX_CANVAS_BYTES / 1024 / 1024)} MB; this is ${Math.round(
+          info.size / 1024 / 1024
+        )} MB.`,
+        recoverable: false
+      })
+    }
+
+    const contents = await readFile(path)
+
+    return {
+      path,
+      extension,
+      size: info.size,
+      // A copy backed by its own ArrayBuffer, for the reason `auditorium:read`
+      // spells out: Node hands out Buffers that are views into a shared pool,
+      // and structured-cloning one sends the whole pool across the bridge.
+      bytes: new Uint8Array(
+        contents.buffer.slice(contents.byteOffset, contents.byteOffset + contents.byteLength)
+      )
+    }
   })
 
   // --------------------------------------------------------------- auditorium

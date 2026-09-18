@@ -80,6 +80,7 @@ import {
 } from '../domain/artists'
 import {
   DiscographyRegistrySchema,
+  CanvasPayloadSchema,
   DiscographyReleaseSchema,
   ReleaseAssetSchema,
   ReleaseDraftSchema,
@@ -451,8 +452,20 @@ export const IPC_INVOKE = {
     input: z.object({ id: z.string() }),
     output: DiscographyReleaseSchema
   },
-  /** Copies artwork or a canvas into `Media
-eleases\`. Null clears it. */
+  /**
+   * Hands a release's canvas to the sheet so it can be watched.
+   *
+   * Its own channel rather than `auditorium:read`, which refuses anything
+   * that is not an audio format and caps at half a gigabyte. The bytes have
+   * to cross the bridge at all because the renderer's CSP forbids `file:`
+   * and allows `media-src 'self' blob:` — the same route the listening room
+   * takes.
+   */
+  'discography:canvas': {
+    input: z.object({ path: z.string() }),
+    output: CanvasPayloadSchema
+  },
+  /** Copies artwork or a canvas into `Media\releases\`. Null clears it. */
   'discography:set-asset': {
     input: z.object({
       id: z.string(),

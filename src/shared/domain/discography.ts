@@ -290,6 +290,24 @@ export type DiscographyRelease = z.infer<typeof DiscographyReleaseSchema>
  * whole tracklists is a lot of rope to pull across the boundary to draw a grid
  * of covers.
  */
+/**
+ * A canvas, with its contents, on its way to a `video` element.
+ *
+ * The same shape `AudioPayloadSchema` uses, and deliberately a second
+ * declaration rather than a shared one: the two channels have different
+ * ceilings, different extension sets and different reasons to refuse, and the
+ * only thing they have in common is that bytes have to cross the bridge
+ * because the renderer's CSP forbids `file:`.
+ */
+export const CanvasPayloadSchema = z.object({
+  path: z.string(),
+  /** Lowercase, no dot. Decides the media type on the blob. */
+  extension: z.string(),
+  size: z.number().int().nonnegative(),
+  bytes: z.instanceof(Uint8Array)
+})
+export type CanvasPayload = z.infer<typeof CanvasPayloadSchema>
+
 export const DiscographySummarySchema = DiscographyReleaseSchema.omit({ tracks: true }).extend({
   trackCount: z.number().int().min(0).default(0),
   /** Tracks with a project behind them. `trackCount` minus this is the gap. */

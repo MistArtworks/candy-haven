@@ -85,9 +85,16 @@ It opens straight into the sheet, where the artwork and codes go.
 
 ### It opens as a record, not a form
 
-A release opens as a **details page**: six numbered panels on one scroll —
-the release, the cover, the credits, the paperwork, the running order and the
-platforms. No tabs, no input boxes. Read it top to bottom.
+A release opens as a **details page**. The cover leads, big, with the title
+and the artist beside it; underneath are five numbered panels — credits, the
+paperwork, the running order, the platforms and your notes. No tabs, no input
+boxes. Read it top to bottom.
+
+Press **CANVAS** under the cover to watch the canvas in the same frame, and
+**COVER** to go back. The canvas plays silently on a loop, letterboxed rather
+than cropped, because it is a phone-shaped video in a square frame and
+cropping it would misrepresent it. **REVEAL** shows whichever one you are
+looking at in Explorer.
 
 Press **EDIT** and you get the form instead, in the five tabs below. Press
 **DONE** and it settles back to the record.
@@ -375,9 +382,9 @@ yourself — for a gate, a smart link, or a shop that is not on the list.
 Both are **copied** into the archive's own media folder, so the originals can
 be moved or deleted afterwards without the catalogue losing its artwork.
 
-The canvas — the vertical looping video — is reported rather than drawn. A
-still frame of a nine-second loop tells you less than knowing it is attached,
-and decoding video for a thumbnail is work with no payoff.
+On the ARTWORK tab the canvas is reported rather than drawn — a frozen frame
+of a nine-second loop tells you less than knowing it is attached. To actually
+watch it, close EDIT and press CANVAS on the record.
 
 ## Ready to publish
 

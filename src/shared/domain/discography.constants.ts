@@ -425,6 +425,60 @@ export const MAX_ARTWORK_BYTES = 32 * 1024 * 1024
 export const ARTWORK_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'avif'] as const
 export const CANVAS_EXTENSIONS = ['mp4', 'mov', 'webm', 'gif'] as const
 
+/**
+ * Largest canvas handed to the renderer, in bytes.
+ *
+ * Far below `MAX_AUDIO_BYTES`, and for a different reason: a canvas is a
+ * three-to-eight-second vertical loop that Spotify itself caps in the low
+ * megabytes, so anything approaching this is the wrong file. The whole thing
+ * crosses the bridge at once — there is no streaming and no seeking to do — so
+ * the ceiling is what keeps a mistaken pick from copying a feature film into
+ * the renderer.
+ */
+export const MAX_CANVAS_BYTES = 64 * 1024 * 1024
+
+/**
+ * Media type per canvas extension.
+ *
+ * Load-bearing for exactly the reason `AUDIO_MIME` documents: the file reaches
+ * the element as a blob URL, and for a blob the type carried on the `Blob` *is*
+ * the media type. Chromium does not sniff the bytes the way it does a network
+ * response, so a wrong or missing type produces an element that loads, reports
+ * a size, and then fails to decode without saying why.
+ */
+export const CANVAS_MIME: Record<string, string> = {
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+  webm: 'video/webm',
+  gif: 'image/gif'
+}
+
+/** The media type for a lowercase, dotless extension. */
+export function canvasMimeFor(extension: string): string {
+  return CANVAS_MIME[extension] ?? 'video/mp4'
+}
+
+/**
+ * Whether a canvas can be played rather than only shown.
+ *
+ * A GIF is in `CANVAS_EXTENSIONS` because a canvas may legitimately be one,
+ * but it is an image and the renderer's CSP is `img-src 'self' data:` — no
+ * `blob:` — so it cannot arrive the way a video does. It goes through the
+ * thumbnail channel instead and draws as a still. Widening the image policy to
+ * animate a format nobody delivers a canvas in would be the wrong trade.
+ */
+export function canvasIsVideo(extension: string): boolean {
+  return extension.toLowerCase() !== 'gif' && extension.trim().length > 0
+}
+
+/** The extension of a stored path, lowercase and dotless. Empty if none. */
+export function extensionOf(path: string): string {
+  const name = path.split(/[/\\]/).pop() ?? ''
+  const dot = name.lastIndexOf('.')
+  return dot > 0 ? name.slice(dot + 1).toLowerCase() : ''
+}
+
+
 // ------------------------------------------------------------- identifiers
 
 /**

@@ -1578,3 +1578,120 @@ therefore renders at `opacity: 0`: present, taking up space, and completely
 invisible. `DossierGrid` exists solely to stop that regressing, and
 `ReleaseDetails` drives `gridVariants` itself for the same reason. Worth
 reading its comment before touching that element.
+
+## 31. D26 — the cover leads, and the canvas can be watched
+
+*"The cover art should be the highlight, along with the title and artist name,
+the user has a chance to swap to see the canvas too."*
+
+D25 put the record on one page and then laid it out as six equal panels, which
+made the cover a 168px square in the second slot — a thumbnail in a field grid.
+For a catalogue whose entries are recognised by their artwork that is the wrong
+emphasis, and D12 had already said so: the cover is *"the one thing on a
+release worth drawing large."* It only ever honoured that on a tab you had to
+go and find.
+
+### A hero band, unnumbered
+
+The record now opens on a masthead of its own — artefact large on the left,
+title set as a title on the right, who it is by under it, and the register's
+line of readings under that. Unnumbered and unlabelled, like the dossier's
+masthead: the numbered panels are the *sections* of a record and this is its
+face.
+
+The panels below renumber to 01-05 and lose ARTEFACTS entirely, which had been
+reporting two paths and an attachment state that the hero now shows outright.
+The title is the largest type in the sheet, same face and treatment as the
+catalogue card's title one step up, so opening a sleeve from the grid lands on
+the same object drawn larger.
+
+**No panel carries `focal` any more.** The house rule is at most one, and the
+accent's job — saying which object the view is about — is done here by scale.
+A crimson edge around artwork would fight the artwork, which is the one thing
+on this page that must not be competed with.
+
+### One well, two artefacts
+
+Not two wells side by side. The cover and the canvas are the same object seen
+two ways — the square a store shows and the vertical loop a phone plays — and
+putting them next to each other at half size each would make neither the
+highlight, which is precisely what was asked for.
+
+The well is square, because the cover defines the shape. A canvas is 9:16 and
+is `contain`ed inside it rather than cropped: letterbox bars are honest about
+the aspect the file has, and cropping the one artefact whose whole purpose is a
+phone screen would be a lie about it.
+
+The swap is **two chips, not one toggle.** A single button reading CANVAS has to
+be read as either "you are looking at the canvas" or "press to see the canvas"
+and cannot say which; a pair with one lit says both at once. It is the same chip
+the form uses for kind and status.
+
+### This reverses "reported, not drawn"
+
+The canvas has been deliberately undrawn since the department was built:
+
+> The canvas — the vertical looping video — is reported rather than drawn. A
+> still frame of a nine-second loop tells you less than knowing it is attached,
+> and decoding video for a thumbnail is work with no payoff.
+
+That reasoning was about a **thumbnail**, and it still holds for one: a frozen
+frame of a loop is worth less than the word ATTACHED. It does not hold for the
+thing the operator actually asked for, which is to watch the loop at size. The
+argument was never "a canvas should not be visible" — it was "a still of one is
+not worth the decode." Playing it is a different proposition and the answer
+goes the other way.
+
+### `discography:canvas`, and why the bytes cross the bridge
+
+The renderer's CSP is `media-src 'self' blob:` with no `file:` anywhere in it,
+which is not an oversight — it is what stops a compromised renderer reading the
+drive through a media element. So the channel hands over the bytes and the
+renderer wraps them in a blob URL, which is exactly the route
+`auditorium:read` takes for a master.
+
+Its own channel rather than that one, which refuses anything that is not an
+audio format and caps at 512 MB. Three refusals, each naming itself, copied
+from the listening room's reasoning: **the path is checked rather than trusted**
+even though the app copied that file into its own media folder, because by the
+time it arrives it is a renderer-supplied string and the channel would
+otherwise read any file on disk into the renderer for anything that could reach
+the bridge.
+
+`MAX_CANVAS_BYTES` is 64 MB — far below the audio ceiling, because a canvas is
+a three-to-eight-second loop that Spotify itself caps in the low megabytes, so
+anything near this is the wrong file.
+
+`CANVAS_MIME` is load-bearing for the reason `AUDIO_MIME` documents at length:
+Chromium does not sniff a blob the way it sniffs a network response, so a wrong
+type produces an element that loads, reports a size, and then fails to decode
+without saying why.
+
+### A GIF never reaches the video element
+
+`CANVAS_EXTENSIONS` includes `gif` because a canvas may legitimately be one,
+but a GIF is an image and `img-src` is `'self' data:` — **no `blob:`**. So
+`canvasIsVideo` sends it through the thumbnail channel instead and it draws as
+a still. Widening the image policy to animate a format nobody actually delivers
+a canvas in would be the wrong trade.
+
+### `CanvasFilm` holds one piece of state, keyed by its path
+
+Copied from `Plate`, and for its reason: separate `url` and `error` flags would
+both have to be *cleared* when the path changes, and clearing them in the body
+of an effect is a synchronous `setState` that cascades a render before paint —
+which `react-hooks/set-state-in-effect` refuses, and rightly. Holding the value
+beside the path it belongs to lets render decide whether what is held is still
+the right film, with nothing to reset.
+
+The blob URL is revoked as the path changes and not only on unmount, or a
+session spent reading through a catalogue would hold every canvas it had looked
+at in memory.
+
+### Found while in the file
+
+`contract.ts` carried a broken comment: ``Copies artwork or a canvas into
+`Media`` followed by a line beginning ``eleases\```. A past heredoc had
+collapsed the `\r` in `Media\releases\` into a real newline — the same
+accident that once committed a NUL byte into `FolderTrail.tsx`. Repaired, and
+worth recording as the third instance of one class of bug.

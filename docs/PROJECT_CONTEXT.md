@@ -881,6 +881,32 @@ D20-D22 in `docs/DISCOGRAPHY.md`.
   button is never disabled for these; re-deriving five service conditions in
   the renderer would be a second opinion that could disagree with the first.
 
+### The cover leads the record, and the canvas plays — 2026-09-18
+
+D26 in `docs/DISCOGRAPHY.md`.
+
+- **`ReleaseDetails` opens on an unnumbered hero band** — artefact large,
+  title as a title, billing under it, then a ruled row of readings. The
+  numbered panels are 01-05 below it and ARTEFACTS is gone. **No panel
+  carries `focal`**: the accent's job is done by scale here, and a crimson
+  edge around artwork fights the artwork.
+- **One square well, two artefacts, two chips.** The canvas is `contain`ed
+  rather than cropped — it is 9:16 and cropping the one artefact meant for a
+  phone screen would misrepresent it.
+- **`discography:canvas` hands over bytes; the renderer makes a blob URL.**
+  The CSP is `media-src 'self' blob:` with no `file:`, which is deliberate,
+  and this is the same route `auditorium:read` takes. Its own channel because
+  that one is audio-only and caps at 512 MB. `MAX_CANVAS_BYTES` is 64 MB.
+  The path is validated even though the app wrote it — see the handler.
+- **`CANVAS_MIME` is load-bearing.** Chromium does not sniff a blob, so a
+  wrong media type loads, reports a size, and fails to decode silently. Same
+  trap `AUDIO_MIME` documents.
+- **A GIF canvas draws as a still**, through the thumbnail channel, because
+  `img-src` allows `data:` but not `blob:`. Do not widen it for this.
+- This **reverses** "the canvas is reported, not drawn", which was an
+  argument about thumbnails and still holds for one. Watching it at size is
+  a different proposition.
+
 ### The release sheet is a record, and a form behind EDIT — 2026-09-18
 
 D25 in `docs/DISCOGRAPHY.md`, which completes D24 below.
