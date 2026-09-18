@@ -1,0 +1,144 @@
+@use 'abstracts' as *;
+
+/*
+ * A month, in the console's own materials.
+ *
+ * The panel matches `Select`'s list exactly — obsidian, a 0.2 hairline, the
+ * panel shadow — because they are the same object: something drawn over the
+ * page because the platform's version could not be. Square, like everything.
+ */
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(3);
+  background: var(--ch-obsidian-800);
+  @include hairline(all, 0.2);
+  box-shadow: var(--ch-shadow-panel);
+
+  // The grid takes the focus rather than each day; the ring would otherwise
+  // be drawn around the whole panel every time it opens.
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(2);
+}
+
+.month {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-primary);
+}
+
+.page {
+  @include readout(13px);
+  line-height: 1;
+  color: var(--ch-text-muted);
+  padding: 0 space(2);
+  cursor: pointer;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.weekdays,
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, rem(28px));
+  gap: 1px;
+}
+
+.weekday {
+  @include label(7px, 0.1em);
+  color: var(--ch-text-faint);
+  text-align: center;
+  padding-bottom: space(1);
+}
+
+/*
+ * One day.
+ *
+ * Four states and none of them is a fill except the cursor: selection is
+ * gold, today is a gold rule beneath the number, the cursor is the overlay
+ * grey `Select` uses for the row under the pointer, and a day outside the
+ * month is simply faint. Stacking rather than competing — a selected day that
+ * is also today and also under the cursor still reads as all three.
+ */
+.day {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  height: rem(26px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &[data-outside] {
+    color: var(--ch-text-faint);
+  }
+
+  &[data-cursor] {
+    background: var(--ch-surface-overlay);
+    color: var(--ch-text-primary);
+  }
+
+  &[data-selected] {
+    color: var(--ch-gold-200);
+    @include hairline(all, 0.34);
+  }
+
+  // Today, marked under the number so it can coexist with a selection.
+  &[data-today]::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    width: rem(10px);
+    height: 1px;
+    background: var(--ch-gold-400);
+    transform: translateX(-50%);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-1px);
+  }
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+  padding-top: space(2);
+  @include hairline(top, 0.08);
+}
+
+.action {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+  cursor: pointer;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}

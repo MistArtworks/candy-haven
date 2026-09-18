@@ -1,11 +1,17 @@
 import {
+  useEffect,
   useId,
+  useRef,
   useState,
   type ChangeEvent,
   type KeyboardEvent,
   type ReactNode,
   type Ref
 } from 'react'
+import { daysInMonth, toIsoDate } from '@shared/domain/calendar.constants'
+import { usePanelAnchor } from '@renderer/hooks/usePanelAnchor'
+import { Calendar } from './Calendar'
+import { Portal } from './Portal'
 import styles from './Input.module.scss'
 
 /**
@@ -260,22 +266,54 @@ export interface DateInputProps {
   disabled?: boolean
   invalid?: boolean
   layout?: 'stacked' | 'gutter'
+  /** Offers CLEAR in the picker. Only where an empty date means something. */
+  clearable?: boolean
   className?: string
 }
 
+/** Roughly what the panel wants, for deciding which way it opens. */
+const CALENDAR_HEIGHT = 300
+
+/** A real day, not merely ten characters in the right shape. */
+function parseTyped(value: string): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim())
+  if (!match) return null
+
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  if (month < 1 || month > 12) return null
+  if (day < 1 || day > daysInMonth(year, month)) return null
+
+  return toIsoDate(year, month, day)
+}
+
 /**
- * A date, with the operating system taken off it.
+ * A date: typed, or picked from a month drawn in the document.
  *
- * Still a native `input[type=date]`, deliberately: it brings keyboard entry,
- * locale handling and the platform picker, and replacing all three with a
- * bespoke month popover is a feature rather than a restyle. What goes is the
- * *chrome* — Chromium's pale picker glyph is made transparent and our own gold
- * mark is drawn beneath it, at the same size and position, so the control the
- * operator presses is the one they can see.
+ * ## Why this is not `input[type=date]` any more
  *
- * The displayed text stays in the platform's format and cannot be changed
- * while this is a native control. No loss: ISO in the monospace face is how
- * the register writes dates everywhere else.
+ * It was, and the field's chrome was made ours in D27 — but pressing it still
+ * opened **Chromium's** picker, which is drawn outside the page where no
+ * stylesheet reaches it, and which arrives on Windows with a system-blue
+ * selection. The brief allows exactly one saturated colour and it is crimson.
+ * `Select` was written for the same reason about the native `<select>` popup;
+ * this is that answer applied to dates.
+ *
+ * ## Typing survives
+ *
+ * The one genuine merit of the native control is that a date can be entered
+ * without reaching for the mouse, so the field is still a real text input:
+ * ISO, monospace, committed on blur or Enter. A value that is not a real day
+ * is **kept on screen and refused** with a reason rather than silently
+ * dropped — the same commit model `DistributionEditor` uses.
+ *
+ * ISO rather than `19 SEP 2026` because it is what the register writes
+ * everywhere else, it sorts, and it is unambiguous half-typed.
+ *
+ * ## The mark is a button, and that is load-bearing
+ *
+ * `fieldset[disabled]` locks the read-only release sheet (D24) and reaches
+ * only form-associated elements. A `div` with a role would stay live inside a
+ * locked record; a `button` does not.
  */
 export function DateInput({
   label,
@@ -286,38 +324,124 @@ export function DateInput({
   disabled = false,
   invalid = false,
   layout = 'stacked',
+  clearable = true,
   className
 }: DateInputProps): ReactNode {
   const id = useId()
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const [refused, setRefused] = useState(false)
+  const held = useRef(false)
+
+  const { triggerRef, panelRef, position, close } = usePanelAnchor(open, CALENDAR_HEIGHT, () =>
+    setOpen(false)
+  )
+
+  // The stored value wins whenever it changes underneath, unless the operator
+  // is mid-edit — the ownership rule `useEchoedText` documents.
+  useEffect(() => {
+    if (held.current) return
+    setDraft(value)
+    setRefused(false)
+  }, [value])
+
+  const commitTyped = (): void => {
+    const next = draft.trim()
+    if (next === value) return
+
+    if (!next) {
+      setRefused(false)
+      onChange('')
+      return
+    }
+
+    const parsed = parseTyped(next)
+    if (!parsed) {
+      setRefused(true)
+      return
+    }
+
+    setRefused(false)
+    onChange(parsed)
+  }
+
+  const pick = (iso: string): void => {
+    setRefused(false)
+    setDraft(iso)
+    onChange(iso)
+    close()
+  }
 
   return (
     <ControlShell
       label={label}
       htmlFor={id}
-      hint={hint}
+      hint={refused ? 'That is not a real date. Use YYYY-MM-DD.' : hint}
       aside={aside}
-      invalid={invalid}
+      invalid={invalid || refused}
       layout={layout}
       className={className}
     >
       <span className={styles.dateWrap}>
         <input
           id={id}
-          type="date"
-          className={[styles.input, styles.mono, styles.date, invalid ? styles.invalid : '']
+          type="text"
+          inputMode="numeric"
+          className={[styles.input, styles.mono, styles.date, invalid || refused ? styles.invalid : '']
             .filter(Boolean)
             .join(' ')}
-          value={value}
+          value={draft}
+          placeholder="YYYY-MM-DD"
+          maxLength={10}
+          spellCheck={false}
           disabled={disabled}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => setDraft(event.target.value)}
+          onFocus={() => {
+            held.current = true
+          }}
+          onBlur={() => {
+            held.current = false
+            commitTyped()
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              commitTyped()
+            }
+          }}
         />
-        {/* Hidden from the tree: the input beneath it is the control. */}
-        {disabled ? null : (
-          <span className={styles.dateMark} aria-hidden="true">
-            ◆
-          </span>
-        )}
+
+        <button
+          ref={triggerRef}
+          type="button"
+          className={styles.dateMark}
+          disabled={disabled}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-label="Choose a date"
+          data-open={open || undefined}
+          onClick={() => setOpen((was) => !was)}
+        >
+          ◆
+        </button>
       </span>
+
+      {open && position ? (
+        <Portal>
+          <div
+            ref={panelRef as React.RefObject<HTMLDivElement>}
+            className={styles.datePanel}
+            style={position}
+          >
+            <Calendar
+              value={value}
+              onChange={pick}
+              onDismiss={close}
+              clearable={clearable}
+            />
+          </div>
+        </Portal>
+      ) : null}
     </ControlShell>
   )
 }

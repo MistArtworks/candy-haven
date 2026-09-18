@@ -223,18 +223,12 @@
 }
 
 /*
- * The date field, with the operating system taken off it.
+ * The date field.
  *
- * Chromium's own picker glyph is the one piece of Windows visible on the page:
- * a pale square in a system face, sized and coloured by the platform. It is
- * made transparent rather than removed, and our own mark is drawn underneath
- * at the same size and position — so the thing the operator presses is the
- * thing they see, and the OS picker and keyboard entry both keep working.
- *
- * What cannot be changed is the *text*: a native date input always renders in
- * the platform's own format, so this reads `2026-09-19` rather than
- * `19 SEP 2026`. That is no loss here — ISO in the monospace face is how the
- * register writes a date everywhere else, and it sorts.
+ * No longer a native date input, so there is no platform picker glyph to hide
+ * and no webkit indicator rule left. The month is drawn in the document now —
+ * see `DateInput` for why, and `Calendar` for what. The field itself is an
+ * ordinary ruled text input holding ISO.
  */
 .dateWrap {
   position: relative;
@@ -244,34 +238,50 @@
 }
 
 .date {
-  // Declaring dark keeps Chromium from drawing its furniture for a light page.
-  color-scheme: dark;
   padding-right: space(6);
-
-  &::-webkit-calendar-picker-indicator {
-    position: absolute;
-    right: 0;
-    width: rem(16px);
-    height: rem(16px);
-    margin: 0;
-    padding: 0;
-    opacity: 0;
-    cursor: pointer;
-  }
-
-  &:disabled::-webkit-calendar-picker-indicator {
-    cursor: not-allowed;
-  }
 }
 
-// Gold, because an unset date is the thing the sheet is waiting for.
+/*
+ * The mark, which is now the control that opens the month rather than a
+ * decoration sitting over the platform's.
+ *
+ * A real button, and that is load-bearing: `fieldset[disabled]` reaches
+ * form-associated elements and nothing else, so this has to be one to go dead
+ * inside a locked record.
+ */
 .dateMark {
   position: absolute;
   right: 0;
   color: var(--ch-gold-400);
   font-size: rem(10px);
   line-height: 1;
-  pointer-events: none;
+  padding: space(1);
+  cursor: pointer;
+  transition: color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-gold-200);
+  }
+
+  &[data-open] {
+    color: var(--ch-gold-200);
+  }
+
+  &:disabled {
+    color: var(--ch-text-faint);
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// Positioned by `usePanelAnchor`; `Calendar` draws its own surface, so this
+// carries only the layer it floats on.
+.datePanel {
+  position: fixed;
+  z-index: z('modal');
 }
 
 // ------------------------------------------------------------------- select

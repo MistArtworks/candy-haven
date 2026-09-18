@@ -458,6 +458,7 @@ Tokens: `$titlebar-height: 40px`, `$rail-width: 232px`,
 | `Panel`               | The standard slab container. Props: `label`, `index`, `aside`, `focal`, `flush`, `animated`. |
 | `PageHeader`          | Section masthead: numbered label, purpose line, rule, epigraph, actions.                     |
 | `Field` / `FieldGrid` | Labelled readout; grid supports 1–4 columns.                                                 |
+| `Calendar`            | A month grid, drawn in the document. No positioning of its own; pair with `usePanelAnchor`. |
 | `Input` exports       | `TextInput`, `TextArea`, `SelectInput`, `DateInput`, `Checkbox`, `SearchInput`. Ruled fields; optional label gutter via `layout`. See D27. |
 | `Button`              | `variant: primary\|ghost\|danger`, `size: sm\|md`, `busy`.                                   |
 | `Meter`               | Linear progress with quarter ticks; `null` value = indeterminate sweep.                      |
@@ -881,6 +882,32 @@ D20-D22 in `docs/DISCOGRAPHY.md`.
   is **skipped**, not fatal: a label master legitimately has no file here. The
   button is never disabled for these; re-deriving five service conditions in
   the renderer would be a second opinion that could disagree with the first.
+
+### The date picker is drawn in the document — 2026-09-18
+
+D28 in `docs/DISCOGRAPHY.md`.
+
+- **No `input[type=date]` remains in the renderer.** Chromium draws its
+  picker outside the document, so no stylesheet reaches it and it arrives
+  with a system-blue selection — the one colour §3 forbids outright. Same
+  wall `Select` hit with the native `<select>` popup, same answer.
+- **`primitives/Calendar.tsx`** is the month grid and nothing else: no
+  positioning, so it is usable inline. All of its arithmetic comes from
+  `calendar.constants.ts` — `monthGrid` (42 cells, fixed six rows),
+  `addMonths` (clamped), `addDays`, `startOfWeek`, `isSameMonth`. **Monday
+  first**, which now matches the CALENDAR department.
+- **`hooks/usePanelAnchor.ts`** is `Select`'s anchoring, lifted rather
+  than copied: measure after layout, flip only when there is more room
+  above, close on outside pointerdown / resize / **capture-phase** scroll,
+  and return focus to the trigger. `Select` was refactored onto it.
+- **`DateInput` keeps a real text input** so a date can still be typed;
+  ISO, committed on blur or Enter, refused with a reason if it is not a
+  real day. The gold mark is now a **`<button>`** — `fieldset[disabled]`
+  reaches only form-associated elements, so a div would stay live inside a
+  locked record.
+- One focus stop for the whole grid; arrows move, PageUp/Down page,
+  Enter commits, Escape closes. The cursor is shared by keyboard and
+  pointer so two cells can never light at once.
 
 ### Form fields are ruled, with their labels in a gutter — 2026-09-18
 

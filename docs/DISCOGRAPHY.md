@@ -1839,3 +1839,131 @@ needed an edit.
   written.
 - **No component gallery exists in this repo**, so a primitives change
   compiles clean and still has to be looked at on every form it reaches.
+
+## 33. D28 — the date picker is drawn, not the platform's
+
+*"Is it possible to style this dropdown calendar picker, and could it be used
+wherever we have a dropdown calendar?"*
+
+No to the first and yes to the second, which together are the whole decision.
+
+D27 took the operating system off the date *field*. Pressing it still opened
+**Chromium's** picker: a panel rendered outside the document, which no
+stylesheet in this application can reach, arriving on Windows with a
+system-blue selection on the chosen and hovered days. §3 of
+`PROJECT_CONTEXT.md` is unambiguous about that — *"Crimson is the only
+saturated colour. No blues, greens, or bright primaries. Ever."*
+
+`Select` had already met this exact wall and written down the answer:
+
+> A native `<select>` was used until its popup was actually looked at on
+> Windows: the list is drawn by the operating system, so it arrives as a white
+> panel with a system-blue highlight. No stylesheet reaches it […] So the list
+> is drawn in the document.
+
+### Almost none of this is new code
+
+| Need | Reused from |
+| --- | --- |
+| six weeks, always 42 cells | `monthGrid` |
+| paging, clamped so 31 Mar back a month lands on 28 Feb | `addMonths` |
+| day arithmetic, week starts | `addDays`, `startOfWeek`, `isSameMonth`, `parseIsoDate`, `toIsoDate`, `daysInMonth` |
+| headings | `WEEKDAY_LABELS`, `MONTH_NAMES` |
+| today | `todayIso` |
+| portal, flip, dismissal, cursor rule | `Select` |
+
+All of the date arithmetic already existed in `calendar.constants.ts`, where
+the CALENDAR department has used it since it was built. Two of its decisions
+come along for free and are worth naming: **Monday first**, so the field now
+agrees with the department instead of contradicting it, and **six rows
+always** — its comment says a grid that resizes as you page through the year
+is "the single most common way this control is got wrong", and it is right.
+
+### `usePanelAnchor`
+
+`Select`'s anchoring was lifted into a hook rather than copied. It carries
+four things that are easy to get wrong and were already correct:
+
+- measured **after layout**, because whether the panel fits below depends on
+  how tall it actually is;
+- flips upward **only when there is genuinely more room above**, not whenever
+  it fails to fit below;
+- closes on outside `pointerdown`, on `resize`, and on `scroll` **in the
+  capture phase** — scroll does not bubble from a non-document element, and
+  this application is full of inner scrollers;
+- closing returns focus to the trigger, so a keyboard operator is not dropped
+  at the top of the page.
+
+One refinement in the move: a **pointer** dismissal no longer yanks focus
+back to the trigger, because the operator has just pressed something else.
+Keyboard dismissal still does.
+
+`Select` was refactored onto it and is still unused — which is what made the
+extraction free, and means the hook has a second consumer waiting if anything
+ever revives it.
+
+### Typing survives, and that is deliberate
+
+The native control's one genuine merit is that a date can be entered without
+reaching for the mouse. So the field is still a **real text input**: ISO,
+monospace, committed on blur or Enter, and a value that is not a real day is
+kept on screen and refused with a reason rather than silently dropped. Same
+commit model as `DistributionEditor`, same ownership guard as `useEchoedText`
+— the stored value is adopted only when the field does not have focus.
+
+`parseTyped` checks the day actually exists rather than merely matching ten
+characters in the right shape: `2026-02-31` is refused.
+
+### The mark became a button, and that is load-bearing
+
+It was a decorative `<span>` over the platform's indicator. It is now the
+control that opens the month — and a `<button>` specifically, because
+`fieldset[disabled]` is what locks the read-only sheet (D24) and it reaches
+only form-associated elements. A `<div role="combobox">` would have stayed
+live inside a locked record.
+
+### The grid
+
+- One focus stop, not forty-two. Tab is not a way to walk a month a day at a
+  time; the arrows are. `PageUp`/`PageDown` by month, `Home`/`End` to the ends
+  of the week, Enter to commit, Escape to close and hand focus back.
+- Arrowing off the edge of a month **pages with the cursor**, which is what
+  makes it feel like one continuous sheet rather than twelve separate ones.
+- Days outside the month are faint but **still selectable** — picking 3
+  October from September's grid is an ordinary thing to want.
+- The cursor is set by arrow keys **and** `pointerenter`, so the pointer and
+  the keyboard can never light two cells. `Select`'s rule, and for its reason:
+  two highlights means neither answers "what does Enter do".
+- Selection is gold with a gold hairline, today is a gold rule under the
+  number, the cursor is the overlay grey. They **stack** rather than compete,
+  so a day that is all three still reads as all three. Crimson appears
+  nowhere: a date is not live state.
+- `CLEAR` and `TODAY` at the foot. Clearing is how a release becomes undated,
+  which `RELEASE_STATUSES` explicitly allows and calls "intended, not dated".
+
+### All three sites, and no natives left
+
+`grep type="date"` across the renderer now returns nothing.
+
+| Site | Before |
+| --- | --- |
+| CALENDAR's entry dialog | `DateInput` — inherited the change |
+| the release sheet | `DateInput` — inherited the change |
+| `ReleaseDialog` | a **third** raw `input[type=date]`, now the primitive |
+
+The dialog dropped its `DialogField` wrapper rather than nesting: that wrapper
+draws its own label and hint and `DateInput` draws both, so the two together
+said everything twice. What is lost is the wrapper's `required` marker — and
+a release date is only required once the entry is RELEASED, which the hint
+says in words rather than as an asterisk.
+
+`.date` in `DiscographyPage.module.scss` and the webkit indicator rules in
+`Input.module.scss` are gone with them.
+
+### What changed rather than improved
+
+- **Locale.** A drawn picker is English and Monday-first because this console
+  is; the native one followed Windows. For a two-person tool in one language
+  that is the right trade, but it is a trade.
+- **The platform's own affordances** — its segmented spinner and whatever
+  format Windows was showing — are gone. ISO replaces them.

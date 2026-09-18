@@ -1,12 +1,5 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode
-} from 'react'
+import { useState, type ReactNode } from 'react'
+import { usePanelAnchor } from '@renderer/hooks/usePanelAnchor'
 import { Portal } from './Portal'
 import styles from './Select.module.scss'
 
@@ -34,7 +27,8 @@ export interface SelectProps<T extends string> {
 
 /** How far the list may extend before it scrolls. */
 const MAX_LIST_HEIGHT = 280
-const GAP = 4
+/** Roughly a row, for guessing the list's height before it is drawn. */
+const ROW_HEIGHT = 30
 
 /**
  * The console's dropdown.
@@ -70,61 +64,24 @@ export function Select<T extends string>({
   className
 }: SelectProps<T>): ReactNode {
   const [open, setOpen] = useState(false)
-  const [position, setPosition] = useState<CSSProperties | null>(null)
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const listRef = useRef<HTMLUListElement>(null)
 
   const selected = options.findIndex((option) => option.value === value)
   /** Which row the keyboard is on. Follows the selection when reopened. */
   const [cursor, setCursor] = useState(Math.max(selected, 0))
 
-  const close = useCallback((): void => {
-    setOpen(false)
-    triggerRef.current?.focus()
-  }, [])
-
-  // Measured after layout, because whether the list fits below depends on how
-  // many options it has.
-  useLayoutEffect(() => {
-    if (!open) return
-    const trigger = triggerRef.current
-    if (!trigger) return
-
-    const rect = trigger.getBoundingClientRect()
-    const below = window.innerHeight - rect.bottom - GAP
-    const above = rect.top - GAP
-    const wanted = Math.min(options.length * 30 + 8, MAX_LIST_HEIGHT)
-    const flip = below < wanted && above > below
-
-    setPosition({
-      left: rect.left,
-      minWidth: rect.width,
-      maxHeight: Math.min(flip ? above : below, MAX_LIST_HEIGHT),
-      ...(flip ? { bottom: window.innerHeight - rect.top + GAP } : { top: rect.bottom + GAP })
-    })
-  }, [open, options.length])
-
-  useEffect(() => {
-    if (!open) return
-
-    const onPointerDown = (event: PointerEvent): void => {
-      const target = event.target as Node
-      if (listRef.current?.contains(target) || triggerRef.current?.contains(target)) return
-      setOpen(false)
-    }
-
-    document.addEventListener('pointerdown', onPointerDown)
-    // Capture phase: a scroll inside any ancestor should close it, and scroll
-    // does not bubble from an element that is not the document.
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
-
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
-    }
-  }, [open, close])
+  /*
+   * Anchoring, flipping and dismissal used to live here in full. They moved
+   * to `usePanelAnchor` when the date picker needed the same four behaviours,
+   * and the hook's comment keeps the reasoning that was written here.
+   *
+   * The list's wanted height is still computed from the option count, because
+   * that is the thing only this component knows.
+   */
+  const { triggerRef, panelRef, position, close } = usePanelAnchor(
+    open,
+    Math.min(options.length * ROW_HEIGHT + 8, MAX_LIST_HEIGHT),
+    () => setOpen(false)
+  )
 
   const commit = (index: number): void => {
     const option = options[index]
@@ -200,7 +157,7 @@ export function Select<T extends string>({
       {open && position ? (
         <Portal>
           <ul
-            ref={listRef}
+            ref={panelRef as React.RefObject<HTMLUListElement>}
             className={styles.list}
             style={position}
             role="listbox"

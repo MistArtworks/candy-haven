@@ -858,35 +858,6 @@
   color: var(--ch-text-faint);
 }
 
-/*
- * `ReleaseDialog`'s date. Ruled like the primitive, because the dialog that
- * raises a release and the sheet that edits it should not draw one field two
- * ways. It stays a raw input here rather than becoming `DateInput`: it sits
- * inside a `DialogField`, which already supplies the label a `DateInput`
- * would draw a second time.
- */
-.date {
-  @include readout(11px);
-  color: var(--ch-text-primary);
-  background: none;
-  border: 0;
-  border-bottom: $hairline solid var(--ch-line);
-  padding: space(2) 0;
-  width: rem(180px);
-  // Without this the native picker draws its glyph as black-on-black.
-  color-scheme: dark;
-
-  &:hover {
-    border-bottom-color: var(--ch-line-strong);
-  }
-
-  &:focus-visible {
-    outline: none;
-    border-bottom-color: var(--ch-accent);
-    box-shadow: 0 1px 0 0 var(--ch-accent);
-  }
-}
-
 .warn {
   @include readout(10px);
   color: var(--ch-crimson-400);

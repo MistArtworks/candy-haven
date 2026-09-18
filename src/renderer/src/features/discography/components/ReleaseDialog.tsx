@@ -18,8 +18,7 @@ import {
   DialogChips,
   DialogField
 } from '@renderer/components/primitives/Dialog'
-import { TextInput } from '@renderer/components/primitives/Input'
-import styles from '../DiscographyPage.module.scss'
+import { DateInput, TextInput } from '@renderer/components/primitives/Input'
 
 export interface ReleaseDialogProps {
   roster: readonly ArtistRecord[]
@@ -134,23 +133,26 @@ export function ReleaseDialog({
         </DialogChips>
       </DialogField>
 
-      <DialogField
+      {/*
+        The primitive, not the third raw date input this department had.
+
+        Without a `DialogField` around it: that wrapper draws its own label and
+        hint, and `DateInput` draws both itself, so nesting them says
+        everything twice. What is lost is the wrapper's `required` marker — a
+        release date is only required once the entry is RELEASED, and the hint
+        below says exactly that, which is more than an asterisk manages.
+      */}
+      <DateInput
         label="Release date"
-        required={status === 'released'}
+        value={releaseDate}
+        onChange={setReleaseDate}
+        invalid={needsDate}
         hint={
           needsDate
             ? 'A released entry needs the date it came out — the catalogue sorts by it.'
             : 'Optional until it is out.'
         }
-      >
-        <input
-          type="date"
-          className={styles.date}
-          value={releaseDate}
-          aria-label="Release date"
-          onChange={(event) => setReleaseDate(event.target.value)}
-        />
-      </DialogField>
+      />
 
       {roster.length > 0 ? (
         <DialogField label="Billed as" hint="Who it is by. Features are added on the sheet.">
