@@ -8,6 +8,7 @@ import {
   MAX_ARTIST_NAME,
   MAX_ARTIST_REAL_NAME
 } from '@shared/domain/artists.constants'
+import { useBackdropDismiss } from '@renderer/hooks/useBackdropDismiss'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
@@ -55,6 +56,11 @@ export function ArtistSheet({
   onClose
 }: ArtistSheetProps): ReactNode {
   const [confirming, setConfirming] = useState(false)
+  /*
+   * Pressing the scrim closes, but a text selection dragged out of a field
+   * and released on it must not — see `useBackdropDismiss`.
+   */
+  const dismiss = useBackdropDismiss(onClose)
 
   const [name, setName] = useEchoedText(artist.name, (value) => {
     if (value.trim()) onPatch({ name: value })
@@ -87,7 +93,7 @@ export function ArtistSheet({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        {...dismiss}
       >
         <motion.section
           className={styles.sheet}

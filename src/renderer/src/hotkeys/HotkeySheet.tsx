@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react'
 import { motion } from 'motion/react'
+import { useBackdropDismiss } from '@renderer/hooks/useBackdropDismiss'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { chordKeys, type Hotkey } from './registry'
 import styles from './HotkeySheet.module.scss'
@@ -22,6 +23,14 @@ export interface HotkeySheetProps {
  * interface.
  */
 export function HotkeySheet({ hotkeys, onClose }: HotkeySheetProps): ReactNode {
+  /*
+   * Pressing the scrim closes, but a drag released on it must not — see
+   * `useBackdropDismiss`. Less likely to bite on a sheet with no fields in
+   * it, and applied anyway: three overlays behaving two ways is how one of
+   * them quietly regresses.
+   */
+  const dismiss = useBackdropDismiss(onClose)
+
   const groups = useMemo(() => {
     const byGroup = new Map<string, Hotkey[]>()
 
@@ -55,7 +64,7 @@ export function HotkeySheet({ hotkeys, onClose }: HotkeySheetProps): ReactNode {
         role="dialog"
         aria-modal="true"
         aria-label="Keyboard shortcuts"
-        onClick={onClose}
+        {...dismiss}
       >
         <motion.section
           className={styles.sheet}

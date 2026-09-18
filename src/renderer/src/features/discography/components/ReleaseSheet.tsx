@@ -30,6 +30,7 @@ import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
 import { Plate } from '@renderer/components/primitives/Plate'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
+import { useBackdropDismiss } from '@renderer/hooks/useBackdropDismiss'
 import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import {
@@ -133,6 +134,12 @@ export function ReleaseSheet({
   const [confirming, setConfirming] = useState(false)
   const [tab, setTab] = useState<SheetTab>('release')
   const animate = useAnimationsEnabled()
+  /*
+   * Pressing the scrim closes, but a text selection dragged out of a field
+   * and released on it must not — see `useBackdropDismiss` for why the
+   * obvious `onClick` cannot tell those apart.
+   */
+  const dismiss = useBackdropDismiss(onClose)
 
   const [title, setTitle] = useEchoedText(release.title, (value) => {
     if (value.trim()) onPatch({ title: value })
@@ -171,7 +178,7 @@ export function ReleaseSheet({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        {...dismiss}
       >
         {/*
           `layout` is what animates the height when a tab is swapped, and the
