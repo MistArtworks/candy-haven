@@ -968,3 +968,148 @@
   @include readout(9px);
   color: var(--ch-gold-300);
 }
+
+// ------------------------------------------------------------- distribution
+
+// The platforms a release goes out on. One block per platform rather than one
+// row, because a platform holds two addresses and a two-line row is the only
+// layout where both stay readable at this width.
+.dist {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.distEmpty {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-faint);
+  padding: space(4);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+}
+
+// The one line that asks for something. Gold rather than crimson: a stream
+// link that has not been entered yet is work outstanding, not a fault.
+.distNudge {
+  @include label(9px, 0.16em);
+  color: var(--ch-gold-300);
+  padding: space(3) space(4);
+  background: rgba(182, 158, 124, 0.07);
+  @include hairline(left, 0.4);
+}
+
+.distList {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.distRow {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(3);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+}
+
+.distHead {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.distPlatform {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-primary);
+  margin-right: auto;
+}
+
+.distName {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(2);
+  width: rem(140px);
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// One address. The label is a fixed column so PRE-SAVE and STREAM line up
+// down the block and the eye can run the addresses rather than hunt for them.
+.distField {
+  display: grid;
+  grid-template-columns: rem(64px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(2);
+}
+
+.distFieldLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+// Live, as against kept for the record — which of the two this is follows the
+// release's own status. Gold on the one being asked for, and nothing louder:
+// the other is still perfectly readable, just not where the eye lands.
+.distField[data-primary] {
+  .distFieldLabel {
+    color: var(--ch-gold-400);
+  }
+
+  .distInput {
+    color: var(--ch-text-primary);
+    border-color: rgba(182, 158, 124, 0.28);
+  }
+}
+
+.distInput {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line);
+  padding: space(2);
+  min-width: 0;
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// Why the value was not kept. Crimson earns it here: the operator typed
+// something and it was refused, which is a live state rather than a note.
+.distRefusal {
+  @include readout(9px);
+  color: var(--ch-crimson-400);
+  grid-column: 2 / -1;
+}
+
+.distAdd {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.distPick {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(2);
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.distCeiling {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}

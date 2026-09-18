@@ -18,12 +18,18 @@ export interface LinkEditorProps {
 }
 
 /**
- * Where somebody — or something — can be found.
+ * Where somebody can be found.
  *
- * Shared by ARTISTS and DISCOGRAPHY because a release's platform links and an
- * artist's socials are the same object: a platform, an address, and a label
- * for the ones the platform list cannot name. One editor rather than two that
- * would drift the first time either was touched.
+ * ARTISTS only, now. This was shared with DISCOGRAPHY on the reasoning that a
+ * release's platform links and an artist's socials were the same object — a
+ * platform, an address, and a label for the ones the platform list cannot
+ * name — and while that was true it was worth one editor rather than two that
+ * would drift.
+ *
+ * It stopped being true at D23. A release's platforms each hold **two**
+ * addresses, a pre-save and a stream, and exist on the record before either
+ * of them does; that is `DistributionEditor`, which is a planned set rather
+ * than a list of places. A social is still exactly a platform and a URL.
  *
  * The platform is **guessed from the address and then left alone**. Pasting a
  * Spotify URL should not also require saying it is Spotify, but re-guessing

@@ -1,4 +1,5 @@
 import type { Db, IndexDescription } from 'mongodb'
+import { distributionFromLinks } from '@shared/domain/discography.constants'
 import { WRAPPER_DIRECTORY_NAME } from '@shared/domain/stacks.constants'
 import { getLogger } from '@main/core/logger'
 import { migrateToProjectsLayout } from '@main/services/stacks/layout-migration'
@@ -238,7 +239,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 10
+const SCHEMA_VERSION = 11
 
 /**
  * Collections dropped by the version 2 migration.
@@ -525,6 +526,11 @@ async function applyMigrations(db: Db): Promise<void> {
     await migrateReleaseStatuses(db)
   }
 
+  if (from < 11) {
+    logger.warn(`Migrating archive schema ${from} -> 11: release links become distribution`)
+    await migrateLinksToDistribution(db)
+  }
+
   await collection.updateOne(
     { _id: 'schema' as never },
     { $set: { version: SCHEMA_VERSION, appliedAt: new Date() } },
@@ -570,6 +576,68 @@ async function migrateReleaseStatuses(db: Db): Promise<void> {
     )
 
   logger.info(`Folded ${result.modifiedCount} release statuses onto SCHEDULED`)
+}
+
+/**
+ * A release's flat `links[]` becomes a per-platform `distribution[]`.
+ *
+ * `links` was a platform, an address and a label — one address per row, which
+ * could only ever say where a record already *is*. A release actually needs
+ * two addresses per platform and needs the platform on the record before
+ * either exists: the pre-save link goes out in the run-up, the stream link
+ * replaces it as the thing to send, and a platform with neither is a store on
+ * the plan. See D23.
+ *
+ * ## Nothing the operator typed is thrown away
+ *
+ * The mapping is `distributionFromLinks`, which is a pure function in
+ * `discography.constants.ts` precisely so it could be probed over every case
+ * without a database — the first migration here to get that treatment. In
+ * short: a link on a platform the new set also has becomes that platform's
+ * row with the address as its `streamUrl`; everything else lands on `other`
+ * keeping its label, or labelled with the platform it came from.
+ *
+ * `presaveUrl` is empty on every migrated row, and has to be. An existing
+ * link is somewhere the record already is; nothing stored said anything about
+ * a pre-save, and inventing one would be worse than leaving the slot open.
+ *
+ * ## Idempotent by inspection
+ *
+ * Required rather than preferred here: the version stamp is written once at
+ * the end of `applyMigrations` for `SCHEMA_VERSION` alone, so a throw anywhere
+ * re-runs every step from `from` onward, and a step that throws every time
+ * leaves the app on SEQUENCE HALTED with a retry button that loops.
+ *
+ * So the filter is `links: { $exists: true }`, and each write `$unset`s
+ * `links` as it `$set`s `distribution` — a second pass matches nothing. One
+ * write per document rather than a pipeline: the "a second link on a platform
+ * already used moves to `other`" rule is a fold with state, and `$reduce`
+ * would make it unreadable.
+ *
+ * The version 9 migration mints releases carrying `links: []`. That is left
+ * alone — it runs before this one in the same pass, so its empty list is
+ * picked up and unset like any other.
+ */
+async function migrateLinksToDistribution(db: Db): Promise<void> {
+  const releases = db.collection(Collections.Discography)
+  const documents = await releases.find({ links: { $exists: true } }).toArray()
+
+  let moved = 0
+  for (const document of documents) {
+    const links = Array.isArray(document.links) ? document.links : []
+    await releases.updateOne(
+      { _id: document._id },
+      {
+        $set: { distribution: distributionFromLinks(links) },
+        $unset: { links: '' }
+      }
+    )
+    moved += links.length
+  }
+
+  logger.info(
+    `Moved ${moved} platform links onto distribution across ${documents.length} releases`
+  )
 }
 
 /**

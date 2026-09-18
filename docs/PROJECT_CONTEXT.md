@@ -682,7 +682,20 @@ nothing and rescans nothing. Note that `DiscographyReleaseSchema.status` also
 carries `.catch('scheduled')`, so an unmigrated document still reads — that is
 the net for the window before the migration runs, not a replacement for it.
 
-`SCHEMA_VERSION` is **10**. Bump it and add a branch there for the next such
+**Schema version 11** replaces a release's flat `links[]` with a per-platform
+`distribution[]`, each row holding a pre-save and a stream address (D23).
+Nothing typed is lost: a link on a platform the new set also has becomes that
+platform's row with the address as its `streamUrl`, and everything else — the
+socials, a website, a **second** link on a platform already used — lands on
+`other`, keeping its own label or labelled with the platform it came from. The
+mapping is `distributionFromLinks`, a **pure function** in
+`discography.constants.ts` rather than inline here, which is what let it be
+probed over every case with no database — the first migration in this project
+to get that, and it caught a real defect on the first run. Guarded by
+`{ links: { $exists: true } }` and `$unset`s `links` as it writes, so a second
+pass matches nothing.
+
+`SCHEMA_VERSION` is **11**. Bump it and add a branch there for the next such
 change.
 
 Indexes are declared declaratively in `INDEX_PLAN` and reconciled every boot
@@ -867,6 +880,46 @@ D20-D22 in `docs/DISCOGRAPHY.md`.
   is **skipped**, not fatal: a label master legitimately has no file here. The
   button is never disabled for these; re-deriving five service conditions in
   the renderer would be a second opinion that could disagree with the first.
+
+### Distribution — 2026-09-18
+
+D23 in `docs/DISCOGRAPHY.md`.
+
+- **A release's `links[]` is gone**, replaced by `distribution[]`:
+  `{ id, platform, label, presaveUrl, streamUrl }`, one row per platform, cap
+  `MAX_DISTRIBUTION` (16). `ReleaseLinkSchema`, `ReleaseLink` and
+  `MAX_RELEASE_LINKS` are deleted. `ArtistLink` was always a separate
+  declaration, so ARTISTS and `LinkEditor` are untouched.
+- **`DISTRIBUTION_PLATFORMS` is its own closed set**, not `SOCIAL_PLATFORMS` —
+  ten entries, and `other` is the only one that may repeat and the only one
+  whose `label` is read. Nothing guesses a platform: it is chosen from a menu
+  before there is a URL to guess from.
+- **`update`'s guard validates per slot and skips the empty ones.** This is the
+  trap: `checkLinkUrl` refuses the empty string, so the old whole-row guard
+  carried over unchanged would have refused to save a platform with no address
+  yet — which is the state the feature exists for. A probe over the real
+  `checkLinkUrl` records why the skip is load-bearing.
+- **`DistributionEditor` commits on blur or Enter, never on change.** A URL
+  patched per keystroke is one IPC write per character, and all but the last
+  carry a half-typed address the service refuses. An invalid value stays on
+  screen with `checkLinkUrl`'s reason rather than being discarded. The
+  adopt-the-remote-value effect is guarded by **focus** — the same ownership
+  rule `useEchoedText` documents, and what satisfies
+  `react-hooks/set-state-in-effect`.
+- **Emphasis follows `status === 'released'`, not the date.** Before release
+  PRE-SAVE reads live and STREAM is muted; after, the reverse. Neither is ever
+  hidden. Deriving "is it out" from `releaseDate` as well would be a second
+  opinion about a fact the operator has written down.
+- **The gap is reported twice** when the record is out: a line above the list,
+  and a count on the TRADE tab beside the badges TRACKS and CREDITS carry. Not
+  before release, when an empty stream slot is simply normal.
+- `Release Details.txt`'s `WHERE IT IS` became `DISTRIBUTION`, and prints
+  `no link yet` for a missing stream link on a release that is out — the one
+  empty field that file spells out instead of omitting.
+- **Nothing fetches anything yet.** Automatic stream-link retrieval once a
+  release date passes is the operator's stated next step, deliberately not
+  built. The shape anticipates it: a `source`/`fetchedAt` field can join a row
+  without touching anything that reads one.
 
 Reserved sections render `ReservedPage` with a commissioning scope list (defined
 inline in `src/renderer/src/app/router.tsx`) — deliberately not an empty page, so

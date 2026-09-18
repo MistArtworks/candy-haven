@@ -3,18 +3,19 @@ import { ManagedImageSchema } from './artists'
 import { IsoDateSchema } from './dates'
 import { MediaFileSchema } from './media'
 import { DEFAULT_FOLDER_COLOUR, isHexColour } from './stacks.constants'
-import { ARTIST_ROLES, SOCIAL_PLATFORMS } from './artists.constants'
+import { ARTIST_ROLES } from './artists.constants'
 import {
   MAX_CATALOGUE_NUMBER,
   MAX_COPYRIGHT_LINE,
   MAX_CREDIT_NOTE,
   MAX_CREDITS,
+  MAX_DISTRIBUTION,
   MAX_LABEL_NAME,
-  MAX_RELEASE_LINKS,
   MAX_RELEASE_SUBTITLE,
   MAX_RELEASE_TITLE,
   MAX_TRACK_TITLE,
   MAX_TRACKS,
+  DISTRIBUTION_PLATFORMS,
   RELEASE_KINDS,
   RELEASE_STATUSES
 } from './discography.constants'
@@ -49,13 +50,35 @@ const ColourSchema = z.string().refine(isHexColour, 'Expected a six-digit hex co
 export const ReleaseKindSchema = z.enum(RELEASE_KINDS)
 export const ReleaseStatusSchema = z.enum(RELEASE_STATUSES)
 
-export const ReleaseLinkSchema = z.object({
+/**
+ * One platform a release goes out on, and the two addresses it can hold.
+ *
+ * ## Why two slots and not two lists
+ *
+ * A release's life has two halves and the operator works through both of them
+ * on the same row: the pre-save link goes out in the run-up, and the stream
+ * link replaces it as the thing to send once the record is actually out. A
+ * platform with neither is the state that matters most — it is on the plan and
+ * has nowhere to point yet, which a flat list of URLs could not express and
+ * which is the reason this replaced one.
+ *
+ * ## Permissive on purpose
+ *
+ * `.catch` on the platform, `.default('')` on everything else, no `.max()` on
+ * either URL. `toRelease` `safeParse`s this and **skips** a release it cannot
+ * read, so a strict field here would make a record vanish from the catalogue
+ * rather than refuse the next write. The addresses are checked in
+ * `DiscographyService.update`, per slot, skipping the empty ones.
+ */
+export const ReleaseDistributionSchema = z.object({
   id: z.string(),
-  platform: z.enum(SOCIAL_PLATFORMS).default('other').catch('other'),
-  url: z.string().default(''),
-  label: z.string().default('')
+  platform: z.enum(DISTRIBUTION_PLATFORMS).default('other').catch('other'),
+  /** Only read when `platform` is `other` — the gate or service's own name. */
+  label: z.string().default(''),
+  presaveUrl: z.string().default(''),
+  streamUrl: z.string().default('')
 })
-export type ReleaseLink = z.infer<typeof ReleaseLinkSchema>
+export type ReleaseDistribution = z.infer<typeof ReleaseDistributionSchema>
 
 /**
  * One line of the liner notes.
@@ -225,7 +248,7 @@ export const DiscographyReleaseSchema = z.object({
   artwork: ManagedImageSchema.prefault({}),
   canvas: ManagedImageSchema.prefault({}),
 
-  links: z.array(ReleaseLinkSchema).max(MAX_RELEASE_LINKS).default([]),
+  distribution: z.array(ReleaseDistributionSchema).max(MAX_DISTRIBUTION).default([]),
   tracks: z.array(ReleaseTrackSchema).max(MAX_TRACKS).default([]),
 
   colour: ColourSchema.default(DEFAULT_FOLDER_COLOUR),
@@ -328,7 +351,7 @@ export const ReleasePatchSchema = z.object({
   upc: z.string().optional(),
   phonographicLine: z.string().optional(),
   copyrightLine: z.string().optional(),
-  links: z.array(ReleaseLinkSchema).optional(),
+  distribution: z.array(ReleaseDistributionSchema).optional(),
   colour: ColourSchema.optional(),
   notes: z.string().optional(),
   favourite: z.boolean().optional()

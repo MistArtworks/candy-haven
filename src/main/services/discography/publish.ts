@@ -5,6 +5,7 @@ import {
   COVER_ART_STEM,
   DETAILS_FILE_NAME,
   ARTIST_ROLE_CREDIT_FALLBACK,
+  distributionLabel,
   releaseFolderName,
   trackFileName,
   trackFeatureIds
@@ -204,10 +205,25 @@ function describeRelease(
     lines.push('')
   }
 
-  if (release.links.length > 0) {
-    lines.push('WHERE IT IS')
-    for (const link of release.links) {
-      lines.push(`  ${link.label || link.platform.toUpperCase()}: ${link.url}`)
+  if (release.distribution.length > 0) {
+    lines.push('DISTRIBUTION')
+    for (const entry of release.distribution) {
+      lines.push(`  ${distributionLabel(entry)}`)
+      if (entry.presaveUrl) lines.push(`      Pre-save: ${entry.presaveUrl}`)
+      if (entry.streamUrl) {
+        lines.push(`      Stream:   ${entry.streamUrl}`)
+      } else if (release.status === 'released') {
+        /*
+         * The one empty field this file spells out rather than omitting.
+         *
+         * Everywhere else a blank is dropped, because a distributor reading
+         * `UPC:` with nothing after it learns less than its absence says. A
+         * missing stream link on a record that is already out is the
+         * exception: there the gap is the actionable fact, named the same way
+         * the running order names a track with no master.
+         */
+        lines.push('      Stream:   no link yet')
+      }
     }
     lines.push('')
   }

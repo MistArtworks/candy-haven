@@ -6,7 +6,6 @@ import type {
   ReleaseAppearance,
   ReleaseAsset,
   ReleaseDraft,
-  ReleaseLink,
   ReleasePatch,
   ReleaseTrack,
   TrackDraft,
@@ -18,7 +17,7 @@ import {
   LINKABLE_PROJECT_STAGES,
   MAX_ARTWORK_BYTES,
   MAX_CREDITS,
-  MAX_RELEASE_LINKS,
+  MAX_DISTRIBUTION,
   RELEASE_KIND_LABEL,
   isLinkableStage,
   maxTracksFor,
@@ -30,7 +29,7 @@ import {
 import type { CalendarRelease } from '@shared/domain/calendar'
 import type { MediaFile, ProjectRecord } from '@shared/domain/projects'
 import { getStage } from '@shared/domain/projects.constants'
-import { checkLinkUrl, guessPlatform } from '@shared/domain/artists.constants'
+import { checkLinkUrl } from '@shared/domain/artists.constants'
 import { isHexColour, normaliseHex } from '@shared/domain/stacks.constants'
 import { randomTagColour } from '@shared/domain/tags.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
@@ -320,7 +319,7 @@ export class DiscographyService {
       copyrightLine: '',
       artwork: noMedia(),
       canvas: noMedia(),
-      links: [],
+      distribution: [],
       tracks,
       colour: randomTagColour(),
       notes: '',
@@ -457,20 +456,34 @@ export class DiscographyService {
       })
     }
 
-    if (patch.links) {
-      if (patch.links.length > MAX_RELEASE_LINKS) {
-        throw new AppError(`A release holds at most ${MAX_RELEASE_LINKS} links.`, {
+    if (patch.distribution !== undefined) {
+      if (patch.distribution.length > MAX_DISTRIBUTION) {
+        throw new AppError(`A release holds at most ${MAX_DISTRIBUTION} platforms.`, {
           code: ErrorCode.Validation,
           recoverable: false
         })
       }
-      for (const link of patch.links) {
-        const check = checkLinkUrl(link.url)
-        if (!check.ok) {
-          throw new AppError(check.reason ?? 'That link cannot be used.', {
-            code: ErrorCode.Validation,
-            recoverable: false
-          })
+      /*
+       * Per slot, and **empty is allowed** — which the flat link list this
+       * replaced could not do.
+       *
+       * The old guard ran `checkLinkUrl` over every row's single address, and
+       * that function refuses the empty string. Carried over unchanged it
+       * would have refused to save a platform the operator had picked but had
+       * no address for yet, which is the first thing this feature has to
+       * allow: a release is planned onto its stores long before there is
+       * anywhere to point at.
+       */
+      for (const entry of patch.distribution) {
+        for (const url of [entry.presaveUrl, entry.streamUrl]) {
+          if (!url.trim()) continue
+          const check = checkLinkUrl(url)
+          if (!check.ok) {
+            throw new AppError(check.reason ?? 'That link cannot be used.', {
+              code: ErrorCode.Validation,
+              recoverable: false
+            })
+          }
         }
       }
     }
@@ -542,7 +555,7 @@ export class DiscographyService {
         ? { phonographicLine: patch.phonographicLine.trim() }
         : {}),
       ...(patch.copyrightLine !== undefined ? { copyrightLine: patch.copyrightLine.trim() } : {}),
-      ...(patch.links !== undefined ? { links: patch.links } : {}),
+      ...(patch.distribution !== undefined ? { distribution: patch.distribution } : {}),
       ...(patch.colour !== undefined && isHexColour(patch.colour)
         ? { colour: normaliseHex(patch.colour) }
         : {}),
@@ -1194,25 +1207,6 @@ export class DiscographyService {
       linkedCount: tracks.filter((track) => track.projectId !== null).length,
       artistNames: names,
       year: releaseYear(release.releaseDate)
-    }
-  }
-
-  /** Builds a link record, validating the address as the services all do. */
-  makeLink(url: string, platform?: ReleaseLink['platform'], label?: string): ReleaseLink {
-    const check = checkLinkUrl(url)
-    if (!check.ok) {
-      throw new AppError(check.reason ?? 'That link cannot be used.', {
-        code: ErrorCode.Validation,
-        recoverable: false
-      })
-    }
-
-    const trimmed = url.trim()
-    return {
-      id: randomUUID(),
-      platform: platform ?? guessPlatform(trimmed),
-      url: trimmed,
-      label: label?.trim() ?? ''
     }
   }
 }

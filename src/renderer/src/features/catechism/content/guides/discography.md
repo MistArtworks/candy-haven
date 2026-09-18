@@ -68,9 +68,14 @@ produced, sang, wrote, mixed or drew it. All optional; most singles have none.
 
 ## Where it went
 
-Label, catalogue number, UPC, the ℗ and © lines, and a link for every place
-it is streaming. ISRCs sit on the **track**, because that is what an ISRC
-identifies — one album, one UPC, eleven ISRCs.
+Label, catalogue number, UPC, and the ℗ and © lines. ISRCs sit on the
+**track**, because that is what an ISRC identifies — one album, one UPC,
+eleven ISRCs.
+
+Underneath, the **platforms** it goes out on. Add one as soon as you know you
+are going to it; each holds a pre-save link for the run-up and a stream link
+for afterwards, and the sheet tells you which platforms are still waiting for
+one once the record is out.
 
 Cover art and canvas are copied into the archive, so the originals can be
 moved or deleted afterwards.

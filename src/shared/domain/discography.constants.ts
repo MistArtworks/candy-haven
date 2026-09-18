@@ -179,6 +179,157 @@ export const DISCOGRAPHY_SORT_LABEL: Record<DiscographySort, string> = {
   tracks: 'TRACKS'
 }
 
+// -------------------------------------------------------------- distribution
+
+/**
+ * The places a release goes out.
+ *
+ * Deliberately **not** `SOCIAL_PLATFORMS`. That set carries `instagram`,
+ * `tiktok`, `x` and `website` — none of which is somewhere a record is
+ * distributed — and it is missing the three services that matter most after
+ * the big two. The two lists were the same object while both meant "a platform
+ * and a URL"; they stopped being the same object the moment one of them grew a
+ * pre-save slot.
+ *
+ * `other` is the escape hatch, and the only entry that may appear twice: a
+ * pre-save gate, a smart link, a press piece. It is also the only one whose
+ * `label` is read, because the rest can name themselves.
+ */
+export const DISTRIBUTION_PLATFORMS = [
+  'spotify',
+  'apple',
+  'youtube',
+  'soundcloud',
+  'bandcamp',
+  'beatport',
+  'amazon',
+  'deezer',
+  'tidal',
+  'other'
+] as const
+export type DistributionPlatform = (typeof DISTRIBUTION_PLATFORMS)[number]
+
+export const DISTRIBUTION_PLATFORM_LABEL: Record<DistributionPlatform, string> = {
+  spotify: 'SPOTIFY',
+  apple: 'APPLE MUSIC',
+  youtube: 'YOUTUBE MUSIC',
+  soundcloud: 'SOUNDCLOUD',
+  bandcamp: 'BANDCAMP',
+  beatport: 'BEATPORT',
+  amazon: 'AMAZON MUSIC',
+  deezer: 'DEEZER',
+  tidal: 'TIDAL',
+  other: 'OTHER'
+}
+
+/**
+ * One platform on the plan, and the two addresses it can hold.
+ *
+ * The zod-free twin of `ReleaseDistributionSchema` — declared here because the
+ * migration mapper below has to build these without reaching for zod, and
+ * because the renderer wants the type without the parser. The two agree
+ * structurally, which `ReleasePatch` typechecking enforces for free.
+ *
+ * Both URLs may be empty, and that is the state the whole feature exists for:
+ * a platform is on the plan long before there is anywhere to point at.
+ */
+export interface DistributionEntry {
+  id: string
+  platform: DistributionPlatform
+  label: string
+  presaveUrl: string
+  streamUrl: string
+}
+
+/** Sixteen, the ceiling the flat link list carried before this replaced it. */
+export const MAX_DISTRIBUTION = 16
+
+/** What to call a row: the platform names itself unless it is `other`. */
+export function distributionLabel(entry: DistributionEntry): string {
+  if (entry.platform !== 'other') return DISTRIBUTION_PLATFORM_LABEL[entry.platform]
+  return entry.label.trim().toUpperCase() || DISTRIBUTION_PLATFORM_LABEL.other
+}
+
+/** Rows still waiting for a stream address. The count the sheet reports. */
+export function withoutStream(entries: readonly DistributionEntry[]): number {
+  return entries.filter((entry) => entry.streamUrl.trim().length === 0).length
+}
+
+/**
+ * A release's old flat `links[]`, read as a distribution list.
+ *
+ * The whole of schema migration 11, kept pure and here so a probe can drive
+ * every case without a database — which no migration in this project has had
+ * before. Input is structural and optional-everything on purpose: it reads
+ * **unmigrated documents**, so it cannot assume the shape zod would have
+ * guaranteed.
+ *
+ * ## Nothing the operator typed is thrown away
+ *
+ * A link on a platform this list also has becomes that platform's row, with
+ * the address as its `streamUrl` — an existing link is somewhere the record
+ * already is, never a pre-save.
+ *
+ * Everything else lands on `other` rather than being dropped: the socials, a
+ * website, and any **second** link on a platform already used. Those keep
+ * their own label if they had one, and are labelled with the platform they
+ * came from if they did not, so a Spotify link that could not have the Spotify
+ * row still says where it pointed.
+ *
+ * A link with no address at all is the one thing skipped. There was no such
+ * thing — `update` refused an empty URL — and if one exists it holds nothing
+ * worth a row.
+ */
+export function distributionFromLinks(
+  links: readonly { platform?: string; url?: string; label?: string }[]
+): DistributionEntry[] {
+  const entries: DistributionEntry[] = []
+  const taken = new Set<DistributionPlatform>()
+
+  links.forEach((link, index) => {
+    const url = (link.url ?? '').trim()
+    if (!url) return
+
+    const was = (link.platform ?? '').trim().toLowerCase()
+    const known = DISTRIBUTION_PLATFORMS.find((platform) => platform === was)
+    const store = known && known !== 'other' ? known : null
+
+    // Ids only have to be unique inside the array they sit in, which is all
+    // an id is for here — so the index does the job and keeps a probe's
+    // assertions readable.
+    const id = `dist-${index}`
+
+    if (store && !taken.has(store)) {
+      taken.add(store)
+      entries.push({ id, platform: store, label: '', presaveUrl: '', streamUrl: url })
+      return
+    }
+
+    /*
+     * What it could not be, so the row still says where it pointed.
+     *
+     * Empty when the link was already `other` or carried no platform at
+     * all: there is nothing it was displaced from, and labelling it
+     * `OTHER` would only repeat what `distributionLabel` says anyway.
+     */
+    const displaced = store
+      ? DISTRIBUTION_PLATFORM_LABEL[store]
+      : was === 'other'
+        ? ''
+        : was.toUpperCase()
+
+    entries.push({
+      id,
+      platform: 'other',
+      label: (link.label ?? '').trim() || displaced,
+      presaveUrl: '',
+      streamUrl: url
+    })
+  })
+
+  return entries
+}
+
 // -------------------------------------------------------------------- limits
 
 export const MAX_RELEASE_TITLE = 120
@@ -225,7 +376,6 @@ export function maxTracksFor(kind: ReleaseKind): number {
   return seedsOneTrack(kind) ? 1 : 40
 }
 export const MAX_TRACK_TITLE = 120
-export const MAX_RELEASE_LINKS = 16
 export const MAX_COPYRIGHT_LINE = 160
 
 /**

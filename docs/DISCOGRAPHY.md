@@ -1183,9 +1183,201 @@ a re-publish, 13 assertions — without an Electron app around it.
 
 ---
 
+### What came next
+
+Nothing here fetches anything, and a release date passing does not go and find
+the Spotify link. The platform set, the pre-save links before release and the
+stream links after it became **D23** below; automatic retrieval is still
+ahead of both.
+
+## 28. D23 — platforms, pre-save links and stream links
+
+*"We need to also add platforms a project is gonna be distributed [to], and for
+all the selected platforms, once it is released the user should enter the
+stream links. Before release, it would be nice to also enter the pre-save links
+as well."*
+
+`links[]` modelled **where a record already is**, which is half of how a
+release works. The operator picks the stores before anything exists, hands out
+pre-save links in the run-up, and goes back after release day to fill in the
+real addresses. A flat list of URLs cannot say *"Spotify is on the plan and has
+nowhere to point yet"* — the one question worth asking in the week around a
+release.
+
+Asked which way to take it, the operator delegated: *"do whatever you think is
+recommended, if it's something which is not necessary then we can skip it."*
+
+### One list, replacing "Where it is"
+
+`links[]` is **replaced**, not joined by a second list. Two lists in one tab
+would both read as "links", and nothing would stop the same Spotify URL going
+in either — the duplicate-fact problem this department has now refused three
+times: the calendar projection (D20), `raisedFor` (D18), and volume membership
+before either.
+
+```ts
+export const ReleaseDistributionSchema = z.object({
+  id: z.string(),
+  platform: z.enum(DISTRIBUTION_PLATFORMS).default('other').catch('other'),
+  label: z.string().default(''),
+  presaveUrl: z.string().default(''),
+  streamUrl: z.string().default('')
+})
+```
+
+Permissive on purpose, copying `ReleaseLinkSchema` exactly: `toRelease`
+`safeParse`s the record and **skips** one it cannot read, so a strict field
+here would make a release vanish from the catalogue rather than refuse the next
+write. The same reasoning as `MAX_TRACKS` staying above `maxTracksFor` (D11).
+
+`ReleaseLinkSchema`, `ReleaseLink` and `MAX_RELEASE_LINKS` are gone.
+`ArtistLinkSchema` was always a separate declaration, so ARTISTS is untouched —
+but `LinkEditor`'s comment claimed the two were "the same object", and that
+claim is now false and has been corrected rather than left to mislead.
+
+### The platform set is not `SOCIAL_PLATFORMS`
+
+```
+spotify · apple · youtube · soundcloud · bandcamp
+beatport · amazon · deezer · tidal · other
+```
+
+That set carries `instagram`, `tiktok`, `x` and `website` — none of them
+somewhere a release is distributed — and lacks the three services that matter
+most after the big two. The two lists were the same object while both meant "a
+platform and a URL". They stopped being the same object the moment one of them
+grew a pre-save slot.
+
+`other` is the escape hatch and the only entry that may repeat: a pre-save
+gate, a smart link, a shop nobody has heard of. It is also the only one whose
+`label` is read, because the rest can name themselves.
+
+**Nothing guesses the platform.** `guessPlatform` exists for a pasted URL, and
+here the platform is chosen from a menu *before* there is a URL to guess from,
+which is the point of the feature.
+
+### The guard had to change, and this is the sharp edge
+
+`update`'s link guard ran `checkLinkUrl` over every row's address and threw on
+a failure. `checkLinkUrl` **refuses the empty string** — so carried over
+unchanged, that guard would have refused to save a platform the operator had
+picked but had no address for yet, which is the first thing this feature has to
+allow.
+
+It now validates per *slot* and skips the empty ones. A probe over the real
+`checkLinkUrl` records why that `continue` is load-bearing rather than tidy:
+empty is refused, whitespace is refused, `file:` and `javascript:` are refused,
+a finished address and a DistroKid pre-save gate both pass.
+
+### Schema version 11
+
+`links[]` → `distribution[]`, per document, and **nothing the operator typed is
+thrown away**:
+
+| Old link | Becomes |
+| --- | --- |
+| a platform the new set also has | that platform's row, address as its `streamUrl` |
+| a social, a website, a bare `other` | an `other` row, keeping its own label |
+| a **second** link on a platform already used | an `other` row labelled with the platform it came from |
+
+`presaveUrl` is empty on every migrated row and has to be: an existing link is
+somewhere the record already is, nothing stored said anything about a pre-save,
+and inventing one would be worse than leaving the slot open.
+
+**Idempotent by inspection**, which this machinery requires rather than
+prefers. The version stamp is written once at the end of `applyMigrations` for
+`SCHEMA_VERSION` alone, so a throw anywhere re-runs every step from `from`
+onward — and a step that throws deterministically leaves the app on SEQUENCE
+HALTED behind a retry button that loops. So the filter is
+`{ links: { $exists: true } }` and each write `$unset`s `links` as it `$set`s
+`distribution`: a second pass matches nothing.
+
+Version 9 mints releases carrying `links: []`. Left alone — it runs before this
+one in the same pass, so its empty list is picked up and unset like any other,
+and editing a past migration's payload would change what an already-migrated
+database was told for no gain.
+
+#### The first migration here to be probed
+
+`distributionFromLinks` is a **pure exported function** in
+`discography.constants.ts`, taking a loose structural input because it reads
+unmigrated documents and cannot assume the shape zod would have guaranteed.
+That is the whole reason it is there rather than inline in `schema.ts`: 26
+assertions drive every row of the table above with no database, which no
+migration in this project had before.
+
+It earned its keep immediately. The probe caught a real defect: an old link
+already on `other` with no label was being labelled `OTHER`, which
+`distributionLabel` says by itself anyway — so the fallback now distinguishes
+"displaced from a platform it could not have" from "was never anywhere else".
+
+### `DistributionEditor`, and why it is not `LinkEditor`
+
+`LinkEditor` is a flat list of one-address rows whose URL is a **read-only**
+`<code>` element — pasted once at the bottom, and edited by removing and
+re-adding. This is a planned set: platform first, addresses later, and a row
+with neither. Bending one component across both would leave it serving two
+layouts through flags.
+
+#### Committed on blur, not on change
+
+The load-bearing detail. A URL patched per keystroke is one IPC write per
+character, and every one of those writes but the last carries a half-typed
+address that `update` now refuses — so typing a Spotify link would throw about
+thirty times before succeeding. Committing on blur or Enter makes an edit one
+write of one finished value.
+
+An invalid address is **kept on screen and not committed**, with
+`checkLinkUrl`'s own reason underneath. Discarding what somebody just typed
+because it was unfinished would be worse than holding it.
+
+The adopt-the-remote-value effect is guarded by **focus**, which is the
+ownership rule `useEchoedText` was written for after pushed state ate
+keystrokes: while somebody is typing here, a value arriving from outside is
+stale by definition. That guard is also what satisfies
+`react-hooks/set-state-in-effect`, which flagged the unguarded version.
+
+#### Both slots always on screen
+
+Only the emphasis moves, following `status === 'released'`: before, PRE-SAVE
+reads live and STREAM sits muted; after, the reverse. Hiding either would be
+wrong in both directions — a Beatport pre-order is a stream address that exists
+weeks early, and a pre-save link is worth keeping as a record long after it
+stops working.
+
+`status` is the signal and not the date. Deriving "is it out" from
+`releaseDate <= today` as well would be a second opinion about a fact the
+operator has already written down, and the two could disagree.
+
+#### The nudge, and the badge
+
+When the record is out and rows have no stream link, one line says so —
+*"OUT, AND 3 PLATFORMS HAVE NO STREAM LINK YET."* — and the TRADE tab carries
+the count as a badge beside the ones TRACKS and CREDITS already have. Only
+once it is out: before release an empty stream slot is the normal state, and a
+badge counting it would be a warning about nothing.
+
+That is what the request was actually asking for. *"Once it is released the
+user should enter the stream links"* is a prompt, and the app is the only thing
+in a position to give it.
+
+### `Release Details.txt`
+
+`WHERE IT IS` becomes `DISTRIBUTION`, printing both addresses per platform. An
+empty slot is omitted per the file's existing rule — **except** a missing
+stream link on a release that is out, printed as `no link yet`, because there
+the absence is the actionable fact. The same treatment the running order gives
+a track with no master.
+
+Publishing is not refused over any of this. Distribution links are not assets.
+
 ### Still open
 
-Nothing here fetches anything. A release date passing does not go and find the
-Spotify link — the platform set, the pre-save links before release and the
-stream links after it are the next piece of work, and automatic retrieval after
-that.
+Nothing fetches anything. *"In future updates, once a song has reached a
+release date, it AUTOMATICALLY gets all the streaming links and saves it to the
+discography project item. But we will discuss possible pipelines once we get
+these basic features done."*
+
+The shape is chosen so that can land without another migration: a row already
+exists per platform with an empty stream slot, and a `source` or `fetchedAt`
+field could join it without touching anything that reads one.

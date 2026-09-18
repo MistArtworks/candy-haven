@@ -13,7 +13,6 @@ import {
   MAX_CATALOGUE_NUMBER,
   MAX_COPYRIGHT_LINE,
   MAX_LABEL_NAME,
-  MAX_RELEASE_LINKS,
   MAX_RELEASE_SUBTITLE,
   MAX_RELEASE_TITLE,
   RELEASE_KINDS,
@@ -22,7 +21,8 @@ import {
   RELEASE_STATUS_LABEL,
   RELEASE_STATUS_PURPOSE,
   isValidUpc,
-  maxTracksFor
+  maxTracksFor,
+  withoutStream
 } from '@shared/domain/discography.constants'
 import type { ProjectSummary } from '@shared/domain/projects'
 import { Portal } from '@renderer/components/primitives/Portal'
@@ -39,7 +39,7 @@ import {
   sheetTabItemVariants,
   sheetTabVariants
 } from '@renderer/motion/transitions'
-import { LinkEditor } from '@renderer/features/artists/components/LinkEditor'
+import { DistributionEditor } from './DistributionEditor'
 import { TrackList } from './TrackList'
 import { CreditPicker } from './CreditPicker'
 import { CreditRows } from './CreditRows'
@@ -182,6 +182,7 @@ export function ReleaseSheet({
   }
 
   const mastered = release.tracks.filter((track) => track.master !== null).length
+  const unlinked = withoutStream(release.distribution)
 
   /*
    * Read-only until adopted.
@@ -309,6 +310,23 @@ export function ReleaseSheet({
 
                 {entry === 'credits' && release.credits.length > 0 ? (
                   <span className={styles.sheetTabBadge}>{release.credits.length}</span>
+                ) : null}
+
+                {/*
+                  How many platforms have somewhere to point, once the
+                  record is out.
+
+                  Only then: before release an empty stream slot is the
+                  normal state, and a badge counting it would be a warning
+                  about nothing. Shown on the strip rather than only
+                  inside TRADE for the same reason TRACKS carries its
+                  master count — the gap is worth seeing from whichever
+                  tab you happen to be on.
+                */}
+                {entry === 'trade' && release.status === 'released' && unlinked > 0 ? (
+                  <span className={styles.sheetTabBadge}>
+                    {release.distribution.length - unlinked}/{release.distribution.length}
+                  </span>
                 ) : null}
               </button>
             ))}
@@ -609,11 +627,11 @@ export function ReleaseSheet({
                     className={styles.field}
                     variants={animate ? sheetTabItemVariants : undefined}
                   >
-                    <span className={styles.fieldLabel}>Where it is</span>
-                    <LinkEditor
-                      links={release.links}
-                      max={MAX_RELEASE_LINKS}
-                      onChange={(links) => onPatch({ links })}
+                    <span className={styles.fieldLabel}>Distribution</span>
+                    <DistributionEditor
+                      entries={release.distribution}
+                      out={release.status === 'released'}
+                      onChange={(distribution) => onPatch({ distribution })}
                     />
                   </motion.div>
                 </>

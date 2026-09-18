@@ -92,7 +92,7 @@ Ordered by when you learn each thing, not by importance:
 | `RELEASE`  | Title, subtitle, kind, status, release date, notes             |
 | `CREDITS`  | Main artist, featuring, and the liner-notes credits            |
 | `TRACKS`   | The running order, project links and release masters           |
-| `TRADE`    | Label, catalogue number, UPC, ℗ and ©, and the platform links  |
+| `TRADE`    | Label, catalogue number, UPC, ℗ and ©, and the distribution    |
 | `ARTWORK`  | Cover and canvas, drawn large                                  |
 
 It was one long scroll, which put twelve fields, a credit picker, a tracklist,
@@ -301,7 +301,7 @@ single generally produced and wrote it too.
 | **UPC**              | Identifies the _product_ — twelve to fourteen digits    |
 | **ISRC**             | Identifies a _recording_, so it sits on the **track**   |
 | **℗ / ©**            | The recording and the composition, separately           |
-| **Links**            | Spotify, Apple, Beatport, Bandcamp, anywhere else it is |
+| **Distribution**     | The platforms it goes out on — see below                |
 
 The label field autocompletes from labels already used, which is what keeps
 the spelling consistent across a catalogue.
@@ -312,6 +312,36 @@ it here moves the marker there.
 
 > ISRC on the track and UPC on the release is not a layout choice — it is what
 > the two codes identify. An album has one UPC and eleven ISRCs.
+
+### The platforms it goes out on
+
+Under the codes, one block per platform — the stores and services this release
+is going to, each holding **two** addresses:
+
+| Slot | What goes in it |
+| --- | --- |
+| **PRE-SAVE** | The link you hand out before release day — a DistroKid or Hypeddit gate, a smart link |
+| **STREAM** | Where it actually is, once it is out |
+
+Add a platform as soon as you know you are going to it, and leave both slots
+empty. That is the point of the list: it can say *Spotify is on the plan and
+has nowhere to point yet*, which a plain list of links never could.
+
+The one being asked for is the one in gold. Before the release is out that is
+PRE-SAVE; once you mark it RELEASED they swap, and the sheet says how many
+platforms are still waiting for a stream link — on the line above the list and
+as a count on the TRADE tab itself, so you can see it from anywhere in the
+sheet.
+
+Nothing is ever hidden. A Beatport pre-order link exists weeks early, and a
+pre-save link is worth keeping as a record long after it stops working.
+
+> An address is saved when you **leave the field** or press Enter, not as you
+> type. If it is not a usable `https://` address it stays on screen with the
+> reason underneath, rather than being thrown away half-finished.
+
+**OTHER** is the one platform you can add twice, and the only one you name
+yourself — for a gate, a smart link, or a shop that is not on the list.
 
 ## Cover art and canvas
 
@@ -342,8 +372,11 @@ Inside it:
 | `Release Details.txt` | everything a filename cannot carry |
 
 The details file holds the title, kind, status, date, artists, credits, label,
-catalogue number, UPC, ℗ and ©, links, notes, and a block per track with its
-position, ISRC and which file shipped as it.
+catalogue number, UPC, ℗ and ©, notes, every platform with its pre-save and
+stream addresses, and a block per track with its position, ISRC and which file
+shipped as it. On a release that is out, a platform with no stream link is
+printed as `no link yet` rather than left blank — there the gap is the thing
+worth reading.
 
 Masters are **copied**, never moved. The project keeps pointing at the bounce
 where you put it, and the folder is something you can delete without having
