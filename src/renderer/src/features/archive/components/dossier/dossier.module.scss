@@ -991,64 +991,155 @@ $list-cap: min(#{rem(280px)}, 24vh);
   margin-top: space(3);
 }
 
-.finalList {
+// The candidates, as a tile grid rather than a list.
+//
+// Tiles because a bounce is an object being chosen between, which is what the
+// grid is for everywhere else in this department — and because the operator
+// asked for it. `auto-fill` rather than a fixed count so the row reflows with
+// the sheet instead of stranding one tile on a line of its own.
+.finalPicker {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: space(3);
-  // Bounded rather than unbounded: a project with forty bounces would push the
-  // tags and notes below off the tab. 2px gaps, as the charts use.
-  max-height: rem(240px);
-  overflow-y: auto;
+  gap: space(4);
+  margin-top: space(4);
+  padding-top: space(4);
+  @include hairline(top, 0.06);
 }
 
-.finalOption {
-  display: flex;
-  align-items: baseline;
+.finalTiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(#{rem(150px)}, 1fr));
   gap: space(3);
-  padding: space(2) space(3);
-  text-align: left;
-  background: var(--ch-surface-sunken);
-  @include hairline(all, 0.06);
-  transition:
-    color $duration-fast linear,
-    border-color $duration-fast linear;
+  // Bounded, or a project with forty bounces pushes the tags and notes below
+  // off the tab. Deep enough for two rows, which is most projects.
+  max-height: rem(330px);
+  overflow-y: auto;
 
-  &:hover {
+  /*
+   * Room for the hover lift, inside the scroll container.
+   *
+   * `overflow-y: auto` makes `overflow-x` compute to `auto` as well, so this
+   * element clips on **all four** sides — and a scroll container clips at its
+   * padding box. Without this the `translateY(-2px)` on hover took the top
+   * border out of bounds and it visibly sheared off, as did the left edge of
+   * the first tile in each row.
+   *
+   * Padding rather than a larger `gap`: gap only separates tiles from each
+   * other and does nothing at the container's own edges, which is exactly
+   * where the clipping showed.
+   */
+  padding: space(1);
+}
+
+// Constructed as `stacks.module.scss`'s `.tile` is, so the two read as one
+// system: a column, centred, hairline border, the mark on top.
+.finalTile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(2);
+  padding: space(4) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear,
+    transform $duration-base $ease-out-expo;
+
+  &:hover:not(:disabled) {
     border-color: var(--ch-line-strong);
+
+    @include motion-safe {
+      transform: translateY(-2px);
+    }
   }
 
   &:focus-visible {
     @include focus-ring(-2px);
   }
 
-  &[data-on] {
-    border-color: var(--ch-line-gold);
+  &:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
 
-    .finalOptionName {
+  /*
+   * Selected, and not yet committed.
+   *
+   * Gold rather than crimson. Crimson is the console's only saturated colour
+   * and is reserved for focal points, live state and destructive actions — a
+   * staged selection is none of those, it is the operator part-way through a
+   * sentence. Gold is what the rest of the interface already uses for "this
+   * one", from the tag chips to the stage strip.
+   *
+   * The border carries it *and* so does the mark, because selection must never
+   * rest on colour alone.
+   */
+  &[data-on] {
+    border-color: var(--ch-gold-300);
+    background: var(--ch-surface);
+    /*
+     * Inset, so the ring is drawn *inside* the tile.
+     *
+     * It was `0 0 0 $hairline`, which paints a hairline outside the border
+     * box — and anything outside the border box is what the scroll container
+     * above clips. Inset doubles the border's apparent weight with nothing
+     * extending past the element, so it cannot shear however the tile is
+     * transformed or wherever it sits in the grid.
+     */
+    box-shadow: inset 0 0 0 $hairline var(--ch-gold-300);
+
+    .finalTileIcon {
       color: var(--ch-gold-300);
+    }
+
+    .finalTileName {
+      color: var(--ch-gold-200);
     }
   }
 }
 
-.finalOptionName {
-  @include readout(10px);
-  color: var(--ch-text-primary);
-  flex: 1;
-  min-width: 0;
-  @include truncate;
-}
-
-.finalOptionSize {
-  @include label(8px);
-  color: var(--ch-text-faint);
+.finalTileIcon {
+  width: rem(72px);
+  height: rem(54px);
+  color: var(--ch-concrete-500);
   flex-shrink: 0;
+  transition: color $duration-fast linear;
 }
 
-.finalOptionWhere {
+.finalTileName {
+  @include label(10px, 0.1em);
+  color: var(--ch-text-primary);
+  max-width: 100%;
+  @include truncate;
+  transition: color $duration-fast linear;
+}
+
+.finalTileMeta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.finalTileWhere {
   @include label(8px);
   color: var(--ch-text-muted);
-  flex-shrink: 0;
-  max-width: rem(180px);
+  max-width: 100%;
   @include truncate;
+}
+
+// The commit. Separate from the grid because selecting and setting are two
+// steps here — see `FinalMaster.tsx`.
+//
+// Trailing edge, which is where this console puts the verb that completes a
+// sheet: the dossier's own footer, the release sheet's, and every dialog. It
+// led the row for one revision, beside a grey line of explanatory text; both
+// are gone. The selected tile is the subject and the button is the verb, and
+// nothing between them needed narrating.
+.finalCommit {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }

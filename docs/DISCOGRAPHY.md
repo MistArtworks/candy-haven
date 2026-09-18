@@ -572,3 +572,77 @@ rather than shorten its transition.
 
 `ProjectDossier` needed none of this: it already staggers every tab through
 `DossierGrid`, and its sheet has always been height-bounded.
+
+---
+
+## 20. D13 — FINAL MASTER becomes a tile grid
+
+Four rounds of feedback on the panel D10 introduced, recorded together because
+the end state only makes sense as the sum of them.
+
+### Tiles, not a list
+
+Asked for directly: *"could be large icons with its respective icon, and upon
+selecting, we get a gold border to highlight that it is selected and we 'set as
+final master'"*.
+
+A bounce is an object being chosen between, which is what the tile grid is for
+everywhere else in the department. `ArchiveIcon` gained an **`audio`** mark for
+it — the first in that family with **no container**, and that is the
+distinction: everything else there is a thing you open, so it has a silhouette
+(a folder, a clipped document, a plate). A rendered file is not a place and
+holds nothing, and drawing it as another document would make it read as a
+second project sitting in the grid.
+
+`TileGrid` was **not** reused. It is the archive's file browser — drag, marking,
+context menus, open-on-double-click — and bending a browser into a picker costs
+more than a dedicated grid that borrows the same visual construction.
+
+### Selection is gold, and does not commit
+
+Gold rather than crimson: crimson is the console's only saturated colour and is
+reserved for focal points, live state and destructive actions. A staged
+selection is none of those — it is the operator part-way through a sentence.
+The ring and the mark both carry it, so selection never rests on colour alone.
+
+Committing is a separate **SET AS FINAL MASTER** press. This is the one field in
+the dossier that `released` is gated on, so a stray click must not be able to
+change what the project claims shipped. Everything else on OVERVIEW writes
+immediately, because everything else is cheap to correct. Double-clicking a
+tile commits, because two clicks means "go" everywhere else here.
+
+### No CHOOSE button in front of it
+
+There was one for a revision. *"I don't need to hit the choose button to start
+selecting the file, the default view should be seeing these icons."*
+
+Correct, and the reason generalises: the panel has exactly one job, so a press
+whose only outcome is revealing that job is a step with nothing on the other
+side of it. The bounces are what the panel is *about*.
+
+The staged pick is **derived**, not synced — `staged ?? chosen`, with a staged
+path that has left the inventory discarded rather than drawn. The record
+changes underneath this component whenever a rescan lands, and a copy held in
+state would then select a file that is no longer there.
+
+### Two rendering bugs the tiles introduced
+
+- **Borders sheared on hover.** `overflow-y: auto` makes `overflow-x` compute
+  to `auto` as well, so the grid clips on all four sides — and a scroll
+  container clips at its *padding* box. The `translateY(-2px)` hover lift took
+  the top border out of bounds, and the first tile in each row lost its left
+  edge. Fixed with padding on the container: `gap` only separates tiles from
+  each other and does nothing at the container's own edges, which is exactly
+  where it showed.
+- **The selection ring was clipped for the same reason.** It was
+  `box-shadow: 0 0 0 $hairline`, which paints *outside* the border box. Now
+  `inset`, which doubles the border's apparent weight with nothing extending
+  past the element, so it cannot shear however the tile is transformed.
+
+### The commit sits at the trailing edge
+
+Where this console puts the verb that completes a sheet — the dossier's footer,
+the release sheet's, every dialog. It led the row for a revision, beside a grey
+line explaining the disabled states; both are gone. The selected tile is the
+subject and the button is the verb, and the line between them was narrating
+what the operator could already see.

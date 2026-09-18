@@ -33,6 +33,7 @@ export type ArchiveMark =
   | 'artist'
   | 'folder'
   | 'project'
+  | 'audio'
   | 'album'
   | 'ep'
   | 'compilation'
@@ -184,6 +185,55 @@ function renderMark(mark: ArchiveMark, open: boolean): ReactNode {
           {/* The baseline they sit on, so the bars read as a track rather than
               as a scattering of ticks. */}
           <path d="M20 36.5 H44" stroke="currentColor" strokeWidth="1.5" opacity="0.55" />
+        </>
+      )
+
+    case 'audio':
+      /*
+       * A bounce: a waveform, and nothing around it.
+       *
+       * The one mark in the family with **no container**, and that is the
+       * distinction being drawn. Everything else here is a thing you open — a
+       * shelf you walk into, a record you inspect — so it has a silhouette:
+       * a folder, a clipped document, a plate. A rendered file is not a place
+       * and holds nothing; drawing it as another document would make it read
+       * as a second project sitting in the grid.
+       *
+       * Symmetrical about the centre rather than the project mark's
+       * grow-then-fall, because a finished master is a whole track seen at
+       * once rather than an arrangement in progress. The centre pair is solid
+       * and full-height — the family's "one solid element carrying the
+       * colour", which is what keeps a dark operator swatch reading as a shape
+       * instead of a hole.
+       */
+      return (
+        <>
+          <path
+            d="M8 24 H14 M18 24 H22"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            opacity="0.45"
+            strokeLinecap="butt"
+          />
+          {/* The body of the waveform, rising to the centre and falling away. */}
+          <path
+            d="M24 17 V31 M28 12 V36 M36 12 V36 M40 17 V31 M44 20 V28 M48 22.5 V25.5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="butt"
+            opacity="0.75"
+          />
+          {/* The peak, solid. */}
+          <path d="M32 8 V40" stroke="currentColor" strokeWidth="3.5" strokeLinecap="butt" />
+          {/* The axis, so the bars read as a signal rather than a palisade. */}
+          <path d="M6 24 H58" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
+          <path
+            d="M52 20 V28 M56 22.5 V25.5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="butt"
+            opacity="0.75"
+          />
         </>
       )
 
