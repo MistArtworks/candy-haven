@@ -366,6 +366,43 @@
   }
 }
 
+/*
+ * The bar on an entry the app raised and the operator has not adopted.
+ *
+ * Above the body and outside its fieldset, so the one control that unlocks the
+ * record is the one control the lock cannot reach. Gold rather than crimson:
+ * nothing is wrong, the record is simply not yet the operator'''s.
+ */
+.adoptBar {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  padding: space(3) space(5);
+  background: var(--ch-surface-raised);
+  @include hairline(bottom, 0.1);
+  border-left: 2px solid var(--ch-gold-300);
+}
+
+.adoptText {
+  @include label(9px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  flex: 1;
+}
+
+// The body'''s flex column moved onto the fieldset, so wrapping the controls in
+// one changed nothing about how they lay out. A fieldset carries a border, a
+// margin and padding by default, and all three have to go.
+.sheetForm {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
 .sheetBody {
   display: flex;
   flex-direction: column;

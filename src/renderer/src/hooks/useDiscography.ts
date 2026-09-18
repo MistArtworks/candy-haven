@@ -67,6 +67,8 @@ export interface DiscographyMutations {
   create: UseMutationResult<DiscographyRelease, Error, ReleaseDraft>
   update: UseMutationResult<DiscographyRelease, Error, { id: string; patch: ReleasePatch }>
   remove: UseMutationResult<void, Error, string>
+  /** Takes over an automatically raised entry, making it editable. */
+  adopt: UseMutationResult<DiscographyRelease, Error, string>
   setAsset: UseMutationResult<
     DiscographyRelease,
     Error,
@@ -102,6 +104,10 @@ export function useDiscographyMutations(): DiscographyMutations {
     }),
     remove: useMutation({
       mutationFn: (id: string) => window.candy.discography.remove(id),
+      onSuccess
+    }),
+    adopt: useMutation({
+      mutationFn: (id: string) => window.candy.discography.adopt(id),
       onSuccess
     }),
     setAsset: useMutation({

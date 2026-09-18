@@ -937,3 +937,60 @@ change reads as hand-raised and will not be withdrawn. There is no honest way
 to tell the two apart after the fact, and guessing would risk deleting real
 work. Delete such an entry by hand once; everything raised from now on carries
 its provenance.
+
+---
+
+## 26. D19 — an auto-raised entry is read-only until adopted
+
+*"The item in discography should be read only until the user edits it
+manually."*
+
+`raisedFor` already carried exactly the right distinction (D18), so this is the
+same flag read a second way: while it is set the sheet **reads**, and adopting
+the entry clears it.
+
+### Why a lock is the honest offer
+
+Until it is adopted the entry is a *projection* of the project. The app made
+it, and the app withdraws it again if that master is cleared — so a form over a
+record that may vanish underneath the operator is the wrong thing to present.
+Adopting it is the operator saying the release is real, and from that moment
+nothing removes it on their behalf.
+
+The two behaviours now line up exactly: **the locked entries are precisely the
+withdrawable ones.**
+
+### A disabled fieldset, not twenty props
+
+Every control in the sheet's body is a native form element — `input`, `select`,
+`textarea`, and `Button`, which renders a `button`. `fieldset[disabled]` takes
+all of them out of reach, keyboard included.
+
+The alternatives were worse. A `pointer-events: none` overlay leaves every
+field reachable by Tab. A `disabled` prop threaded through five tabs of
+controls is twenty call sites, and the twenty-first added later will miss it.
+
+The body's flex column moved onto the fieldset, so the layout, the gaps and the
+tab stagger are unchanged. A fieldset's default border, margin and padding are
+reset.
+
+### What stays live while locked
+
+The **tab strip**, **CLOSE**, and **REMOVE FROM CATALOGUE** — all three sit
+outside the body, so a locked entry can be read in full across all five tabs,
+closed, and thrown away. Reading and discarding are not editing.
+
+The **ADOPT** bar sits above the body and outside the fieldset, which is the
+point: the one control that unlocks the record is the one control the lock
+cannot reach.
+
+### `discography:adopt`
+
+Its own channel rather than an empty `update` — which would work, since
+`update` clears `raisedFor` unconditionally, and would read as a trick. "I am
+adopting this record" is a statement in its own right and reads as one at every
+layer. Idempotent, and a no-op on anything raised by hand.
+
+Worth noting why opening a locked sheet cannot adopt it by accident:
+`useEchoedText` adopts the remote value in an effect by calling `setLocal`, not
+`commit`, so mounting the form writes nothing.

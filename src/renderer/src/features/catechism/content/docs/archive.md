@@ -280,6 +280,14 @@ knows.
 It happens **once**. Re-picking the master does not raise a second single, and
 a project already on a release — an album track, say — gets nothing new.
 
+**That entry is read-only until you adopt it.** Its sheet opens with a bar
+explaining where it came from and an **ADOPT THIS RELEASE** button; the fields
+below stay inactive until you press it. Until then the entry is a *projection*
+of this project — the app made it and the app withdraws it again if you clear
+the master — so a form over a record that may vanish would be the wrong offer.
+You can still read every tab, close it, and remove it while it is locked;
+reading and discarding are not editing.
+
 **Clearing the master takes the single back**, but only while you have not
 touched it. The moment you edit that entry — a label, a catalogue number,
 artwork, the running order — it becomes yours, and clearing the master leaves

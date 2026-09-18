@@ -424,6 +424,18 @@ export const IPC_INVOKE = {
     output: DiscographyReleaseSchema
   },
   'discography:delete': { input: z.object({ id: z.string() }), output: z.void() },
+  /**
+   * Takes over an entry the app raised, making it the operator's.
+   *
+   * An automatically raised single is read-only until this is called —
+   * see `DiscographyRelease.raisedFor`. Its own channel rather than an
+   * empty `update`, because "I am adopting this record" is a statement in
+   * its own right and should read as one at every layer.
+   */
+  'discography:adopt': {
+    input: z.object({ id: z.string() }),
+    output: DiscographyReleaseSchema
+  },
   /** Copies artwork or a canvas into `Media
 eleases\`. Null clears it. */
   'discography:set-asset': {

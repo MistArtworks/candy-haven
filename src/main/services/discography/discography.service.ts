@@ -494,6 +494,28 @@ export class DiscographyService {
     return next
   }
 
+  /**
+   * Hands an automatically raised entry over to the operator.
+   *
+   * The sheet is read-only while `raisedFor` is set, because the entry is
+   * a *projection* of the project until then: the app made it, the app
+   * withdraws it if the master is cleared, and editing something that
+   * might vanish underneath you is the wrong offer. Adopting it is the
+   * operator saying the release is real.
+   *
+   * Idempotent, and harmless on an entry raised by hand — `raisedFor` is
+   * already null there, so this only stamps `updatedAt`.
+   */
+  async adopt(id: string): Promise<DiscographyRelease> {
+    const release = await this.get(id)
+    if (release.raisedFor === null) return release
+
+    const next = { ...release, raisedFor: null, updatedAt: Date.now() }
+    await this.repository.replace(next)
+    logger.info(`"${release.title}" adopted; it is no longer withdrawn automatically`)
+    return next
+  }
+
   async remove(id: string): Promise<void> {
     const release = await this.get(id)
 

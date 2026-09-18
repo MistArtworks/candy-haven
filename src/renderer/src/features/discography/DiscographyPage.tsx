@@ -444,10 +444,15 @@ export function DiscographyPage(): ReactNode {
               mutations.updateTrack.isPending ||
               mutations.removeTrack.isPending ||
               mutations.reorderTracks.isPending ||
-              mutations.setTrackMaster.isPending
+              mutations.setTrackMaster.isPending ||
+              mutations.adopt.isPending
             }
             error={notice}
             onPatch={patch}
+            onAdopt={() => {
+              setNotice(null)
+              mutations.adopt.mutate(openId, { onError: report })
+            }}
             onSetAsset={(asset, sourcePath) => {
               setNotice(null)
               mutations.setAsset.mutate({ id: openId, asset, sourcePath }, { onError: report })

@@ -256,6 +256,14 @@ export interface CandyHavenApi {
     create(draft: ReleaseDraft): Promise<DiscographyRelease>
     update(id: string, patch: ReleasePatch): Promise<DiscographyRelease>
     remove(id: string): Promise<void>
+    /**
+     * Takes over an automatically raised entry, making it editable.
+     *
+     * Until this is called the sheet is read-only and clearing the
+     * project's master withdraws the entry. Afterwards it is the
+     * operator's and nothing removes it on their behalf.
+     */
+    adopt(id: string): Promise<DiscographyRelease>
     /** Copies artwork or a canvas in. A null path clears it. */
     setAsset(
       id: string,

@@ -80,6 +80,8 @@ export interface ReleaseSheetProps {
   busy: boolean
   error: string | null
   onPatch: (patch: ReleasePatch) => void
+  /** Takes over an automatically raised entry, unlocking the sheet. */
+  onAdopt: () => void
   onSetAsset: (asset: 'artwork' | 'canvas', sourcePath: string | null) => void
   /** Opens the add-a-track dialog, which the page owns. */
   onAddTrack: () => void
@@ -122,6 +124,7 @@ export function ReleaseSheet({
   busy,
   error,
   onPatch,
+  onAdopt,
   onSetAsset,
   onAddTrack,
   onPatchTrack,
@@ -170,6 +173,29 @@ export function ReleaseSheet({
   }
 
   const mastered = release.tracks.filter((track) => track.master !== null).length
+
+  /*
+   * Read-only until adopted.
+   *
+   * `raisedFor` is set only on an entry the app raised by itself, when a
+   * project named its final master, and only while nobody has touched it.
+   * Until it is adopted the entry is a *projection* of the project: the app
+   * made it, and the app withdraws it again if that master is cleared.
+   * Offering a form over a record that may vanish underneath the operator
+   * is the wrong offer, so the sheet reads rather than writes.
+   *
+   * A disabled `fieldset` does the work, not a prop threaded through five
+   * tabs of controls. Every input, select, textarea and button in the body
+   * is a native form element, and `fieldset[disabled]` takes all of them
+   * out of reach including by keyboard — which a `pointer-events: none`
+   * overlay would not, and which twenty `disabled` props would eventually
+   * miss one of.
+   *
+   * The tab strip, CLOSE and REMOVE FROM CATALOGUE all sit outside the
+   * body, so a locked entry can still be read in full, closed, and thrown
+   * away. Reading and discarding are not editing.
+   */
+  const locked = release.raisedFor !== null
 
   return (
     <Portal>
@@ -287,6 +313,23 @@ export function ReleaseSheet({
             to a bare strip between every press. Replacing outright and
             animating only the arrival is what keeps the height monotonic.
           */}
+          {/*
+            The entry is a projection until it is adopted — see `locked`. The
+            bar sits outside the fieldset below, so the one control that can
+            unlock the record is the one control the lock does not reach.
+          */}
+          {locked ? (
+            <div className={styles.adoptBar}>
+              <span className={styles.adoptText}>
+                Raised automatically when this project named its final master. Clearing that master
+                withdraws this entry again — adopt it to make it yours and start editing.
+              </span>
+              <Button size="sm" variant="primary" busy={busy} onClick={onAdopt}>
+                Adopt this release
+              </Button>
+            </div>
+          ) : null}
+
           <motion.div
             key={tab}
             className={styles.sheetBody}
@@ -294,86 +337,93 @@ export function ReleaseSheet({
             initial={animate ? 'initial' : false}
             animate={animate ? 'animate' : undefined}
           >
-            {/* ------------------------------------------------ what it is */}
+            {/*
+              A fieldset, so one attribute locks every control in the body.
+              `display: contents` is deliberately not used — the element is the
+              flex column the body used to be, so the stagger and the gaps are
+              unchanged. See `locked`.
+            */}
+            <fieldset className={styles.sheetForm} disabled={locked}>
+              {/* ------------------------------------------------ what it is */}
 
-            {tab === 'release' ? (
-              <>
-                <motion.div
-                  className={styles.sheetFields}
-                  variants={animate ? sheetTabItemVariants : undefined}
-                >
-                  <TextInput
-                    label="Title"
-                    value={title}
-                    onChange={setTitle}
-                    maxLength={MAX_RELEASE_TITLE}
-                  />
-                  <TextInput
-                    label="Subtitle"
-                    value={subtitle}
-                    onChange={setSubtitle}
-                    maxLength={MAX_RELEASE_SUBTITLE}
-                    placeholder="Nasko Remix · Deluxe Edition"
-                  />
-                </motion.div>
+              {tab === 'release' ? (
+                <>
+                  <motion.div
+                    className={styles.sheetFields}
+                    variants={animate ? sheetTabItemVariants : undefined}
+                  >
+                    <TextInput
+                      label="Title"
+                      value={title}
+                      onChange={setTitle}
+                      maxLength={MAX_RELEASE_TITLE}
+                    />
+                    <TextInput
+                      label="Subtitle"
+                      value={subtitle}
+                      onChange={setSubtitle}
+                      maxLength={MAX_RELEASE_SUBTITLE}
+                      placeholder="Nasko Remix · Deluxe Edition"
+                    />
+                  </motion.div>
 
-                <motion.div
-                  className={styles.field}
-                  variants={animate ? sheetTabItemVariants : undefined}
-                >
-                  <span className={styles.fieldLabel}>Kind</span>
-                  <div className={styles.chips}>
-                    {RELEASE_KINDS.map((kind: ReleaseKind) => (
-                      <button
-                        key={kind}
-                        type="button"
-                        className={styles.chip}
-                        data-on={release.kind === kind || undefined}
-                        aria-pressed={release.kind === kind}
-                        onClick={() => onPatch({ kind })}
-                      >
-                        {RELEASE_KIND_LABEL[kind]}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
+                  <motion.div
+                    className={styles.field}
+                    variants={animate ? sheetTabItemVariants : undefined}
+                  >
+                    <span className={styles.fieldLabel}>Kind</span>
+                    <div className={styles.chips}>
+                      {RELEASE_KINDS.map((kind: ReleaseKind) => (
+                        <button
+                          key={kind}
+                          type="button"
+                          className={styles.chip}
+                          data-on={release.kind === kind || undefined}
+                          aria-pressed={release.kind === kind}
+                          onClick={() => onPatch({ kind })}
+                        >
+                          {RELEASE_KIND_LABEL[kind]}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
 
-                <motion.div
-                  className={styles.field}
-                  variants={animate ? sheetTabItemVariants : undefined}
-                >
-                  <span className={styles.fieldLabel}>Status</span>
-                  <div className={styles.chips}>
-                    {RELEASE_STATUSES.map((status: ReleaseStatus) => (
-                      <button
-                        key={status}
-                        type="button"
-                        className={styles.chip}
-                        data-on={release.status === status || undefined}
-                        aria-pressed={release.status === status}
-                        title={RELEASE_STATUS_PURPOSE[status]}
-                        onClick={() => onPatch({ status })}
-                      >
-                        {RELEASE_STATUS_LABEL[status]}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    type="date"
-                    className={styles.date}
-                    value={release.releaseDate ?? ''}
-                    aria-label="Release date"
-                    onChange={(event) => onPatch({ releaseDate: event.target.value || null })}
-                  />
-                  {/*
+                  <motion.div
+                    className={styles.field}
+                    variants={animate ? sheetTabItemVariants : undefined}
+                  >
+                    <span className={styles.fieldLabel}>Status</span>
+                    <div className={styles.chips}>
+                      {RELEASE_STATUSES.map((status: ReleaseStatus) => (
+                        <button
+                          key={status}
+                          type="button"
+                          className={styles.chip}
+                          data-on={release.status === status || undefined}
+                          aria-pressed={release.status === status}
+                          title={RELEASE_STATUS_PURPOSE[status]}
+                          onClick={() => onPatch({ status })}
+                        >
+                          {RELEASE_STATUS_LABEL[status]}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="date"
+                      className={styles.date}
+                      value={release.releaseDate ?? ''}
+                      aria-label="Release date"
+                      onChange={(event) => onPatch({ releaseDate: event.target.value || null })}
+                    />
+                    {/*
                     The service refuses RELEASED without a date, so the field
                     says so before it is pressed rather than after.
                   */}
-                  {release.status === 'released' && !release.releaseDate ? (
-                    <p className={styles.warn}>A released entry needs the date it came out.</p>
-                  ) : null}
+                    {release.status === 'released' && !release.releaseDate ? (
+                      <p className={styles.warn}>A released entry needs the date it came out.</p>
+                    ) : null}
 
-                  {/*
+                    {/*
                     What flipping this does to the ARCHIVE, said before it is
                     pressed.
 
@@ -382,36 +432,36 @@ export function ReleaseSheet({
                     of consequence that should never be a surprise, however
                     much it is the interlink the operator asked for.
                   */}
-                  {release.tracks.some((track) => track.projectId !== null) ? (
-                    <p className={styles.hint}>
-                      {release.status === 'released'
-                        ? 'The linked projects are at RELEASED in the ARCHIVE. Moving this back returns them to TRACK READY.'
-                        : 'Marking this RELEASED will move every linked project to the RELEASED stage in the ARCHIVE.'}
-                    </p>
-                  ) : null}
-                </motion.div>
+                    {release.tracks.some((track) => track.projectId !== null) ? (
+                      <p className={styles.hint}>
+                        {release.status === 'released'
+                          ? 'The linked projects are at RELEASED in the ARCHIVE. Moving this back returns them to TRACK READY.'
+                          : 'Marking this RELEASED will move every linked project to the RELEASED stage in the ARCHIVE.'}
+                      </p>
+                    ) : null}
+                  </motion.div>
 
-                <motion.div
-                  className={styles.field}
-                  variants={animate ? sheetTabItemVariants : undefined}
-                >
-                  <span className={styles.fieldLabel}>Notes</span>
-                  <textarea
-                    className={styles.notes}
-                    value={notes}
-                    rows={4}
-                    placeholder="Who mastered it, what the deal was, what to remember next time."
-                    onChange={(event) => setNotes(event.target.value)}
-                  />
-                </motion.div>
-              </>
-            ) : null}
+                  <motion.div
+                    className={styles.field}
+                    variants={animate ? sheetTabItemVariants : undefined}
+                  >
+                    <span className={styles.fieldLabel}>Notes</span>
+                    <textarea
+                      className={styles.notes}
+                      value={notes}
+                      rows={4}
+                      placeholder="Who mastered it, what the deal was, what to remember next time."
+                      onChange={(event) => setNotes(event.target.value)}
+                    />
+                  </motion.div>
+                </>
+              ) : null}
 
-            {/* ---------------------------------------------- who is on it */}
+              {/* ---------------------------------------------- who is on it */}
 
-            {tab === 'credits' ? (
-              <>
-                {/*
+              {tab === 'credits' ? (
+                <>
+                  {/*
                   Billing first, then the liner notes.
 
                   Two different questions that look alike: who the release is
@@ -420,238 +470,247 @@ export function ReleaseSheet({
                   usually is — the main artist of a single generally produced
                   and wrote it too.
                 */}
-                <motion.div variants={animate ? sheetTabItemVariants : undefined}>
-                  <CreditPicker
-                    roster={roster}
-                    billed={release.artistIds}
-                    featured={release.featuredArtistIds}
-                    onBilled={(artistIds) => onPatch({ artistIds })}
-                    onFeatured={(featuredArtistIds) => onPatch({ featuredArtistIds })}
-                  />
-                </motion.div>
+                  <motion.div variants={animate ? sheetTabItemVariants : undefined}>
+                    <CreditPicker
+                      roster={roster}
+                      billed={release.artistIds}
+                      featured={release.featuredArtistIds}
+                      onBilled={(artistIds) => onPatch({ artistIds })}
+                      onFeatured={(featuredArtistIds) => onPatch({ featuredArtistIds })}
+                    />
+                  </motion.div>
 
-                <motion.div
-                  className={styles.field}
-                  variants={animate ? sheetTabItemVariants : undefined}
-                >
-                  <span className={styles.fieldLabel}>Credits</span>
-                  <CreditRows
-                    credits={release.credits}
+                  <motion.div
+                    className={styles.field}
+                    variants={animate ? sheetTabItemVariants : undefined}
+                  >
+                    <span className={styles.fieldLabel}>Credits</span>
+                    <CreditRows
+                      credits={release.credits}
+                      roster={roster}
+                      busy={busy}
+                      onChange={(credits: ReleaseCredit[]) => onPatch({ credits })}
+                    />
+                  </motion.div>
+                </>
+              ) : null}
+
+              {/* ------------------------------------------------ the tracks */}
+
+              {tab === 'tracks' ? (
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>Running order</span>
+                  <TrackList
+                    tracks={release.tracks}
+                    maxTracks={maxTracksFor(release.kind)}
+                    projects={projects}
+                    linkable={linkable}
                     roster={roster}
                     busy={busy}
-                    onChange={(credits: ReleaseCredit[]) => onPatch({ credits })}
+                    onAdd={onAddTrack}
+                    onPatch={onPatchTrack}
+                    onRemove={onRemoveTrack}
+                    onReorder={onReorderTracks}
+                    onSetMaster={onSetTrackMaster}
                   />
-                </motion.div>
-              </>
-            ) : null}
+                </div>
+              ) : null}
 
-            {/* ------------------------------------------------ the tracks */}
+              {/* ----------------------------------- where it went, and on what */}
 
-            {tab === 'tracks' ? (
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Running order</span>
-                <TrackList
-                  tracks={release.tracks}
-                  maxTracks={maxTracksFor(release.kind)}
-                  projects={projects}
-                  linkable={linkable}
-                  roster={roster}
-                  busy={busy}
-                  onAdd={onAddTrack}
-                  onPatch={onPatchTrack}
-                  onRemove={onRemoveTrack}
-                  onReorder={onReorderTracks}
-                  onSetMaster={onSetTrackMaster}
-                />
-              </div>
-            ) : null}
+              {tab === 'trade' ? (
+                <>
+                  <motion.div
+                    className={styles.sheetFields}
+                    variants={animate ? sheetTabItemVariants : undefined}
+                  >
+                    <TextInput
+                      label="Label"
+                      value={label}
+                      onChange={setLabel}
+                      maxLength={MAX_LABEL_NAME}
+                      placeholder="Empty means self-released"
+                      // Autocompletes from labels already used, which is what
+                      // keeps the strings consistent without an id behind them
+                      // (D4).
+                      aside={
+                        labels.length > 0 ? (
+                          <select
+                            className={styles.inlineSelect}
+                            value=""
+                            aria-label="Labels already used"
+                            onChange={(event) => {
+                              if (event.target.value) setLabel(event.target.value)
+                            }}
+                          >
+                            <option value="">Used before…</option>
+                            {labels.map((entry) => (
+                              <option key={entry} value={entry}>
+                                {entry}
+                              </option>
+                            ))}
+                          </select>
+                        ) : undefined
+                      }
+                    />
+                    <TextInput
+                      label="Catalogue number"
+                      value={catalogue}
+                      onChange={setCatalogue}
+                      maxLength={MAX_CATALOGUE_NUMBER}
+                      mono
+                    />
+                  </motion.div>
 
-            {/* ----------------------------------- where it went, and on what */}
+                  <motion.div
+                    className={styles.sheetFields}
+                    variants={animate ? sheetTabItemVariants : undefined}
+                  >
+                    <TextInput
+                      label="UPC"
+                      value={upc}
+                      onChange={setUpc}
+                      mono
+                      hint={
+                        upc && !isValidUpc(upc)
+                          ? 'A UPC is twelve to fourteen digits.'
+                          : 'Identifies the product. An ISRC identifies a recording and lives on the track.'
+                      }
+                    />
+                    <TextInput
+                      label="℗ Phonographic"
+                      value={phonographic}
+                      onChange={setPhonographic}
+                      maxLength={MAX_COPYRIGHT_LINE}
+                      placeholder="2026 Candy Heist"
+                    />
+                  </motion.div>
 
-            {tab === 'trade' ? (
-              <>
-                <motion.div
-                  className={styles.sheetFields}
-                  variants={animate ? sheetTabItemVariants : undefined}
-                >
-                  <TextInput
-                    label="Label"
-                    value={label}
-                    onChange={setLabel}
-                    maxLength={MAX_LABEL_NAME}
-                    placeholder="Empty means self-released"
-                    // Autocompletes from labels already used, which is what
-                    // keeps the strings consistent without an id behind them
-                    // (D4).
-                    aside={
-                      labels.length > 0 ? (
-                        <select
-                          className={styles.inlineSelect}
-                          value=""
-                          aria-label="Labels already used"
-                          onChange={(event) => {
-                            if (event.target.value) setLabel(event.target.value)
-                          }}
-                        >
-                          <option value="">Used before…</option>
-                          {labels.map((entry) => (
-                            <option key={entry} value={entry}>
-                              {entry}
-                            </option>
-                          ))}
-                        </select>
-                      ) : undefined
-                    }
-                  />
-                  <TextInput
-                    label="Catalogue number"
-                    value={catalogue}
-                    onChange={setCatalogue}
-                    maxLength={MAX_CATALOGUE_NUMBER}
-                    mono
-                  />
-                </motion.div>
+                  <motion.div variants={animate ? sheetTabItemVariants : undefined}>
+                    <TextInput
+                      label="© Copyright"
+                      value={copyright}
+                      onChange={setCopyright}
+                      maxLength={MAX_COPYRIGHT_LINE}
+                      placeholder="2026 Candy Heist"
+                    />
+                  </motion.div>
 
-                <motion.div
-                  className={styles.sheetFields}
-                  variants={animate ? sheetTabItemVariants : undefined}
-                >
-                  <TextInput
-                    label="UPC"
-                    value={upc}
-                    onChange={setUpc}
-                    mono
-                    hint={
-                      upc && !isValidUpc(upc)
-                        ? 'A UPC is twelve to fourteen digits.'
-                        : 'Identifies the product. An ISRC identifies a recording and lives on the track.'
-                    }
-                  />
-                  <TextInput
-                    label="℗ Phonographic"
-                    value={phonographic}
-                    onChange={setPhonographic}
-                    maxLength={MAX_COPYRIGHT_LINE}
-                    placeholder="2026 Candy Heist"
-                  />
-                </motion.div>
+                  <motion.div
+                    className={styles.field}
+                    variants={animate ? sheetTabItemVariants : undefined}
+                  >
+                    <span className={styles.fieldLabel}>Where it is</span>
+                    <LinkEditor
+                      links={release.links}
+                      max={MAX_RELEASE_LINKS}
+                      onChange={(links) => onPatch({ links })}
+                    />
+                  </motion.div>
+                </>
+              ) : null}
 
-                <motion.div variants={animate ? sheetTabItemVariants : undefined}>
-                  <TextInput
-                    label="© Copyright"
-                    value={copyright}
-                    onChange={setCopyright}
-                    maxLength={MAX_COPYRIGHT_LINE}
-                    placeholder="2026 Candy Heist"
-                  />
-                </motion.div>
+              {/* --------------------------------------------- the artefacts */}
 
-                <motion.div
-                  className={styles.field}
-                  variants={animate ? sheetTabItemVariants : undefined}
-                >
-                  <span className={styles.fieldLabel}>Where it is</span>
-                  <LinkEditor
-                    links={release.links}
-                    max={MAX_RELEASE_LINKS}
-                    onChange={(links) => onPatch({ links })}
-                  />
-                </motion.div>
-              </>
-            ) : null}
-
-            {/* --------------------------------------------- the artefacts */}
-
-            {tab === 'artwork' ? (
-              <>
-                <motion.div
-                  className={styles.assets}
-                  variants={animate ? sheetTabItemVariants : undefined}
-                >
-                  <div className={styles.asset}>
-                    {/*
+              {tab === 'artwork' ? (
+                <>
+                  <motion.div
+                    className={styles.assets}
+                    variants={animate ? sheetTabItemVariants : undefined}
+                  >
+                    <div className={styles.asset}>
+                      {/*
                       Drawn large here, where there is room for it. The sheet
                       used to give the cover a 120px well between the links and
                       the paperwork, which is a thumbnail of the one thing on a
                       release anybody recognises it by.
                     */}
-                    <Plate
-                      path={release.artwork.copiedPath}
-                      fallback="COVER"
-                      size={320}
-                      alt="Cover art"
-                    />
-                    <div className={styles.assetActions}>
-                      <Button size="sm" variant="ghost" onClick={() => void chooseAsset('artwork')}>
-                        {release.artwork.copiedPath ? 'Replace cover' : 'Add cover'}
-                      </Button>
-                      {release.artwork.copiedPath ? (
+                      <Plate
+                        path={release.artwork.copiedPath}
+                        fallback="COVER"
+                        size={320}
+                        alt="Cover art"
+                      />
+                      <div className={styles.assetActions}>
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => onSetAsset('artwork', null)}
+                          onClick={() => void chooseAsset('artwork')}
                         >
-                          Clear
+                          {release.artwork.copiedPath ? 'Replace cover' : 'Add cover'}
                         </Button>
-                      ) : null}
+                        {release.artwork.copiedPath ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => onSetAsset('artwork', null)}
+                          >
+                            Clear
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className={styles.asset}>
-                    {/*
+                    <div className={styles.asset}>
+                      {/*
                       The canvas is a looping video, so it is reported rather
                       than drawn — a still frame of a 9:16 loop tells you less
                       than its filename does, and decoding video for a
                       thumbnail is work this department has no reason to do.
                     */}
-                    <div className={styles.canvasPlate}>
-                      <span className={styles.canvasMark}>CANVAS</span>
-                      <span className={styles.canvasState}>
-                        {release.canvas.copiedPath ? 'Attached' : 'None'}
-                      </span>
-                    </div>
-                    <div className={styles.assetActions}>
-                      <Button size="sm" variant="ghost" onClick={() => void chooseAsset('canvas')}>
-                        {release.canvas.copiedPath ? 'Replace canvas' : 'Add canvas'}
-                      </Button>
-                      {release.canvas.copiedPath ? (
+                      <div className={styles.canvasPlate}>
+                        <span className={styles.canvasMark}>CANVAS</span>
+                        <span className={styles.canvasState}>
+                          {release.canvas.copiedPath ? 'Attached' : 'None'}
+                        </span>
+                      </div>
+                      <div className={styles.assetActions}>
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => onSetAsset('canvas', null)}
+                          onClick={() => void chooseAsset('canvas')}
                         >
-                          Clear
+                          {release.canvas.copiedPath ? 'Replace canvas' : 'Add canvas'}
                         </Button>
-                      ) : null}
+                        {release.canvas.copiedPath ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => onSetAsset('canvas', null)}
+                          >
+                            Clear
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
 
-                {/*
+                  {/*
                   Where each copy came from. Both are *copies* — the archive
                   takes its own, under `Media\releases\`, because a path into
                   somebody's Downloads folder is a cover that disappears the
                   first time they tidy up. This says what was copied, long
                   after that folder has been emptied.
                 */}
-                <motion.div variants={animate ? sheetTabItemVariants : undefined}>
-                  <FieldGrid columns={2}>
-                    <Field
-                      label="Cover source"
-                      value={release.artwork.sourcePath ?? 'None'}
-                      mono
-                      selectable
-                    />
-                    <Field
-                      label="Canvas source"
-                      value={release.canvas.sourcePath ?? 'None'}
-                      mono
-                      selectable
-                    />
-                  </FieldGrid>
-                </motion.div>
-              </>
-            ) : null}
+                  <motion.div variants={animate ? sheetTabItemVariants : undefined}>
+                    <FieldGrid columns={2}>
+                      <Field
+                        label="Cover source"
+                        value={release.artwork.sourcePath ?? 'None'}
+                        mono
+                        selectable
+                      />
+                      <Field
+                        label="Canvas source"
+                        value={release.canvas.sourcePath ?? 'None'}
+                        mono
+                        selectable
+                      />
+                    </FieldGrid>
+                  </motion.div>
+                </>
+              ) : null}
+            </fieldset>
           </motion.div>
 
           <motion.footer layout={animate ? 'position' : undefined} className={styles.sheetFoot}>
