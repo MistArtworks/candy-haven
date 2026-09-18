@@ -136,8 +136,7 @@ const api: CandyHavenApi = {
     browse: (path) => invoke('projects:browse', { path }),
     fileMany: (projectIds, folderIds, folderId) =>
       invoke('projects:file-many', { projectIds, folderIds, folderId }),
-    setFinal: (id, sourcePath, name) => invoke('projects:set-final', { id, sourcePath, name }),
-    clearFinal: (id) => invoke('projects:clear-final', { id }),
+    setFinalMaster: (id, path) => invoke('projects:final-master', { id, path }),
     scanState: () => invoke('projects:scan-state'),
     addNote: (id, draft) => invoke('projects:note-add', { id, draft }),
     updateNote: (id, noteId, draft) => invoke('projects:note-update', { id, noteId, draft }),
@@ -162,27 +161,33 @@ const api: CandyHavenApi = {
     restore: (id) => invoke('stacks:restore', { id }),
     purge: (id) => invoke('stacks:purge', { id })
   },
-  volumes: {
-    list: () => invoke('volumes:list'),
-    get: (id) => invoke('volumes:get', { id }),
-    create: (draft) => invoke('volumes:create', draft),
-    update: (id, patch) => invoke('volumes:update', { id, patch }),
-    remove: (id) => invoke('volumes:delete', { id }),
-    reorder: (id, projectIds) => invoke('volumes:reorder', { id, projectIds })
-  },
   tags: {
     list: () => invoke('tags:list'),
     create: (draft) => invoke('tags:create', draft),
     update: (id, patch) => invoke('tags:update', { id, patch }),
     remove: (id) => invoke('tags:delete', { id })
   },
-  releases: {
-    list: () => invoke('releases:list'),
-    get: (id) => invoke('releases:get', { id }),
-    create: (draft) => invoke('releases:create', draft),
-    update: (id, patch) => invoke('releases:update', { id, patch }),
-    attach: (id, kind, sourcePath) => invoke('releases:attach', { id, kind, sourcePath }),
-    remove: (id) => invoke('releases:delete', { id })
+  artists: {
+    list: () => invoke('artists:list'),
+    get: (id) => invoke('artists:get', { id }),
+    create: (draft) => invoke('artists:create', draft),
+    update: (id, patch) => invoke('artists:update', { id, patch }),
+    setPicture: (id, sourcePath) => invoke('artists:set-picture', { id, sourcePath }),
+    remove: (id) => invoke('artists:delete', { id })
+  },
+  discography: {
+    registry: () => invoke('discography:registry'),
+    get: (id) => invoke('discography:get', { id }),
+    create: (draft) => invoke('discography:create', draft),
+    update: (id, patch) => invoke('discography:update', { id, patch }),
+    remove: (id) => invoke('discography:delete', { id }),
+    setAsset: (id, asset, sourcePath) => invoke('discography:set-asset', { id, asset, sourcePath }),
+    addTrack: (id, draft) => invoke('discography:track-add', { id, draft }),
+    updateTrack: (id, trackId, patch) => invoke('discography:track-update', { id, trackId, patch }),
+    removeTrack: (id, trackId) => invoke('discography:track-remove', { id, trackId }),
+    reorderTracks: (id, trackIds) => invoke('discography:track-reorder', { id, trackIds }),
+    setTrackMaster: (id, trackId, path) =>
+      invoke('discography:track-set-master', { id, trackId, path })
   },
   rite: {
     state: () => invoke('rite:state'),

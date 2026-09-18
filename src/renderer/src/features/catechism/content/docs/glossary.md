@@ -6,8 +6,8 @@ are listed, because the second kind is impossible to spot without the first.
 
 ## The console
 
-**Department** — a section of the console, reached from the rail. Ten of them,
-grouped into four divisions.
+**Department** — a section of the console, reached from the rail. Thirteen of
+them, grouped into four divisions.
 
 **Division** — the grouping a department is filed under: COMMAND, PRODUCTION,
 BROADCAST, OVERSIGHT. It tells you what kind of question the departments inside
@@ -37,7 +37,7 @@ width as they change.
 REGULATION, "archive" settings are about the database; in the rail, ARCHIVE is
 the department.
 
-**Lens** — what is in scope. STACKS, INTAKE, VOLUMES, ALL, BIN.
+**Lens** — what is in scope. ALL, STACKS, INTAKE, BIN.
 
 **View** — how whatever is in scope is drawn. ICONS, LIST, BOARD.
 
@@ -54,9 +54,9 @@ shelving rather than for any one thing on it.
 Context separates them: a category you click into is a folder, a category on a
 dossier is a property.
 
-**Volume** — an album, EP or compilation as an actual collection, with tracks
-bound into it in order. Distinct from a project's _category_, which is only a
-label.
+**Volume** — retired. An album, EP or compilation is now a **release** in
+DISCOGRAPHY, which owns its own running order. A project's _category_ is still
+only a label, and nothing validates it against the catalogue.
 
 **Project** — one piece of work: a real directory holding a Live set, its
 samples, bounces and backups. The unit everything in this department is about.
@@ -66,10 +66,13 @@ primary.
 
 **Dossier** — the full record for one project, opened as an overlay.
 
-**Stage** — where a project has got to in the pipeline. IDEA through TRACK
-READY, plus SHELVED off to the side.
+**Stage** — where a project has got to in the pipeline. IDEA through RELEASED,
+plus SHELVED off to the side.
 
-**Pipeline** — the six stages in a line. SHELVED is off-pipeline.
+**Pipeline** — the seven stages in a line. SHELVED is off-pipeline.
+
+**Status** — where a *release* has got to: SCHEDULED or RELEASED. A different
+axis from a project's stage, which says how finished the work is.
 
 **Intake** — bringing work that is already on disk into the register. Named for
 what an archive does continually, rather than "migration", which is something a
@@ -86,11 +89,18 @@ in the department works without it.
 **Marked** — picked out for a bulk move, by tick or by Ctrl/Shift-click. Distinct
 from **selected**, which is just where the cursor is.
 
-**Final mix / final master** — the specific files that ship. Naming them is what
-lets a project reach TRACK READY.
+**Final master** — the bounce that is the finished article, named in the
+project's FINAL MASTER panel from TRACK READY on. Referenced where it already
+sits in the project folder: choosing one moves nothing. The RELEASED stage
+cannot be reached without it.
 
-**Release Mastered Tracks** — the directory a final master moves into when
-chosen.
+**Release master** — what a DISCOGRAPHY track says actually shipped. Copied from
+the project's final master when the track is linked, then left alone, so an
+already-released entry does not change its story when the project's pick does.
+
+**Release Mastered Tracks** — a directory under the wrapper, left over from the
+previous arrangement, into which a chosen master was moved. Nothing writes to it
+now; a final chosen back then still points into it.
 
 **The Bin** — deleted projects, in a real directory, kept until emptied.
 

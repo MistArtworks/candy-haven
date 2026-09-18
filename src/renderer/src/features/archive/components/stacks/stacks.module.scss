@@ -394,7 +394,8 @@
 .tileTag {
   @include label(8px, 0.12em);
   color: var(--tag-colour, var(--ch-text-secondary));
-  border: $hairline solid color-mix(in srgb, var(--tag-colour, var(--ch-concrete-500)) 55%, transparent);
+  border: $hairline solid
+    color-mix(in srgb, var(--tag-colour, var(--ch-concrete-500)) 55%, transparent);
   background: color-mix(in srgb, var(--tag-colour, var(--ch-concrete-500)) 12%, transparent);
   padding: 1px space(1);
   border-radius: $radius-control;

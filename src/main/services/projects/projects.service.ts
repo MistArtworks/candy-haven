@@ -5,7 +5,6 @@ import { nativeImage, shell } from 'electron'
 import type { AnyBulkWriteOperation } from 'mongodb'
 import type {
   AbletonAnalysis,
-  MediaFile,
   NoteDraft,
   ProjectCategory,
   ProjectPatch,
@@ -23,11 +22,11 @@ import {
   SCAN_LOG_LIMIT,
   createEmptyScanState,
   evaluateReadiness,
-  getStage,
-  previousStage,
-  requiresVolume
+  getStage
 } from '@shared/domain/projects.constants'
 import type { ArchiveTag, TagSummary } from '@shared/domain/tags'
+import type { ArtistRecord } from '@shared/domain/artists'
+import type { ReleaseAppearance } from '@shared/domain/discography'
 import { tagKey } from '@shared/domain/tags.constants'
 import { DEFAULT_FOLDER_COLOUR, normaliseHex } from '@shared/domain/stacks.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
@@ -72,7 +71,7 @@ export interface AdoptedProject {
   scanned: ScannedProject
   folderId: string
   category: ProjectCategory
-  volumeId: string | null
+  artistIds: string[]
   colour: string
 }
 
@@ -97,6 +96,20 @@ export type FilingResolver = (
  */
 export type TagResolver = () => Promise<ArchiveTag[]>
 
+/** How the roster is read, so the register can draw credits. */
+export type ArtistResolver = () => Promise<ArtistRecord[]>
+
+/**
+ * Where each project appears in the catalogue, by project id.
+ *
+ * Supplied by the container once the discography service exists. The register
+ * does not store which release a project is on — the release owns its
+ * tracklist, because a track need not have a project — so this is the only
+ * way the ARCHIVE can say "track 3 of *Ossuary*" without a second copy of the
+ * relationship that would drift. Same arrangement as `TagResolver`.
+ */
+export type AppearanceResolver = () => Promise<Map<string, ReleaseAppearance[]>>
+
 /**
  * Owns the project registry: what exists on disk, what the operator has said
  * about it, and where each project sits in the production pipeline.
@@ -114,6 +127,8 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   private readonly thumbnails = new Map<string, { modifiedAt: number; dataUrl: string }>()
   private filingResolver: FilingResolver | null = null
   private tagResolver: TagResolver | null = null
+  private artistResolver: ArtistResolver | null = null
+  private appearanceResolver: AppearanceResolver | null = null
 
   constructor(private readonly archive: ArchiveService) {
     super()
@@ -129,6 +144,16 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   }
 
   /** Wired by the container once the tags service exists. See `TagResolver`. */
+  /** Wired by the container once the artists service exists. */
+  setArtistResolver(resolver: ArtistResolver): void {
+    this.artistResolver = resolver
+  }
+
+  /** Wired by the container once the discography service exists. */
+  setAppearanceResolver(resolver: AppearanceResolver): void {
+    this.appearanceResolver = resolver
+  }
+
   setTagResolver(resolver: TagResolver): void {
     this.tagResolver = resolver
   }
@@ -199,10 +224,17 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       .map((tag) => ({ ...tag, usageCount: tagUsage.get(tag.id) ?? 0 }))
       .sort((a, b) => tagKey(a.name).localeCompare(tagKey(b.name)))
 
+    const roster = (await this.artistResolver?.()) ?? []
+    const index = (await this.appearanceResolver?.()) ?? new Map()
+
     return {
       projects,
       scan: this.scanState,
       tags,
+      artists: roster,
+      // Flattened on the way out: a Map does not survive structured cloning
+      // across the bridge, and the renderer rebuilds one on arrival.
+      appearances: [...index.entries()].map(([projectId, on]) => ({ projectId, on })),
       stageCounts,
       categoryCounts,
       unfiledCount,
@@ -257,7 +289,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       ...this.createRecord(adopted.scanned, now),
       folderId: adopted.folderId,
       category: adopted.category,
-      volumeId: adopted.volumeId,
+      artistIds: adopted.artistIds,
       colour: normaliseHex(adopted.colour),
       stageHistory: [{ stage: 'idea', at: now, note: 'Created' }]
     }
@@ -568,8 +600,7 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
       favourite: false,
       notes: [],
       category: 'single',
-      volumeId: null,
-      trackNumber: null,
+      artistIds: [],
       colour: DEFAULT_FOLDER_COLOUR,
       masters: { wips: [], mixes: [], masters: [], final: null },
       trashedAt: null,
@@ -589,95 +620,69 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   }
 
   /**
-   * Records a change of final mix and master.
+   * Names the bounce that is the project's finished master. Null clears it.
    *
-   * Called by the stacks service *after* the file has already moved, so this
-   * is bookkeeping rather than an action — the same division as `applyFiling`.
+   * **Nothing on disk moves.** The stored path points at one of the project's
+   * own audio files, beside the set that made it. This replaced a pair of
+   * methods that moved the bounce into `Release Mastered Tracks` and moved it
+   * back on demotion, along with the two IPC channels and the stacks-service
+   * half that performed the move — see `MasterSelectionSchema.final` for why
+   * that was the wrong trade.
    *
-   * `removedPath` is pruned from both buckets and from the scanned audio list.
-   * A promoted bounce has left the project folder, so every reference to its
-   * old path is stale; the next scan would drop them anyway, and doing it here
-   * means the dossier is correct immediately rather than one scan later.
+   * The pick is confined to `project.audio`, which is every audio file in the
+   * folder except the imported samples. A final master that could be any file
+   * on the disk would let somebody else's bounce be recorded as the thing this
+   * project finished, and being right about that is the whole point of asking.
    *
-   * `restored` is the mirror of that, and is what makes a swap reversible. A
-   * demoted file is put straight back into the audio list and marked a MASTER
-   * — the honest mark, since it is the file that shipped. Leaving it out was
-   * the older behaviour and the reasoning has not survived contact with the
-   * operation: it argued that a mark on the file's *old* path no longer
-   * describes anything, which is true, but the descriptor here carries the
-   * *new* path, which describes exactly what is now on disk. Without this the
-   * returned file is invisible until the next scan and cannot be re-chosen at
-   * all, because `setFinalMaster` only accepts a marked candidate.
-   *
-   * Unlinking also steps the stage back. TRACK READY carries `requiresMaster`,
-   * so a project left there with no final is claiming a stage it no longer
-   * qualifies for — the one state this whole pairing exists to prevent.
+   * Clearing is refused while the project is RELEASED. `released` carries
+   * `requiresMaster`, so allowing it would leave the record in the one state
+   * that gate exists to prevent — claiming to be out in the world with no
+   * named source. Step the stage back first.
    */
-  async applyFinalMaster(
-    id: string,
-    change: {
-      final: string | null
-      removedPath: string | null
-      /** The demoted file, as it now sits in the project folder. */
-      restored?: MediaFile | null
-      wips: readonly string[]
-      mixes: readonly string[]
-      masters: readonly string[]
-    }
-  ): Promise<ProjectRecord> {
+  async setFinalMaster(id: string, path: string | null): Promise<ProjectRecord> {
     const current = await this.get(id)
-    const restored = change.restored ?? null
 
-    const drop = (paths: readonly string[]): string[] =>
-      change.removedPath ? paths.filter((path) => path !== change.removedPath) : [...paths]
+    if (path === null) {
+      if (getStage(current.stage).requiresMaster) {
+        throw new AppError(
+          `${getStage(current.stage).label} cannot have its final master removed.`,
+          {
+            code: ErrorCode.Validation,
+            hint: 'Move the project back to TRACK READY first, then clear it.',
+            recoverable: false
+          }
+        )
+      }
 
-    const masters = drop(change.masters)
-    if (restored && !masters.includes(restored.path)) masters.push(restored.path)
-
-    const audio = change.removedPath
-      ? current.audio.filter((file) => file.path !== change.removedPath)
-      : [...current.audio]
-
-    if (restored && !audio.some((file) => file.path === restored.path)) {
-      audio.push(restored)
-      // Newest first, matching how `inventory` leaves the list. Appending would
-      // put the returned file at the bottom of the panel until a scan silently
-      // moved it back to the top.
-      audio.sort((a, b) => b.modifiedAt - a.modifiedAt)
+      const next = { ...current, masters: { ...current.masters, final: null } }
+      await this.repository.replace({ ...next, updatedAt: Date.now() })
+      return { ...next, updatedAt: Date.now() }
     }
 
-    // The folder's total, kept in step with the two files that just crossed its
-    // boundary. A rescan recomputes it either way; this stops RECORD reporting
-    // a size that visibly jumps the moment one runs.
-    const promotedBytes =
-      current.audio.find((file) => file.path === change.removedPath)?.sizeBytes ?? 0
-    const sizeBytes = Math.max(
-      0,
-      current.sizeBytes - promotedBytes + (restored ? restored.sizeBytes : 0)
-    )
+    /*
+     * Matched against the scanned inventory rather than merely existing.
+     *
+     * A path that is real but not in this project would type-check, pass a
+     * `stat`, and quietly record the wrong provenance. The register already
+     * knows what belongs to the project, so it is the thing to ask.
+     */
+    const file = current.audio.find((entry) => entry.path === path)
+    if (!file) {
+      throw new AppError('That file is not one of this project’s bounces.', {
+        code: ErrorCode.Validation,
+        hint: 'Bounce it into the project folder and rescan, then choose it here.',
+        recoverable: false
+      })
+    }
 
-    let next: ProjectRecord = {
+    const next: ProjectRecord = {
       ...current,
-      masters: {
-        wips: drop(change.wips),
-        mixes: drop(change.mixes),
-        masters,
-        final: change.final
-      },
-      audio,
-      sizeBytes,
+      masters: { ...current.masters, final: file.path },
       updatedAt: Date.now()
     }
 
-    if (change.final === null && getStage(next.stage).requiresMaster) {
-      next = this.applyStageChange(
-        next,
-        previousStage(next.stage) ?? 'master',
-        'Final mix and master unlinked'
-      )
-    }
-
     await this.repository.replace(next)
+    logger.info(`Final master for ${current.name}: ${file.fileName}`)
     return next
   }
 
@@ -818,10 +823,10 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
     const current = await this.get(id)
     let next: ProjectRecord = { ...current, updatedAt: Date.now() }
 
-    if (patch.tagIds) next.tagIds = normaliseTagIds(patch.tagIds)
+    if (patch.tagIds) next.tagIds = normaliseIds(patch.tagIds)
     if (patch.favourite !== undefined) next.favourite = patch.favourite
     if (patch.colour !== undefined) next.colour = normaliseHex(patch.colour)
-    if (patch.trackNumber !== undefined) next.trackNumber = patch.trackNumber
+    if (patch.artistIds) next.artistIds = normaliseIds(patch.artistIds)
 
     if (patch.masters) {
       next.masters = { ...next.masters, ...patch.masters }
@@ -851,11 +856,13 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   /**
    * Enforces the gates on entering a stage.
    *
-   * Only one gate survives the release rework, and it is the honest one: a
-   * project cannot claim to be ready, scheduled or released without a final mix
-   * and master chosen. Everything the old gates checked — ISRCs, artwork,
-   * platform lists — describes a *release* now, and a release is a separate
-   * object that a project does not have to have.
+   * One gate, on `released`: a project cannot claim to be out in the world
+   * until `masters.final` names the bounce that went out.
+   *
+   * It sat on `ready` originally, came off when the master pick briefly moved
+   * to the DISCOGRAPHY track, and is now back one stage later. That position
+   * matters — see the note on `ready` in projects.constants.ts for why gating
+   * TRACK READY deadlocks and gating RELEASED does not.
    */
   private applyStageChange(
     record: ProjectRecord,
@@ -865,9 +872,9 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
     const definition = getStage(stage)
 
     if (definition.requiresMaster && record.masters.final === null) {
-      throw new AppError(`${definition.label} needs a final mix and master first.`, {
+      throw new AppError(`${definition.label} needs the final master named first.`, {
         code: ErrorCode.Validation,
-        hint: 'Pick one in the FILES tab of the project record.',
+        hint: 'Choose it in the FINAL MASTER panel on the project’s OVERVIEW tab.',
         recoverable: false
       })
     }
@@ -880,47 +887,10 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   }
 
   /**
-   * Detaches every track of a volume that is going away.
-   *
-   * Called by the volumes service rather than reaching into the collection
-   * itself, so projects keep one owner. Each track falls back to `single`,
-   * which is the only category that is true of a track belonging to nothing.
-   */
-  async detachFromVolume(volumeId: string): Promise<number> {
-    const repository = this.repository
-    const affected = (await repository.listAll()).filter((record) => record.volumeId === volumeId)
-    if (affected.length === 0) return 0
-
-    const now = Date.now()
-    await repository.writeMany(
-      affected.map((record) => ({
-        updateOne: {
-          filter: { _id: record.id },
-          update: {
-            $set: {
-              volumeId: null,
-              trackNumber: null,
-              category: 'single' as ProjectCategory,
-              updatedAt: now
-            }
-          }
-        }
-      }))
-    )
-
-    return affected.length
-  }
-
-  /**
    * Strips a tag that is going away from everything carrying it.
    *
    * Called by the tags service rather than reaching into the collection
-   * itself, so projects keep one owner — the same arrangement as
-   * `detachFromVolume` directly above.
-   *
-   * Binned projects are swept as well, which is why this filters on `tagIds`
-   * alone and not on `trashedAt`. A project restored from the bin holding an
-   * id that resolves to nothing would be carrying an invisible label.
+   * itself, so projects keep one owner.
    */
   async detachTag(tagId: string): Promise<number> {
     const repository = this.repository
@@ -946,42 +916,46 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   }
 
   /**
-   * Re-categorises every track after its volume changed kind.
+   * Strips an artist that is going away from everything crediting them.
    *
-   * See `VolumePatchSchema` for why this is a rewrite rather than a refusal:
-   * the two fields are one statement, and leaving nine tracks marked `album`
-   * under something now calling itself an EP is a contradiction nobody asked
-   * for.
+   * The credits twin of `detachTag`, and here for the same reason: the
+   * artists service owns the roster, this service owns the register, and
+   * neither reaches into the other's collection.
    */
-  async recategoriseVolumeTracks(volumeId: string, category: ProjectCategory): Promise<number> {
+  async detachArtist(artistId: string): Promise<number> {
     const repository = this.repository
-    const affected = (await repository.listAll()).filter(
-      (record) => record.volumeId === volumeId && record.category !== category
+    const affected = (await repository.listAll()).filter((record) =>
+      record.artistIds.includes(artistId)
     )
     if (affected.length === 0) return 0
 
     const now = Date.now()
     await repository.writeMany(
       affected.map((record) => ({
-        updateOne: { filter: { _id: record.id }, update: { $set: { category, updatedAt: now } } }
+        updateOne: {
+          filter: { _id: record.id },
+          update: {
+            $set: {
+              artistIds: record.artistIds.filter((id) => id !== artistId),
+              updatedAt: now
+            }
+          }
+        }
       }))
     )
 
     return affected.length
   }
 
-  /** Writes the running order for a volume. Ids arrive in their new order. */
-  async setTrackOrder(volumeId: string, projectIds: readonly string[]): Promise<void> {
-    const now = Date.now()
-    await this.repository.writeMany(
-      projectIds.map((id, index) => ({
-        updateOne: {
-          filter: { _id: id, volumeId },
-          update: { $set: { trackNumber: index + 1, updatedAt: now } }
-        }
-      }))
-    )
-  }
+  /*
+   * `detachFromVolume`, `recategoriseVolumeTracks` and `reorderVolume` were
+   * here, called by the volumes service so that projects kept one owner.
+   *
+   * All three are gone with volumes. A release's running order now lives on
+   * the release, as an ordered array, because a track need not have a project
+   * at all — so there is nothing on the project left to reorder, and nothing
+   * to detach it from. See docs/DISCOGRAPHY.md §3.
+   */
 
   // -------------------------------------------------------------------- notes
 
@@ -1279,22 +1253,20 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
  *     the volume's kind as the category alongside it.
  */
 function reconcileCategory(record: ProjectRecord, patch: ProjectPatch): ProjectRecord {
-  const category = patch.category ?? record.category
-  const volumeId = patch.volumeId !== undefined ? patch.volumeId : record.volumeId
-
-  if (requiresVolume(category) && volumeId === null) {
-    throw new AppError(`A ${category} track has to belong to a ${category}.`, {
-      code: ErrorCode.Validation,
-      hint: 'Choose an existing one, or create it first.',
-      recoverable: false
-    })
-  }
-
-  if (!requiresVolume(category) && volumeId !== null) {
-    return { ...record, category, volumeId: null, trackNumber: null }
-  }
-
-  return { ...record, category, volumeId }
+  /*
+   * Nothing to reconcile any more, and the function stays as the seam.
+   *
+   * It enforced that an `album`/`ep`/`compilation` project was attached to a
+   * volume of the same kind, adjusting whichever half of the pair the patch
+   * did not set. Volumes became the DISCOGRAPHY, whose tracklist lives on the
+   * release rather than on the project, so a project can no longer see what
+   * it is a track of — and an invariant that cannot be evaluated is not one.
+   *
+   * Kept rather than inlined because category is exactly the field that grows
+   * rules again, and a named place for them is cheaper than finding this
+   * decision a second time.
+   */
+  return { ...record, category: patch.category ?? record.category }
 }
 
 interface CachedAnalysis {
@@ -1403,8 +1375,9 @@ function discoveredFields(
   | 'favourite'
   | 'notes'
   | 'category'
-  | 'volumeId'
-  | 'trackNumber'
+  // Who made it is the operator's statement, exactly as `tagIds` is. A rescan
+  // reads files; it has no idea who was in the room.
+  | 'artistIds'
   | 'colour'
   | 'masters'
   | 'trashedAt'
@@ -1477,9 +1450,9 @@ function findRelinked(
  * nothing and simply does not draw — cheaper and less surprising than refusing
  * an otherwise valid edit because of a tag the operator cannot see.
  */
-function normaliseTagIds(tagIds: readonly string[]): string[] {
+function normaliseIds(ids: readonly string[]): string[] {
   const seen = new Set<string>()
-  for (const raw of tagIds) {
+  for (const raw of ids) {
     const id = raw.trim()
     if (id) seen.add(id)
   }
@@ -1500,8 +1473,7 @@ function toSummary(record: ProjectRecord): ProjectSummary {
     colour: record.colour,
     folderId: record.folderId,
     category: record.category,
-    volumeId: record.volumeId,
-    trackNumber: record.trackNumber,
+    artistIds: record.artistIds,
     tempo: primary?.analysis?.tempo ?? null,
     key: primary?.analysis?.key ?? null,
     trackCount: primary?.analysis?.trackCounts.total ?? 0,
@@ -1557,7 +1529,15 @@ function matches(
   if (query.folderIds?.length) {
     if (record.folderId === null || !query.folderIds.includes(record.folderId)) return false
   }
-  if (query.volumeId !== undefined && record.volumeId !== query.volumeId) return false
+  /*
+   * Credits are matched with AND, as tags are.
+   *
+   * The operator narrows by adding names, and a second name producing *more*
+   * results would be the opposite of what adding it looks like it should do.
+   */
+  if (query.artistIds?.length) {
+    if (!query.artistIds.every((id) => record.artistIds.includes(id))) return false
+  }
 
   const search = query.search?.trim().toLowerCase()
   if (!search) return true

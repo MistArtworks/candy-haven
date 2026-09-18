@@ -13,7 +13,6 @@ import {
   createDefaultNowPlayingConfig,
   formatArtists,
   formatTrackTime,
-  nowPlayingSourceUrl,
   trackProgressAt
 } from '@shared/domain/nowplaying.constants'
 import { getOverlay } from '@shared/domain/overlays'
@@ -34,10 +33,14 @@ import {
   useSpotifySetup
 } from '@renderer/hooks/useNowPlaying'
 import { NowPlayingFace } from '@renderer/nowplaying/nowplaying-renderer'
+import { useCopy } from '@renderer/hooks/useCopy'
 import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { SourceList } from './SourceList'
 import styles from './TransmissionPage.module.scss'
+import { OverlayBench } from '../../components/OverlayBench'
 import { PresentationControls } from '../../components/PresentationControls'
+import { kitEntry, kitNumber } from '../../lib/kit'
+import { actionsFor, soloDeck, statusFor, useDeckRunner } from '../../lib/deck'
 import { PRESENTATION_LIMITS } from '@shared/domain/presentation'
 
 const LINK_TONE: Record<string, StatusTone> = {
@@ -60,18 +63,30 @@ const LINK_TONE: Record<string, StatusTone> = {
  * The console is also where the account is linked: the authorisation page opens
  * in the operator's own browser rather than in an app window, so they can see
  * the address bar and reach their password manager.
+ *
+ * On the kit's standing shape: `01` the face as the one focal panel, `02` the
+ * controls that run it, then presentation, then the addresses, then setup.
+ *
+ * **This is the one page in the kit with no BROADCAST panel of its own**, and
+ * the absence is deliberate rather than an omission. Every other overlay
+ * answers on one or two fixed addresses, so it gets an `AddressList`. This one
+ * answers on *as many as the operator has made* — a source is the unit, and
+ * `SourceList` already draws each with its address, a copy and a preview.
+ * A second panel restating them would be the same list twice.
  */
 export function TransmissionPage(): ReactNode {
   const overlay = getOverlay('transmission')
+  const entry = kitEntry('transmission')
   const state = useNowPlaying()
   const setup = useSpotifySetup(state.revision)
   const server = useOverlayInfo()
   const actions = useNowPlayingActions()
+  const runner = useDeckRunner()
+  const copier = useCopy()
 
   // Ticks only while a track is running; the face keeps its own clock.
   const clock = usePlaybackClock(state.track?.isPlaying ?? false)
 
-  const [copied, setCopied] = useState<string | null>(null)
   const [pickedId, setPickedId] = useState<string | null>(null)
 
   /*
@@ -91,14 +106,11 @@ export function TransmissionPage(): ReactNode {
   const config = selected?.config ?? createDefaultNowPlayingConfig()
   const linked = state.link.state === 'connected'
   const canvas = NOW_PLAYING_CANVAS[config.style]
-  const sourceUrl = server.url && selected ? nowPlayingSourceUrl(server.url, selected.slug) : null
 
-  const copy = (key: string, value: string): void => {
-    void navigator.clipboard.writeText(value).then(() => {
-      setCopied(key)
-      setTimeout(() => setCopied(null), 1600)
-    })
-  }
+  const deck = useMemo(
+    () => soloDeck({ owner: 'transmission', nowPlaying: state, server }),
+    [state, server]
+  )
 
   /** Every presentation control writes to the selected source, and only it. */
   const set = (patch: Partial<NowPlayingConfig>): void => {
@@ -114,17 +126,24 @@ export function TransmissionPage(): ReactNode {
    */
   const [label, setLabel] = useEchoedText(config.label, (value) => set({ label: value }))
 
+  const failure = runner.error ?? actions.error
+  const dismiss = (): void => {
+    runner.dismiss()
+    actions.dismissError()
+  }
+
   return (
     <div className={styles.page}>
       <PageHeader
-        index={overlay.order + 1}
+        index={kitNumber('transmission')}
         label={overlay.label}
+        kind={overlay.role}
         purpose={overlay.purpose}
         epigraph={overlay.epigraph}
         actions={
           <div className={styles.headerActions}>
             <Link to="/observatory" className={styles.back}>
-              Catalogue
+              ← The desk
             </Link>
             <StatusDot
               tone={LINK_TONE[state.link.state] ?? 'pending'}
@@ -135,10 +154,13 @@ export function TransmissionPage(): ReactNode {
         }
       />
 
-      {actions.error ? (
-        <div className={styles.notice} role="alert">
-          <span>{actions.error}</span>
-          <button type="button" className={styles.dismiss} onClick={actions.dismissError}>
+      {failure || runner.report ? (
+        <div
+          className={failure ? styles.notice : styles.report}
+          role={failure ? 'alert' : 'status'}
+        >
+          <span>{failure ?? runner.report}</span>
+          <button type="button" className={styles.dismiss} onClick={dismiss}>
             Dismiss
           </button>
         </div>
@@ -150,12 +172,12 @@ export function TransmissionPage(): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/* The face is the single focal object on this page. */}
+        {/* 01 — the face is the single focal object on this page. */}
         <Panel
           label="Face"
           index="01"
           focal
-          className={styles.facePanel}
+          className={styles.span6}
           aside={
             <span className={styles.nowLabel}>
               {selected ? selected.name : '—'}
@@ -166,66 +188,59 @@ export function TransmissionPage(): ReactNode {
           <FacePreview state={state} config={config} />
         </Panel>
 
-        <Panel label="Record" index="02" className={styles.span2}>
-          {state.track ? (
-            <FieldGrid columns={1}>
-              <Field label="Title" value={state.track.title} />
-              <Field label="Artist" value={formatArtists(state.track.artists) || '—'} />
-              <Field label="Album" value={state.track.album || '—'} />
-              <Field
-                label="Position"
-                value={`${formatTrackTime(trackProgressAt(state.track, clock))} / ${formatTrackTime(state.track.durationMs)}`}
-                mono
-              />
-            </FieldGrid>
-          ) : (
-            <p className={styles.hint}>
-              {linked
-                ? 'Nothing is playing. Start something in Spotify and it will appear here within a few seconds.'
-                : 'Link a Spotify account to read live playback.'}
-            </p>
-          )}
-        </Panel>
+        {/*
+          02 — the desk's own controls, and what they produced.
 
-        <Panel
-          label="Sources"
-          index="03"
-          className={styles.wide}
-          aside={
-            <span className={styles.nowLabel}>
-              {state.sources.length} source{state.sources.length === 1 ? '' : 's'}
-            </span>
-          }
-        >
-          <p className={styles.hint}>
-            The four presentations, as four browser sources — each with its own address and its own
-            settings. Add all of them to OBS and point each scene at whichever shape suits its
-            layout; they draw the same live playback, so switching scenes changes the shape and
-            nothing else.
-          </p>
+          The RECORD panel folded in here rather than keeping a slab of its own:
+          the track *is* what the link produced, so the verb that establishes the
+          link and the reading that proves it worked belong together. Apart, the
+          page opened with a panel of four fields that were empty until a
+          different panel had been used.
+        */}
+        <Panel label="The link" index="02" className={styles.span3}>
+          <div className={styles.config}>
+            <OverlayBench
+              entry={entry}
+              status={statusFor('transmission', deck, 0)}
+              actions={actionsFor('transmission', deck)}
+              composer={null}
+              dials={[]}
+              rows={[]}
+              copier={copier}
+              runner={runner}
+              variant="page"
+            />
 
-          <SourceList
-            sources={state.sources}
-            selectedId={selected?.id ?? null}
-            onSelect={setPickedId}
-            onAdd={(presetId, name) => void actions.addSource({ presetId, name })}
-            onRemove={(id) => void actions.removeSource(id)}
-            serverUrl={server.url}
-            onCopy={copy}
-            copied={copied}
-            busy={actions.pending === 'add' || actions.pending === 'remove'}
-          />
+            {state.track ? (
+              <FieldGrid columns={1}>
+                <Field label="Title" value={state.track.title} />
+                <Field label="Artist" value={formatArtists(state.track.artists) || '—'} />
+                <Field label="Album" value={state.track.album || '—'} />
+                <Field
+                  label="Position"
+                  value={`${formatTrackTime(trackProgressAt(state.track, clock))} / ${formatTrackTime(state.track.durationMs)}`}
+                  mono
+                />
+              </FieldGrid>
+            ) : (
+              <p className={styles.hint}>
+                {linked
+                  ? 'Nothing is playing. Start something in Spotify and it will appear here within a few seconds.'
+                  : 'Link a Spotify account to read live playback.'}
+              </p>
+            )}
+          </div>
         </Panel>
 
         {/*
-          Setup is its own panel because it is a one-time chore with an exact
-          string in it — the redirect URI has to match the dashboard entry to
-          the character, and it depends on the live server port.
+          03 — a one-time chore with an exact string in it: the redirect URI has
+          to match the Spotify dashboard entry to the character, and it depends
+          on the live server port.
         */}
         <Panel
-          label="Spotify link"
-          index="04"
-          className={styles.span2}
+          label="Spotify setup"
+          index="03"
+          className={styles.span3}
           aside={
             <StatusDot
               tone={LINK_TONE[state.link.state] ?? 'pending'}
@@ -252,9 +267,13 @@ export function TransmissionPage(): ReactNode {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => copy('redirect', setup.redirectUri as string)}
+                        onClick={() => copier.copy('redirect', setup.redirectUri as string)}
                       >
-                        {copied === 'redirect' ? 'Copied' : 'Copy redirect URI'}
+                        {copier.failed === 'redirect'
+                          ? 'Blocked'
+                          : copier.copied === 'redirect'
+                            ? 'Copied'
+                            : 'Copy redirect URI'}
                       </Button>
                     </>
                   ) : (
@@ -275,24 +294,17 @@ export function TransmissionPage(): ReactNode {
               </li>
             </ol>
 
-            <div className={styles.setupActions}>
-              <Button
-                variant="primary"
-                disabled={!setup.hasClientId || !setup.redirectUri}
-                busy={actions.pending === 'link'}
-                onClick={() => void actions.link()}
-              >
-                {linked ? 'Re-authorise' : 'Authorise Spotify'}
-              </Button>
-              <Button
-                variant="danger"
-                disabled={state.link.state === 'unconfigured'}
-                busy={actions.pending === 'unlink'}
-                onClick={() => void actions.unlink()}
-              >
-                Unlink
-              </Button>
-            </div>
+            {/*
+              Authorising and unlinking are verbs, so they are on `02` with the
+              rest of them. This panel had its own pair, which meant a linked
+              account showed two controls for linking — and the desk offered a
+              third. `actionsFor` answers for all of them now.
+            */}
+            {!setup.hasClientId || !setup.redirectUri ? (
+              <p className={styles.warn}>
+                Authorising is blocked until both of the above are in place.
+              </p>
+            ) : null}
 
             {/*
               One poller serves every source, so this is not a per-source
@@ -319,8 +331,8 @@ export function TransmissionPage(): ReactNode {
 
         <Panel
           label="Presentation"
-          index="05"
-          className={styles.span2}
+          index="04"
+          className={styles.span3}
           aside={<span className={styles.nowLabel}>{selected?.name ?? '—'}</span>}
         >
           <div className={styles.config}>
@@ -416,101 +428,129 @@ export function TransmissionPage(): ReactNode {
               placeholder="NOW TRANSMITTING"
             />
 
-            <div className={styles.toggles}>
-              <Checkbox
-                label="Show the label"
-                checked={config.showLabel}
-                onChange={(showLabel) => set({ showLabel })}
-              />
-              <Checkbox
-                label="Show cover art"
-                checked={config.showCover}
-                onChange={(showCover) => set({ showCover })}
-              />
-              <Checkbox
-                label="Show the album"
-                checked={config.showAlbum}
-                onChange={(showAlbum) => set({ showAlbum })}
-              />
-              <Checkbox
-                label="Show the timeline"
-                checked={config.showTimeline}
-                onChange={(showTimeline) => set({ showTimeline })}
-              />
-              <Checkbox
-                label="Count time remaining"
-                checked={config.showRemaining}
-                onChange={(showRemaining) => set({ showRemaining })}
-                hint="Rather than the track length."
-              />
-              <Checkbox
-                label="Explicit badge"
-                checked={config.showExplicit}
-                onChange={(showExplicit) => set({ showExplicit })}
-              />
-              <Checkbox
-                label="Scroll long titles"
-                checked={config.marquee}
-                onChange={(marquee) => set({ marquee })}
-                hint="Off truncates with an ellipsis instead."
-              />
-              <Checkbox
-                label="Turn the record"
-                checked={config.spinCover}
-                onChange={(spinCover) => set({ spinCover })}
-                hint="DISC style only. Stops when playback pauses."
-              />
-              <Checkbox
-                label="Hide when nothing is playing"
-                checked={config.hideWhenIdle}
-                onChange={(hideWhenIdle) => set({ hideWhenIdle })}
-              />
+            {/*
+              Nine switches, in two groups rather than one run.
+              What is *drawn* and how it *behaves* are two questions, and a
+              single stack of nine meant reading all nine to answer either.
+            */}
+            <div className={styles.switchGroup}>
+              <span className={styles.switchLabel}>What is drawn</span>
+              <div className={styles.toggles}>
+                <Checkbox
+                  label="Show the label"
+                  checked={config.showLabel}
+                  onChange={(showLabel) => set({ showLabel })}
+                />
+                <Checkbox
+                  label="Show cover art"
+                  checked={config.showCover}
+                  onChange={(showCover) => set({ showCover })}
+                />
+                <Checkbox
+                  label="Show the album"
+                  checked={config.showAlbum}
+                  onChange={(showAlbum) => set({ showAlbum })}
+                />
+                <Checkbox
+                  label="Show the timeline"
+                  checked={config.showTimeline}
+                  onChange={(showTimeline) => set({ showTimeline })}
+                />
+                <Checkbox
+                  label="Explicit badge"
+                  checked={config.showExplicit}
+                  onChange={(showExplicit) => set({ showExplicit })}
+                />
+              </div>
+            </div>
+
+            <div className={styles.switchGroup}>
+              <span className={styles.switchLabel}>How it behaves</span>
+              <div className={styles.toggles}>
+                <Checkbox
+                  label="Count time remaining"
+                  checked={config.showRemaining}
+                  onChange={(showRemaining) => set({ showRemaining })}
+                  hint="Rather than the track length."
+                />
+                <Checkbox
+                  label="Scroll long titles"
+                  checked={config.marquee}
+                  onChange={(marquee) => set({ marquee })}
+                  hint="Off truncates with an ellipsis instead."
+                />
+                <Checkbox
+                  label="Turn the record"
+                  checked={config.spinCover}
+                  onChange={(spinCover) => set({ spinCover })}
+                  hint="DISC style only. Stops when playback pauses."
+                />
+                <Checkbox
+                  label="Hide when nothing is playing"
+                  checked={config.hideWhenIdle}
+                  onChange={(hideWhenIdle) => set({ hideWhenIdle })}
+                />
+              </div>
             </div>
           </div>
         </Panel>
 
+        {/*
+          05 — this page's BROADCAST panel, and it is the source list.
+
+          Every other overlay in the kit answers on one or two fixed addresses
+          and gets an `AddressList`. This one answers on as many as the operator
+          has made, so the *source* is the unit: each row carries its own
+          address, a copy and a preview. A separate address panel beneath this
+          drew the same URLs a second time, for whichever source happened to be
+          selected.
+        */}
         <Panel
-          label="Broadcast source"
-          index="06"
-          className={styles.span2}
+          label="Broadcast sources"
+          index="05"
+          className={styles.span6}
           aside={
             <StatusDot
               tone={server.running ? 'online' : 'error'}
-              label={server.running ? 'Serving' : 'Offline'}
+              label={
+                server.running
+                  ? `${state.sources.length} source${state.sources.length === 1 ? '' : 's'}`
+                  : 'Server offline'
+              }
             />
           }
         >
           <div className={styles.broadcast}>
-            {sourceUrl && selected ? (
-              <>
-                <p className={styles.hint}>
-                  Add a Browser source in OBS at this address for <strong>{selected.name}</strong>.
-                  Width {canvas.width}, height {canvas.height}, and tick{' '}
-                  <strong>Transparent</strong> — this overlay never paints a background.
-                </p>
-                <code className={styles.url}>{sourceUrl}</code>
-                <div className={styles.broadcastActions}>
-                  <Button size="sm" variant="ghost" onClick={() => copy('source', sourceUrl)}>
-                    {copied === 'source' ? 'Copied' : 'Copy address'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void window.candy.shell.openExternal(sourceUrl)}
-                  >
-                    Preview
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className={styles.hint}>
-                {server.error ?? 'The overlay server is not listening.'}
+            <p className={styles.hint}>
+              The four presentations, as four browser sources — each with its own address and its
+              own settings. Add all of them to OBS and point each scene at whichever shape suits its
+              layout; they draw the same live playback, so switching scenes changes the shape and
+              nothing else. Tick <strong>Transparent</strong> on each: this overlay never paints a
+              background.
+            </p>
+
+            <SourceList
+              sources={state.sources}
+              selectedId={selected?.id ?? null}
+              onSelect={setPickedId}
+              onAdd={(presetId, name) => void actions.addSource({ presetId, name })}
+              onRemove={(id) => void actions.removeSource(id)}
+              serverUrl={server.url}
+              onCopy={copier.copy}
+              copied={copier.copied}
+              failed={copier.failed}
+              busy={actions.pending === 'add' || actions.pending === 'remove'}
+            />
+
+            {!server.running ? (
+              <p className={styles.warn}>
+                {server.error ?? 'The overlay server is not listening, so there is no address yet.'}
               </p>
-            )}
+            ) : null}
 
             <FieldGrid columns={3}>
-              <Field label="Style" value={config.style.toUpperCase()} mono />
-              <Field label="Address" value={selected?.slug ?? '—'} mono />
+              <Field label="Selected" value={selected?.name ?? '—'} />
+              <Field label="Canvas" value={`${canvas.width} × ${canvas.height}`} mono />
               <Field label="Poll" value={`${state.pollSeconds}s`} mono />
             </FieldGrid>
           </div>

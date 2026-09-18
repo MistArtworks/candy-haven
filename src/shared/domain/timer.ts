@@ -2,6 +2,8 @@ import { z } from 'zod'
 import {
   GRACE_MAX_MS,
   TIMER_ANIMATIONS,
+  MAX_TERMINAL_WORD,
+  MAX_TIMER_LABEL,
   TIMER_IDS,
   TIMER_MAX_MS,
   TIMER_MIN_MS,
@@ -51,9 +53,9 @@ export const TimerConfigSchema = z.object({
   graceMs: z.number().int().min(0).max(GRACE_MAX_MS).default(0),
   animation: TimerAnimationSchema.default('plates'),
   /** Institutional label above the readout. */
-  label: z.string().max(48).default('INTERVAL'),
+  label: z.string().max(MAX_TIMER_LABEL).default('INTERVAL'),
   /** Word the countdown resolves to. `NOW` for a stream opening. */
-  terminalWord: z.string().max(16).default('TIME'),
+  terminalWord: z.string().max(MAX_TERMINAL_WORD).default('TIME'),
   /**
    * Audio cues.
    *

@@ -3,7 +3,7 @@
 > **Status: BUILT.** Every decision below is implemented on `archive-upgrade`.
 >
 > The operator dictated a new system for the ARCHIVE that replaces parts of the
-> current one but explicitly *not all of it*. This file records each piece in
+> current one but explicitly _not all of it_. This file records each piece in
 > their words, plus a mapping onto the code that exists today. All 22 open
 > questions were put to them and answered on 2026-09-11 — see the Decisions log
 > at the bottom, which is the authoritative list. The sections above are the
@@ -22,7 +22,7 @@
 > change, but they act on real data and real directories, so the first launch
 > should be a deliberate one.
 >
-> **One decision is only partly built.** D22 asked for a refusal *and* a picker
+> **One decision is only partly built.** D22 asked for a refusal _and_ a picker
 > when a project's origin is unreachable. The refusal is in place and names the
 > path it expected; it points the operator at "File to…" rather than opening a
 > destination picker for them. The gesture exists, but it is two steps where
@@ -44,19 +44,19 @@
 **Unchanged, therefore:** the three things the operator configures before the
 ARCHIVE can do anything stay conceptually as they are.
 
-| Input | Today's field | Today's UI |
-| --- | --- | --- |
-| Root folder(s) | `workspace.satelliteRoots` | Setup gate "source roots"; REGULATION → ARCHIVE → FILING → "Other locations" |
-| Template | `workspace.projectTemplatePath` | Setup gate; FILING → "Project template" |
-| Destination | `workspace.filingRoot` | Setup gate; FILING → "Filing root" (read-only) |
+| Input          | Today's field                   | Today's UI                                                                   |
+| -------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| Root folder(s) | `workspace.satelliteRoots`      | Setup gate "source roots"; REGULATION → ARCHIVE → FILING → "Other locations" |
+| Template       | `workspace.projectTemplatePath` | Setup gate; FILING → "Project template"                                      |
+| Destination    | `workspace.filingRoot`          | Setup gate; FILING → "Filing root" (read-only)                               |
 
-**The one change:** *multiple root folders.*
+**The one change:** _multiple root folders._
 
 **Not yet resolved — see Q1.** Today there is already a list of source roots
 (`satelliteRoots`, N of them) and exactly **one** destination (`filingRoot`).
 So "add multiple root folders" could mean either:
 
-- (a) the *sources* become the primary concept and are treated as a flat list of
+- (a) the _sources_ become the primary concept and are treated as a flat list of
   peers — roughly what exists, possibly renamed and reframed; or
 - (b) there can be more than one **destination**, i.e. more than one filing
   root, each with its own `Candy Haven` wrapper.
@@ -65,8 +65,8 @@ These are very different. (b) touches several places that assume a single
 destination exists:
 
 - `WRAPPER_DIRECTORY_NAME` / `requireWrapper()` — one wrapper per install
-- `unfiledDestination()` — "unfile" means "move back to *the* filing root"
-- `pruneMissingFolders()` — guards on *the* wrapper being reachable
+- `unfiledDestination()` — "unfile" means "move back to _the_ filing root"
+- `pruneMissingFolders()` — guards on _the_ wrapper being reachable
 - `ArchiveSetupState` / the setup gate — asks for one root, one template
 - Folder paths are absolute, so a shelf belongs to whichever wrapper it is under
 
@@ -95,7 +95,7 @@ where the project was discovered. There is `trashedFrom` — the bin remembers
 its origin, which is exactly what makes the bin reversible — but filing has no
 equivalent. The information needed to send a project back does not exist.
 
-The one case it gets right: a project that has *never* been inside the wrapper
+The one case it gets right: a project that has _never_ been inside the wrapper
 is left exactly where it is (`dirname(record.path)`), on the grounds that it is
 already unfiled as far as the disk is concerned.
 
@@ -125,7 +125,7 @@ subfolders, anything else sitting in the project folder all come across. There
 is no allow-list of `Ableton Project Info` / `Backup` / `Samples` anywhere in
 the move path.
 
-**The adjacent gap that is real — see Q2.** A project *created* inside Candy
+**The adjacent gap that is real — see Q2.** A project _created_ inside Candy
 Haven is scaffolded by `provisionProject()` with six folders: `WIPS`,
 `MIX & MASTER`, `STEMS`, `GRAPHICS`, `MARKETING`, `REFERENCES`. A project
 **adopted** from a root gets none of them. So after filing, an outside project
@@ -183,16 +183,16 @@ or both. See Q4.
 the limitation is not a renderer oversight — it is single-item the whole way
 down:
 
-| Layer | Today |
-| --- | --- |
-| Drag payload | `beginDrag(event, type, id: string)` — one id in `dataTransfer` |
-| Drop handler | `readDrag()` → one id → `fileProject(projectId, folderId)` |
+| Layer        | Today                                                               |
+| ------------ | ------------------------------------------------------------------- |
+| Drag payload | `beginDrag(event, type, id: string)` — one id in `dataTransfer`     |
+| Drop handler | `readDrag()` → one id → `fileProject(projectId, folderId)`          |
 | IPC contract | `projects:file` input is `{ id: string, folderId: string \| null }` |
-| Service | `StacksService.fileProject(projectId, folderId)` — one record |
-| Context menu | built from a single `project`, so every verb on it is singular |
+| Service      | `StacksService.fileProject(projectId, folderId)` — one record       |
+| Context menu | built from a single `project`, so every verb on it is singular      |
 
 The only thing resembling a selection is the `?project=<id>` URL param, and
-that is not a selection — it is *which dossier is open*. There is no set of
+that is not a selection — it is _which dossier is open_. There is no set of
 selected ids in the page at all.
 
 Consequence: filing twelve unfiled projects into a genre is twelve drags.
@@ -269,7 +269,7 @@ mechanism, created under a release directory when a release is cut, but the
 operator wants it gone on the same grounds.
 
 That one has a behavioural knock-on the project scaffold does not.
-`ReleasesService.attach()` *copies* each deliverable into its scaffold folder
+`ReleasesService.attach()` _copies_ each deliverable into its scaffold folder
 and records `copiedPath` — `DELIVERABLE_DESTINATION` maps master → `MASTER`,
 cover and canvas → `ART`. With the folders gone, deliverables are copied to the
 release directory root instead, and `DELIVERABLE_DESTINATION` is deleted. The
@@ -315,12 +315,12 @@ the folders were a filing convention the app never actually read.
 
 **How this differs from today:**
 
-| | Today | Proposed |
-| --- | --- | --- |
-| Wrapper children | `RELEASES`, `RECYCLE BIN`, + genres at top level | `Projects`, `Release Master`, `RECYCLE BIN` |
-| Depth to a project | `Candy Haven\<genre>\<project>` | `Candy Haven\Projects\<category>\<genre\|artist>\<project>` |
-| Folder type | Derived from **depth** — `folderKindAtDepth()` says depth 0 is a genre, everything below is a plain folder. Deliberately not stored: "moving a folder changes what it is, and a stored kind would sooner or later disagree with where the folder sits." | **Chosen by the operator** — genre vs artist is a real, stored distinction, extensible later |
-| Folder icon | None — projects are ordinary folders | Custom icon on every created project folder |
+|                    | Today                                                                                                                                                                                                                                                   | Proposed                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Wrapper children   | `RELEASES`, `RECYCLE BIN`, + genres at top level                                                                                                                                                                                                        | `Projects`, `Release Master`, `RECYCLE BIN`                                                  |
+| Depth to a project | `Candy Haven\<genre>\<project>`                                                                                                                                                                                                                         | `Candy Haven\Projects\<category>\<genre\|artist>\<project>`                                  |
+| Folder type        | Derived from **depth** — `folderKindAtDepth()` says depth 0 is a genre, everything below is a plain folder. Deliberately not stored: "moving a folder changes what it is, and a stored kind would sooner or later disagree with where the folder sits." | **Chosen by the operator** — genre vs artist is a real, stored distinction, extensible later |
+| Folder icon        | None — projects are ordinary folders                                                                                                                                                                                                                    | Custom icon on every created project folder                                                  |
 
 The folder-type change is the significant one: it reverses an explicit decision
 recorded in `stacks.constants.ts`. If type is stored rather than derived, moving
@@ -360,7 +360,7 @@ Three corrections to the earlier guess in this file:
 2. The `.ico` is **per project**, inside `Ableton Project Info\` — not one shared
    copy in the wrapper. Every project carries its own ~470 KB.
 3. Three things must all be true for Explorer to draw it: the `Desktop.ini`
-   exists with that content, it is **Hidden**, and the *project folder itself*
+   exists with that content, it is **Hidden**, and the _project folder itself_
    carries **ReadOnly**. Miss the ReadOnly attribute and the icon silently does
    not appear.
 
@@ -472,14 +472,14 @@ where a name collision part way through is likely.
 **This answers Q2: yes, an adopted project is brought up to the same shape as a
 created one.** The two are visibly different today:
 
-| | Created by Candy Haven | Migrated (Live-made) |
-| --- | --- | --- |
-| `<name>.als` | ✓ copied from template | ✓ |
-| `WIPS`, `MIX & MASTER`, `STEMS`, `GRAPHICS`, `MARKETING`, `REFERENCES` | ✓ | ✗ |
-| `Ableton Project Info\AProject.ico` | ✗ *(until §3.1 lands)* | ✓ |
-| `Desktop.ini` + ReadOnly, so the icon draws | ✗ *(until §3.1 lands)* | ✓ |
-| `Backup\`, `Samples\` | ✗ until Live saves | ✓ |
-| Loose rendered audio at the project root | ✗ — bounces go in `MIX & MASTER` / `WIPS` | ✓ commonly |
+|                                                                        | Created by Candy Haven                    | Migrated (Live-made) |
+| ---------------------------------------------------------------------- | ----------------------------------------- | -------------------- |
+| `<name>.als`                                                           | ✓ copied from template                    | ✓                    |
+| `WIPS`, `MIX & MASTER`, `STEMS`, `GRAPHICS`, `MARKETING`, `REFERENCES` | ✓                                         | ✗                    |
+| `Ableton Project Info\AProject.ico`                                    | ✗ _(until §3.1 lands)_                    | ✓                    |
+| `Desktop.ini` + ReadOnly, so the icon draws                            | ✗ _(until §3.1 lands)_                    | ✓                    |
+| `Backup\`, `Samples\`                                                  | ✗ until Live saves                        | ✓                    |
+| Loose rendered audio at the project root                               | ✗ — bounces go in `MIX & MASTER` / `WIPS` | ✓ commonly           |
 
 **C2 removes most of the difference.** With no scaffold folders, a created
 project and a migrated one differ by one thing: whether the icon is stamped.
@@ -512,8 +512,8 @@ project folder. What gives them meaning is a selection made in the app against
 the audio the scanner already found — `record.audio`, which is every audio file
 outside `Samples\`, capped at 400. Dropping the scaffold folders does not lose
 information, because the folders were never where the information lived; it
-moves the classification from *where a file sits* to *what the operator says it
-is*, which is the one place it cannot drift out of step.
+moves the classification from _where a file sits_ to _what the operator says it
+is_, which is the one place it cannot drift out of step.
 
 **Against today's model.** The record has exactly two single-valued slots:
 
@@ -522,16 +522,16 @@ MASTER_PICKS = ['prefinal', 'final']
 MasterSelectionSchema = { prefinal: string | null, final: string | null }
 
 prefinal: 'The candidate currently being lived with. Expected to be replaced.'
-final:    'The exact file that ships. Chosen from the bounces found in this project.'
+final: 'The exact file that ships. Chosen from the bounces found in this project.'
 ```
 
 The proposal generalises this to three buckets, two of them lists:
 
-| Bucket | Cardinality | Today |
-| --- | --- | --- |
-| WIPs | many | — nothing |
-| Masters (mastered versions) | many | `prefinal`, but only one |
-| Final mix and master | one | `final` — unchanged |
+| Bucket                      | Cardinality | Today                    |
+| --------------------------- | ----------- | ------------------------ |
+| WIPs                        | many        | — nothing                |
+| Masters (mastered versions) | many        | `prefinal`, but only one |
+| Final mix and master        | one         | `final` — unchanged      |
 
 So `prefinal` becomes `masters[]`, `wips[]` is new, and `final` survives as is.
 
@@ -580,6 +580,17 @@ happens to the old file when the final is changed or cleared.
 
 ### 3.6 The pipeline stops at TRACK READY
 
+> **Superseded on 2026-09-17 — see `docs/DISCOGRAPHY.md` §§8–11.** The future
+> this section defers to has arrived. `released` is back as a terminal stage
+> after `ready`, written by DISCOGRAPHY when a release goes out, and TRACK READY
+> is the gate into the catalogue. `scheduled` stays deleted: that question
+> belongs to the release, which has its own status for it.
+>
+> The master selection this section places on the TRACK READY transition
+> (§3.7, D28, Q17) has moved to the DISCOGRAPHY track, and `requiresMaster` is
+> off every stage. Everything below is the record of what was decided in
+> September 2026, not of how the pipeline works now.
+
 > "We can remove the stages/phases after the mix and master stage. We have a
 > final stage called **TRACK READY** — we will decide in future for the system
 > for releasing and wrapping the project up. For now this is all we need."
@@ -591,8 +602,8 @@ happens to the old file when the final is changed or cleared.
 
 **Proposed — seven:**
 
-`idea` → `sketch` → `arrangement` → `mix` → `master` → `ready` *(relabelled
-**TRACK READY**, now `terminal: true`)*, plus `shelved` off-pipeline.
+`idea` → `sketch` → `arrangement` → `mix` → `master` → `ready` _(relabelled
+**TRACK READY**, now `terminal: true`)_, plus `shelved` off-pipeline.
 `scheduled` and `released` are deleted.
 
 **The code change is contained.** Nothing outside `projects.constants.ts`
@@ -602,7 +613,7 @@ they shrink on their own. `requiresMaster` stays on `ready`, so the master
 selection keeps gating entry to the final stage.
 
 **The data change is not, and this one bites.** Records are validated on the way
-out of the database, and an unreadable one is *skipped*:
+out of the database, and an unreadable one is _skipped_:
 
 ```ts
 const parsed = ProjectRecordSchema.safeParse({ id: _id, ...rest })
@@ -623,7 +634,7 @@ here:
 
 1. `listAll()` drops the unreadable record, so it is absent from `existing`.
 2. `reconcile()` finds no match by path and no relink candidate, so it takes the
-   *new project* branch and issues an `insertOne`.
+   _new project_ branch and issues an `insertOne`.
 3. The orphaned document is still in Mongo holding that `path`, and
    `project_path_unique` is a unique index on `path` — so the insert collides.
 
@@ -638,6 +649,21 @@ values — presumably onto `ready` — **before** the enum shrinks. See Q22.
 
 ### 3.7 Audio selection follows the stage — refinement, 2026-09-12
 
+> **Superseded on 2026-09-17 — see `docs/DISCOGRAPHY.md` D5 and §11.** The
+> whole mechanism this section designs has been removed from the ARCHIVE on the
+> operator's instruction: "let's remove the part where we had to select the mix
+> and master files and also the final master files in all the stages in
+> archives… for now it's only through the discography item where we select the
+> final master/release master file."
+>
+> `MixAndMaster`, `FinalMasterDialog` and `FinalMasterMenu` are deleted. The
+> file that ships is `track.master` on a DISCOGRAPHY track, **referenced where
+> it sits** rather than renamed and moved into `Release Mastered Tracks`.
+>
+> The main-process mechanism, the two IPC channels and every stored `masters`
+> value are kept as the seam — the operator has said a better workflow is
+> coming. Everything below stays as the record of the one it replaces.
+
 > "Once we are on mix or master stage, we get a button or section in OVERVIEW
 > where it is represented as icons of all the audios in the project folder. We
 > select the mix and masters files at their respective stages. And when we do
@@ -649,14 +675,14 @@ values — presumably onto `ready` — **before** the enum shrinks. See Q22.
 FILES tab, are available at every stage, and the final may be any audio file in
 the project. The proposal ties the whole thing to the pipeline:
 
-| | As built | Proposed |
-| --- | --- | --- |
-| Where | FILES tab, panel 01 | OVERVIEW, at MIX and MASTER stages |
-| What is marked | WIPs, masters | Mixes at MIX, masters at MASTER |
-| Drawn as | Rows with mark buttons | Icons of the project's audio |
-| The final | Any audio file (D13) | Chosen **from what was marked** |
-| When the final is set | Any time; gates TRACK READY | On moving to TRACK READY |
-| The move + rename | Already as described | Unchanged |
+|                       | As built                    | Proposed                           |
+| --------------------- | --------------------------- | ---------------------------------- |
+| Where                 | FILES tab, panel 01         | OVERVIEW, at MIX and MASTER stages |
+| What is marked        | WIPs, masters               | Mixes at MIX, masters at MASTER    |
+| Drawn as              | Rows with mark buttons      | Icons of the project's audio       |
+| The final             | Any audio file (D13)        | Chosen **from what was marked**    |
+| When the final is set | Any time; gates TRACK READY | On moving to TRACK READY           |
+| The move + rename     | Already as described        | Unchanged                          |
 
 The shape of it is coherent: the operator marks what they produced at the stage
 they produced it, and the last step chooses among those rather than starting
@@ -679,14 +705,14 @@ Decisions log below, which is what to build from. Q2, Q14 and Q16 were closed by
 later dictation rather than by a decision.
 
 - **Q1 — "multiple root folders": sources or destinations?** Does this mean more
-  than one place to *look for* projects (close to today's `satelliteRoots`), or
-  more than one place to *file them into* (multiple filing roots / wrappers)?
+  than one place to _look for_ projects (close to today's `satelliteRoots`), or
+  more than one place to _file them into_ (multiple filing roots / wrappers)?
   If destinations: when a project is unfiled, or restored from the bin, which
   root does it go back to?
 
 - **Q2 — ~~should an adopted project be scaffolded?~~ ANSWERED by §3.4:** yes.
   A migrated project is conformed to the same shape as a created one. The
-  remaining half — whether loose files are *sorted into* the scaffold rather
+  remaining half — whether loose files are _sorted into_ the scaffold rather
   than the folders merely created — carries forward as Q14.
 
 - **Q4 — can a root ever be a project?** Confirming the intended rule for §2.3:
@@ -710,7 +736,7 @@ later dictation rather than by a decision.
 - **Q7 — genre vs artist: stored type or still derived?** Today `FolderKind` is
   computed from depth on purpose, so a stored kind can never disagree with where
   a folder sits. The proposal makes genre/artist an operator choice. Confirming:
-  the type is stored on the folder, and moving a folder does *not* change it.
+  the type is stored on the folder, and moving a folder does _not_ change it.
   Follow-on: may an Artist contain a Genre, or vice versa, or are both only
   valid directly under a category?
 
@@ -736,7 +762,7 @@ later dictation rather than by a decision.
   ```
 
   Byte-identical in size to the copy inside `Hyperpop Project\Ableton Project
-  Info\` — Live copies this file verbatim rather than generating anything per
+Info\` — Live copies this file verbatim rather than generating anything per
   project. Cascade:
 
   1. Cached copy in userData, if already resolved.
@@ -756,7 +782,7 @@ later dictation rather than by a decision.
   `shell.openPath()` and lets the OS file association do the work. This needs a
   small new locator in the shape of `archive/binary-locator.ts`.
 
-- **Q10 — does C1 apply to *creating* projects too?** `provisionProject()`
+- **Q10 — does C1 apply to _creating_ projects too?** `provisionProject()`
   currently appends ` Project` to match Ableton's own convention, so an
   app-made folder is indistinguishable from a Live-made one. Should newly
   created projects keep that suffix, or be named exactly what the operator
@@ -782,7 +808,7 @@ later dictation rather than by a decision.
 - **Q13 — what is on each side of the side-by-side view?** Left = the source
   roots as a real directory tree, right = the `Candy Haven\Projects` tree? Or
   left = unfiled projects as a list, right = the destination tree? And does the
-  left side browse *directories on disk*, including folders that are not
+  left side browse _directories on disk_, including folders that are not
   projects, or only the projects the register already knows about?
 
 - **Q14 — ~~does conforming move files, or only create folders?~~ MOOT under
@@ -847,7 +873,7 @@ later dictation rather than by a decision.
 
 Answered by the operator on 2026-09-11.
 
-- **D1 (Q1) — Multiple roots means multiple *sources*.** "Where we can find
+- **D1 (Q1) — Multiple roots means multiple _sources_.** "Where we can find
   directories for project files." One filing root, one `Candy Haven` wrapper.
   `satelliteRoots` is already a list, so this is close to what exists;
   `requireWrapper()`, `unfiledDestination()` and `pruneMissingFolders()` keep
@@ -888,7 +914,7 @@ Answered by the operator on 2026-09-11.
   redistributed. Fallbacks as recorded in Q9.
 
 - **D10 (Q10) — Created projects keep the ` Project` suffix.** C1's no-rename
-  rule governs *migration*; creation still follows Ableton's convention so an
+  rule governs _migration_; creation still follows Ableton's convention so an
   app-made folder is indistinguishable from a Live-made one.
 
 - **D11 (Q11) — The register keeps stripping ` Project` for display.** Display
@@ -974,7 +1000,7 @@ Answered by the operator on 2026-09-11.
   are excluded: kept for reference, never meant to go out.
 
 - **D28 (Q26) — Pressing TRACK READY asks which file ships.** Reaching that
-  stage *is* choosing the final, so the transition opens the picker, takes the
+  stage _is_ choosing the final, so the transition opens the picker, takes the
   name, moves the file and then advances — in that order, because a stage
   claiming the work is finished while the move failed is the worse of the two
   states to be left in. Re-entering the stage with a final already set passes

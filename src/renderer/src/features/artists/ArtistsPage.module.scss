@@ -1,0 +1,481 @@
+@use 'abstracts' as *;
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+/*
+ * Two rows, ruled off from the register beneath.
+ *
+ * It was one row holding a search field, a favourites toggle, a text field
+ * that *created* a record and its button — four controls doing two unrelated
+ * jobs, with nothing to tell the eye which was which. Splitting them by
+ * purpose is the whole fix: the first row is what you do here, the second is
+ * what you are looking at.
+ */
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-bottom: space(4);
+  margin-bottom: space(5);
+  @include hairline(bottom, 0.08);
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+  min-width: space(4);
+}
+
+// -------------------------------------------------------------------- search
+
+/*
+ * A bare field rather than a `TextInput`.
+ *
+ * `TextInput` stacks a label above the box, which is right in a form and
+ * wrong in a toolbar — it made the strip two lines tall and pushed the
+ * controls beside it out of alignment with their own labels. The placeholder
+ * says what it is; the `aria-label` says it to a screen reader.
+ */
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: rem(320px);
+  max-width: 100%;
+}
+
+.search {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(8) space(2) space(3);
+  width: 100%;
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+    border-color: var(--ch-line-gold);
+  }
+}
+
+// Only drawn when there is something to clear, so it is never a dead control.
+.clearSearch {
+  position: absolute;
+  right: space(2);
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: space(1);
+
+  &:hover {
+    color: var(--ch-accent-bright);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// -------------------------------------------------------------------- filter
+
+.filterLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+  margin-right: space(1);
+}
+
+.filterChip {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+    background: var(--ch-surface-raised);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// Separates the axes. Favourites and roles narrow different things, and a
+// continuous run of nine chips reads as one list of nine equivalent options.
+.filterDivider {
+  width: $hairline;
+  align-self: stretch;
+  background: var(--ch-line);
+  margin: 0 space(2);
+}
+
+/*
+ * What the filters left, and out of how many.
+ *
+ * The figure a filtered register most needs and least often has: without it,
+ * an empty page is indistinguishable from a filter that is too narrow.
+ */
+.count {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+// Explicit spans, never positional nth-child rules. Three to a row: a roster
+// entry is a plate and four short lines, which does not want half a page.
+.span2 {
+  grid-column: span 2;
+}
+
+.span6 {
+  grid-column: span 6;
+}
+
+@include below('lg') {
+  .span2 {
+    grid-column: span 3;
+  }
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  .span2 {
+    grid-column: span 6;
+  }
+}
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  max-width: 78ch;
+}
+
+// --------------------------------------------------------------------- card
+
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: space(4);
+  width: 100%;
+  height: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  min-width: 0;
+  flex: 1;
+}
+
+.realName {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.roles {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.counts {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  margin-top: space(1);
+}
+
+.linkCount {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.self {
+  @include label(7px, 0.18em);
+  color: var(--ch-accent-bright);
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+/*
+ * The favourite mark, drawn in the panel's header rule.
+ *
+ * A lozenge rather than a star — the palette has no room for a second
+ * saturated shape, and the ARCHIVE's tiles already use this mark for exactly
+ * this, so the two departments agree about what "marked" looks like.
+ */
+.favourite {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--ch-text-faint);
+  font-size: rem(11px);
+  line-height: 1;
+  padding: space(1);
+  transition: color $duration-fast $ease-out-expo;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &[data-on] {
+    color: var(--ch-accent-bright);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// -------------------------------------------------------------------- sheet
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: z('overlay');
+  background: var(--ch-surface-overlay);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: space(10) space(6);
+  overflow-y: auto;
+}
+
+.sheet {
+  width: min(#{rem(880px)}, 100%);
+  background: var(--ch-surface);
+  border: $hairline solid var(--ch-line-strong);
+  box-shadow: var(--ch-shadow-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  padding: space(5);
+  @include hairline(bottom, 0.1);
+}
+
+.sheetTitle {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  flex: 1;
+  min-width: 0;
+}
+
+.sheetName {
+  font-family: var(--ch-font-display);
+  font-size: rem(19px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+}
+
+.sheetMeta {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.sheetActions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+}
+
+.sheetError {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  border-left: 2px solid var(--ch-crimson-500);
+  padding: space(2) space(3);
+  margin: space(4) space(5) 0;
+}
+
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+  padding: space(5);
+}
+
+.sheetFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space(4);
+}
+
+@include below('md') {
+  .sheetFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.fieldLabel {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+/*
+ * A stamped field rather than a pill, as the OBSERVATORY composer's are.
+ * Square corners everywhere: one rounded object would be the only soft thing
+ * on the page, which the brief rules out outright.
+ */
+.chip {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(3);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.notes {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(3);
+  resize: vertical;
+  line-height: 1.6;
+  font-family: var(--ch-font-body);
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.sheetFoot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: space(3);
+  padding: space(4) space(5);
+  @include hairline(top, 0.1);
+}
+
+.confirmText {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  line-height: 1.6;
+  flex: 1;
+}
+
+// ------------------------------------------------------------------- notice
+
+.notice {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(4);
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  border-left: 2px solid var(--ch-crimson-500);
+  padding: space(2) space(3);
+  margin-bottom: space(4);
+  line-height: 1.6;
+}
+
+.dismiss {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}

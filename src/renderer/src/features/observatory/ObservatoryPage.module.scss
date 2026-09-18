@@ -6,26 +6,58 @@
   margin: 0 auto;
 }
 
-.grid {
+/*
+ * The board and the bench.
+ *
+ * The board's column is bounded at both ends on purpose. It holds eleven short
+ * labels, a mark, a state dot and — only while something is running — a figure
+ * and one line; letting it grow with the window would leave a column of words
+ * in a field of nothing, which is the same reasoning REGULATION's rail carries.
+ *
+ * Narrower than it first was. The board was carrying a description on every
+ * row, which needed the width; that moved to the bench, and the room goes to
+ * the bench with it, because the bench is where the work happens.
+ */
+.shell {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: minmax(rem(290px), rem(360px)) minmax(0, 1fr);
   gap: space(5);
-  align-items: stretch;
+  align-items: start;
 }
 
-// Explicit spans, never positional nth-child rules. Three cards to a row at
-// full width, so the catalogue reads as a set rather than a column of slabs.
-.serverPanel {
-  grid-column: span 6;
+/*
+ * Sticky against the page's own scroll container, which is the animated page
+ * wrapper in ConsoleLayout — see its `overflow-y: auto`. The bench is the taller
+ * of the two on a narrow window, and the board staying put is what keeps the
+ * kit's state readable while the bench is being worked.
+ */
+.boardPanel {
+  position: sticky;
+  top: space(2);
+  max-height: calc(100vh - #{space(24)});
+  overflow-y: auto;
 }
 
-.span2 {
-  grid-column: span 2;
+.benchPanel {
+  min-width: 0;
+}
+
+.count {
+  @include readout(9px);
+  color: var(--ch-text-faint);
 }
 
 @include below('lg') {
-  .span2 {
-    grid-column: span 3;
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: space(6);
+  }
+
+  // Above the bench rather than beside it, so it stops being sticky — a board
+  // pinned to the top of a single column would cover the thing it selects.
+  .boardPanel {
+    position: static;
+    max-height: none;
   }
 }
 
@@ -33,35 +65,101 @@
   .page {
     padding: space(8) space(6) space(10);
   }
-
-  .span2 {
-    grid-column: span 6;
-  }
 }
 
 .headerActions {
   display: flex;
   align-items: center;
   gap: space(4);
+  flex-wrap: wrap;
 }
 
-// -------------------------------------------------------------------- server
+// ----------------------------------------------------------------- deck bar
 
-.server {
+/*
+ * The kit's own actions, above the board.
+ *
+ * Deliberately not a Panel. It replaced one, and the reason it is not another
+ * is that a numbered slab announces a section worth reading — these are four
+ * controls that are pressed and then forgotten about. Ruled underneath rather
+ * than boxed, so it reads as part of the page's chrome and not as a third slab.
+ */
+.deckBar {
   display: flex;
-  flex-direction: column;
-  gap: space(4);
-  align-items: flex-start;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+  padding-bottom: space(4);
+  margin-bottom: space(5);
+  @include hairline(bottom, 0.08);
 }
 
-.hint {
-  @include readout(11px);
-  color: var(--ch-text-secondary);
-  line-height: 1.6;
-  max-width: 78ch;
+// Pushes the recovery actions to the far end. They are the ones pressed when
+// something is already wrong, and they should not sit under the cursor on the
+// way to the ones pressed every session.
+.deckBarSpacer {
+  flex: 1;
+  min-width: space(4);
 }
 
 .error {
   @include readout(11px);
   color: var(--ch-crimson-400);
+  margin-bottom: space(4);
+}
+
+// -------------------------------------------------------------------- notice
+
+/*
+ * What a verb reported back.
+ *
+ * Held until dismissed rather than timed out, as REGULATION's transfer notice
+ * is: a refusal arrives because the operator pressed something, and it is worth
+ * reading rather than catching.
+ */
+.notice,
+.report {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(4);
+  @include readout(10px);
+  padding: space(2) space(3);
+  margin-bottom: space(4);
+  line-height: 1.6;
+}
+
+.notice {
+  color: var(--ch-crimson-400);
+  border-left: 2px solid var(--ch-crimson-500);
+}
+
+/*
+ * What an accepted verb reported back — `Sent 12. 2 did not fit`.
+ *
+ * Gold rather than crimson, and that distinction is the point of it being a
+ * separate rule: the hand-off truncating a roll is news the operator has to
+ * have, and it is not a fault. Drawing it crimson would teach them to read
+ * every notice on this page as something having gone wrong.
+ */
+.report {
+  color: var(--ch-gold-300);
+  border-left: 2px solid var(--ch-gold-500);
+}
+
+.dismiss {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
 }

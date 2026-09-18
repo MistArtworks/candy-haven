@@ -1,0 +1,53 @@
+@use 'abstracts' as *;
+
+/*
+ * Square, hairlined, sunken. A photograph is the one thing in this console
+ * that did not come from the palette, so it is set into the surface rather
+ * than laid on top of it — the recess and the hairline are what keep it
+ * reading as a plate in an instrument panel rather than as an image dropped
+ * onto a page.
+ */
+.plate {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  // Warmed very slightly toward the palette. Not a grade — DARKROOM is where
+  // a photograph is actually developed — just enough that an untreated
+  // snapshot does not sit on the page as the one cold object on it.
+  filter: saturate(0.92) sepia(0.06);
+}
+
+.fallback {
+  @include label(12px, 0.14em);
+  color: var(--ch-text-faint);
+  user-select: none;
+}
+
+/*
+ * A plate that is the object rather than a mark beside a name.
+ *
+ * `aspect-ratio` rather than a padding-top box: the fallback is centred with
+ * flexbox, and the old trick needs an absolutely positioned child, which
+ * would mean two layouts for one component. Square because a record sleeve
+ * is, and because a grid of squares is the only arrangement that reads as a
+ * catalogue rather than as a page of unrelated pictures.
+ */
+.fill {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border: 0;
+  @include hairline(bottom, 0.08);
+}

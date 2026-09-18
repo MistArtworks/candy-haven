@@ -5,7 +5,7 @@ import { evaluateReadiness, getStage } from '@shared/domain/projects.constants'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
 import { ArchiveGlyph } from './icons/ArchiveGlyph'
-import { useProject, useProjectMutations } from '@renderer/hooks/useProjects'
+import { useProject, useProjectMutations, useProjectRegistry } from '@renderer/hooks/useProjects'
 import { useTagMutations, useTags } from '@renderer/hooks/useTags'
 import { DossierOverview } from './dossier/DossierOverview'
 import { DossierRecord } from './dossier/DossierRecord'
@@ -79,11 +79,26 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
    * for the same list would take two copies of it into two caches.
    */
   const { data: tagLibrary } = useTags()
+  /*
+   * The roster and the appearance index, from the register the shell already
+   * reads. One query rather than a second: the project registry ships both
+   * alongside the summaries for exactly this, so a dossier asking separately
+   * would take a second copy of the roster into a second cache.
+   */
+  const { data: registry } = useProjectRegistry({})
   const tagMutations = useTagMutations()
   const tags = useMemo(
     () => ({ library: tagLibrary ?? [], mutations: tagMutations }),
     [tagLibrary, tagMutations]
   )
+  const artists = useMemo(
+    () => ({
+      roster: registry?.artists ?? [],
+      appearances: registry?.appearances.find((entry) => entry.projectId === projectId)?.on ?? []
+    }),
+    [registry, projectId]
+  )
+
   const [tab, setTab] = useState<DossierTab>('overview')
   const [dismissed, setDismissed] = useState<string | null>(null)
 
@@ -136,11 +151,11 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
   const failure = [
     mutations.patch.error,
     mutations.addNote.error,
-    // Swapping and unlinking the final master both move a file on disk and are
-    // refused outright during a scan. The dialog reports its own failures; an
-    // unlink has no dialog, so this bar is the only place it could surface.
-    mutations.setFinal.error,
-    mutations.clearFinal.error,
+    // Naming the final master can be refused — a path that is not one of the
+    // project's bounces, or an attempt to clear it while the project is
+    // RELEASED — and the panel itself draws no error, so this is the only
+    // place either refusal could surface.
+    mutations.setFinalMaster.error,
     // A tag name already taken is refused by the service, and this notice bar
     // is the only place in the dossier that can say so.
     tagMutations.create.error,
@@ -450,6 +465,7 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                     project={project}
                     mutations={mutations}
                     tags={tags}
+                    artists={artists}
                     open={open}
                     setStage={setStage}
                   />
@@ -459,6 +475,7 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                     project={project}
                     mutations={mutations}
                     tags={tags}
+                    artists={artists}
                     open={open}
                     setStage={setStage}
                   />
@@ -468,6 +485,7 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                     project={project}
                     mutations={mutations}
                     tags={tags}
+                    artists={artists}
                     open={open}
                     setStage={setStage}
                   />

@@ -81,9 +81,13 @@ export function ConsoleLayout(): ReactNode {
        * cheatsheet advertised it. `0` for the tenth is what every tabbed
        * application on this desktop does.
        *
-       * Departments past the tenth get no chord at all rather than a fictional
-       * one. If the rail ever grows that far the numbering has stopped being
-       * the right affordance anyway.
+       * The rail has now grown past ten — thirteen with DISCOGRAPHY and
+       * ARTISTS — so the numbering has stopped being the whole affordance,
+       * exactly as this comment used to predict. The three departments past
+       * the tenth get **named** chords instead of fictional numbers, below:
+       * `Ctrl+Shift+D`, `Ctrl+,` and `Ctrl+Shift+K`. Every department is
+       * reachable from the keyboard; only the first ten are reachable by
+       * position.
        */
       ...SECTIONS.slice(0, 10).map((entry, index) => ({
         chord: `ctrl+${index === 9 ? '0' : index + 1}`,
@@ -106,6 +110,19 @@ export function ConsoleLayout(): ReactNode {
         group: 'Global',
         whileTyping: true,
         run: () => navigate(getSection('observatory').path)
+      },
+      {
+        /*
+         * DISPATCH lost `Ctrl+9` when DISCOGRAPHY and ARTISTS pushed it past
+         * the tenth slot, and unlike REGULATION and CATECHISM it had no named
+         * chord to fall back on — it would simply have become the one
+         * department with no way in from the keyboard.
+         */
+        chord: 'ctrl+shift+d',
+        label: 'Shared board',
+        group: 'Global',
+        whileTyping: true,
+        run: () => navigate(getSection('dispatch').path)
       },
       {
         /*

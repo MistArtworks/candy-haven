@@ -1,0 +1,96 @@
+@use 'abstracts' as *;
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * A ruled entry rather than a nested slab.
+ *
+ * These sit inside a Panel already, and a bordered box inside a bordered box
+ * reads as two objects where there is one. A hairline above each row after the
+ * first separates them for the same cost as a border and none of the weight.
+ */
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding-top: space(3);
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+}
+
+.label {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+}
+
+.canvas {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.purpose {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/*
+ * The address and its controls on one line, wrapping as a unit.
+ *
+ * `min-width: 0` on the code element is load-bearing: a flex child defaults to
+ * its content's minimum width, and a URL has no break opportunities, so
+ * without it the row refuses to shrink and pushes the buttons off the panel.
+ */
+.line {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+.url {
+  @include readout(10px);
+  flex: 1;
+  min-width: rem(220px);
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-gold);
+  padding: space(2) space(3);
+  word-break: break-all;
+  user-select: text;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+}
+
+.offline {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  margin: 0;
+}

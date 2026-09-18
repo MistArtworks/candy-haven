@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { ArtistRecordSchema } from './artists'
+import { ReleaseAppearanceSchema } from './discography'
+import { MediaFileSchema } from './media'
 import { DEFAULT_FOLDER_COLOUR, MAX_FOLDER_NAME_LENGTH, isHexColour } from './stacks.constants'
 import { TagSummarySchema } from './tags'
 import {
@@ -34,8 +37,6 @@ export {
   AUDIO_EXTENSIONS,
   IMAGE_EXTENSIONS,
   AUDIO_MARKS,
-  AUDIO_MARK_HINT,
-  AUDIO_MARK_LABEL,
   PIPELINE_STAGES,
   PROJECT_CATEGORIES,
   PROJECT_CATEGORY_LABEL,
@@ -48,7 +49,6 @@ export {
   PROJECT_VIEW_MODES,
   SCAN_LOG_LIMIT,
   VIDEO_EXTENSIONS,
-  VOLUME_BOUND_CATEGORIES,
   classifyExtension,
   createEmptyScanState,
   daysBetweenIsoDates,
@@ -57,7 +57,6 @@ export {
   isReleaseReady,
   nextStage,
   previousStage,
-  requiresVolume,
   shiftIsoDate,
   stageProgress,
   toIsoDate
@@ -79,7 +78,16 @@ export interface ProjectStageDefinition {
   offPipeline?: boolean
   /** No stage follows this one. */
   terminal?: boolean
-  /** A final mix and master must be selected to enter this stage. */
+  /**
+   * A final master must be selected to enter this stage.
+   *
+   * Carried by `released` and nothing else. It sat on `ready` until the master
+   * pick left the ARCHIVE, was kept as an unused seam for one revision, and is
+   * now re-armed one stage later — which is the position that does not
+   * deadlock: TRACK READY is what makes a project linkable, so gating *that*
+   * on a file would have meant needing a release to get a master and a master
+   * to get a release.
+   */
   requiresMaster?: boolean
 }
 
@@ -98,8 +106,14 @@ export const ProjectSortModeSchema = z.enum(PROJECT_SORT_MODES)
 export const ProjectCategorySchema = z.enum(PROJECT_CATEGORIES)
 export const AudioMarkSchema = z.enum(AUDIO_MARKS)
 
-/** `YYYY-MM-DD`. See projects.constants.ts for why dates are not instants. */
-export const IsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
+/**
+ * `YYYY-MM-DD`. See projects.constants.ts for why dates are not instants.
+ *
+ * Re-exported rather than declared: it lives in `dates.ts` so that a third
+ * department needing it cannot create an import cycle by reaching in here.
+ * Every existing importer keeps working.
+ */
+export { IsoDateSchema } from './dates'
 
 export const TimeSignatureSchema = z.object({
   numerator: z.number().int().min(1),
@@ -197,15 +211,16 @@ export const SetRevisionSchema = z.object({
 })
 export type SetRevision = z.infer<typeof SetRevisionSchema>
 
-export const MediaFileSchema = z.object({
-  path: z.string(),
-  fileName: z.string(),
-  /** Path relative to the project folder, for readable listings. */
-  relativePath: z.string(),
-  sizeBytes: z.number().min(0),
-  modifiedAt: z.number()
-})
-export type MediaFile = z.infer<typeof MediaFileSchema>
+/**
+ * One file the scanner found.
+ *
+ * Re-exported rather than declared: it lives in `media.ts` so that DISCOGRAPHY
+ * can name a track's master file without creating an import cycle back through
+ * here. Exactly the arrangement `IsoDateSchema` has in `dates.ts`, and for the
+ * same reason — see the note at the top of that module.
+ */
+export { MediaFileSchema }
+export type { MediaFile } from './media'
 
 export const ProjectNoteSchema = z.object({
   id: z.string(),
@@ -238,18 +253,32 @@ export const MasterSelectionSchema = z.object({
   /** Mastered versions, marked at the MASTER stage. */
   masters: z.array(z.string()).default([]),
   /**
-   * The file that ships, and the one entry here that is not in the project.
+   * The bounce that is the finished master — **referenced where it sits**.
    *
-   * Designating a final **moves** the bounce into
-   * `Candy Haven\Release Mastered Tracks` under a name the operator types, so
-   * this path points there rather than into the project folder. One file, one
-   * place: the directory is an accurate list of finished tracks precisely
-   * because there is nowhere else the audio could be.
+   * An absolute path to one of the project's own audio files, chosen in the
+   * dossier from TRACK READY onward. `released` carries `requiresMaster`, so
+   * a project cannot claim to be out in the world until this names a file.
    *
-   * Demoting moves it back, keeping that name — suffixed `(2)` only if the
-   * operator has since bounced something else under it — and re-marks it a
-   * master on the way in, so it is immediately available to ship again. That is
-   * what makes swapping a final reversible without a rescan.
+   * ### Nothing moves any more
+   *
+   * Designating a final used to **move** the bounce into
+   * `Candy Haven\Release Mastered Tracks` under a name the operator typed, and
+   * demoting moved it back. All of that is gone, along with the channels and
+   * the stacks-service methods that did it.
+   *
+   * The reason is the one recorded as D5: taking the audio out of the project
+   * folder separates it from the session that made it, so "show me the source"
+   * became a worse question to ask rather than a better one. A reference costs
+   * nothing, is reversible without touching the disk, and leaves the file
+   * beside its own set.
+   *
+   * ### A legacy value still points into `Release Mastered Tracks`
+   *
+   * Records written before this change hold a path there, because that is
+   * where the file actually is — still a correct reference to the finished
+   * master, just in a different folder. Nothing migrates it: the path is true,
+   * the gate is satisfied, and REVEAL opens it. The picker marks it as sitting
+   * outside the project rather than pretending it is one of the bounces.
    */
   final: z.string().nullable().default(null)
 })
@@ -291,15 +320,20 @@ export const ProjectRecordSchema = z.object({
   /** What this project is. See PROJECT_CATEGORIES. */
   category: ProjectCategorySchema.default('single'),
   /**
-   * The volume this project is a track of, or null when it stands alone.
+   * Who made it, by id — the operator's collaborators on this work.
    *
-   * Membership is held here rather than as an ordered id array on the volume,
-   * so there is one place to look and nothing to keep in step. A volume's track
-   * list is "the projects pointing at it, sorted by `trackNumber`".
+   * Ids rather than names, for the reason `tagIds` is: somebody changing
+   * their alias should propagate everywhere at once instead of requiring a
+   * pass over the register. As with tags, a bare record cannot draw its own
+   * credits, so the registry ships the roster alongside and the renderer
+   * resolves against it; an id whose artist has been removed resolves to
+   * nothing and is simply not drawn.
+   *
+   * Deliberately unrelated to which *folder* the project sits in, even though
+   * the tree has an `artist` folder kind. A shelf is one place on one disk; a
+   * track can credit four people. See docs/DISCOGRAPHY.md, decision D3.
    */
-  volumeId: z.string().nullable().default(null),
-  /** Position within the volume. Null while unset; ties break on name. */
-  trackNumber: z.number().int().min(0).nullable().default(null),
+  artistIds: z.array(z.string()).default([]),
 
   /** Operator-set tile colour. Stored exactly as picked — see stacks.constants.ts. */
   colour: z.string().default(DEFAULT_FOLDER_COLOUR),
@@ -390,8 +424,7 @@ export const ProjectSummarySchema = z.object({
   /** Which stacks folder holds this project, for the folder browser. */
   folderId: z.string().nullable().default(null),
   category: ProjectCategorySchema.default('single'),
-  volumeId: z.string().nullable().default(null),
-  trackNumber: z.number().int().min(0).nullable().default(null),
+  artistIds: z.array(z.string()).default([]),
   tempo: z.number().nullable(),
   key: MusicalKeySchema.nullable(),
   trackCount: z.number().int().min(0),
@@ -476,8 +509,8 @@ export const ProjectDraftSchema = z.object({
   folderId: z.string(),
   name: z.string().max(MAX_FOLDER_NAME_LENGTH),
   category: ProjectCategorySchema.default('single'),
-  /** Required by the service when the category is one of the volume-bound three. */
-  volumeId: z.string().nullable().default(null),
+  /** Credited on creation, so a collab is filed as one from the first save. */
+  artistIds: z.array(z.string()).default([]),
   colour: ColourSchema.optional()
 })
 export type ProjectDraft = z.infer<typeof ProjectDraftSchema>
@@ -500,15 +533,8 @@ export const ProjectPatchSchema = z.object({
   favourite: z.boolean().optional(),
   colour: ColourSchema.optional(),
   category: ProjectCategorySchema.optional(),
-  /**
-   * Re-attaches the project to a volume, or detaches it with `null`.
-   *
-   * Validated against `category` in the service: the two are one statement, and
-   * a patch that sets only one of them has the other adjusted to agree rather
-   * than being refused.
-   */
-  volumeId: z.string().nullable().optional(),
-  trackNumber: z.number().int().min(0).nullable().optional(),
+  /** Replaces the whole set, as every patch field does. Ids, not names. */
+  artistIds: z.array(z.string()).optional(),
   /**
    * The WIP and MASTER marks only.
    *
@@ -581,10 +607,14 @@ export const ProjectQuerySchema = z.object({
    */
   folderIds: z.array(z.string()).optional(),
   /**
-   * Restrict to one volume. Same three states as `folderId`: `null` is the
-   * LOOSE lens — everything belonging to no volume at all.
+   * Restrict to projects crediting every one of these artists.
+   *
+   * Matched with **AND**, as `tagIds` is, and for the same reason: the
+   * operator narrows a shelf by adding names, and a second name producing
+   * *more* results would be the opposite of what adding it looks like it
+   * should do.
    */
-  volumeId: z.string().nullable().optional()
+  artistIds: z.array(z.string()).optional()
 })
 export type ProjectQuery = z.infer<typeof ProjectQuerySchema>
 
@@ -600,6 +630,24 @@ export const ProjectRegistrySchema = z.object({
    * from its last project must not silently vanish from the library.
    */
   tags: z.array(TagSummarySchema),
+  /**
+   * The whole roster, for the credits row and the picker.
+   *
+   * Shipped in full for the reason the tag library is: the picker has to
+   * offer people nothing credits yet, and a record holding ids and no roster
+   * cannot draw a name.
+   */
+  artists: z.array(ArtistRecordSchema),
+  /**
+   * Where each project appears in the catalogue, keyed by project id.
+   *
+   * The resolved half of the one-directional link described on
+   * `ReleaseTrackSchema` — the DISCOGRAPHY owns the tracklist, and this is
+   * the ARCHIVE's read of it. An array rather than a map because that is what
+   * survives structured cloning across the IPC boundary; the renderer indexes
+   * it once on arrival.
+   */
+  appearances: z.array(z.object({ projectId: z.string(), on: z.array(ReleaseAppearanceSchema) })),
   /** Per-stage counts, including stages with none — the board needs empties. */
   stageCounts: z.record(ProjectStageSchema, z.number().int().min(0)),
   /** Per-category counts, for the chip row. */

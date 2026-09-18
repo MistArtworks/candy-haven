@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
 import { PROJECT_CATEGORY_LABEL, getStage } from '@shared/domain/projects.constants'
+import { RELEASE_KIND_LABEL, RELEASE_STATUS_LABEL } from '@shared/domain/discography.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Panel } from '@renderer/components/primitives/Panel'
-import { formatBytes } from '@renderer/lib/format'
+import { formatBytes, formatIsoDate } from '@renderer/lib/format'
 import { formatStamp } from '../../lib/present'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
@@ -34,7 +35,7 @@ const HISTORY_SHOWN = 10
  * same as not wanting them recorded. This is the tab for exactly that
  * distinction.
  */
-export function DossierRecord({ project }: DossierTabProps): ReactNode {
+export function DossierRecord({ project, artists }: DossierTabProps): ReactNode {
   const primary = project.sets.find((set) => set.isPrimary) ?? project.sets[0] ?? null
   const analysis = primary?.analysis ?? null
 
@@ -56,6 +57,16 @@ export function DossierRecord({ project }: DossierTabProps): ReactNode {
    */
   const recentHistory = [...project.stageHistory].reverse().slice(0, HISTORY_SHOWN)
   const earlierCount = Math.max(project.stageHistory.length - HISTORY_SHOWN, 0)
+
+  /*
+   * RELEASES is conditional, so the panel after it has to renumber.
+   *
+   * The design language numbers every panel, and a tab reading 01, 02, 03, 05
+   * says a section is missing rather than that it was never drawn — which is
+   * exactly the wrong thing to say about a project that simply has not been
+   * released. Counted rather than hard-coded so this cannot drift again.
+   */
+  const onRelease = artists.appearances.length > 0
 
   return (
     <DossierGrid>
@@ -174,7 +185,91 @@ export function DossierRecord({ project }: DossierTabProps): ReactNode {
         </div>
       </Panel>
 
-      <Panel label="Stage history" index="04" className={styles.span3}>
+      {/*
+        Where this project ended up, and which file went out as it.
+        This panel is the ARCHIVE's read of a link it does not own. DISCOGRAPHY
+        holds the tracklist and the master pick — see `ReleaseTrackSchema` for
+        why the link runs one way — so everything here reports and nothing
+        edits. Editing the running order needs to see the whole order, which
+        is the one thing this side cannot.
+
+        It sits in RECORD rather than OVERVIEW because an appearance is read
+        deliberately, not written, which is the altitude rule the dossier
+        follows throughout. It spent a release in OVERVIEW's credits panel,
+        where it was the only read-only thing on a tab of writable fields.
+
+        Drawn only when there is something to draw. Most projects are not on a
+        release, and an empty slab saying so on every one of them would be the
+        clutter this tab was split to avoid.
+
+        No icon, deliberately: every other panel here is plain, and `Panel`'s
+        icon slot is all-or-nothing by house rule — one iconed slab among four
+        reads as an oversight rather than as emphasis.
+      */}
+      {onRelease ? (
+        <Panel
+          label="Releases"
+          index="04"
+          className={styles.span6}
+          aside={String(artists.appearances.length)}
+        >
+          <ul className={styles.appearances}>
+            {artists.appearances.map((entry) => (
+              <li key={`${entry.releaseId}-${entry.trackId}`} className={styles.appearance}>
+                <span className={styles.appearanceHead}>
+                  <span className={styles.appearanceMark}>◆</span>
+                  <span className={styles.appearanceTitle}>
+                    Track {entry.position} of <strong>{entry.title}</strong>
+                  </span>
+                  <span className={styles.appearanceMeta}>
+                    {[
+                      RELEASE_KIND_LABEL[entry.kind],
+                      RELEASE_STATUS_LABEL[entry.status],
+                      entry.releaseDate ? formatIsoDate(entry.releaseDate) : null
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                </span>
+
+                {/*
+                  The file that shipped, and the way to it.
+
+                  This is the half of the arrangement that makes referencing
+                  the master in place worth doing rather than moving it: the
+                  release names a bounce that is still sitting beside the set
+                  that made it, so the dossier can point straight at the
+                  source instead of at a copy in another directory.
+                */}
+                {entry.master ? (
+                  <span className={styles.appearanceMaster}>
+                    <span className={styles.appearanceFile} title={entry.master.path}>
+                      {entry.master.fileName}
+                    </span>
+                    <span className={styles.appearanceSize}>
+                      {formatBytes(entry.master.sizeBytes)}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title={entry.master.path}
+                      onClick={() => void window.candy.shell.reveal(entry.master!.path)}
+                    >
+                      Reveal
+                    </Button>
+                  </span>
+                ) : (
+                  <span className={styles.appearanceNone}>
+                    No release master chosen. Pick one on the track in DISCOGRAPHY.
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      ) : null}
+
+      <Panel label="Stage history" index={onRelease ? '05' : '04'} className={styles.span3}>
         {project.stageHistory.length === 0 ? (
           <p className={styles.empty}>No stage changes recorded.</p>
         ) : (

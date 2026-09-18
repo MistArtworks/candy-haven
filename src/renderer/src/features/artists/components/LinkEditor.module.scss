@@ -1,0 +1,79 @@
+@use 'abstracts' as *;
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-wrap: wrap;
+  padding: space(2);
+  background: var(--ch-surface-sunken);
+  @include hairline(bottom, 0.06);
+}
+
+.platform {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface);
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(2);
+  flex-shrink: 0;
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.label {
+  @include readout(10px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface);
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(2);
+  width: rem(120px);
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// `min-width: 0` is load-bearing: a URL has no break opportunities, so
+// without it the flex child refuses to shrink and pushes the buttons out.
+.url {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  flex: 1;
+  min-width: rem(140px);
+  @include truncate;
+}
+
+.actions {
+  display: flex;
+  gap: space(1);
+  flex-shrink: 0;
+}
+
+.add {
+  display: flex;
+  align-items: flex-end;
+  gap: space(3);
+}
+
+.addInput {
+  flex: 1;
+  min-width: 0;
+}

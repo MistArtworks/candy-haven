@@ -49,6 +49,9 @@ export const MAX_ENTRY_LENGTH = 64
 
 export const MAX_PROMPT_LENGTH = 90
 
+/** The overlay's masthead. Pairs with the prompt limit above. */
+export const MAX_TITLE_LENGTH = 48
+
 /** Entries one citizen may file. More than a few is one person's list. */
 export const PER_CITIZEN_MIN = 1
 export const PER_CITIZEN_MAX = 5

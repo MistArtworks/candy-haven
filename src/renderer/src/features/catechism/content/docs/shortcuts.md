@@ -12,15 +12,16 @@ naming a project cannot trigger an action.
 
 Available from any department.
 
-| Chord                   | Does                                               | While typing |
-| ----------------------- | -------------------------------------------------- | ------------ |
-| `Ctrl`+`1` … `Ctrl`+`9` | Walk the department rail, in the order it is drawn | Yes          |
-| `Ctrl`+`0`              | The tenth department — CATECHISM                   | Yes          |
-| `Ctrl`+`,`              | Open REGULATION                                    | Yes          |
-| `Ctrl`+`Shift`+`O`      | Open OBSERVATORY                                   | Yes          |
-| `Ctrl`+`Shift`+`K`      | Open CATECHISM                                     | Yes          |
-| `F1`                    | Quick guide for the department you are on          | Yes          |
-| `Ctrl`+`/`              | The live cheatsheet — every chord currently bound  | Yes          |
+| Chord                   | Does                                                    | While typing |
+| ----------------------- | ------------------------------------------------------- | ------------ |
+| `Ctrl`+`1` … `Ctrl`+`9` | Walk the first nine departments, as the rail draws them | Yes          |
+| `Ctrl`+`0`              | The tenth — TELEMETRY                                   | Yes          |
+| `Ctrl`+`Shift`+`D`      | Open DISPATCH                                           | Yes          |
+| `Ctrl`+`,`              | Open REGULATION                                         | Yes          |
+| `Ctrl`+`Shift`+`O`      | Open OBSERVATORY                                        | Yes          |
+| `Ctrl`+`Shift`+`K`      | Open CATECHISM                                          | Yes          |
+| `F1`                    | Quick guide for the department you are on               | Yes          |
+| `Ctrl`+`/`              | The live cheatsheet — every chord currently bound       | Yes          |
 
 `Ctrl`+`/` is worth knowing above all the rest. It lists exactly what is bound
 _right now_, generated from the same registry the console actually dispatches
@@ -30,6 +31,15 @@ The numbers come from the registry rather than being hard-coded, so a department
 added or removed renumbers the rest with it. Reserved departments are bound too
 — they are on the rail, and a shortcut that silently skipped one would make the
 numbering stop matching what is on screen.
+
+**A number row has ten keys and the rail has thirteen departments.** So the
+first ten are reachable by position and the last three — DISPATCH, REGULATION
+and CATECHISM — have named chords instead of fictional numbers. Every
+department is reachable from the keyboard; only the first ten are reachable by
+counting.
+
+This changed when DISCOGRAPHY and ARTISTS shipped. If you have `Ctrl`+`9` in
+your fingers for DISPATCH, it is now `Ctrl`+`Shift`+`D`.
 
 ## ARCHIVE
 
@@ -44,7 +54,7 @@ numbering stop matching what is on screen.
 | `Ctrl+N`          | New folder on this shelf                                                      |
 | `Ctrl+Shift+N`    | New project on this shelf                                                     |
 | `Alt+↑`           | Up one shelf                                                                  |
-| `Alt+1` … `Alt+5` | Switch lens — STACKS, INTAKE, VOLUMES, ALL, BIN                               |
+| `Alt+1` … `Alt+4` | Switch lens — ALL, STACKS, INTAKE, BIN                                        |
 | `Escape`          | Close what is open — the menu, then marks, then the cursor                    |
 
 `Ctrl+A` deliberately does **not** fire while a text field has focus, so

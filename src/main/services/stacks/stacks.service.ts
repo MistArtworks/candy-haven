@@ -1,9 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import { stat } from 'node:fs/promises'
-import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { app, shell } from 'electron'
-import type { MediaFile, ProjectDraft, ProjectRecord } from '@shared/domain/projects'
-import { requiresVolume } from '@shared/domain/projects.constants'
+import type { ProjectDraft, ProjectRecord } from '@shared/domain/projects'
 import type {
   ArchiveFolder,
   ArchiveSetupDraft,
@@ -43,10 +41,8 @@ import {
   ensureDirectory,
   isAtOrUnder,
   copyDirectory,
-  freeFilePath,
   freePath,
   moveDirectory,
-  moveFile,
   pathExists,
   rewritePath,
   samePath
@@ -154,6 +150,24 @@ export class StacksService {
     const root = join(await this.requireWrapper(), PROJECTS_DIRECTORY_NAME)
     await ensureDirectory(root)
     return root
+  }
+
+  /**
+   * The wrapper, for the services that keep managed files under it.
+   *
+   * ARTISTS and DISCOGRAPHY copy pictures and artwork into `Media\`, which is
+   * a sibling of `Projects\`, and only the stacks know where that is. Exposed
+   * as two methods rather than one because the two callers want different
+   * failures: setting a picture should refuse loudly when the archive is not
+   * set up, and *deleting* a record should not be blocked by it.
+   */
+  async requireWrapperPath(): Promise<string> {
+    return this.requireWrapper()
+  }
+
+  /** The wrapper if there is one, for best-effort cleanup that must not throw. */
+  async wrapperPathOrNull(): Promise<string | null> {
+    return this.resolveWrapper()
   }
 
   /** The wrapper, created if needed, or a refusal explaining what is missing. */
@@ -401,14 +415,6 @@ export class StacksService {
 
     const name = this.requireValidName(draft.name)
 
-    if (requiresVolume(draft.category) && draft.volumeId === null) {
-      throw new AppError(`A ${draft.category} track has to belong to a ${draft.category}.`, {
-        code: ErrorCode.Validation,
-        hint: 'Choose an existing one, or create it first.',
-        recoverable: false
-      })
-    }
-
     const { path } = await provisionProject({
       parentPath: folder.path,
       name,
@@ -424,7 +430,7 @@ export class StacksService {
       scanned,
       folderId: folder.id,
       category: draft.category,
-      volumeId: draft.volumeId,
+      artistIds: draft.artistIds,
       colour: this.resolveColour(draft.colour)
     })
   }
@@ -939,181 +945,19 @@ export class StacksService {
     return folders.find((entry) => entry.id === id)?.name ?? id
   }
 
-  // -------------------------------------------------- final mix and master
-
-  /**
-   * Promotes a bounce to the project's final mix and master.
+  /*
+   * The final mix and master section has been removed.
    *
-   * The file **moves** into `Release Mastered Tracks` under a name the
-   * operator types, rather than being copied there. One file in one place: the
-   * directory is a trustworthy list of finished tracks precisely because the
-   * audio cannot also be sitting somewhere else under a different name.
+   * `setFinalMaster`, `clearFinalMaster` and `returnFinalMaster` lived here and
+   * **moved** the operator's bounce into `Release Mastered Tracks`, then moved
+   * it back on demotion. Naming the finished master is now a reference kept on
+   * the project record and nothing is moved at all — so none of this belonged
+   * in the service that owns the filing tree. See
+   * `ProjectsService.setFinalMaster` and `MasterSelectionSchema.final`.
    *
-   * Disk first, database second, as everywhere in this service. A demotion of
-   * the previous final happens before the new move, so the directory never
-   * holds two finals for one project even briefly.
+   * `resolveMasteredTracksRoot` stays: the wrapper still creates the directory,
+   * `getSetupState` still reports it, and a legacy final still points into it.
    */
-  async setFinalMaster(
-    projectId: string,
-    sourcePath: string,
-    name: string
-  ): Promise<ProjectRecord> {
-    this.refuseDuringScan()
-
-    const record = await this.projects.get(projectId)
-    const root = this.resolveMasteredTracksRoot()
-
-    if (!root) {
-      throw new AppError('The ARCHIVE has not been set up yet.', {
-        code: ErrorCode.Validation,
-        recoverable: false
-      })
-    }
-
-    if (!isAtOrUnder(sourcePath, record.path)) {
-      throw new AppError('That file is not in this project.', {
-        code: ErrorCode.Validation,
-        hint: 'The final mix and master is chosen from the audio inside the project folder.',
-        recoverable: false
-      })
-    }
-
-    /*
-     * Promoted from what the operator marked, not from the folder at large.
-     *
-     * Marking a file at MIX or MASTER is the statement that it is a candidate;
-     * the final is a choice among candidates rather than a fresh search through
-     * everything that happens to be lying in the folder. A WIP is excluded by
-     * the same logic — it is kept for reference and was never meant to ship.
-     */
-    const candidates = [...record.masters.mixes, ...record.masters.masters]
-    if (!candidates.some((path) => samePath(path, sourcePath))) {
-      throw new AppError('That file has not been marked as a mix or a master.', {
-        code: ErrorCode.Validation,
-        hint: 'Mark it in the MIX AND MASTER panel first, then choose it here.',
-        recoverable: false
-      })
-    }
-
-    const trimmed = name.trim()
-    if (!trimmed) {
-      throw new AppError('The final mix and master needs a name.', {
-        code: ErrorCode.Validation,
-        recoverable: false
-      })
-    }
-
-    // The operator names the track, not the file type. Carrying the extension
-    // over means they cannot accidentally produce a `.wav` called `.mp3`.
-    const extension = extname(sourcePath)
-    const fileName = trimmed.toLowerCase().endsWith(extension.toLowerCase())
-      ? trimmed
-      : `${trimmed}${extension}`
-
-    const verdict = validateFolderName(fileName)
-    if (!verdict.ok) {
-      throw new AppError(verdict.reason ?? 'That name cannot be used.', {
-        code: ErrorCode.Validation,
-        recoverable: false
-      })
-    }
-
-    await ensureDirectory(root)
-    const destination = join(root, fileName)
-
-    // Put the outgoing final back before moving the new one out, so the two
-    // can never both be in the directory under this project's name.
-    const restored = await this.returnFinalMaster(record)
-
-    await moveFile(sourcePath, destination)
-    logger.info(`Final master for ${record.name}: ${sourcePath} -> ${destination}`)
-
-    /*
-     * The source path is dropped from the buckets and from the scanned audio
-     * list. It has left the project folder, so every one of those references
-     * is now stale, and the next scan would drop them anyway — doing it here
-     * means the dossier is right immediately rather than after a rescan.
-     *
-     * The buckets are read straight off `record`: returning the outgoing final
-     * touches the disk only, so nothing here has changed since it was fetched.
-     */
-    return this.projects.applyFinalMaster(projectId, {
-      final: destination,
-      removedPath: sourcePath,
-      restored,
-      wips: record.masters.wips,
-      mixes: record.masters.mixes,
-      masters: record.masters.masters
-    })
-  }
-
-  /**
-   * Demotes the final, moving the file back into the project folder.
-   *
-   * It keeps the name the operator typed rather than reverting to whatever it
-   * was called before. That name was a deliberate choice, and renaming it a
-   * second time would be the app changing a filename the operator set.
-   */
-  async clearFinalMaster(projectId: string): Promise<ProjectRecord> {
-    this.refuseDuringScan()
-    const record = await this.projects.get(projectId)
-
-    if (!record.masters.final) return record
-
-    const restored = await this.returnFinalMaster(record)
-    return this.projects.applyFinalMaster(projectId, {
-      final: null,
-      removedPath: null,
-      restored,
-      wips: record.masters.wips,
-      mixes: record.masters.mixes,
-      masters: record.masters.masters
-    })
-  }
-
-  /**
-   * Moves a project's current final back into its folder. Disk only.
-   *
-   * Returns a descriptor of what landed, for the register to splice back into
-   * the project's audio list — or null when there was no final, or when the
-   * file had already gone from under us. The caller reads the mark buckets off
-   * its own copy of the record; nothing here touches them.
-   *
-   * The name can be taken by the time the file comes home, so the destination
-   * goes through `freeFilePath`. See it for why a demotion must never be a dead
-   * end.
-   */
-  private async returnFinalMaster(record: ProjectRecord): Promise<MediaFile | null> {
-    const current = record.masters.final
-    if (!current) return null
-
-    if (!(await pathExists(current))) {
-      // Gone from under us — deleted in Explorer, most likely. Clearing the
-      // record is still the right outcome; refusing would leave the project
-      // permanently claiming a final that does not exist.
-      logger.warn(`Final master for ${record.name} was already gone from ${current}`)
-      return null
-    }
-
-    const destination = await freeFilePath(record.path, basename(current))
-    await moveFile(current, destination)
-    logger.info(`Returned ${basename(destination)} to ${record.name}`)
-
-    /*
-     * Described exactly as the scanner would describe it — see `inventory` in
-     * scanner.ts — so the entry spliced into the register now is the same one
-     * the next scan will produce, and the dossier does not visibly shift when
-     * that scan lands.
-     */
-    const info = await stat(destination)
-    return {
-      path: destination,
-      fileName: basename(destination),
-      relativePath: relative(record.path, destination).split(sep).join('/'),
-      sizeBytes: info.size,
-      modifiedAt: info.mtimeMs
-    }
-  }
 
   // ------------------------------------------------------------ recycle bin
 

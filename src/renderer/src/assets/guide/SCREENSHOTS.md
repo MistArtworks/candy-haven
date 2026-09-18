@@ -38,7 +38,7 @@ a chapter documents one on purpose (`archive-05-setup`, `dispatch-02-door`).
 > - `auditorium-01-stage.png` = `welcome-06-auditorium.png`
 > - `regulation-01-categories.png` = `welcome-07-regulation.png`
 >
-> That takes 41 files down to **35 distinct captures**.
+> That takes 39 files down to **33 distinct captures**.
 
 > **Two images are not captures.** `practice-01-altar.png` and
 > `practice-02-vault.png` are supplied photographs of Candy Heist playing, not
@@ -78,7 +78,7 @@ ARCHIVE lens.
 
 ---
 
-## Session 2 — ARCHIVE (9 files)
+## Session 2 — ARCHIVE (7 files)
 
 `Ctrl`+`3`. Do these in order; each builds on the last.
 
@@ -121,24 +121,17 @@ ARCHIVE lens.
 2. Crop to the strip and the readiness note beneath it.
 3. Capture.
 
-**`archive-09-finalmaster.png`**
-
-1. Open a project that has **no final master** chosen.
-2. On the stage strip, click **TRACK READY**.
-3. The final master dialog opens because the gate is unmet — that is the shot.
-4. Capture, then **Cancel**. Do not commit unless you mean to.
-
 **`archive-11-tags.png`**
 
 1. In a dossier's OVERVIEW tab, find the **TAGS** panel.
 2. Click **MANAGE**.
 3. Capture the dialog.
 
-**`archive-10-volumes.png`**
-
-1. Switch to the **VOLUMES** lens (`Alt`+`3`).
-2. Open a volume so its bound tracks are listed.
-3. Capture. _(Skip if you have no volumes yet — the plate will stay pending.)_
+> **`archive-09-finalmaster.png` and `archive-10-volumes.png` are no longer
+> wanted.** Neither subject exists: the final-master dialog was deleted when
+> the pick moved to the DISCOGRAPHY track, and the VOLUMES lens became
+> DISCOGRAPHY. Both references are out of `docs/archive.md`, so nothing renders
+> a pending plate for them. Do not capture them.
 
 **`archive-05-setup.png`** — the setup gate
 
@@ -356,8 +349,6 @@ landed. Otherwise it shows a page full of `CAPTURE PENDING` plates.
 | ☐    | `welcome-08-documentation.png`   | 1 · take last                          |
 | ☐    | `archive-05-setup.png`           | 2                                      |
 | ☐    | `archive-07-stage.png`           | 2                                      |
-| ☐    | `archive-09-finalmaster.png`     | 2                                      |
-| ☐    | `archive-10-volumes.png`         | 2                                      |
 | ☐    | `archive-11-tags.png`            | 2                                      |
 | ☐    | `auditorium-03-zoom.png`         | 2                                      |
 | ☐    | `auditorium-04-popout.png`       | 2                                      |
@@ -389,8 +380,6 @@ illustrates.
 | `archive-04-dossier.png`         | `guides/archive.md`, `docs/archive.md`                            |
 | `archive-05-setup.png`           | `docs/getting-started.md`                                         |
 | `archive-07-stage.png`           | `docs/archive.md`                                                 |
-| `archive-09-finalmaster.png`     | `docs/archive.md`                                                 |
-| `archive-10-volumes.png`         | `docs/archive.md`                                                 |
 | `archive-11-tags.png`            | `docs/archive.md`                                                 |
 | `auditorium-01-stage.png`        | `guides/auditorium.md`, `docs/auditorium.md`                      |
 | `auditorium-02-presets.png`      | `guides/auditorium.md`, `docs/auditorium.md`                      |

@@ -6,6 +6,8 @@ import {
   MAX_EDGE_RESERVE,
   MAX_PETITIONS,
   MAX_PETITION_LABEL,
+  MAX_RITE_PROMPT,
+  MAX_RITE_TITLE,
   OVERLAY_THEMES,
   ROSTER_SIDES,
   SPIN_DURATION_MAX_MS,
@@ -113,9 +115,9 @@ export const RiteConfigSchema = z.object({
    */
   mechanism: z.enum(RITE_MECHANISMS).default('ring').catch('ring'),
   /** Masthead on the overlay. */
-  title: z.string().max(64).default('RESONANCE SELECTION'),
+  title: z.string().max(MAX_RITE_TITLE).default('RESONANCE SELECTION'),
   /** The question being put to the field, e.g. `WHICH TRACK DO WE REMIX`. */
-  prompt: z.string().max(96).default('THE FIELD WILL CHOOSE'),
+  prompt: z.string().max(MAX_RITE_PROMPT).default('THE FIELD WILL CHOOSE'),
   durationMs: z
     .number()
     .int()

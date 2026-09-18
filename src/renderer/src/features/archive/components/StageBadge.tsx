@@ -20,10 +20,21 @@ const STAGE_TONE: Record<ProjectStage, StageTone> = {
   arrangement: 'neutral',
   mix: 'neutral',
   master: 'neutral',
-  // TRACK READY takes `live` now that it ends the pipeline. It was
-  // `approaching` while SCHEDULED and RELEASED sat beyond it and the badge was
-  // saying "nearly"; with nothing after it, arriving here is the finish.
-  ready: 'live',
+  /*
+   * TRACK READY is gold again, and RELEASED takes the crimson back.
+   *
+   * It held `live` for one release, while it ended the pipeline and there was
+   * nothing beyond it to be approaching. RELEASED now sits after it, so the
+   * original assignment is the right one: gold for work awaiting release,
+   * crimson for the one stage that is genuinely out in the world.
+   *
+   * This is the palette rule doing its job rather than a preference. Crimson
+   * is the only saturated colour in the console and it is reserved for live
+   * state — a register where the second-to-last stage wore it would spend
+   * most of its rows shouting.
+   */
+  ready: 'approaching',
+  released: 'live',
   shelved: 'dormant'
 }
 

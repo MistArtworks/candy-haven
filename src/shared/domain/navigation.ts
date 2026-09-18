@@ -7,6 +7,8 @@ export const SECTION_IDS = [
   'nexus',
   'interface',
   'archive',
+  'discography',
+  'artists',
   'calendar',
   'auditorium',
   'darkroom',
@@ -111,13 +113,33 @@ export const SECTIONS: readonly SectionDefinition[] = [
     implemented: true
   },
   {
+    id: 'discography',
+    path: '/discography',
+    label: 'DISCOGRAPHY',
+    purpose: 'Everything released: singles, EPs, albums and remixes, and where they went',
+    epigraph: 'What is released cannot be unreleased. The record stands.',
+    group: 'production',
+    order: 3,
+    implemented: true
+  },
+  {
+    id: 'artists',
+    path: '/artists',
+    label: 'ARTISTS',
+    purpose: 'The roster: who the practice works with, and what they are on',
+    epigraph: 'Many forms. One underlying frequency.',
+    group: 'production',
+    order: 4,
+    implemented: true
+  },
+  {
     id: 'calendar',
     path: '/calendar',
     label: 'CALENDAR',
     purpose: 'The dated register: sessions, deliveries and observances',
     epigraph: 'Nothing arrives early. Nothing arrives late. Everything is scheduled.',
     group: 'production',
-    order: 3,
+    order: 5,
     implemented: true
   },
   {
@@ -127,7 +149,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Listening room: one file, played and rendered visible',
     epigraph: 'Sound is the only record that cannot be falsified.',
     group: 'production',
-    order: 4,
+    order: 6,
     implemented: true
   },
   {
@@ -137,7 +159,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Grade photographs onto the console palette and export them',
     epigraph: 'Every likeness must be developed before it may be shown.',
     group: 'production',
-    order: 5,
+    order: 7,
     implemented: true
   },
   {
@@ -147,7 +169,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Stream overlays and live selection rites served to OBS',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'broadcast',
-    order: 6,
+    order: 8,
     implemented: true
   },
   {
@@ -157,7 +179,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Host vitals: processor, memory, graphics and storage',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'oversight',
-    order: 7,
+    order: 9,
     implemented: true
   },
   {
@@ -167,7 +189,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Feedback and suggestions between operators, ruled on and recorded',
     epigraph: 'Nothing is lost that is entered into the record.',
     group: 'oversight',
-    order: 8,
+    order: 10,
     implemented: true
   },
   {
@@ -177,7 +199,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Operator settings, archive control and update channel',
     epigraph: 'Harmony is maintained.',
     group: 'oversight',
-    order: 9,
+    order: 11,
     implemented: true
   },
   {
@@ -187,7 +209,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'How this console is operated, department by department',
     epigraph: 'We do not question the shape of the universe.',
     group: 'oversight',
-    order: 10,
+    order: 12,
     implemented: true
   }
 ] as const

@@ -1,0 +1,895 @@
+@use 'abstracts' as *;
+
+/*
+ * DISCOGRAPHY's surfaces.
+ *
+ * The filter bar and the record sheet are the same objects ARTISTS draws, and
+ * the rules are duplicated here rather than shared. That is the convention
+ * this codebase already follows for feature-scoped styling — every
+ * OBSERVATORY overlay page carries its own `.broadcast`, `.url` and `.hint` —
+ * and CSS Modules scope per file, so sharing would mean either a mixin per
+ * class or a global stylesheet, both of which cost more than the repetition.
+ *
+ * **If you change the bar or the sheet here, change ARTISTS too.** They are
+ * read side by side, one rail apart.
+ */
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+/*
+ * Two rows, ruled off from the register beneath.
+ *
+ * It was one row holding a search field, a favourites toggle, a text field
+ * that *created* a record and its button — four controls doing two unrelated
+ * jobs, with nothing to tell the eye which was which. Splitting them by
+ * purpose is the whole fix: the first row is what you do here, the second is
+ * what you are looking at.
+ */
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-bottom: space(4);
+  margin-bottom: space(5);
+  @include hairline(bottom, 0.08);
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+  min-width: space(4);
+}
+
+// -------------------------------------------------------------------- search
+
+/*
+ * A bare field rather than a `TextInput`.
+ *
+ * `TextInput` stacks a label above the box, which is right in a form and
+ * wrong in a toolbar — it made the strip two lines tall and pushed the
+ * controls beside it out of alignment with their own labels. The placeholder
+ * says what it is; the `aria-label` says it to a screen reader.
+ */
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: rem(320px);
+  max-width: 100%;
+}
+
+.search {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(8) space(2) space(3);
+  width: 100%;
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+    border-color: var(--ch-line-gold);
+  }
+}
+
+// Only drawn when there is something to clear, so it is never a dead control.
+.clearSearch {
+  position: absolute;
+  right: space(2);
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: space(1);
+
+  &:hover {
+    color: var(--ch-accent-bright);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// -------------------------------------------------------------------- filter
+
+.filterLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+  margin-right: space(1);
+}
+
+.filterChip {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+    background: var(--ch-surface-raised);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// Separates the axes. Favourites and roles narrow different things, and a
+// continuous run of nine chips reads as one list of nine equivalent options.
+.filterDivider {
+  width: $hairline;
+  align-self: stretch;
+  background: var(--ch-line);
+  margin: 0 space(2);
+}
+
+/*
+ * What the filters left, and out of how many.
+ *
+ * The figure a filtered register most needs and least often has: without it,
+ * an empty page is indistinguishable from a filter that is too narrow.
+ */
+.count {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+/*
+ * Explicit spans, never positional nth-child rules. Three sleeves to a row.
+ *
+ * The narrow breakpoints hold at **two**, not one. Everywhere else in the
+ * console a card collapsing to full width is the right answer, because a
+ * card is text and text wants the room. A sleeve is square: at full width it
+ * becomes an enormous picture with a caption under it and one entry fills
+ * the window, which is the opposite of a catalogue.
+ */
+.span2 {
+  grid-column: span 2;
+}
+
+.span6 {
+  grid-column: span 6;
+}
+
+@include below('lg') {
+  .span2 {
+    grid-column: span 3;
+  }
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  // Still two. See above.
+  .span2 {
+    grid-column: span 3;
+  }
+
+  .caption {
+    padding: space(3) space(3) space(4);
+  }
+
+  .cardTitle {
+    font-size: rem(14px);
+  }
+}
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  max-width: 78ch;
+}
+
+// -------------------------------------------------------------------- sheet
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: z('overlay');
+  background: var(--ch-surface-overlay);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: space(10) space(6);
+  overflow-y: auto;
+}
+
+.sheet {
+  width: min(#{rem(880px)}, 100%);
+  background: var(--ch-surface);
+  border: $hairline solid var(--ch-line-strong);
+  box-shadow: var(--ch-shadow-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  padding: space(5);
+  @include hairline(bottom, 0.1);
+}
+
+.sheetTitle {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  flex: 1;
+  min-width: 0;
+}
+
+.sheetName {
+  font-family: var(--ch-font-display);
+  font-size: rem(19px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+}
+
+.sheetMeta {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.sheetActions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+}
+
+.sheetError {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  border-left: 2px solid var(--ch-crimson-500);
+  padding: space(2) space(3);
+  margin: space(4) space(5) 0;
+}
+
+// The sheet's own navigation, mirroring `ProjectDossier`'s strip.
+//
+// A horizontal row, not a sidebar: a release sheet and a project dossier are
+// the console's two record surfaces, and navigating one differently from the
+// other would be a difference with nothing behind it.
+.sheetTabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 space(5);
+  flex-shrink: 0;
+  @include hairline(bottom, 0.12);
+  overflow-x: auto;
+}
+
+.sheetTab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(3) space(4);
+  @include label(10px, 0.18em);
+  color: var(--ch-text-secondary);
+  white-space: nowrap;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      // On the strip's hairline rather than 1px past it. At -1px this
+      // overflows the strip vertically, and because `overflow-x: auto` makes
+      // `overflow-y` compute to `auto` too, that one pixel raises a full
+      // vertical scrollbar beside the row. Learned on the dossier.
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 12px var(--ch-accent-glow);
+    }
+  }
+}
+
+.sheetTabBadge {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  @include hairline(all, 0.12);
+  padding: 0 3px;
+
+  &[data-complete] {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+}
+
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+  padding: space(5);
+}
+
+.sheetFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space(4);
+}
+
+@include below('md') {
+  .sheetFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.fieldLabel {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+/*
+ * A stamped field rather than a pill, as the OBSERVATORY composer's are.
+ * Square corners everywhere: one rounded object would be the only soft thing
+ * on the page, which the brief rules out outright.
+ */
+.chip {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(3);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.notes {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(3);
+  resize: vertical;
+  line-height: 1.6;
+  font-family: var(--ch-font-body);
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.sheetFoot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: space(3);
+  padding: space(4) space(5);
+  @include hairline(top, 0.1);
+}
+
+.confirmText {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  line-height: 1.6;
+  flex: 1;
+}
+
+// ------------------------------------------------------------------- notice
+
+.notice {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(4);
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  border-left: 2px solid var(--ch-crimson-500);
+  padding: space(2) space(3);
+  margin-bottom: space(4);
+  line-height: 1.6;
+}
+
+.dismiss {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+// ----------------------------------------------------------- catalogue only
+
+/*
+ * The lens rail, as a row rather than a column.
+ *
+ * ARCHIVE draws its lenses down the side because it also browses a tree and
+ * needs the height. A catalogue is one flat list read four ways, so they sit
+ * in the bar's first row beside the action they scope.
+ */
+.lenses {
+  display: flex;
+  gap: 0;
+}
+
+.lens {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  border-right-width: 0;
+  padding: space(2) space(4);
+  cursor: pointer;
+  transition: color $duration-fast linear;
+
+  &:last-child {
+    border-right-width: $hairline;
+  }
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    background: var(--ch-surface-raised);
+    box-shadow: inset 0 -2px 0 var(--ch-accent);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+/*
+ * A select rather than chips.
+ *
+ * Labels have no ceiling — the list grows with the catalogue — and a row of
+ * stamps stops working somewhere around eight. The kinds beside it stay
+ * chips because there are exactly five and there always will be.
+ */
+.labelFilter {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+  max-width: rem(180px);
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.dialogSelect {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+  width: 100%;
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// ---------------------------------------------------------------------- card
+
+/*
+ * A sleeve with a caption under it.
+ *
+ * Column rather than the row this used to be. A plate beside four lines of
+ * text makes the text the object and the picture an ornament beside it; a
+ * grid of squares with their titles beneath reads as a catalogue, which is
+ * the thing this department is.
+ */
+.card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.cover {
+  // The sleeve lifts very slightly under the cursor. Not a scale — that
+  // would resample the artwork and soften it — just the field behind it
+  // warming, so the card says it is a target without moving the picture.
+  transition: filter $duration-fast $ease-out-expo;
+
+  .card:hover &,
+  .card:focus-visible & {
+    filter: saturate(1) sepia(0) brightness(1.06);
+  }
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  padding: space(4) space(5) space(5);
+  min-width: 0;
+}
+
+/*
+ * The title, in the display face.
+ *
+ * The panel header carries the *kind* rather than this, so the title is free
+ * to be set as a title instead of as institutional small-caps in a rule. It
+ * is the one piece of type on the card allowed to be large, which is the
+ * single-focal-object rule applied within a card rather than across a page.
+ */
+.cardTitle {
+  font-family: var(--ch-font-display);
+  font-size: rem(17px);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+  line-height: 1.25;
+  transition: color $duration-fast $ease-out-expo;
+
+  .card:hover &,
+  .card:focus-visible & {
+    color: var(--ch-gold-200);
+  }
+}
+
+.subtitle {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  font-style: italic;
+  @include truncate;
+}
+
+/*
+ * Who it is by.
+ *
+ * Drawn even when nobody is credited, because an absent line would let the
+ * meta row below it sit at a different height on every card and turn an
+ * even grid into a ragged one.
+ */
+.by {
+  @include readout(11px);
+  color: var(--ch-alabaster-400);
+  @include truncate;
+  margin-top: space(1);
+
+  &[data-none] {
+    color: var(--ch-text-faint);
+    font-style: italic;
+  }
+}
+
+// Kind, date and length. The register's own line, in the monospace face so
+// the dates align down a column of cards.
+.meta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.label {
+  @include readout(9px);
+  color: var(--ch-gold-300);
+  @include truncate;
+}
+
+.unlinked {
+  @include readout(9px);
+  color: var(--ch-text-muted);
+}
+
+// ------------------------------------------------------------- empty sleeve
+
+/*
+ * The mark a release with no cover draws, and the word beneath it.
+ *
+ * Concrete rather than gold: an unstruck sleeve is an absence, and drawing
+ * it in the accent would have every coverless entry claiming the eye on a
+ * page whose whole job is to be scanned for artwork.
+ */
+.sleeveMark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: space(3);
+  width: 100%;
+  height: 100%;
+  padding: 18%;
+  color: var(--ch-concrete-500);
+}
+
+.sleeveLabel {
+  @include label(8px, 0.22em);
+  color: var(--ch-text-faint);
+}
+
+.date {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+  width: rem(180px);
+  // Without this the native picker draws its glyph as black-on-black.
+  color-scheme: dark;
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.warn {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+}
+
+.inlineSelect {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(2);
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.credits {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  padding: space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(top, 0.06);
+  @include hairline(bottom, 0.06);
+}
+
+// ------------------------------------------------------------- credit rows
+
+// The liner notes. One row per role, read as a line rather than as a form —
+// a credit is prose on a sleeve, and a grid of labelled inputs made the tab
+// read as a control panel.
+.creditRows {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.creditRow {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(2) 0;
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+}
+
+.creditHead {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+// Fixed width so the roles align down a column and the names start at the
+// same place on every line, as a printed credit list does.
+.creditRole {
+  @include label(9px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(2);
+  width: rem(150px);
+  flex-shrink: 0;
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.creditNames {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  text-align: left;
+  flex: 1;
+  min-width: rem(140px);
+  padding: space(1) space(2);
+  border-bottom: $hairline solid var(--ch-line);
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+
+  // An unfilled credit is incomplete rather than wrong, so it recedes instead
+  // of going crimson — the operator is mid-sentence, not in error.
+  &[data-none] {
+    color: var(--ch-text-muted);
+    font-style: italic;
+  }
+}
+
+.creditNote {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  background: transparent;
+  border-bottom: $hairline solid var(--ch-line);
+  padding: space(1) space(2);
+  width: rem(190px);
+  flex-shrink: 0;
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.creditDrop {
+  @include label(9px);
+  color: var(--ch-text-muted);
+  padding: space(1);
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--ch-crimson-400);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.assets {
+  display: flex;
+  gap: space(6);
+  flex-wrap: wrap;
+}
+
+.asset {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.assetActions {
+  display: flex;
+  gap: space(2);
+}
+
+/*
+ * The canvas, reported rather than drawn.
+ *
+ * A still frame of a 9:16 loop says less than its presence does, and decoding
+ * video for a thumbnail is work with no payoff.
+ */
+.canvasPlate {
+  width: rem(68px);
+  height: rem(120px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: space(1);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+}
+
+.canvasMark {
+  @include label(7px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.canvasState {
+  @include readout(9px);
+  color: var(--ch-gold-300);
+}

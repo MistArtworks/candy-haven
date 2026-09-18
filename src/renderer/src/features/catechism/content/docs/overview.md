@@ -20,12 +20,12 @@ of being re-entered.
 Departments are grouped into four divisions. The division tells you what kind of
 question a department answers, which is usually enough to know where to look.
 
-| Division       | What it is for                                                 | Departments                                |
-| -------------- | -------------------------------------------------------------- | ------------------------------------------ |
-| **COMMAND**    | Where the system is seen whole and instructed                  | NEXUS, INTERFACE                           |
-| **PRODUCTION** | The work itself: what is filed, when it is due, how it sounds  | ARCHIVE, CALENDAR, AUDITORIUM              |
-| **BROADCAST**  | What is served to an audience while it is live                 | OBSERVATORY                                |
-| **OVERSIGHT**  | The condition of the installation, and the rules it runs under | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
+| Division       | What it is for                                                   | Departments                                                   |
+| -------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
+| **COMMAND**    | Where the system is seen whole and instructed                    | NEXUS, INTERFACE                                              |
+| **PRODUCTION** | The work itself: what is filed, released, due, and how it sounds | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
+| **BROADCAST**  | What is served to an audience while it is live                   | OBSERVATORY                                                   |
+| **OVERSIGHT**  | The condition of the installation, and the rules it runs under   | TELEMETRY, DISPATCH, REGULATION, CATECHISM                    |
 
 A department marked **RESERVED** is routed and specified but not yet built. Its
 page lists what it will do when it is commissioned, so the shape of the finished

@@ -176,10 +176,11 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('projects:file-many', ({ projectIds, folderIds, folderId }) =>
     services.stacks.fileMany(projectIds, folderIds, folderId)
   )
-  router.handle('projects:set-final', ({ id, sourcePath, name }) =>
-    services.stacks.setFinalMaster(id, sourcePath, name)
+  // The projects service, not the stacks service: naming a final master is a
+  // record edit now rather than a file move, so it belongs to the register.
+  router.handle('projects:final-master', ({ id, path }) =>
+    services.projects.setFinalMaster(id, path)
   )
-  router.handle('projects:clear-final', ({ id }) => services.stacks.clearFinalMaster(id))
   router.handle('projects:conform', () => services.projects.conformIcons())
   router.handle('projects:scan-state', () => services.projects.scan)
 
@@ -217,15 +218,6 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('stacks:restore', ({ id }) => services.stacks.restoreFolder(id))
   router.handle('stacks:purge', ({ id }) => services.stacks.purgeFolder(id))
 
-  // ------------------------------------------------------------------ volumes
-
-  router.handle('volumes:list', () => services.volumes.list())
-  router.handle('volumes:get', ({ id }) => services.volumes.get(id))
-  router.handle('volumes:create', (draft) => services.volumes.create(draft))
-  router.handle('volumes:update', ({ id, patch }) => services.volumes.update(id, patch))
-  router.handle('volumes:delete', ({ id }) => services.volumes.remove(id))
-  router.handle('volumes:reorder', ({ id, projectIds }) => services.volumes.reorder(id, projectIds))
-
   // --------------------------------------------------------------------- tags
 
   router.handle('tags:list', () => services.tags.list())
@@ -233,16 +225,42 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('tags:update', ({ id, patch }) => services.tags.update(id, patch))
   router.handle('tags:delete', ({ id }) => services.tags.delete(id))
 
-  // ----------------------------------------------------------------- releases
+  // ------------------------------------------------------------------ artists
 
-  router.handle('releases:list', () => services.releases.list())
-  router.handle('releases:get', ({ id }) => services.releases.get(id))
-  router.handle('releases:create', (draft) => services.releases.create(draft))
-  router.handle('releases:update', ({ id, patch }) => services.releases.update(id, patch))
-  router.handle('releases:attach', ({ id, kind, sourcePath }) =>
-    services.releases.attach(id, kind, sourcePath)
+  router.handle('artists:list', () => services.artists.list())
+  router.handle('artists:get', ({ id }) => services.artists.get(id))
+  router.handle('artists:create', (draft) => services.artists.create(draft))
+  router.handle('artists:update', ({ id, patch }) => services.artists.update(id, patch))
+  router.handle('artists:set-picture', ({ id, sourcePath }) =>
+    services.artists.setPicture(id, sourcePath)
   )
-  router.handle('releases:delete', ({ id }) => services.releases.remove(id))
+  router.handle('artists:delete', ({ id }) => services.artists.remove(id))
+
+  // -------------------------------------------------------------- discography
+
+  router.handle('discography:registry', () => services.discography.getRegistry())
+  router.handle('discography:get', ({ id }) => services.discography.get(id))
+  router.handle('discography:create', (draft) => services.discography.create(draft))
+  router.handle('discography:update', ({ id, patch }) => services.discography.update(id, patch))
+  router.handle('discography:delete', ({ id }) => services.discography.remove(id))
+  router.handle('discography:set-asset', ({ id, asset, sourcePath }) =>
+    services.discography.setAsset(id, asset, sourcePath)
+  )
+  router.handle('discography:track-add', ({ id, draft }) =>
+    services.discography.addTrack(id, draft)
+  )
+  router.handle('discography:track-update', ({ id, trackId, patch }) =>
+    services.discography.updateTrack(id, trackId, patch)
+  )
+  router.handle('discography:track-remove', ({ id, trackId }) =>
+    services.discography.removeTrack(id, trackId)
+  )
+  router.handle('discography:track-reorder', ({ id, trackIds }) =>
+    services.discography.reorderTracks(id, trackIds)
+  )
+  router.handle('discography:track-set-master', ({ id, trackId, path }) =>
+    services.discography.setTrackMaster(id, trackId, path)
+  )
 
   // --------------------------------------------------------------------- rite
 

@@ -25,10 +25,37 @@
   flex-shrink: 0;
 }
 
+/*
+ * The title and, where a page has one, its kind chip.
+ *
+ * `baseline` rather than `center`: the label is 22px on a wide track and the
+ * chip is 8px, so centring hangs the chip in the middle of the cap height and
+ * reads as floating. The label's own bottom margin moves here so the chip sits
+ * on the same line as the text rather than below it.
+ */
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex-wrap: wrap;
+  margin-bottom: space(2);
+}
+
 .label {
   @include label(22px, 0.3em);
   color: var(--ch-text-primary);
-  margin-bottom: space(2);
+}
+
+// The same chip the OBSERVATORY board draws, to the same treatment: brushed
+// gold on a raised surface, never crimson. What a thing *is* stays true whether
+// or not anything is happening, and crimson is for what is happening.
+.kind {
+  @include label(8px, 0.22em);
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line-gold);
+  padding: space(1) space(3);
+  flex-shrink: 0;
 }
 
 .purpose {

@@ -5,53 +5,244 @@ local address, so OBS composites them and this console drives them.
 
 ![observatory-01-catalogue.png](observatory-01-catalogue.png)
 
+## What each one does
+
+Every overlay carries a **kind** and one plain sentence — on the desk, and in
+its own masthead — so the kit can be read without already knowing the names.
+
+| Overlay             | Kind           | What it does                                                               |
+| ------------------- | -------------- | -------------------------------------------------------------------------- |
+| THE MUSTER          | OPEN CALL      | Chat types entries; they fill a numbered list on screen                    |
+| RESONANCE SELECTION | PRIZE DRAW     | One entry is picked at random; bigger weights win more often               |
+| THE CONCORD         | CHAT VOTE      | Chat votes by typing a number; the bars fill live                          |
+| INTERVAL            | BREAK CLOCK    | A countdown for breaks that keeps counting past zero                       |
+| CONVENING           | START CLOCK    | A countdown before you go live that ends on one word                       |
+| THE GATE            | STARTING SCENE | A full-screen "starting soon" scene with room for chat                     |
+| THE SURVEY          | BRB SCENE      | A full-screen "be right back" scene with room for chat                     |
+| NOW TRANSMITTING    | NOW PLAYING    | The track playing on your Spotify, with cover art and a timeline           |
+| THE ENCLOSURE       | STREAM FRAME   | Corner brackets and a name plate around the whole stream                   |
+| THE CHORUS          | CHAT FEED      | Chat messages as a numbered list. Pasted into Streamlabs, not served here  |
+| THE DOCKET          | REQUEST QUEUE  | A queue of chat requests showing what you are working on next _(reserved)_ |
+
+The lore line each overlay carries — _"Harmony decided for all, not by all."_ —
+is still there, set faint beneath the plain one. It used to be the **first**
+thing every entry said after its name, which spent the top of the page on mood
+rather than on function.
+
+The bench also gives three plain steps for how each one runs. For THE CONCORD:
+_you write the options_, _chat votes with `!vote 2` or a bare `2`_, _close it;
+a tie is settled by a visible coin-toss_. A sentence can say what an overlay
+is; only the steps say how it is used, and they carry the chat command — which
+is the whole interface for three of these.
+
+## The desk
+
+The department's landing page is a desk rather than a directory, and it is two
+objects side by side: a **board** listing the whole kit, and a **bench** holding
+one overlay at a time.
+
+That split is the point of the page. Running a break should not mean walking to
+INTERVAL, and closing a call should not mean walking to THE MUSTER — during a
+broadcast the thing you need is almost never the thing you are looking at.
+
+### The board
+
+Every overlay, always on screen, grouped by what kind of thing it is: **chat
+instruments**, **clocks**, **standing scenes**, **furniture**, and whatever is
+still **reserved**. Knowing THE GATE is a standing scene and THE ENCLOSURE is
+furniture already tells you how each is placed in OBS.
+
+Each row is a number, a mark, a name and a state dot — and **a row is quiet
+until its overlay is doing something.** The moment a call opens or a clock
+starts, that row grows its live figure and one line of detail:
+
+```
+04  INTERVAL                                     04:12  ●
+    Running · 04:12 remaining · Breaks and segments · 5 min
+```
+
+**Nothing on the board is pressed.** It is a readout; everything you do to an
+overlay is on the bench. Hovering a row says in one line what that overlay is
+for, and clicking it loads that overlay into the bench.
+
+Selecting a row hides nothing. Every overlay's state stays on the board,
+because having to open each overlay in turn to find out what it was doing is
+the problem this department exists to remove.
+
+### The bench
+
+One overlay, and everything you do to it.
+
+| On the bench         | What it gives you                                            |
+| -------------------- | ------------------------------------------------------------ |
+| **The kind chip**    | `OPEN CALL`, `CHAT VOTE`, `BREAK CLOCK` — what this is       |
+| **What it does**     | One plain sentence, then three steps for how it runs         |
+| **The live line**    | `The chamber sits · 240 votes from 63 citizens · 01:12 left` |
+| **The lead verb**    | On its own line, at full size — the thing to press           |
+| **The other verbs**  | Clear, restart, hand a finished roll on, add or drop a minute |
+| **The composer**     | Title, question, and one line to add an option or an entry   |
+| **Between segments** | The few settings that change per call, per poll, per break   |
+| **Browser sources**  | Every address this overlay answers on, with Copy and Preview |
+
+**Open full console →** goes to that overlay's own page.
+
+The lead verb is set apart deliberately. It is whichever verb suits the phase
+the overlay is in — an open call leads with **Close the call**, a stopped clock
+with **Start** — and it is the one you reach for while talking. It is
+emphasised by size and position rather than by colour, because crimson in this
+console means live state or destruction, and closing a call is neither.
+
+### What the bench carries, and what the page carries
+
+**The bench carries what changes between segments. The overlay's own page
+carries what is set once.**
+
+A call's _length_ is on the bench, because "make this one thirty seconds" is a
+per-call decision. Its _command word_ is not: `!add` is chosen once and then
+printed on the broadcast, and changing it mid-stream would invalidate the
+instruction the audience is reading. A countdown's duration is on the bench;
+which of five faces it draws is not.
+
+Reordering a ballot, weighting an entry and cutting one from a roll are
+composition, and they stay on the overlay's page, where there is room for a
+list.
+
+### The composer
+
+THE MUSTER, THE CONCORD and RESONANCE SELECTION are _put_ rather than merely
+started, and each is put against text you write. All three take the same two
+fields, because all three have the same pair in their own configuration:
+
+- **Title** — the overlay's masthead.
+- **Question** — what is being asked. `WHAT SHOULD BE PLAYED?`,
+  `THE CHAMBER WILL DECIDE`.
+
+Both save as you stop typing and appear on the broadcast immediately. They are
+**the same two fields** as on the overlay's own page, drawn by the same
+component — one setting in one place, reachable from two. They were two
+separate fields writing one value, which is how a title could read differently
+depending on where you had typed it.
+
+Beneath them is one line for adding a single thing: an option to the ballot, a
+petition to the ring, an entry filed on somebody's behalf. Enter commits, and
+what is already filed is drawn as chips underneath so you can see it landed.
+
+The overlay's own page is still where it is _composed_ — the ballot, the
+marque, the five countdown faces, the presentation knobs. **Open full console
+→** goes there. The split is that the bench runs an overlay and the page
+configures it, and the bench is literally the same panel the page carries as
+its own `02`.
+
+### A control that is refused says why
+
+A verb the service would turn down is drawn disabled with the reason beneath
+it — `A poll needs at least two options`, `No chat channel is set`. The refusal
+is the same one the main process enforces; it is mirrored here so a dead
+control explains itself rather than throwing a notice at you mid-broadcast.
+
+A verb that _worked_ and has something to report says that too, in brass rather
+than crimson. Hand forty entries to a ten-option ballot and the line reads
+`Sent 10. 30 did not fit and stayed on the roll.` A refusal is a fault; a
+report is not, and drawing both crimson would teach you to read every notice
+here as something having gone wrong.
+
+> Opening the department starts the Spotify poll and attaches to chat, and both
+> stop when you leave it. That is deliberate: a desk that reports whether a
+> track is on air has to be listening, and finding out the channel name was
+> wrong _after_ asking an audience to vote is not a recoverable moment.
+>
+> An overlay's **own page** does neither. It subscribes to its own state and
+> nothing else, so opening THE ENCLOSURE does not start polling Spotify.
+
 ## The server
 
 One HTTP server, many pages. It starts with the console by default and answers
 on a port set in REGULATION under INTEGRATIONS.
 
-| Field            | Meaning                                                |
-| ---------------- | ------------------------------------------------------ |
-| **Root**         | The address every overlay hangs off                    |
-| **Port**         | Claimed upward from the configured one if it was taken |
-| **Commissioned** | How many overlays have shipped, of those catalogued    |
-| **Attached**     | Browser sources currently connected                    |
+It has no panel of its own, on purpose: a slab restating the port and the root
+sat at the top of the department spending the best space on two numbers that
+never change. What you actually need from it is in two places instead.
 
-If **Attached** reads `0` while OBS is open, the source is not actually
-connected — check the URL rather than the overlay.
+**In the masthead**, two state dots — whether chat is attending, and whether
+the server is serving and how many sources are attached to it. If that reads
+`0` while OBS is open, the source is not actually connected; check the URL
+rather than the overlay.
+
+**In the strip above the board**, the four things that are actions rather than
+readings:
+
+| Control                | Does                                                        |
+| ---------------------- | ----------------------------------------------------------- |
+| **Copy every address** | The whole live kit on the clipboard, one labelled line each |
+| **Guides on / off**    | Adds `?guides=1` to every address the desk hands over       |
+| **Restart server**     | Rebinds it, picking up a changed port                       |
+| **Reconnect chat**     | Reattaches the chat socket                                  |
+
+The port, the resolved paths and the rest live in REGULATION — under
+INTEGRATIONS for the port, DIAGNOSTICS for everything else.
 
 ## Adding an overlay to OBS
 
 ![observatory-02-card.png](observatory-02-card.png)
 
-1. Copy the address from the overlay's card in the catalogue.
+1. Select the overlay on the board, then press **Copy** on the address you want.
 2. In OBS: **Sources → Add → Browser**.
 3. Paste the URL into **URL**.
-4. Set **Width** and **Height** to the canvas the card quotes.
+4. Set **Width** and **Height** to the canvas the address row quotes.
 5. Leave **Shutdown source when not visible** unchecked.
 
 That last step matters. A source that shuts down loses its state, so a countdown
 would restart every time you switched scenes away and back.
 
+**Preview** beside it opens the same address in your own browser. That is
+deliberately not a preview inside the console: the point of looking is to see
+what OBS will see, and the console rendering it proves nothing.
+
+Setting up a scene collection from nothing means adding nine sources, so
+**Copy every address** on the broadcast panel puts the whole kit on the
+clipboard at once — one labelled line per address, with its canvas.
+
 ```
-http://127.0.0.1:7420/concord              full scene
-http://127.0.0.1:7420/concord-widget       corner plate, same poll
-http://127.0.0.1:7420/interval?transparent=1
+THE MUSTER              1920x1080   http://127.0.0.1:7420/muster
+THE MUSTER — WIDGET      460x380    http://127.0.0.1:7420/muster-widget
+THE CONCORD              640x900    http://127.0.0.1:7420/concord
 ```
+
+The desk hands over exactly the address the overlay's own page hands over, so
+one overlay has one address wherever you copied it from.
 
 ### Full and panel
 
-Each card is marked one or the other, and it tells you how to place it.
+Each address row is marked one or the other, and it tells you how to place it.
 
-- **full** — the overlay _is_ the scene. A rite, an interval card. Give it the
-  whole canvas.
-- **panel** — furniture composited over gameplay or a DAW capture. Add
-  `?transparent=1` so it sits on what is behind it.
+- **full** — the overlay _is_ the scene. A rite, an interval card, the gate.
+  Give it the whole canvas.
+- **panel** — furniture composited over gameplay or a DAW capture.
+
+### Transparency
+
+Most panel overlays carry their own **Transparent** switch on their page, and
+that is the one to use — it is a setting, it is remembered, and it is visible.
+
+`?transparent=1` appended to an address does something narrower than it looks:
+it **forces** transparency on for that one browser source, on top of the
+setting. It cannot turn transparency off. Use it when two scenes need the same
+overlay drawn two different ways, which is the only case the setting cannot
+express.
+
+THE ENCLOSURE is the exception and its address always carries the flag: it has
+no setting of its own, because a frame that is not transparent is not a frame.
 
 ### Guides
 
-Append `?guides=1` to any address to draw its safe area while you position it.
-Remove it before going live.
+**Draw safe-area guides on copied addresses**, on the broadcast panel, adds
+`?guides=1` to every address the desk hands over. Position your sources with it
+on, then turn it off and copy again before going live.
+
+One switch rather than one per address, because guides are wanted on every
+source at once while a scene is being cut and on none of them afterwards. It is
+deliberately not remembered between sessions — a guide setting that survived a
+restart is exactly how the guides end up on air.
 
 ### Two addresses, one poll
 
@@ -72,11 +263,11 @@ multipliers, not measurements — the style or theme you picked decides what the
 overlay looks like and these nudge it from there, which is why they read in
 multiples and why **Reset to preset** returns them to `1.00×`.
 
-| Knob          | Range     | What it moves                                      |
-| ------------- | --------- | -------------------------------------------------- |
-| **Scale**     | 0.5–2.0×  | The whole layout                                    |
-| **Type size** | 0.5–2.0×  | Text only, on top of scale. Spacing follows the type |
-| **Opacity**   | 10–100%   | The whole surface                                  |
+| Knob          | Range    | What it moves                                        |
+| ------------- | -------- | ---------------------------------------------------- |
+| **Scale**     | 0.5–2.0× | The whole layout                                     |
+| **Type size** | 0.5–2.0× | Text only, on top of scale. Spacing follows the type |
+| **Opacity**   | 10–100%  | The whole surface                                    |
 
 Two overlays add one of their own. **NOW TRANSMITTING** has a **Cover size**,
 because the artwork and the text compete for the same room in all four styles
@@ -186,11 +377,27 @@ only the tokens that come back.
 Two countdowns sharing one implementation and one set of faces, with separate
 state so both stay configured at once.
 
-|            | INTERVAL                         | CONVENING                 |
-| ---------- | -------------------------------- | ------------------------- |
-| For        | Breaks and segments              | Opening a broadcast       |
-| Past zero  | Counts a grace period in crimson | Resolves to a single word |
-| Audio cues | One minute, and final call       | Silent by default         |
+They are not the same instrument with two names, and the differences are
+defaults rather than preferences — they follow from what each is _for_:
+
+|                | INTERVAL                         | CONVENING                    |
+| -------------- | -------------------------------- | ---------------------------- |
+| For            | Breaks and segments              | Opening a broadcast          |
+| Starts at      | 5 minutes                        | 10 minutes                   |
+| Past zero      | Counts a grace period in crimson | Resolves to a single word    |
+| Grace          | One minute                       | None — a room is not overrun |
+| Audio cues     | One minute, and final call       | Silent by default            |
+| Blinks when up | Yes                              | No — it has arrived          |
+| Default face   | `SPLIT PLATES`                   | `HARMONIC PULSE`             |
+
+On the bench each states which it is rather than leaving you to know:
+`Breaks and segments · 5 min · 1 min of grace · cues on` against
+`Opens the broadcast · 10 min · resolves to NOW · silent`. And at zero they
+report opposite things, because they mean opposite things — an interval is
+**Spent**, a convening reads the word it **arrived** at.
+
+Only CONVENING carries a **Resolves to** field, for the same reason. If the
+bench you are looking at has one, it is the one that opens the stream.
 
 CONVENING is silent on purpose: nothing should warn an audience that it is
 nearly time.
@@ -230,7 +437,6 @@ Both play in the console and never on the broadcast — see above for why.
 > CONVENING ships with **Audio cues** off, since nothing should warn an audience
 > it is nearly time. Its impact needs that setting turned on.
 
-
 ## THE ENCLOSURE
 
 A standing frame for the whole broadcast: gold registration brackets at the four
@@ -266,13 +472,13 @@ It is the only overlay that **replaces** a capture rather than dressing one — 
 stream that has not started has nothing behind it to dress — so it is the one
 source that does **not** want Transparent ticked in OBS.
 
-| Setting          | What it does                                              |
-| ---------------- | --------------------------------------------------------- |
-| **Title**        | The marque, set low and left. Uppercased                   |
-| **Second line**  | A quieter line beneath it                                  |
-| **Band width**   | The share of the frame held for a chat capture. Zero removes it |
-| **Top / lower colour** | The two stops of the band’s gradient                 |
-| **Band strength**| How present the band is overall                            |
+| Setting                | What it does                                                    |
+| ---------------------- | --------------------------------------------------------------- |
+| **Title**              | The marque, set low and left. Uppercased                        |
+| **Second line**        | A quieter line beneath it                                       |
+| **Band width**         | The share of the frame held for a chat capture. Zero removes it |
+| **Top / lower colour** | The two stops of the band’s gradient                            |
+| **Band strength**      | How present the band is overall                                 |
 
 The band is **painted here rather than held clear**, which is the one place
 this differs from the rest of the kit. Everywhere else a reserved band is left

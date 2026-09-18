@@ -25,6 +25,10 @@ export const POINTER_ANGLE = -Math.PI / 2
 export const MAX_PETITIONS = 48
 export const MAX_PETITION_LABEL = 72
 
+/** The masthead and the question put to the field, as the schema enforces them. */
+export const MAX_RITE_TITLE = 64
+export const MAX_RITE_PROMPT = 96
+
 /** Rolling record of past selections carried on the state. */
 export const RITE_HISTORY_LIMIT = 24
 

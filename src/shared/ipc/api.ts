@@ -48,15 +48,17 @@ import type {
   FolderPatch,
   StacksTree
 } from '../domain/stacks'
-import type { ArchiveVolume, VolumeDraft, VolumePatch, VolumeSummary } from '../domain/volumes'
 import type { TagDraft, TagPatch, TagSummary } from '../domain/tags'
+import type { ArtistDraft, ArtistPatch, ArtistRecord, ArtistSummary } from '../domain/artists'
 import type {
-  ArchiveRelease,
-  DeliverableKind,
+  DiscographyRegistry,
+  DiscographyRelease,
+  ReleaseAsset,
   ReleaseDraft,
   ReleasePatch,
-  ReleaseSummary
-} from '../domain/releases'
+  TrackDraft,
+  TrackPatch
+} from '../domain/discography'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -153,10 +155,12 @@ export interface CandyHavenApi {
       failures: { id: string; name: string; reason: string }[]
       renamed: { from: string; to: string }[]
     }>
-    /** Moves a bounce into Release Mastered Tracks as the project's final. */
-    setFinal(id: string, sourcePath: string, name: string): Promise<ProjectRecord>
-    /** Moves the final back into the project folder. */
-    clearFinal(id: string): Promise<ProjectRecord>
+    /**
+     * Names the bounce that is this project's finished master, by path. Null
+     * clears it. The path must be one of the project's own bounces, and
+     * nothing on disk moves.
+     */
+    setFinalMaster(id: string, path: string | null): Promise<ProjectRecord>
     addNote(id: string, draft: NoteDraft): Promise<ProjectRecord>
     updateNote(id: string, noteId: string, draft: NoteDraft): Promise<ProjectRecord>
     deleteNote(id: string, noteId: string): Promise<ProjectRecord>
@@ -202,23 +206,6 @@ export interface CandyHavenApi {
     purge(id: string): Promise<StacksTree>
   }
   /**
-   * VOLUMES — albums, EPs and compilations.
-   *
-   * Metadata only; nothing here touches disk. A track joins a volume through
-   * `projects.patch`, not through this interface, because the project is what
-   * holds `volumeId` — see volumes.ts for why membership lives in one place.
-   */
-  readonly volumes: {
-    list(): Promise<VolumeSummary[]>
-    get(id: string): Promise<ArchiveVolume>
-    create(draft: VolumeDraft): Promise<VolumeSummary>
-    update(id: string, patch: VolumePatch): Promise<VolumeSummary>
-    /** Detaches every track first; each falls back to `single`. */
-    remove(id: string): Promise<void>
-    /** Ids in their new order; writes each track's `trackNumber`. */
-    reorder(id: string, projectIds: string[]): Promise<VolumeSummary[]>
-  }
-  /**
    * TAGS — the operator's own labels on a project.
    *
    * Metadata only; nothing here touches disk. A project gains a tag through
@@ -236,21 +223,56 @@ export interface CandyHavenApi {
     remove(id: string): Promise<{ detached: number }>
   }
   /**
-   * RELEASES — what is going out, and the files that go with it.
+   * ARTISTS — the roster.
    *
-   * A release owns a real directory under the wrapper, so creating, renaming
-   * and attaching all move things on disk. Attaching *copies* the chosen file
-   * in rather than moving it: the project keeps its own bounces.
+   * Metadata plus one copied picture; nothing here moves a project. A project
+   * credits somebody through `projects.patch`, not through this interface,
+   * because the project is what holds `artistIds` — the one exception being
+   * `create`, whose `attachTo` makes "create and credit" a single call that
+   * cannot half-succeed.
    */
-  readonly releases: {
-    list(): Promise<ReleaseSummary[]>
-    get(id: string): Promise<ArchiveRelease>
-    create(draft: ReleaseDraft): Promise<ReleaseSummary>
-    update(id: string, patch: ReleasePatch): Promise<ReleaseSummary>
-    /** A null `source` detaches, leaving any copy already made in place. */
-    attach(id: string, kind: DeliverableKind, source: string | null): Promise<ArchiveRelease>
-    /** Drops the record; the assembled directory stays on disk. */
+  readonly artists: {
+    list(): Promise<ArtistSummary[]>
+    get(id: string): Promise<ArtistRecord>
+    /** An existing name is returned rather than refused. See `ArtistsService`. */
+    create(draft: ArtistDraft): Promise<ArtistRecord>
+    /** Renaming propagates everywhere at once; records hold ids, not names. */
+    update(id: string, patch: ArtistPatch): Promise<ArtistRecord>
+    /** Copies the picture in. A null path clears it. */
+    setPicture(id: string, sourcePath: string | null): Promise<ArtistRecord>
+    /** Strips them from every project and release first, and reports both. */
+    remove(id: string): Promise<{ projects: number; releases: number }>
+  }
+  /**
+   * DISCOGRAPHY — the public record of what shipped.
+   *
+   * A release owns its tracklist, because a track need not have a project
+   * behind it, so every track call returns the whole release rather than the
+   * row touched — renumbering moves every position after it.
+   */
+  readonly discography: {
+    registry(): Promise<DiscographyRegistry>
+    get(id: string): Promise<DiscographyRelease>
+    create(draft: ReleaseDraft): Promise<DiscographyRelease>
+    update(id: string, patch: ReleasePatch): Promise<DiscographyRelease>
     remove(id: string): Promise<void>
+    /** Copies artwork or a canvas in. A null path clears it. */
+    setAsset(
+      id: string,
+      asset: ReleaseAsset,
+      sourcePath: string | null
+    ): Promise<DiscographyRelease>
+    addTrack(id: string, draft: TrackDraft): Promise<DiscographyRelease>
+    updateTrack(id: string, trackId: string, patch: TrackPatch): Promise<DiscographyRelease>
+    removeTrack(id: string, trackId: string): Promise<DiscographyRelease>
+    reorderTracks(id: string, trackIds: string[]): Promise<DiscographyRelease>
+    /**
+     * Names the file that ships as this track. A null path clears it.
+     *
+     * The path must be one of the linked project's own bounces; nothing on
+     * disk moves.
+     */
+    setTrackMaster(id: string, trackId: string, path: string | null): Promise<DiscographyRelease>
   }
   /**
    * The selection rite served to OBS. Every method returns the whole state:

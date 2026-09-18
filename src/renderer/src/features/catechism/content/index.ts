@@ -76,6 +76,18 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'archive'
   },
   {
+    id: 'discography',
+    label: 'DISCOGRAPHY',
+    purpose: 'Everything released, and where it went',
+    section: 'discography'
+  },
+  {
+    id: 'artists',
+    label: 'ARTISTS',
+    purpose: 'The roster, and how credits work',
+    section: 'artists'
+  },
+  {
     id: 'calendar',
     label: 'CALENDAR',
     purpose: 'The dated register and its four lenses',

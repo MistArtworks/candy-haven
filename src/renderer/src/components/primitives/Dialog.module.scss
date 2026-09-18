@@ -1,0 +1,154 @@
+@use 'abstracts' as *;
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: z('modal');
+  background: var(--ch-surface-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: space(6);
+  // A long form has to be reachable on a short window. The scrim scrolls
+  // rather than the slab, so the dialog stays whole and the backdrop keeps
+  // covering everything behind it.
+  overflow-y: auto;
+}
+
+.dialog {
+  width: min(#{rem(460px)}, 100%);
+  background: var(--ch-surface);
+  @include hairline(all, 0.18);
+  box-shadow: var(--ch-shadow-panel);
+  display: flex;
+  flex-direction: column;
+  // Clears the scrim's own padding when the form is taller than the window.
+  margin: auto;
+}
+
+.wide {
+  width: min(#{rem(680px)}, 100%);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  padding: space(4) space(5);
+  @include hairline(bottom, 0.1);
+}
+
+.title {
+  @include label(11px, 0.18em);
+  color: var(--ch-text-primary);
+  flex-shrink: 0;
+}
+
+.subtitle {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  padding: space(5);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.fieldLabel {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+}
+
+/*
+ * The one thing that must be filled in, named rather than implied.
+ *
+ * These dialogs make almost everything optional on purpose — a release is
+ * filled in over weeks as a label supplies it — so the two or three fields
+ * that are not optional have to say which they are. A disabled button with
+ * no explanation is a guessing game.
+ */
+.required {
+  @include readout(8px);
+  color: var(--ch-accent-bright);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+
+.fieldHint {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+// A stamped field rather than a pill. Square corners everywhere: one rounded
+// object would be the only soft thing on the page, which the brief rules out.
+.chip {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+    background: var(--ch-surface-raised);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.footnote {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+.error {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  border-left: 2px solid var(--ch-crimson-500);
+  padding-left: space(3);
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: space(3);
+  padding: space(4) space(5);
+  @include hairline(top, 0.1);
+}

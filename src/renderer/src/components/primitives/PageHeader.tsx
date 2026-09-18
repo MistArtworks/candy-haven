@@ -8,6 +8,21 @@ export interface PageHeaderProps {
   index: number
   label: string
   purpose: string
+  /**
+   * What kind of thing this page is about, as a chip beside the label.
+   *
+   * Added for the OBSERVATORY overlay pages, where the label is an in-world
+   * title that deliberately says nothing about function — `THE CONCORD`,
+   * `THE MUSTER`, `CONVENING`. The chip is the shortest true answer to "what is
+   * this", and it matches the one on the desk's board so the two surfaces name
+   * the same thing the same way.
+   *
+   * Optional and absent by default, so no existing masthead changes. Use it
+   * across a whole family of pages or not at all — one chipped masthead among a
+   * department's pages reads as an oversight rather than as emphasis, which is
+   * the same rule `Panel.icon` carries.
+   */
+  kind?: string
   /** Flavour line from the world brief, set beneath the rule. */
   epigraph?: string
   /** Right-aligned actions or status. */
@@ -32,6 +47,7 @@ export function PageHeader({
   index,
   label,
   purpose,
+  kind,
   epigraph,
   actions,
   guideId
@@ -42,7 +58,10 @@ export function PageHeader({
         <div className={styles.identity}>
           <span className={styles.index}>{formatIndex(index)}</span>
           <div>
-            <h1 className={styles.label}>{label}</h1>
+            <div className={styles.titleRow}>
+              <h1 className={styles.label}>{label}</h1>
+              {kind ? <span className={styles.kind}>{kind}</span> : null}
+            </div>
             <p className={styles.purpose}>{purpose}</p>
           </div>
         </div>

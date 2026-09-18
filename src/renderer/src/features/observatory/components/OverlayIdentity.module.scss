@@ -1,0 +1,119 @@
+@use 'abstracts' as *;
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.lead {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  align-items: flex-start;
+}
+
+/*
+ * The kind chip.
+ *
+ * Brushed gold on a raised surface, which is the console's existing treatment
+ * for a fact about an object rather than a control on it — the same register as
+ * a panel index. Deliberately not crimson: crimson is reserved for live state
+ * and focal points, and "this is a chat vote" is true whether or not anything
+ * is happening.
+ */
+.role {
+  @include label(8px, 0.22em);
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line-gold);
+  padding: space(1) space(3);
+}
+
+/*
+ * The plain sentence, at body weight and full brightness.
+ *
+ * Primary text rather than secondary, which is the actual change from the old
+ * card: the purpose used to be drawn in `--ch-text-secondary` with the epigraph
+ * immediately beneath it in the same size, so the two read as a matched pair of
+ * captions. They are not a pair — one is what the thing does and the other is
+ * atmosphere.
+ */
+.purpose {
+  @include readout(12px);
+  color: var(--ch-text-primary);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 62ch;
+}
+
+// ------------------------------------------------------------------- steps
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.stepsLabel {
+  @include label(7px, 0.2em);
+  color: var(--ch-text-faint);
+}
+
+.stepList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.step {
+  display: grid;
+  grid-template-columns: rem(22px) minmax(0, 1fr);
+  gap: space(2);
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+
+  // The command words inside a step — `!add`, `!vote 2` — are the one piece of
+  // literal syntax on the bench, and an audience is going to be told to type
+  // them. Monospace is how the rest of the console prints a literal.
+  code {
+    font-family: var(--ch-font-mono);
+    color: var(--ch-gold-300);
+  }
+}
+
+.stepIndex {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// ------------------------------------------------------------------ epigraph
+
+/*
+ * The world's voice, last and faint.
+ *
+ * Quoted rather than ruled. The old card gave it a left border, which is the
+ * console's mark for "this is a reading" — and lent it the authority of one.
+ * Quote marks say the opposite thing, which is the correct thing: it is a line
+ * from somewhere else.
+ */
+.epigraph {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  font-style: italic;
+  line-height: 1.6;
+  margin: 0;
+  margin-top: space(-1);
+
+  &::before {
+    content: '\201C';
+  }
+
+  &::after {
+    content: '\201D';
+  }
+}

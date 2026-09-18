@@ -1,7 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { OVERLAYS } from '@shared/domain/overlays'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
@@ -9,6 +8,8 @@ import { Slider } from '@renderer/components/primitives/Slider'
 import { Checkbox, SelectInput, TextInput } from '@renderer/components/primitives/Input'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { gridVariants } from '@renderer/motion/transitions'
+import { useCopy } from '@renderer/hooks/useCopy'
+import { kitEntry, kitNumber } from '../lib/kit'
 import {
   CHORUS_ACCENTS,
   CHORUS_DEFAULTS,
@@ -39,8 +40,9 @@ import styles from './ChorusPage.module.scss'
  * be wrong the moment they edited the other.
  */
 export function ChorusPage(): ReactNode {
+  const entry = kitEntry('chorus')
   const [config, setConfig] = useState<ChorusConfig>(CHORUS_DEFAULTS)
-  const [copied, setCopied] = useState<string | null>(null)
+  const copier = useCopy()
   // Bumping this remounts the frame, which replays the entrance animations —
   // the motion is the part hardest to judge from a still.
   const [replay, setReplay] = useState(0)
@@ -54,13 +56,6 @@ export function ChorusPage(): ReactNode {
   const html = useMemo(() => chorusHtml(), [])
   const fields = useMemo(() => chorusFields(), [])
   const preview = useMemo(() => chorusPreviewDocument(config), [config])
-
-  const copy = (key: string, value: string): void => {
-    void navigator.clipboard.writeText(value).then(() => {
-      setCopied(key)
-      setTimeout(() => setCopied(null), 1600)
-    })
-  }
 
   const artefacts = [
     { key: 'html', label: 'HTML', hint: 'Layout and the chat item template', body: html },
@@ -82,14 +77,15 @@ export function ChorusPage(): ReactNode {
   return (
     <div className={styles.page}>
       <PageHeader
-        index={OVERLAYS.length + 1}
-        label="THE CHORUS"
-        purpose="Chat as an institutional register, for the Streamlabs chat widget"
-        epigraph="Many forms, one song."
+        index={kitNumber('chorus')}
+        label={entry.label}
+        kind={entry.role}
+        purpose={entry.purpose}
+        epigraph={entry.epigraph}
         actions={
           <div className={styles.headerActions}>
             <Link to="/observatory" className={styles.back}>
-              Catalogue
+              ← The desk
             </Link>
             <StatusDot tone="pending" label="Pasted, not served" />
           </div>
@@ -265,8 +261,12 @@ export function ChorusPage(): ReactNode {
                   <span className={styles.artefactLabel}>{artefact.label}</span>
                   <span className={styles.artefactRule} aria-hidden="true" />
                   <span className={styles.artefactHint}>{artefact.hint}</span>
-                  <Button size="sm" onClick={() => copy(artefact.key, artefact.body)}>
-                    {copied === artefact.key ? 'Copied' : 'Copy'}
+                  <Button size="sm" onClick={() => copier.copy(artefact.key, artefact.body)}>
+                    {copier.failed === artefact.key
+                      ? 'Blocked'
+                      : copier.copied === artefact.key
+                        ? 'Copied'
+                        : 'Copy'}
                   </Button>
                 </header>
                 <pre className={styles.code}>{artefact.body}</pre>

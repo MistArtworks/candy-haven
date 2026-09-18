@@ -1,22 +1,18 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import type { MusterDestination, MusterState } from '@shared/domain/muster'
+import type { MusterState } from '@shared/domain/muster'
 import {
-  DURATION_MAX_MS,
-  DURATION_MIN_MS,
   LINGER_MAX_MS,
   LINGER_MIN_MS,
   MAX_ENTRIES,
-  MAX_ENTRY_LENGTH,
-  MAX_PROMPT_LENGTH,
   MUSTER_PHASE_LABEL,
   PER_CITIZEN_MAX,
   PER_CITIZEN_MIN,
-  createEmptyMusterState,
   fileInstruction
 } from '@shared/domain/muster.constants'
-import { getOverlay, overlayAddressUrl, overlayAddresses } from '@shared/domain/overlays'
+import { getOverlay } from '@shared/domain/overlays'
+import { PRESENTATION_LIMITS } from '@shared/domain/presentation'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
@@ -29,27 +25,58 @@ import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { gridVariants } from '@renderer/motion/transitions'
+import { useCopy } from '@renderer/hooks/useCopy'
 import { useOverlayInfo } from '@renderer/hooks/useRite'
+import { useMusterState } from '@renderer/hooks/useMuster'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { MusterFace } from '@renderer/muster/muster-renderer'
-import styles from './MusterPage.module.scss'
+import { AddressList } from '../../components/AddressList'
+import { OverlayBench } from '../../components/OverlayBench'
+import { OverlayVerbs } from '../../components/OverlayVerbs'
 import { PresentationControls } from '../../components/PresentationControls'
-import { PRESENTATION_LIMITS } from '@shared/domain/presentation'
+import { addressRowsFor } from '../../lib/addresses'
+import { kitEntry, kitNumber } from '../../lib/kit'
+import {
+  actionsFor,
+  composerFor,
+  dialsFor,
+  soloDeck,
+  statusFor,
+  useCountdownClock,
+  useDeckRunner
+} from '../../lib/deck'
+import styles from './MusterPage.module.scss'
 
 /**
  * THE MUSTER — host surface.
  *
- * The operator puts a question, chat files against it, and the roll is handed
- * on when the call closes. This page is where the call is run: put it, watch
- * it fill, close it, send it.
+ * Laid out on the kit's standing shape, which every overlay page now follows:
+ * `01` the live object as the one focal panel, `02` the controls that run it,
+ * then that overlay's own composition, then presentation, then the addresses,
+ * then the simulator last.
  *
- * The roll is the focal object rather than the preview, which is a departure
- * from the other overlay pages and the right one — during a call the operator
- * is reading entries and deciding whether to cut one, not admiring the
- * composition. The preview sits beside it.
+ * Two things follow from that and are worth stating, because both were true of
+ * this page before and neither is any more.
+ *
+ * **The controls in `02` are the desk's.** `OverlayBench` is the same component
+ * the OBSERVATORY desk draws, reading the same `actionsFor` / `composerFor` /
+ * `dialsFor`. This page used to own a second implementation of the call's title
+ * and question — two text fields, two commit paths, two sets of limits, for one
+ * setting. There is now one, and a limit gained anywhere is gained everywhere.
+ *
+ * **The simulator is last, so every index above it is a literal.** It was `06`
+ * or `07` depending on whether rehearsal mode was on, and the two panels below
+ * it renumbered themselves under a setting in REGULATION.
+ *
+ * The roll stays the focal object rather than the face, which is a departure
+ * from the rest of the kit and the right one: during a call the operator is
+ * reading entries and deciding whether to cut one, not judging the composition.
+ * The face sits beside it in the same panel.
  */
 export function MusterPage(): ReactNode {
   const overlay = getOverlay('muster')
+  const entry = kitEntry('muster')
+
   const server = useOverlayInfo()
   const settings = useSettings()
   /*
@@ -62,88 +89,60 @@ export function MusterPage(): ReactNode {
    */
   const testMode = settings?.workspace.testMode ?? false
 
-  const [state, setState] = useState<MusterState>(createEmptyMusterState)
-  const [copied, setCopied] = useState<string | null>(null)
-  const [busy, setBusy] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
-  const [draft, setDraft] = useState('')
-  const [question, setQuestion] = useState('')
-
-  useEffect(() => {
-    let alive = true
-    void window.candy.muster.state().then((next) => {
-      if (alive) setState(next)
-    })
-    const unsubscribe = window.candy.muster.onState(setState)
-    return () => {
-      alive = false
-      unsubscribe()
-    }
-  }, [])
-
-  /**
-   * Every action funnels through here.
-   *
-   * One place that reports a refusal, because the service refuses several
-   * things on purpose — a call without a channel, an entry onto a full roll,
-   * a hand-off of an empty one — and each of those is worth saying rather
-   * than swallowing.
-   */
-  const run = async (key: string, action: () => Promise<unknown>): Promise<void> => {
-    setBusy(key)
-    try {
-      await action()
-      setNotice(null)
-    } catch (cause) {
-      const failure = cause as Error & { hint?: string | null }
-      setNotice(failure.hint ? `${failure.message} ${failure.hint}` : failure.message)
-    } finally {
-      setBusy((current) => (current === key ? null : current))
-    }
-  }
+  const state = useMusterState()
+  const runner = useDeckRunner()
+  const copier = useCopy()
 
   const config = state.config
   const open = state.phase === 'open'
 
-  // Owned locally while being typed into; see `useEchoedText`. Bound straight
-  // to the pushed state these would drop characters at speed.
-  const [title, setTitle] = useEchoedText(
-    config.title,
-    (value) => void window.candy.muster.configure({ title: value })
+  const channel = (settings?.integrations.twitchChannel ?? '').trim()
+
+  /*
+   * One overlay's worth of deck. See `soloDeck`: this page must not mount
+   * `useOverlayDeck`, which claims the chat socket and starts the Spotify poll
+   * for a page that has nothing to do with either.
+   */
+  const deck = useMemo(
+    () =>
+      soloDeck({
+        owner: 'muster',
+        muster: state,
+        server,
+        settings,
+        chatReady: channel.length > 0 || testMode
+      }),
+    [state, server, settings, channel, testMode]
   )
-  const [prompt, setPrompt] = useEchoedText(
-    config.prompt,
-    (value) => void window.candy.muster.configure({ prompt: value })
-  )
+
+  // Ticks only while a timed call is running, for the `02:40 left` in the
+  // status line. A call with no clock leaves this idle.
+  const now = useCountdownClock(open && state.closesAt !== null)
+  const status = statusFor('muster', deck, now)
+
+  const actions = actionsFor('muster', deck)
+  /*
+   * The hand-off gets its own panel here, and the verb row gets the rest.
+   *
+   * Selected on the key prefix, which `DeckAction.key` documents as fair game
+   * for exactly this: the hand-off is the point of the whole department and it
+   * carries a real trade-off worth a sentence of prose — the chamber takes ten
+   * and the ring takes rather more — which does not fit in a button row. It is
+   * still one implementation; this page only lays the same actions out
+   * differently from the desk, which has no room for the prose.
+   */
+  const handoff = actions.filter((action) => action.key.startsWith('muster:handoff'))
+  const running = actions.filter((action) => !action.key.startsWith('muster:handoff'))
+
   const [command, setCommand] = useEchoedText(
     config.command,
     (value) => void window.candy.muster.configure({ command: value })
   )
 
-  const addresses = overlayAddresses(overlay)
-
-  const copy = (slug: string, url: string): void => {
-    void navigator.clipboard.writeText(url).then(() => {
-      setCopied(slug)
-      setTimeout(() => setCopied((current) => (current === slug ? null : current)), 1600)
-    })
-  }
-
-  const handoff = (destination: MusterDestination): void => {
-    void run('handoff', async () => {
-      const result = await window.candy.muster.handoff({ destination, clear: false })
-      setNotice(
-        result.dropped > 0
-          ? `Sent ${result.sent}. ${result.dropped} did not fit and stayed on the roll.`
-          : `Sent ${result.sent}.`
-      )
-    })
-  }
-
   const hotkeys = useMemo<Hotkey[]>(
     () => [
       /*
-       * Put and close are two chords now, not one that toggles.
+       * Put and close are two chords, not one that toggles.
        *
        * `Ctrl+Enter` did both, and it fires while typing — which is right for
        * putting a call, since the question is typed and then put without
@@ -159,7 +158,15 @@ export function MusterPage(): ReactNode {
         group: 'The Muster',
         whileTyping: true,
         disabled: open,
-        run: () => void run('call', () => window.candy.muster.open(question))
+        /*
+         * Empty, so the service falls back to the standing question.
+         *
+         * This chord used to carry a `question` field that lived only on this
+         * page, separate from the stored `prompt` the overlay actually draws.
+         * That was the duplication: two questions, one broadcast. There is now
+         * one field, in `02`, and it is the stored one.
+         */
+        run: () => void window.candy.muster.open('')
       },
       {
         chord: 'ctrl+shift+enter',
@@ -167,7 +174,7 @@ export function MusterPage(): ReactNode {
         group: 'The Muster',
         whileTyping: true,
         disabled: !open,
-        run: () => void run('call', () => window.candy.muster.close())
+        run: () => void window.candy.muster.close()
       },
       /*
        * Clearing is off `Ctrl+Backspace`, and off the typing path entirely.
@@ -184,13 +191,10 @@ export function MusterPage(): ReactNode {
         label: 'Clear the roll',
         group: 'The Muster',
         disabled: state.phase === 'idle' && state.entries.length === 0,
-        run: () => void run('reset', () => window.candy.muster.reset())
+        run: () => void window.candy.muster.reset()
       }
     ],
-    // `run` is redefined each render and depending on it would rebuild the
-    // list every keystroke; the values it closes over are all here.
-
-    [open, question, state.phase, state.entries.length]
+    [open, state.phase, state.entries.length]
   )
 
   useHotkeys(hotkeys)
@@ -198,28 +202,32 @@ export function MusterPage(): ReactNode {
   return (
     <div className={styles.page}>
       <PageHeader
-        index={overlay.order + 1}
+        index={kitNumber('muster')}
         label={overlay.label}
+        kind={overlay.role}
         purpose={overlay.purpose}
         epigraph={overlay.epigraph}
         actions={
           <div className={styles.headerActions}>
             <Link to="/observatory" className={styles.back}>
-              Catalogue
+              ← The desk
             </Link>
             <StatusDot
-              tone={open ? 'online' : state.entries.length > 0 ? 'pending' : 'offline'}
+              tone={status.tone}
               label={MUSTER_PHASE_LABEL[state.phase]}
-              pulse={open}
+              pulse={status.pulse}
             />
           </div>
         }
       />
 
-      {notice ? (
-        <div className={styles.notice} role="alert">
-          <span>{notice}</span>
-          <button type="button" className={styles.dismiss} onClick={() => setNotice(null)}>
+      {runner.error || runner.report ? (
+        <div
+          className={runner.error ? styles.notice : styles.report}
+          role={runner.error ? 'alert' : 'status'}
+        >
+          <span>{runner.error ?? runner.report}</span>
+          <button type="button" className={styles.dismiss} onClick={runner.dismiss}>
             Dismiss
           </button>
         </div>
@@ -232,14 +240,17 @@ export function MusterPage(): ReactNode {
         animate="animate"
       >
         {/*
-          The roll is the focal object, not the preview. During a call the
-          operator is reading entries and deciding whether to cut one.
+          01 — the roll and the face, side by side in one panel.
+          One panel rather than two so `02` is the controls on every page in the
+          kit: the position is meant to be learnable, and a page that put its
+          preview there would break that for the one overlay whose focal object
+          is a list.
         */}
         <Panel
           label="The roll"
           index="01"
           focal
-          className={styles.rollPanel}
+          className={styles.span6}
           aside={
             <span className={styles.count}>
               {state.entries.length} / {config.maxEntries} · {state.citizens} citizen
@@ -248,146 +259,93 @@ export function MusterPage(): ReactNode {
             </span>
           }
         >
-          <div className={styles.roll}>
-            <div className={styles.callRow}>
-              <TextInput
-                label="Put the question"
-                value={question}
-                onChange={setQuestion}
-                maxLength={MAX_PROMPT_LENGTH}
-                placeholder={config.prompt}
-                className={styles.callField}
-                disabled={open}
-              />
-              <Button
-                variant="primary"
-                busy={busy === 'call'}
-                onClick={() =>
-                  void run('call', () =>
-                    open ? window.candy.muster.close() : window.candy.muster.open(question)
-                  )
-                }
-              >
-                {open ? 'Close the call' : 'Put the call'}
-              </Button>
-              <Button
-                disabled={state.phase === 'idle' && state.entries.length === 0}
-                busy={busy === 'reset'}
-                onClick={() => void run('reset', () => window.candy.muster.reset())}
-              >
-                Clear
-              </Button>
+          <div className={styles.rollBody}>
+            <div className={styles.roll}>
+              {open ? (
+                <p className={styles.hint}>
+                  Chat files with <code className={styles.inline}>!{config.command} anything</code>.{' '}
+                  {/* Whether the call is timed is a property of the state, not
+                      of the clock — asking the clock during render is impure
+                      and would also be the wrong question. */}
+                  {state.closesAt === null
+                    ? 'The call stays open until you close it.'
+                    : 'The clock is running.'}
+                </p>
+              ) : null}
+
+              {state.entries.length === 0 ? (
+                <p className={styles.empty}>
+                  {open ? 'Nothing filed yet.' : 'No roll. Put a call to start one.'}
+                </p>
+              ) : (
+                <ol className={styles.entries}>
+                  {state.entries.map((item, index) => (
+                    <li key={item.id} className={styles.entry}>
+                      <span className={styles.entryIndex}>
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <span className={styles.entryText}>{item.text}</span>
+                      <span className={styles.entryAuthor}>{item.author}</span>
+                      <button
+                        type="button"
+                        className={styles.strike}
+                        title="Strike this entry from the roll"
+                        aria-label={`Strike ${item.text}`}
+                        onClick={() =>
+                          void runner.run({
+                            key: `muster:remove:${item.id}`,
+                            label: 'Strike',
+                            run: () => window.candy.muster.remove(item.id)
+                          })
+                        }
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
 
-            {open ? (
-              <p className={styles.hint}>
-                Chat files with <code className={styles.inline}>!{config.command} anything</code>.{' '}
-                {/* Whether the call is timed is a property of the state, not
-                    of the clock — asking the clock during render is impure and
-                    would also be the wrong question. */}
-                {state.closesAt === null
-                  ? 'The call stays open until you close it.'
-                  : 'The clock is running.'}
-              </p>
-            ) : null}
-
-            {state.entries.length === 0 ? (
-              <p className={styles.empty}>
-                {open ? 'Nothing filed yet.' : 'No roll. Put a question to start a call.'}
-              </p>
-            ) : (
-              <ol className={styles.entries}>
-                {state.entries.map((entry, index) => (
-                  <li key={entry.id} className={styles.entry}>
-                    <span className={styles.entryIndex}>{String(index + 1).padStart(2, '0')}</span>
-                    <span className={styles.entryText}>{entry.text}</span>
-                    <span className={styles.entryAuthor}>{entry.author}</span>
-                    <button
-                      type="button"
-                      className={styles.strike}
-                      title="Strike this entry from the roll"
-                      aria-label={`Strike ${entry.text}`}
-                      onClick={() => void run('remove', () => window.candy.muster.remove(entry.id))}
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            )}
-
-            {/*
-              The operator filing directly. Useful for seeding a roll before a
-              call and for adding something said out loud rather than typed.
-            */}
-            <div className={styles.addRow}>
-              <TextInput
-                label="File one yourself"
-                value={draft}
-                onChange={setDraft}
-                maxLength={MAX_ENTRY_LENGTH}
-                placeholder="Anything"
-                className={styles.callField}
-                onEnter={() => {
-                  if (!draft.trim()) return
-                  void run('add', () => window.candy.muster.add({ text: draft, author: '' }))
-                  setDraft('')
-                }}
-              />
-              <Button
-                disabled={!draft.trim()}
-                busy={busy === 'add'}
-                onClick={() => {
-                  void run('add', () => window.candy.muster.add({ text: draft, author: '' }))
-                  setDraft('')
-                }}
-              >
-                File
-              </Button>
-            </div>
+            <FacePreview state={state} />
           </div>
         </Panel>
 
-        <Panel label="Face" index="02" className={styles.facePanel}>
-          <FacePreview state={state} />
+        {/* 02 — the desk's own controls, on the overlay's page. */}
+        <Panel label="Run the call" index="02" className={styles.span3}>
+          <OverlayBench
+            entry={entry}
+            status={status}
+            actions={running}
+            composer={composerFor('muster', deck)}
+            dials={dialsFor('muster', deck)}
+            rows={[]}
+            copier={copier}
+            runner={runner}
+            variant="page"
+          />
         </Panel>
 
         {/*
-          The point of the whole department: entries arrive as people and leave
-          as options. A roll longer than the destination allows is truncated
-          rather than refused, and the count that went is reported back.
+          03 — the point of the whole department: entries arrive as people and
+          leave as options. A roll longer than the destination allows is
+          truncated rather than refused, and the count that went is reported
+          back through the runner's notice.
         */}
-        <Panel label="Hand on" index="03" className={styles.span2}>
+        <Panel label="Hand on" index="03" className={styles.span3}>
           <div className={styles.handoff}>
             <p className={styles.hint}>
               Send the roll to the ring to be drawn from, to the chamber to be voted on, or both — a
               roll can be voted down to a shortlist and the shortlist then drawn. The chamber takes
               ten; the ring takes rather more.
             </p>
-            <div className={styles.handoffActions}>
-              <Button
-                disabled={state.entries.length === 0}
-                busy={busy === 'handoff'}
-                onClick={() => handoff('selection')}
-              >
-                To the ring
-              </Button>
-              <Button
-                disabled={state.entries.length === 0}
-                busy={busy === 'handoff'}
-                onClick={() => handoff('concord')}
-              >
-                To the chamber
-              </Button>
-              <Button
-                variant="primary"
-                disabled={state.entries.length === 0}
-                busy={busy === 'handoff'}
-                onClick={() => handoff('both')}
-              >
-                To both
-              </Button>
-            </div>
+
+            <OverlayVerbs actions={handoff} runner={runner} />
+
+            {handoff.length === 0 ? (
+              <p className={styles.empty}>Nothing on the roll to hand on yet.</p>
+            ) : null}
+
             <FieldGrid columns={2}>
               <Field label="On the roll" value={state.entries.length} mono />
               <Field label="Filed by" value={`${state.citizens}`} mono />
@@ -395,36 +353,18 @@ export function MusterPage(): ReactNode {
           </div>
         </Panel>
 
-        <Panel label="The call" index="04" className={styles.span2}>
+        {/*
+          04 — what is set once and then printed on the broadcast forever.
+          The call's *length* is not here: it changes per call, so it is a dial
+          on `02`. See `dialsFor` for that split.
+        */}
+        <Panel label="The call" index="04" className={styles.span3}>
           <div className={styles.config}>
-            <TextInput label="Title" value={title} onChange={setTitle} placeholder="THE MUSTER" />
-            <TextInput
-              label="Standing question"
-              value={prompt}
-              onChange={setPrompt}
-              maxLength={MAX_PROMPT_LENGTH}
-              hint="Used when a call is put without one of its own."
-            />
             <TextInput
               label="Command"
               value={command}
               onChange={setCommand}
               hint={`Chat files with !${config.command}. ${fileInstruction(config)}`}
-            />
-
-            <Slider
-              label="Call runs for"
-              min={0}
-              max={DURATION_MAX_MS}
-              step={15_000}
-              value={config.durationMs}
-              readout={
-                config.durationMs === 0
-                  ? 'Until closed'
-                  : `${Math.round(config.durationMs / 1000)}s`
-              }
-              onChange={(durationMs) => void window.candy.muster.configure({ durationMs })}
-              hint={`Zero means until you close it. Otherwise between ${DURATION_MIN_MS / 1000}s and ${DURATION_MAX_MS / 60_000} minutes.`}
             />
 
             <Slider
@@ -462,7 +402,7 @@ export function MusterPage(): ReactNode {
           </div>
         </Panel>
 
-        <Panel label="Presentation" index="05" className={styles.span2}>
+        <Panel label="Presentation" index="05" className={styles.span3}>
           <div className={styles.config}>
             <PresentationControls
               values={config}
@@ -497,101 +437,65 @@ export function MusterPage(): ReactNode {
               />
             </PresentationControls>
 
-            <div className={styles.toggles}>
-              <Checkbox
-                label="Credit each entry"
-                checked={config.showAuthors}
-                onChange={(showAuthors) => void window.candy.muster.configure({ showAuthors })}
-              />
-              <Checkbox
-                label="Show the instruction"
-                checked={config.showInstruction}
-                onChange={(showInstruction) =>
-                  void window.candy.muster.configure({ showInstruction })
-                }
-                hint="An audience cannot file in a syntax nobody told them."
-              />
-              <Checkbox
-                label="Show the count"
-                checked={config.showCount}
-                onChange={(showCount) => void window.candy.muster.configure({ showCount })}
-              />
-              <Checkbox
-                label="Draw the resonance field"
-                checked={config.showField}
-                onChange={(showField) => void window.candy.muster.configure({ showField })}
-                hint="A node per entry, joined where they are close. Each filing arrives as a flare."
-              />
-              <Checkbox
-                label="Composite over the scene"
-                checked={config.transparent}
-                onChange={(transparent) => void window.candy.muster.configure({ transparent })}
-                hint="Drops the backdrop. Tick Transparent on the OBS source too."
-              />
+            {/*
+              Grouped rather than one flat column of five.
+              What is *drawn* and how it is *laid out* are two questions, and a
+              single stack of checkboxes made the operator read all five to
+              find either.
+            */}
+            <div className={styles.switchGroup}>
+              <span className={styles.switchLabel}>What is drawn</span>
+              <div className={styles.toggles}>
+                <Checkbox
+                  label="Credit each entry"
+                  checked={config.showAuthors}
+                  onChange={(showAuthors) => void window.candy.muster.configure({ showAuthors })}
+                />
+                <Checkbox
+                  label="Show the count"
+                  checked={config.showCount}
+                  onChange={(showCount) => void window.candy.muster.configure({ showCount })}
+                />
+                <Checkbox
+                  label="Draw the resonance field"
+                  checked={config.showField}
+                  onChange={(showField) => void window.candy.muster.configure({ showField })}
+                  hint="A node per entry, joined where they are close. Each filing arrives as a flare."
+                />
+              </div>
             </div>
 
-            <Slider
-              label="Reserve at the right"
-              min={0}
-              max={60}
-              step={1}
-              value={Math.round(config.reserveRight * 100)}
-              readout={`${Math.round(config.reserveRight * 100)}%`}
-              onChange={(percent) =>
-                void window.candy.muster.configure({ reserveRight: percent / 100 })
-              }
-              hint="Nothing is drawn into this band, so a camera or a chat panel can be composited there."
-            />
+            <div className={styles.switchGroup}>
+              <span className={styles.switchLabel}>Layout</span>
+              <div className={styles.toggles}>
+                <Checkbox
+                  label="Composite over the scene"
+                  checked={config.transparent}
+                  onChange={(transparent) => void window.candy.muster.configure({ transparent })}
+                  hint="Drops the backdrop. Tick Transparent on the OBS source too."
+                />
+              </div>
+
+              <Slider
+                label="Reserve at the right"
+                min={0}
+                max={60}
+                step={1}
+                value={Math.round(config.reserveRight * 100)}
+                readout={`${Math.round(config.reserveRight * 100)}%`}
+                onChange={(percent) =>
+                  void window.candy.muster.configure({ reserveRight: percent / 100 })
+                }
+                hint="Nothing is drawn into this band, so a camera or a chat panel can be composited there."
+              />
+            </div>
           </div>
         </Panel>
 
-        {/*
-          A chamber, without a chamber.
-        */}
-        {testMode ? (
-          <Panel label="Simulator" index="06" className={styles.span2}>
-            <div className={styles.simulator}>
-              <p className={styles.hint}>
-                Files synthetic entries through the real chat command, the real per-citizen ledger
-                and the real duplicate rule — not straight onto the roll, or it would prove nothing.
-              </p>
-              <div className={styles.simulatorRow}>
-                {[8, 20, 60].map((count) => (
-                  <Button
-                    key={count}
-                    size="sm"
-                    variant="ghost"
-                    disabled={!open}
-                    busy={busy === 'simulate'}
-                    onClick={() => void run('simulate', () => window.candy.muster.simulate(count))}
-                  >
-                    +{count}
-                  </Button>
-                ))}
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={!open}
-                busy={busy === 'simulate'}
-                onClick={() => void run('simulate', () => window.candy.muster.simulate(10, true))}
-              >
-                10 from one citizen
-              </Button>
-              <p className={styles.hint}>
-                The second files everything as one person, so the roll should stop at the
-                per-citizen limit while the messages keep arriving — and the count beside the roll
-                should hold at one citizen.
-              </p>
-              {!open ? <p className={styles.hint}>Put the call first.</p> : null}
-            </div>
-          </Panel>
-        ) : null}
-
         <Panel
-          label="Broadcast sources"
-          index={testMode ? '07' : '06'}
-          className={styles.wide}
+          label="Broadcast"
+          index="06"
+          className={styles.span6}
           aside={
             <StatusDot
               tone={server.running ? 'online' : 'error'}
@@ -605,50 +509,79 @@ export function MusterPage(): ReactNode {
               and the latest filings. Both can run at once.
             </p>
 
-            {addresses.map((address) => (
-              <div key={address.slug} className={styles.address}>
-                <div className={styles.addressHead}>
-                  <span className={styles.addressLabel}>{address.label}</span>
-                  <span className={styles.addressSize}>
-                    {address.canvas.width} × {address.canvas.height}
-                  </span>
-                </div>
-                <p className={styles.addressPurpose}>{address.purpose}</p>
-                {server.url ? (
-                  <>
-                    <code className={styles.url}>
-                      {overlayAddressUrl(server.url, address.slug)}
-                    </code>
-                    <div className={styles.addressActions}>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          copy(address.slug, overlayAddressUrl(server.url as string, address.slug))
-                        }
-                      >
-                        {copied === address.slug ? 'Copied' : 'Copy address'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          void window.candy.shell.openExternal(
-                            overlayAddressUrl(server.url as string, address.slug)
-                          )
-                        }
-                      >
-                        Preview
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <p className={styles.hint}>{server.error ?? 'The overlay server is offline.'}</p>
-                )}
-              </div>
-            ))}
+            {/*
+              The shared list, rather than this page's own copy of it.
+              Eight overlay pages had hand-rolled the same markup with the copy
+              handler rewritten each time, and none of them noticed a clipboard
+              write the OS refused — so a blocked copy read as a button that did
+              nothing at all. `useCopy` reports that as `Blocked`.
+            */}
+            <AddressList
+              rows={addressRowsFor(overlay, server.url)}
+              copied={copier.copied}
+              failed={copier.failed}
+              onCopy={copier.copy}
+              offline={server.error ?? 'The overlay server is offline.'}
+            />
           </div>
         </Panel>
+
+        {/*
+          Last, and last on every page in the kit, so that the indices above it
+          are literals. It was `06` with two panels renumbering themselves
+          beneath it whenever rehearsal mode was switched on.
+        */}
+        {testMode ? (
+          <Panel label="Simulator" index="07" className={styles.span6}>
+            <div className={styles.simulator}>
+              <p className={styles.hint}>
+                Files synthetic entries through the real chat command, the real per-citizen ledger
+                and the real duplicate rule — not straight onto the roll, or it would prove nothing.
+              </p>
+              <div className={styles.simulatorRow}>
+                {[8, 20, 60].map((count) => (
+                  <Button
+                    key={count}
+                    size="sm"
+                    variant="ghost"
+                    disabled={!open}
+                    busy={runner.pending === `muster:simulate:${count}`}
+                    onClick={() =>
+                      void runner.run({
+                        key: `muster:simulate:${count}`,
+                        label: `+${count}`,
+                        run: () => window.candy.muster.simulate(count)
+                      })
+                    }
+                  >
+                    +{count}
+                  </Button>
+                ))}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!open}
+                  busy={runner.pending === 'muster:simulate:one'}
+                  onClick={() =>
+                    void runner.run({
+                      key: 'muster:simulate:one',
+                      label: '10 from one citizen',
+                      run: () => window.candy.muster.simulate(10, true)
+                    })
+                  }
+                >
+                  10 from one citizen
+                </Button>
+              </div>
+              <p className={styles.hint}>
+                The second files everything as one person, so the roll should stop at the
+                per-citizen limit while the messages keep arriving — and the count beside the roll
+                should hold at one citizen.
+              </p>
+              {!open ? <p className={styles.empty}>Put the call first.</p> : null}
+            </div>
+          </Panel>
+        ) : null}
       </motion.div>
     </div>
   )

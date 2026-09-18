@@ -1,51 +1,13 @@
 @use 'abstracts' as *;
+@use '../page';
 
-.page {
-  padding: space(10) space(10) space(12);
-  max-width: 1560px;
-  margin: 0 auto;
-}
+// THE GATE and THE SURVEY — one host surface, two fields.
+@include page.chrome;
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: space(5);
-  align-items: stretch;
-}
-
-// Explicit spans, never positional nth-child rules.
-.scenePanel,
-.span6 {
+// `scenePanel` is kept as the scene's own alias for a full-width row: the panel
+// is named for what it holds rather than for how wide it is.
+.scenePanel {
   grid-column: span 6;
-}
-
-.span3 {
-  grid-column: span 3;
-}
-
-@include below('lg') {
-  .span3 {
-    grid-column: span 6;
-  }
-}
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: space(4);
-}
-
-.back {
-  @include label(8px, 0.18em);
-  color: var(--ch-text-secondary);
-  text-decoration: none;
-  border: $hairline solid var(--ch-line);
-  padding: space(2) space(3);
-
-  &:hover {
-    color: var(--ch-gold-300);
-    border-color: var(--ch-line-gold);
-  }
 }
 
 // ----------------------------------------------------------- the real scene
@@ -156,32 +118,5 @@
   border-top: $hairline solid var(--ch-line);
 }
 
-.hint {
-  @include readout(11px);
-  color: var(--ch-text-secondary);
-  line-height: 1.6;
 
-  strong {
-    color: var(--ch-gold-300);
-    font-weight: 400;
-  }
-}
 
-.url {
-  @include readout(12px);
-  display: block;
-  color: var(--ch-gold-300);
-  background: var(--ch-surface-sunken);
-  border: $hairline solid var(--ch-line-gold);
-  padding: space(2) space(3);
-  margin: space(4) 0;
-  width: 100%;
-  user-select: all;
-  word-break: break-all;
-}
-
-.broadcastActions {
-  display: flex;
-  gap: space(2);
-  flex-wrap: wrap;
-}

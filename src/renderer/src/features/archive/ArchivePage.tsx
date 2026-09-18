@@ -28,9 +28,6 @@ import {
   allowedChildKinds,
   isFolderLens
 } from '@shared/domain/stacks.constants'
-import type { DeliverableKind } from '@shared/domain/releases'
-import type { VolumeKind, VolumeSummary } from '@shared/domain/volumes'
-import { VOLUME_KIND_LABEL } from '@shared/domain/volumes.constants'
 import { PROJECT_CATEGORY_LABEL, PROJECT_VIEW_MODES } from '@shared/domain/projects.constants'
 import { getSection } from '@shared/domain/navigation'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
@@ -41,9 +38,7 @@ import { formatBytes } from '@renderer/lib/format'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useProjectMutations, useProjectRegistry, useScanState } from '@renderer/hooks/useProjects'
 import { useArchiveSetup, useStacksMutations, useStacksTree } from '@renderer/hooks/useStacks'
-import { useVolumeMutations, useVolumes } from '@renderer/hooks/useVolumes'
 import { useTagMutations } from '@renderer/hooks/useTags'
-import { useReleaseMutations, useReleases } from '@renderer/hooks/useReleases'
 import { RegisterControls, type RegisterFilters } from './components/RegisterControls'
 import { ProjectListView } from './components/ProjectListView'
 import { ProjectBoardView } from './components/ProjectBoardView'
@@ -60,8 +55,6 @@ import { FolderTrail } from './components/stacks/FolderTrail'
 import { FolderDialog } from './components/stacks/FolderDialog'
 import { ConfirmDialog } from './components/stacks/ConfirmDialog'
 import { ProjectDialog } from './components/dialogs/ProjectDialog'
-import { VolumeDialog } from './components/dialogs/VolumeDialog'
-import { ReleaseBoard } from './components/releases/ReleaseBoard'
 import { UnfiledPanel } from './components/panels/UnfiledPanel'
 import { ContextMenu, type MenuTarget } from './components/menu/ContextMenu'
 import {
@@ -90,9 +83,6 @@ const INITIAL_FILTERS: RegisterFilters = {
 type FolderDialogState =
   { mode: 'create'; parentId: string | null } | { mode: 'rename'; folder: ArchiveFolder }
 
-type VolumeDialogState =
-  { mode: 'create'; kind: VolumeKind } | { mode: 'edit'; volume: VolumeSummary }
-
 /** A destructive action awaiting confirmation. */
 type ConfirmState =
   | { kind: 'folder'; folder: ArchiveFolder; projects: number }
@@ -100,7 +90,6 @@ type ConfirmState =
   | { kind: 'forget'; project: ProjectSummary }
   | { kind: 'purge'; project: ProjectSummary }
   | { kind: 'purgeFolder'; folder: ArchiveFolder }
-  | { kind: 'volume'; volume: VolumeSummary }
 
 /**
  * Debounces a value so typing in the search field does not issue a query per
@@ -154,7 +143,6 @@ export function ArchivePage(): ReactNode {
   const [managingTags, setManagingTags] = useState(false)
   const [folderDialog, setFolderDialog] = useState<FolderDialogState | null>(null)
   const [projectDialog, setProjectDialog] = useState<ArchiveFolder | null>(null)
-  const [volumeDialog, setVolumeDialog] = useState<VolumeDialogState | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
   const [menu, setMenu] = useState<MenuTarget | null>(null)
   const [confirm, setConfirm] = useState<ConfirmState | null>(null)
@@ -225,8 +213,6 @@ export function ArchivePage(): ReactNode {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedId = searchParams.get('project')
   const folderId = searchParams.get('folder')
-  const volumeId = searchParams.get('volume')
-  const releaseId = searchParams.get('release')
   const rawLens = searchParams.get('lens')
   /*
    * A hidden lens in the URL falls back to the default rather than being
@@ -257,8 +243,6 @@ export function ArchivePage(): ReactNode {
 
   const selectProject = useCallback((id: string | null) => setParam('project', id), [setParam])
   const openFolder = useCallback((id: string | null) => setParam('folder', id), [setParam])
-  const openVolume = useCallback((id: string | null) => setParam('volume', id), [setParam])
-  const openRelease = useCallback((id: string | null) => setParam('release', id), [setParam])
 
   const changeLens = useCallback(
     (next: ArchiveLens) => {
@@ -269,8 +253,6 @@ export function ArchivePage(): ReactNode {
           // Leaving a lens abandons whatever was open inside it. Keeping it
           // would mean returning to a shelf the operator visibly stepped out of.
           if (next !== 'stacks') params.delete('folder')
-          if (next !== 'volumes') params.delete('volume')
-          if (next !== 'releases') params.delete('release')
           return params
         },
         { replace: true }
@@ -360,8 +342,6 @@ export function ArchivePage(): ReactNode {
       // A subtree search replaces the single-level scope rather than adding
       // to it — see `subtree` above and `ProjectQuery.folderIds`.
       ...(browsing ? (subtree ? { folderIds: subtree } : { folderId }) : {}),
-      // VOLUMES lists one volume's tracks once opened.
-      ...(lens === 'volumes' && volumeId !== null ? { volumeId } : {}),
       /*
        * INTAKE takes the *whole* register, not the unfiled slice.
        *
@@ -379,20 +359,16 @@ export function ArchivePage(): ReactNode {
       // The bin is a place, not a filter — see `ProjectQuerySchema.trashed`.
       ...(lens === 'bin' ? { trashed: true } : {})
     }),
-    [filtering, search, filters, browsing, folderId, subtree, lens, volumeId]
+    [filtering, search, filters, browsing, folderId, subtree, lens]
   )
 
   const { data: registry, isLoading } = useProjectRegistry(query)
   const stacks = stacksTree
-  const { data: volumes } = useVolumes(ready)
-  const { data: releases } = useReleases(ready)
   const scan = useScanState()
 
   const mutations = useProjectMutations()
   const tagMutations = useTagMutations()
   const stackMutations = useStacksMutations()
-  const volumeMutations = useVolumeMutations()
-  const releaseMutations = useReleaseMutations()
 
   const scanning =
     scan.phase === 'walking' || scan.phase === 'analysing' || scan.phase === 'persisting'
@@ -408,8 +384,6 @@ export function ArchivePage(): ReactNode {
   // Memoised so the empty fallback is not a new array on every render, which
   // would defeat every derivation below it.
   const folders = useMemo(() => stacks?.folders ?? [], [stacks?.folders])
-  const allVolumes = useMemo(() => volumes ?? [], [volumes])
-  const allReleases = useMemo(() => releases ?? [], [releases])
 
   const binnedFolders = useMemo(() => stacks?.trashed ?? [], [stacks?.trashed])
   const visibleFolders = useMemo(() => childrenOf(folders, folderId), [folders, folderId])
@@ -440,11 +414,7 @@ export function ArchivePage(): ReactNode {
    * own narrowed toggle — LIST and ICONS, no BOARD — rather than this one,
    * which would offer a board of stages over a folder that has none.
    */
-  const drawsRegister =
-    lens === 'all' ||
-    lens === 'bin' ||
-    (lens === 'volumes' && volumeId !== null) ||
-    (browsing && folderId !== null)
+  const drawsRegister = lens === 'all' || lens === 'bin' || (browsing && folderId !== null)
 
   const currentFolder = trail.at(-1) ?? null
 
@@ -598,21 +568,6 @@ export function ArchivePage(): ReactNode {
    * both from here means the operator picks an album from a menu and the track
    * simply becomes an album track, rather than being told it must also say so.
    */
-  const assignVolume = useCallback(
-    (projectId: string, targetVolumeId: string | null) => {
-      setNotice(null)
-      setMenu(null)
-
-      const volume = allVolumes.find((entry) => entry.id === targetVolumeId)
-      const category: ProjectCategory = volume ? volume.kind : 'single'
-
-      mutations.patch.mutate(
-        { id: projectId, patch: { volumeId: targetVolumeId, category } },
-        { onError: report }
-      )
-    },
-    [allVolumes, mutations.patch, report]
-  )
 
   const toggleFavourite = useCallback(
     (target: MenuTarget) => {
@@ -632,15 +587,9 @@ export function ArchivePage(): ReactNode {
           { id: target.project.id, patch: { favourite: !target.project.favourite } },
           { onError: report }
         )
-        return
       }
-
-      volumeMutations.update.mutate(
-        { id: target.volume.id, patch: { favourite: !target.volume.favourite } },
-        { onError: report }
-      )
     },
-    [stackMutations.update, mutations.patch, volumeMutations.update, report]
+    [stackMutations.update, mutations.patch, report]
   )
 
   // --------------------------------------------------------------- dialogs
@@ -669,17 +618,12 @@ export function ArchivePage(): ReactNode {
   )
 
   const submitProject = useCallback(
-    (draft: {
-      name: string
-      category: ProjectCategory
-      volumeId: string | null
-      colour: string
-    }) => {
+    (draft: { name: string; category: ProjectCategory; colour: string }) => {
       if (!projectDialog) return
       setDialogError(null)
 
       mutations.create.mutate(
-        { folderId: projectDialog.id, ...draft },
+        { folderId: projectDialog.id, artistIds: [], ...draft },
         {
           onSuccess: (record) => {
             setProjectDialog(null)
@@ -692,26 +636,6 @@ export function ArchivePage(): ReactNode {
       )
     },
     [projectDialog, mutations.create, selectProject, reportToDialog]
-  )
-
-  const submitVolume = useCallback(
-    (draft: { kind: VolumeKind; title: string; artist: string; colour: string }) => {
-      setDialogError(null)
-      const done = (): void => setVolumeDialog(null)
-
-      if (volumeDialog?.mode === 'create') {
-        volumeMutations.create.mutate(draft, { onSuccess: done, onError: reportToDialog })
-        return
-      }
-
-      if (volumeDialog?.mode === 'edit') {
-        volumeMutations.update.mutate(
-          { id: volumeDialog.volume.id, patch: draft },
-          { onSuccess: done, onError: reportToDialog }
-        )
-      }
-    },
-    [volumeDialog, volumeMutations.create, volumeMutations.update, reportToDialog]
   )
 
   // ------------------------------------------------------------ destructive
@@ -769,17 +693,6 @@ export function ArchivePage(): ReactNode {
       return
     }
 
-    if (confirm.kind === 'volume') {
-      volumeMutations.remove.mutate(confirm.volume.id, {
-        onError: report,
-        onSuccess: () => {
-          if (volumeId === confirm.volume.id) openVolume(null)
-        },
-        onSettled: settle
-      })
-      return
-    }
-
     const closeIfOpen = (): void => {
       if (selectedId === confirm.project.id) selectProject(null)
     }
@@ -811,15 +724,12 @@ export function ArchivePage(): ReactNode {
     confirm,
     stackMutations.remove,
     stackMutations.purge,
-    volumeMutations.remove,
     mutations.forget,
     mutations.trash,
     mutations.purge,
     report,
     folderId,
     openFolder,
-    volumeId,
-    openVolume,
     selectedId,
     selectProject
   ])
@@ -829,9 +739,10 @@ export function ArchivePage(): ReactNode {
   /**
    * Favourite from a tile's corner mark.
    *
-   * Resolves the id against all three kinds rather than taking a typed target,
+   * Resolves the id against both kinds rather than taking a typed target,
    * because `TileGrid` is deliberately domain-blind — it knows tiles, not
-   * folders and volumes — and this is the one place that mapping already lives.
+   * folders and projects — and this is the one place that mapping already
+   * lives.
    */
   const favouriteById = useCallback(
     (id: string) => {
@@ -841,16 +752,10 @@ export function ArchivePage(): ReactNode {
         return
       }
 
-      const volume = allVolumes.find((entry) => entry.id === id)
-      if (volume) {
-        toggleFavourite({ kind: 'volume', volume, x: 0, y: 0 })
-        return
-      }
-
       const project = projects.find((entry) => entry.id === id)
       if (project) toggleFavourite({ kind: 'project', project, x: 0, y: 0 })
     },
-    [folders, allVolumes, projects, toggleFavourite]
+    [folders, projects, toggleFavourite]
   )
 
   const restoreProject = useCallback(
@@ -899,18 +804,12 @@ export function ArchivePage(): ReactNode {
         return
       }
 
-      const volume = allVolumes.find((entry) => entry.id === id)
-      if (volume) {
-        setMenu({ kind: 'volume', volume, x: event.clientX, y: event.clientY })
-        return
-      }
-
       // Project tiles share the grid with folders in the icons view, so the
-      // same handler has to resolve all three kinds by id.
+      // same handler has to resolve both kinds by id.
       const project = projects.find((entry) => entry.id === id)
       if (project) setMenu({ kind: 'project', project, x: event.clientX, y: event.clientY })
     },
-    [folders, binnedFolders, allVolumes, projects]
+    [folders, binnedFolders, projects]
   )
 
   // -------------------------------------------------------------- shortcuts
@@ -968,8 +867,7 @@ export function ArchivePage(): ReactNode {
         group,
         // Deliberately not `whileTyping`: Escape in a field should leave the
         // field, which the browser already does.
-        disabled:
-          selectedId === null && menu === null && notice === null && marked.size === 0,
+        disabled: selectedId === null && menu === null && notice === null && marked.size === 0,
         /*
          * One key, unwound in the order things were put on top of each other:
          * menu, then marks, then the cursor, then the notice.
@@ -1059,7 +957,6 @@ export function ArchivePage(): ReactNode {
         label: 'Cycle list, icons, board',
         group,
         whileTyping: true,
-        disabled: lens === 'releases',
         run: () =>
           setView(
             (current) =>
@@ -1189,11 +1086,11 @@ export function ArchivePage(): ReactNode {
         ],
         // Kept as the fallback for a project with no tags and an unread set —
         // a blank caption would read as a fault rather than as an absence.
-        detail: [
-          PROJECT_CATEGORY_LABEL[project.category],
-          project.hasFinalMaster ? 'MASTERED' : null,
-          formatBytes(project.sizeBytes)
-        ]
+        // MASTERED stood between the category and the size. It read
+        // `hasFinalMaster`, which the ARCHIVE no longer sets — the file that
+        // ships is named on the DISCOGRAPHY track — so it would have gone on
+        // reporting whatever the old workflow happened to leave behind.
+        detail: [PROJECT_CATEGORY_LABEL[project.category], formatBytes(project.sizeBytes)]
           .filter(Boolean)
           .join(' · '),
         colour: project.colour,
@@ -1221,27 +1118,6 @@ export function ArchivePage(): ReactNode {
     [binnedFolders]
   )
 
-  const volumeTiles = useMemo<Tile[]>(
-    () =>
-      allVolumes.map((volume) => ({
-        id: volume.id,
-        mark: volume.kind,
-        name: volume.title,
-        detail: [
-          VOLUME_KIND_LABEL[volume.kind],
-          volume.trackCount > 0
-            ? `${volume.trackCount} track${volume.trackCount === 1 ? '' : 's'}`
-            : null
-        ]
-          .filter(Boolean)
-          .join(' · '),
-        colour: volume.colour,
-        favourite: volume.favourite,
-        title: volume.artist || volume.title
-      })),
-    [allVolumes]
-  )
-
   // ------------------------------------------------------------------ copy
 
   const emptyMessage = (): string => {
@@ -1260,9 +1136,6 @@ export function ArchivePage(): ReactNode {
     }
     if (browsing) {
       return 'Nothing on this shelf yet. Create a project here, or bring one in from INTAKE.'
-    }
-    if (lens === 'volumes' && volumeId !== null) {
-      return 'No tracks on this volume yet. Right-click a project and assign it here.'
     }
     return 'No projects match the current filters.'
   }
@@ -1333,8 +1206,6 @@ export function ArchivePage(): ReactNode {
     )
   }
 
-  const openVolumeRecord = allVolumes.find((volume) => volume.id === volumeId) ?? null
-
   // ----------------------------------------------------------------- panels
 
   const mainPanel = (): ReactNode => {
@@ -1369,101 +1240,6 @@ export function ArchivePage(): ReactNode {
             onFile={fileMany}
             disabled={scanning || locked}
           />
-        </div>
-      )
-    }
-
-    if (lens === 'releases') {
-      return (
-        <ReleaseBoard
-          releases={allReleases}
-          projects={projects}
-          volumes={allVolumes}
-          openId={releaseId}
-          onOpen={openRelease}
-          busy={
-            releaseMutations.create.isPending ||
-            releaseMutations.update.isPending ||
-            releaseMutations.attach.isPending
-          }
-          error={notice}
-          onRaise={(subjectKind, subjectId) => {
-            setNotice(null)
-            releaseMutations.create.mutate(
-              { subjectKind, subjectId },
-              { onSuccess: (created) => openRelease(created.id), onError: report }
-            )
-          }}
-          onSetDate={(id, releaseDate) => {
-            setNotice(null)
-            releaseMutations.update.mutate({ id, patch: { releaseDate } }, { onError: report })
-          }}
-          onAttach={(id, kind: DeliverableKind, sourcePath) => {
-            setNotice(null)
-            releaseMutations.attach.mutate({ id, kind, sourcePath }, { onError: report })
-          }}
-          onRemove={(id) => {
-            setNotice(null)
-            releaseMutations.remove.mutate(id, {
-              onSuccess: () => openRelease(null),
-              onError: report
-            })
-          }}
-          onReveal={(path) => void window.candy.shell.reveal(path)}
-        />
-      )
-    }
-
-    if (lens === 'volumes' && volumeId === null) {
-      return (
-        <div className={styles.browser}>
-          {allVolumes.length === 0 ? (
-            <div className={styles.stackEmpty}>
-              <p className={styles.stackEmptyTitle}>No albums, EPs or compilations yet.</p>
-              <p className={styles.stackEmptyHint}>
-                A volume binds several tracks into one work. It is a record rather than a folder —
-                nothing moves on disk, and each track stays filed under its own genre.
-              </p>
-            </div>
-          ) : null}
-
-          <TileGrid
-            tiles={volumeTiles}
-            onOpen={openVolume}
-            onMenu={onTileMenu}
-            selectedId={tileSelection}
-            onSelect={setTileSelection}
-            onToggleFavourite={favouriteById}
-            disabled={locked}
-            adds={[
-              {
-                label: 'New volume',
-                mark: 'add',
-                onClick: () => {
-                  setDialogError(null)
-                  setVolumeDialog({ mode: 'create', kind: 'album' })
-                }
-              }
-            ]}
-          />
-        </div>
-      )
-    }
-
-    if (lens === 'volumes' && openVolumeRecord) {
-      return (
-        <div className={styles.browser}>
-          <div className={styles.volumeHead}>
-            <button type="button" className={styles.back} onClick={() => openVolume(null)}>
-              ← All volumes
-            </button>
-            <span className={styles.volumeTitle}>{openVolumeRecord.title}</span>
-            <span className={styles.volumeMeta}>
-              {VOLUME_KIND_LABEL[openVolumeRecord.kind]}
-              {openVolumeRecord.artist ? ` · ${openVolumeRecord.artist}` : ''}
-            </span>
-          </div>
-          <div className={styles.register}>{registerView()}</div>
         </div>
       )
     }
@@ -1692,7 +1468,7 @@ export function ArchivePage(): ReactNode {
         total={total}
         // The release board draws tiles and a record, never the register, so a
         // sort order and a stage filter would operate on nothing visible.
-        showRegisterControls={lens !== 'releases' && lens !== 'unfiled'}
+        showRegisterControls={lens !== 'unfiled'}
         searchRef={searchRef}
       />
 
@@ -1797,7 +1573,6 @@ export function ArchivePage(): ReactNode {
         <ContextMenu
           target={menu}
           filingTargets={filingTargets}
-          volumes={allVolumes}
           onClose={() => setMenu(null)}
           onOpenFolder={(id) => {
             setMenu(null)
@@ -1821,7 +1596,6 @@ export function ArchivePage(): ReactNode {
             setConfirm({ kind: 'purgeFolder', folder })
           }}
           onFileProject={fileProject}
-          onAssignVolume={assignVolume}
           onOpenProject={(id) => {
             setMenu(null)
             selectProject(id)
@@ -1843,15 +1617,6 @@ export function ArchivePage(): ReactNode {
           onPurgeProject={(project) => {
             setMenu(null)
             setConfirm({ kind: 'purge', project })
-          }}
-          onEditVolume={(volume) => {
-            setMenu(null)
-            setDialogError(null)
-            setVolumeDialog({ mode: 'edit', volume })
-          }}
-          onDeleteVolume={(volume) => {
-            setMenu(null)
-            setConfirm({ kind: 'volume', volume })
           }}
           onToggleFavourite={toggleFavourite}
           onReveal={(path) => {
@@ -1903,36 +1668,11 @@ export function ArchivePage(): ReactNode {
       {projectDialog ? (
         <ProjectDialog
           where={projectDialog.path}
-          volumes={allVolumes}
           busy={mutations.create.isPending}
           error={dialogError}
           onSubmit={submitProject}
-          onNewVolume={(kind) => {
-            setDialogError(null)
-            setVolumeDialog({ mode: 'create', kind })
-          }}
           onCancel={() => {
             setProjectDialog(null)
-            setDialogError(null)
-          }}
-        />
-      ) : null}
-
-      {volumeDialog ? (
-        <VolumeDialog
-          mode={volumeDialog.mode}
-          initialKind={
-            volumeDialog.mode === 'create' ? volumeDialog.kind : volumeDialog.volume.kind
-          }
-          initialTitle={volumeDialog.mode === 'edit' ? volumeDialog.volume.title : ''}
-          initialArtist={volumeDialog.mode === 'edit' ? volumeDialog.volume.artist : ''}
-          initialColour={volumeDialog.mode === 'edit' ? volumeDialog.volume.colour : undefined}
-          trackCount={volumeDialog.mode === 'edit' ? volumeDialog.volume.trackCount : 0}
-          busy={volumeMutations.create.isPending || volumeMutations.update.isPending}
-          error={dialogError}
-          onSubmit={submitVolume}
-          onCancel={() => {
-            setVolumeDialog(null)
             setDialogError(null)
           }}
         />
@@ -1945,8 +1685,7 @@ export function ArchivePage(): ReactNode {
             stackMutations.remove.isPending ||
             stackMutations.purge.isPending ||
             mutations.forget.isPending ||
-            mutations.trash.isPending ||
-            volumeMutations.remove.isPending
+            mutations.trash.isPending
           }
           onConfirm={runConfirmed}
           onCancel={() => setConfirm(null)}
@@ -1992,8 +1731,6 @@ const INTAKE_VIEW_MODES = ['list', 'grid'] as const
 const PANEL_LABEL: Record<ArchiveLens, string> = {
   stacks: 'Stacks',
   unfiled: 'Intake',
-  volumes: 'Volumes',
-  releases: 'Releases',
   all: 'Register',
   bin: 'Recycle bin'
 }
@@ -2002,15 +1739,12 @@ const PANEL_LABEL: Record<ArchiveLens, string> = {
  * And so does its mark.
  *
  * Drawn from the same family as the tiles beneath it — a shelf heading over
- * shelf tiles, a plate over volume tiles — so the panel and its contents are
- * plainly about one thing. See `ArchiveGlyph` for why these are a separate
+ * shelf tiles — so the panel and its contents are plainly about one thing. See `ArchiveGlyph` for why these are a separate
  * set from the 64×48 marks the tiles themselves use.
  */
 const PANEL_GLYPH: Record<ArchiveLens, ArchiveGlyphName> = {
   stacks: 'shelf',
   unfiled: 'loose',
-  volumes: 'master',
-  releases: 'seal',
   all: 'index',
   bin: 'bin'
 }
@@ -2020,7 +1754,7 @@ const PANEL_GLYPH: Record<ArchiveLens, ArchiveGlyphName> = {
  *
  * Gathered in one function rather than spread across four call sites so the
  * four can be read against each other — the whole point is that FORGET and
- * DELETE must not sound alike, and that a volume's "dissolve" must not sound
+ * DELETE must not sound alike, and that neither must sound
  * destructive at all.
  */
 function confirmCopy(state: ConfirmState): {
@@ -2080,19 +1814,6 @@ function confirmCopy(state: ConfirmState): {
         detail: `The folder leaves the archive and goes to Windows' own Recycle Bin, which is the last place it can be recovered from — with every project that was filed inside it. Nothing in this application will bring it back. ${state.folder.path}`,
         confirmLabel: 'Delete permanently',
         danger: true
-      }
-
-    case 'volume':
-      return {
-        title: 'Dissolve volume',
-        message: `Dissolve “${state.volume.title}”?`,
-        detail:
-          state.volume.trackCount > 0
-            ? `Its ${state.volume.trackCount} track${
-                state.volume.trackCount === 1 ? '' : 's'
-              } become standalone singles. No files move and nothing is deleted — a volume never owned a directory.`
-            : 'It holds no tracks. Nothing else changes.',
-        confirmLabel: 'Dissolve'
       }
   }
 }

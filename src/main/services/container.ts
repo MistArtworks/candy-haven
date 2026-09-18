@@ -4,9 +4,9 @@ import { UpdateService } from './update/update.service'
 import { TelemetryService } from './telemetry/telemetry.service'
 import { ProjectsService } from './projects/projects.service'
 import { StacksService } from './stacks/stacks.service'
-import { VolumesService } from './volumes/volumes.service'
 import { TagsService } from './tags/tags.service'
-import { ReleasesService } from './releases/releases.service'
+import { ArtistsService } from './artists/artists.service'
+import { DiscographyService } from './discography/discography.service'
 import { CalendarService } from './calendar/calendar.service'
 import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
@@ -41,22 +41,23 @@ export interface ServiceContainer {
    */
   readonly stacks: StacksService
   /**
-   * VOLUMES — albums, EPs and compilations. Metadata only; it writes nothing to
-   * disk. Reads and writes membership through the projects service, so the
-   * ownership split survives.
-   */
-  readonly volumes: VolumesService
-  /**
    * TAGS — the operator's own labels. Metadata only, like volumes, and wired
    * the same way: membership lives on the project and is read and written
    * through the projects service.
    */
   readonly tags: TagsService
   /**
-   * RELEASES. Owns a directory under the stacks wrapper, so it takes the stacks
-   * service to resolve where that is rather than reading settings itself.
+   * ARTISTS — the roster. Metadata plus one copied picture; it never moves a
+   * project. Reads credits through the projects service, so the ownership
+   * split survives.
    */
-  readonly releases: ReleasesService
+  readonly artists: ArtistsService
+  /**
+   * DISCOGRAPHY — the public record of what shipped. Replaces VOLUMES and the
+   * stood-down RELEASES; owns its tracklists, because a track need not have a
+   * project behind it. See docs/DISCOGRAPHY.md.
+   */
+  readonly discography: DiscographyService
   /**
    * CALENDAR — the dated register. Reads and writes its own collection and
    * nothing else's: an entry is the operator's statement of intent, not a
@@ -110,17 +111,32 @@ export function createServiceContainer(): ServiceContainer {
   const stacks = new StacksService(archive, projects, settings)
   projects.setFilingResolver((records) => stacks.reconcileFiling(records))
 
-  // Releases resolve their subject through both of the services above and their
-  // directory through the stacks, which is why this is the one ARCHIVE service
-  // constructed with three collaborators rather than one.
-  const volumes = new VolumesService(archive, projects)
-  const releases = new ReleasesService(archive, projects, volumes, stacks)
-
   // Tags are the second mutual dependency in this section, resolved the same
   // way as filing: the tags service counts usage by reading the register, so
   // the register gets the library back as a callback. See `TagResolver`.
   const tags = new TagsService(archive, projects)
   projects.setTagResolver(() => tags.listPlain())
+
+  /*
+   * The roster and the catalogue need each other, and neither imports the
+   * other.
+   *
+   * ARTISTS counts how many releases credit somebody; DISCOGRAPHY resolves
+   * ids into names to draw those credits. Importing both ways would make them
+   * mutually dependent modules; the callbacks below are the same arrangement
+   * `setFilingResolver` and `setTagResolver` already use, and they are wired
+   * here because the composition root is the one place that can see both.
+   */
+  const artists = new ArtistsService(archive, projects, stacks)
+  const discography = new DiscographyService(archive, projects, artists, stacks)
+
+  artists.setReleaseCreditReader(() => discography.creditIndex())
+  artists.detachFromReleases = (artistId) => discography.detachArtist(artistId)
+
+  // The ARCHIVE's half of the one-directional link: which release a project is
+  // a track on, derived rather than stored. See `DiscographyService`.
+  projects.setArtistResolver(() => artists.listPlain())
+  projects.setAppearanceResolver(() => discography.appearances())
 
   /*
    * Hoisted out of the literal because THE MUSTER holds both.
@@ -140,9 +156,9 @@ export function createServiceContainer(): ServiceContainer {
     telemetry: new TelemetryService(),
     projects,
     stacks,
-    volumes,
     tags,
-    releases,
+    artists,
+    discography,
     calendar: new CalendarService(archive),
     overlayServer,
     chat,

@@ -71,6 +71,24 @@ export interface OverlayAddress {
   pin?: string
 }
 
+/**
+ * Which group of the kit an overlay belongs to.
+ *
+ * The board groups by this, and the grouping is itself part of the answer to
+ * "what does this do" — knowing THE GATE is a *standing scene* and THE
+ * ENCLOSURE is *furniture* says how each is placed in OBS before a word of
+ * description is read. Reserved entries are grouped by `!implemented` instead,
+ * so a family here is what an overlay *is* rather than whether it exists.
+ */
+export type OverlayFamily = 'instrument' | 'clock' | 'scene' | 'furniture'
+
+export const OVERLAY_FAMILIES: readonly { id: OverlayFamily; label: string }[] = [
+  { id: 'instrument', label: 'CHAT INSTRUMENTS' },
+  { id: 'clock', label: 'CLOCKS' },
+  { id: 'scene', label: 'STANDING SCENES' },
+  { id: 'furniture', label: 'FURNITURE' }
+]
+
 export interface OverlayDefinition {
   id: OverlayId
   /**
@@ -81,10 +99,61 @@ export interface OverlayDefinition {
   slug: string
   /** Uppercase institutional label used in the catalogue. */
   label: string
-  /** Plain description of what the overlay actually shows. */
+  /**
+   * What kind of thing this is, in two or three words: `OPEN CALL`, `CHAT VOTE`.
+   *
+   * Drawn as a chip beside the label on the board and in the page masthead. It
+   * is the shortest true answer to "what is this", and it is deliberately not
+   * in the world's vocabulary — `THE CONCORD` already says the institutional
+   * thing, and saying it twice tells an operator nothing they can act on.
+   */
+  role: string
+  family: OverlayFamily
+  /**
+   * What the overlay actually shows, in one plain sentence.
+   *
+   * **Plain means plain.** No `petition`, `citizen`, `chamber`, `rite` or
+   * `roll` — those are what the broadcast says, and the console's job is to be
+   * operable rather than in character. The flavour is carried by `epigraph`,
+   * which is drawn faint and beneath this rather than in place of it: the desk
+   * used to lead each card with the epigraph, so the page announced its mood
+   * before it said what anything was for.
+   */
   purpose: string
+  /**
+   * How it runs, in three plain steps.
+   *
+   * A sentence can say what an overlay *is*; only steps say how it is *used*,
+   * and "how is this used" is the question somebody has when they are looking
+   * at eleven of them. Three is the budget on purpose — the full procedure is
+   * CATECHISM's job, and a block long enough to need scrolling would be back to
+   * the wall of prose this replaced.
+   */
+  how: readonly string[]
+  /**
+   * Caption for the overlay's *primary* address, where it differs.
+   *
+   * `overlayAddresses` synthesises the primary row rather than declaring it, and
+   * it used to caption that row with `purpose` — a description of the whole
+   * overlay standing in for a description of one of its addresses. That reads
+   * as a mistake beside an extra address that describes itself properly
+   * (`Corner plate showing the question and the latest filings`). Optional, so
+   * a single-address overlay need not repeat itself.
+   */
+  sourcePurpose?: string
   /** Flavour line drawn from the world brief. */
   epigraph: string
+  /**
+   * Declaration order. **Not the number the operator is shown.**
+   *
+   * The console's board groups the kit by `family` and numbers it across those
+   * groups, so that numbering cannot come from here — and it also has to make
+   * room for THE CHORUS, which is in the kit and deliberately not in this
+   * registry. `lib/kit.ts` owns every index an operator sees, on the board and
+   * in each overlay page's masthead. Nine mastheads used to read
+   * `overlay.order + 1`, which was right only while the board listed this
+   * array in declaration order.
+   */
   order: number
   /** False until the overlay ships; the catalogue lists it with its scope. */
   implemented: boolean
@@ -125,7 +194,15 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'muster',
     slug: 'muster',
     label: 'THE MUSTER',
-    purpose: 'An open call: chat files entries against a question, live on the scene',
+    role: 'OPEN CALL',
+    family: 'instrument',
+    purpose: 'Chat types entries; they fill a numbered list on screen.',
+    how: [
+      'You put a question on the scene',
+      'Chat files with !add followed by anything',
+      'Close it, then hand the list to the draw or the vote'
+    ],
+    sourcePurpose: 'The whole scene — the question, the list and the instruction',
     epigraph: 'Choices measured. Deviance erased.',
     order: 0,
     implemented: true,
@@ -152,7 +229,15 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'selection',
     slug: 'selection',
     label: 'RESONANCE SELECTION',
-    purpose: 'Weighted draw on a rotating ring — the field chooses one petition',
+    role: 'PRIZE DRAW',
+    family: 'instrument',
+    purpose: 'One entry is picked at random; bigger weights win more often.',
+    how: [
+      'Add entries yourself, or take a finished list from THE MUSTER',
+      'Give an entry a weight from 1 to 999 to make it likelier',
+      'Press Draw — the winner is decided before the spin animates'
+    ],
+    sourcePurpose: 'The whole scene — the ring, the entries and the result',
     epigraph: 'We do not question the shape of the universe.',
     order: 1,
     implemented: true,
@@ -170,7 +255,15 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'concord',
     slug: 'concord',
     label: 'THE CONCORD',
-    purpose: 'Chat votes on a ballot; a deadlock is settled by casting lots',
+    role: 'CHAT VOTE',
+    family: 'instrument',
+    purpose: 'Chat votes by typing a number; the bars fill live.',
+    how: [
+      'You write the options',
+      'Chat votes with !vote 2, or with a bare 2 — your choice which counts',
+      'Close it; a tie is settled by a visible coin-toss'
+    ],
+    sourcePurpose: 'The full scene — the question and every bar',
     epigraph: 'Harmony decided for all, not by all.',
     order: 2,
     implemented: true,
@@ -207,7 +300,14 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'transmission',
     slug: 'transmission',
     label: 'NOW TRANSMITTING',
-    purpose: 'Live Spotify playback: track, artist, cover plate and timeline',
+    role: 'NOW PLAYING',
+    family: 'furniture',
+    purpose: 'Shows the track playing on your Spotify, with cover art and a timeline.',
+    how: [
+      'Link your Spotify account once, on this overlay’s page',
+      'Pick one of four layouts — band, column, strip or spinning disc',
+      'It follows your playback and hides itself when nothing is on'
+    ],
     epigraph: 'Sound is not heard. It is structured. It is shaped.',
     order: 3,
     implemented: true,
@@ -225,7 +325,14 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'interval',
     slug: 'interval',
     label: 'INTERVAL',
-    purpose: 'Multi-purpose countdown with a grace period, for breaks and segments',
+    role: 'BREAK CLOCK',
+    family: 'clock',
+    purpose: 'A countdown for breaks that keeps counting past zero.',
+    how: [
+      'Set how long the break is',
+      'Press Start — Space works too, and you can add a minute mid-run',
+      'Past zero it counts the overrun in crimson instead of stopping'
+    ],
     epigraph: 'Time itself is constructed, maintained, and policed.',
     order: 4,
     implemented: true,
@@ -244,7 +351,14 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'convene',
     slug: 'convene',
     label: 'CONVENING',
-    purpose: 'Stream-opening countdown that resolves to NOW',
+    role: 'START CLOCK',
+    family: 'clock',
+    purpose: 'A countdown before you go live that ends on one word.',
+    how: [
+      'Set how long before you start',
+      'Press Start',
+      'At zero it stops on one word — NOW, LIVE, or whatever you set'
+    ],
     epigraph: 'A society built on order, where symmetry is worship.',
     order: 5,
     implemented: true,
@@ -263,7 +377,14 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'enclosure',
     slug: 'enclosure',
     label: 'THE ENCLOSURE',
-    purpose: 'Standing frame for the whole broadcast — corner brackets and a marque',
+    role: 'STREAM FRAME',
+    family: 'furniture',
+    purpose: 'Corner brackets and a name plate around the whole stream.',
+    how: [
+      'Type the name for the plate along the bottom',
+      'Switch the ON AIR pip on when you go live',
+      'Copy the address — for this one the settings travel in the URL'
+    ],
     epigraph: 'The boundary is drawn, and the boundary is kept.',
     order: 6,
     implemented: true,
@@ -290,7 +411,14 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'gate',
     slug: 'gate',
     label: 'THE GATE',
-    purpose: 'Stream-starting scene — the causeway, the portal, and the room still arriving',
+    role: 'STARTING SCENE',
+    family: 'scene',
+    purpose: 'A full-screen “starting soon” scene with room for chat.',
+    how: [
+      'Write the headline and the quieter line beneath it',
+      'Set how much of the frame to leave for a chat capture',
+      'Copy the address onto your starting scene — do not tick Transparent'
+    ],
     epigraph: 'The threshold is held open. The procession is still on the road.',
     order: 7,
     implemented: true,
@@ -326,7 +454,14 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'survey',
     slug: 'survey',
     label: 'THE SURVEY',
-    purpose: 'Be right back — the galactic survey, turning while the room waits',
+    role: 'BRB SCENE',
+    family: 'scene',
+    purpose: 'A full-screen “be right back” scene with room for chat.',
+    how: [
+      'Write the headline and the quieter line beneath it',
+      'Set how much of the frame to leave for a chat capture',
+      'Copy the address onto your break scene — do not tick Transparent'
+    ],
     epigraph: 'All arms resonant. The survey does not pause.',
     order: 8,
     implemented: true,
@@ -345,7 +480,16 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'docket',
     slug: 'docket',
     label: 'THE DOCKET',
-    purpose: 'Standing queue of chat requests and what is being worked next',
+    role: 'REQUEST QUEUE',
+    family: 'instrument',
+    purpose: 'A queue of chat requests showing what you are working on next.',
+    /*
+     * Empty while reserved, and that is the honest state rather than an
+     * oversight: `how` says how a thing is run, and nothing runs yet. The
+     * board draws `scope` in its place, which is what describes work that has
+     * been specified and not built.
+     */
+    how: [],
     epigraph: 'Mortals reduced to data; choices measured, deviance erased.',
     order: 9,
     implemented: false,
@@ -415,7 +559,16 @@ export function getOverlayBySlug(slug: string): OverlayDefinition | undefined {
  */
 export function overlayAddresses(overlay: OverlayDefinition): readonly OverlayAddress[] {
   return [
-    { slug: overlay.slug, label: overlay.label, purpose: overlay.purpose, canvas: overlay.canvas },
+    {
+      slug: overlay.slug,
+      label: overlay.label,
+      // What the *address* is for, falling back to what the overlay is. See
+      // `sourcePurpose`: captioning the primary row with a description of the
+      // whole overlay reads as an error beside a secondary row that describes
+      // itself properly.
+      purpose: overlay.sourcePurpose ?? overlay.purpose,
+      canvas: overlay.canvas
+    },
     ...(overlay.addresses ?? [])
   ]
 }

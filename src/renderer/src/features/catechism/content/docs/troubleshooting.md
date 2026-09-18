@@ -89,13 +89,16 @@ Work down this list:
 
 1. Does the OBSERVATORY masthead say **Serving**? If not, **Restart server**.
 2. Does **Attached** count your source? If it reads `0` with OBS open, the source
-   is not connected — the URL is wrong.
-3. Is the source's width and height the canvas the card quotes?
+   is not connected — the URL is wrong. Copy it again from the desk rather than
+   correcting it by hand.
+3. Is the source's width and height the canvas the block quotes?
 4. Is **Shutdown source when not visible** unchecked? If it is checked, state is
    lost on every scene change.
-5. For a `panel` overlay, is `?transparent=1` on the URL?
+5. If the overlay draws on a black slab over your scene, it is not transparent:
+   turn **Transparent** on in that overlay's own panel.
 
-Append `?guides=1` to draw the safe area while you position it, and take it off
+**Draw safe-area guides on copied addresses**, on the desk's broadcast panel,
+adds `?guides=1` to every address it hands over. Turn it off and copy again
 before going live.
 
 ## NOW TRANSMITTING is blank

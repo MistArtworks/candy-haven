@@ -1,68 +1,14 @@
 @use 'abstracts' as *;
+@use '../overlays/page';
 
-.page {
-  padding: space(10) space(10) space(12);
-  max-width: 1560px;
-  margin: 0 auto;
-}
+// THE CHORUS — the Streamlabs chat widget, configured and emitted.
+//
+// Shares the kit's chrome even though it drives no browser source: from the
+// operator's side it is the same department, and a page that laid its masthead
+// or its notice out differently would be saying otherwise.
+@include page.chrome;
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: space(5);
-  align-items: stretch;
-}
-
-// Explicit spans rather than positional rules — the house convention, and the
-// reason a panel can be reordered here without silently changing the layout.
-.span2 {
-  grid-column: span 2;
-}
-
-.span4 {
-  grid-column: span 4;
-}
-
-.span6 {
-  grid-column: span 6;
-}
-
-@include below('md') {
-  .page {
-    padding: space(8) space(6) space(10);
-  }
-
-  .span2,
-  .span4 {
-    grid-column: span 6;
-  }
-}
-
-// ------------------------------------------------------------------- header
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: space(4);
-}
-
-.back {
-  @include label(8px, 0.18em);
-  color: var(--ch-text-secondary);
-  text-decoration: none;
-  border: $hairline solid var(--ch-line);
-  padding: space(2) space(3);
-  transition:
-    border-color $duration-fast $ease-out-expo,
-    color $duration-fast $ease-out-expo;
-
-  &:hover {
-    border-color: var(--ch-line-gold);
-    color: var(--ch-text-primary);
-  }
-}
-
-// ------------------------------------------------------------------ preview
+// -------------------------------------------------------------- the preview
 
 /*
  * The stage stands in for the scene the source will sit on.
@@ -74,6 +20,9 @@
  */
 .stage {
   position: relative;
+  // Released from the shared stage's 16/9: the widget is a tall column and the
+  // preview is a fixed-height frame, so an enforced aspect would letterbox it.
+  aspect-ratio: auto;
   background: var(--ch-obsidian-900);
   border: $hairline solid var(--ch-line);
   overflow: hidden;

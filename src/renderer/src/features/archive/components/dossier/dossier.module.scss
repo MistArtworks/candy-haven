@@ -161,17 +161,6 @@ $list-cap: min(#{rem(280px)}, 24vh);
   }
 }
 
-/*
- * Rows in the mix-and-master list answer a double click by playing.
- *
- * Signalled with the cursor rather than an icon: a play control on every row
- * would be a fourth thing competing with the three-cell switch beside it, and
- * the row is already the target.
- */
-.file[data-playable] {
-  cursor: pointer;
-}
-
 .fileName {
   flex: 1;
   min-width: 0;
@@ -200,30 +189,8 @@ $list-cap: min(#{rem(280px)}, 24vh);
   flex-shrink: 0;
 }
 
-// Naming the finished track, inline on the row it is being promoted from.
-// A dialog was considered and refused: the operator has just decided which
-// file ships, and taking them away from the list to type its name puts a scrim
-// between the decision and its subject.
-.finalNaming {
-  display: inline-flex;
-  align-items: center;
-  gap: space(2);
-  flex-shrink: 0;
-}
-
-.finalInput {
-  @include readout(10px);
-  color: var(--ch-text-primary);
-  background: var(--ch-surface-sunken);
-  @include hairline(all, 0.16);
-  padding: space(1) space(2);
-  width: rem(180px);
-
-  &:focus-visible {
-    @include focus-ring(0);
-  }
-}
-
+// The promote control the *sets* list uses to pick a primary set. Unrelated
+// to masters despite the name it shares with the removed promotion.
 .filePromote {
   @include label(7px, 0.14em);
   color: var(--ch-text-muted);
@@ -236,89 +203,22 @@ $list-cap: min(#{rem(280px)}, 24vh);
     border-color: var(--ch-line-strong);
   }
 
-  // The mark this file currently carries. Border rather than fill, so a row of
-  // three verbs does not turn into a row of three buttons competing for the eye.
-  &[data-on] {
-    color: var(--ch-text-primary);
-    border-color: var(--ch-accent);
-    background: rgba(163, 43, 35, 0.12);
-  }
-
   &:disabled {
     opacity: 0.4;
     pointer-events: none;
   }
 }
-
-// ----------------------------------------------------------------- marks
 
 /*
- * What a bounce is: one control, three cells.
+ * `.finalNaming`, `.finalInput`, `.marks` and `.mark` stood here.
  *
- * Lifted from REGULATION's segmented switch, which is this application's
- * answer to any exclusive choice. It was three separately outlined buttons per
- * row, and the shape was the problem rather than the styling — three boxes
- * read as three independent toggles, so a list of six bounces was eighteen
- * controls and none of them said "pick one of these".
- *
- * Selection carries on the accent underline plus text colour, never on colour
- * alone, exactly as the segment and the stage strip do.
+ * They styled the inline name field a promotion used to need, and the
+ * three-cell WIP / MIX / MASTER switch on every bounce. Both controls are
+ * gone: the final master is a reference chosen from a plain list and nothing
+ * is renamed or moved, so there is no name to type and no bucket to sort
+ * into. See `FinalMaster.tsx` for what replaced them, and this file's
+ * `final*` rules below.
  */
-.marks {
-  display: inline-flex;
-  flex-shrink: 0;
-  @include hairline(all, 0.14);
-}
-
-.mark {
-  position: relative;
-  padding: 2px space(3);
-  @include label(7px, 0.14em);
-  color: var(--ch-text-faint);
-  transition:
-    color $duration-fast linear,
-    background-color $duration-fast linear;
-
-  & + & {
-    @include hairline(left, 0.14);
-  }
-
-  &:hover:not(:disabled) {
-    color: var(--ch-text-secondary);
-    background: rgba(182, 158, 124, 0.04);
-  }
-
-  &:focus-visible {
-    @include focus-ring(0);
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    pointer-events: none;
-  }
-
-  // The cell for the stage the project is on. Raised out of the faint ramp so
-  // the answer wanted right now is findable, without pre-selecting it.
-  &[data-stage]:not([data-on]) {
-    color: var(--ch-text-muted);
-  }
-
-  &[data-on] {
-    color: var(--ch-text-primary);
-    background: rgba(182, 158, 124, 0.07);
-
-    &::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 2px;
-      background: var(--ch-accent);
-      box-shadow: 0 0 10px var(--ch-accent-glow);
-    }
-  }
-}
 
 // -------------------------------------------------------------- readiness
 
@@ -894,4 +794,261 @@ $list-cap: min(#{rem(280px)}, 24vh);
     @include hairline(top, 0.08);
     padding-top: space(4);
   }
+}
+
+// ------------------------------------------------------------------ credits
+
+/*
+ * Who made it, as stamped fields.
+ *
+ * The same chip the OBSERVATORY composer and the ARTISTS sheet use, because
+ * they are the same gesture — a closed set of things to switch on and off.
+ * Square corners: one rounded object would be the only soft thing on the
+ * page, which the brief rules out.
+ */
+.credits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.creditChip {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(3);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// Where the project ended up, read from the catalogue. Reported, never set —
+// the release owns its running order and the file that shipped as each track.
+//
+// Lives on RECORD now. It began as a bare list under OVERVIEW's credits; each
+// entry carries a master file and a way to it, so a row became two lines.
+.appearances {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.appearance {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+
+  // Ruled between entries rather than around them: a project on a single and
+  // then on the album is two readings of one fact, and boxing each would
+  // claim they were separate records.
+  & + & {
+    padding-top: space(3);
+    @include hairline(top, 0.06);
+  }
+}
+
+.appearanceHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+  flex-wrap: wrap;
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+
+  strong {
+    color: var(--ch-text-primary);
+    font-weight: inherit;
+  }
+}
+
+.appearanceTitle {
+  flex-shrink: 0;
+}
+
+.appearanceMeta {
+  @include label(9px);
+  color: var(--ch-text-muted);
+}
+
+.appearanceMark {
+  color: var(--ch-gold-300);
+  flex-shrink: 0;
+}
+
+.appearanceMaster {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-wrap: wrap;
+  padding-left: space(4);
+}
+
+.appearanceFile {
+  @include readout(10px);
+  color: var(--ch-text-primary);
+  @include truncate;
+  max-width: 44ch;
+}
+
+.appearanceSize {
+  @include label(9px);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+}
+
+// An incomplete record rather than an error: the release is real, the pick
+// simply has not been made. Said in words, because a missing filename is not
+// self-describing.
+.appearanceNone {
+  @include label(9px);
+  color: var(--ch-text-muted);
+  padding-left: space(4);
+}
+
+// ------------------------------------------------------------ final master
+
+// Which bounce is the finished master. One question, asked from TRACK READY
+// on, answered without touching the disk — see `FinalMaster.tsx`.
+.finalRow {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+// Clickable, because the reason for referencing the file in place rather than
+// moving it is that the source can then be reached from the record naming it.
+.finalFile {
+  @include readout(11px);
+  color: var(--ch-alabaster-500);
+  text-align: left;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.finalSize {
+  @include label(9px);
+  color: var(--ch-text-faint);
+}
+
+// A legacy pick, sitting in Release Mastered Tracks because the old workflow
+// moved it there. Not an error — the path is true — so it recedes rather than
+// warning.
+.finalElsewhere {
+  @include label(9px);
+  color: var(--ch-text-muted);
+}
+
+.finalActions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  margin-left: auto;
+}
+
+.finalEmpty {
+  @include label(9px);
+  color: var(--ch-text-muted);
+  line-height: 1.6;
+  flex: 1;
+  min-width: rem(220px);
+}
+
+.finalHint {
+  @include label(9px);
+  color: var(--ch-text-muted);
+  line-height: 1.6;
+  margin-top: space(3);
+}
+
+.finalList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: space(3);
+  // Bounded rather than unbounded: a project with forty bounces would push the
+  // tags and notes below off the tab. 2px gaps, as the charts use.
+  max-height: rem(240px);
+  overflow-y: auto;
+}
+
+.finalOption {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  padding: space(2) space(3);
+  text-align: left;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.06);
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+
+  &[data-on] {
+    border-color: var(--ch-line-gold);
+
+    .finalOptionName {
+      color: var(--ch-gold-300);
+    }
+  }
+}
+
+.finalOptionName {
+  @include readout(10px);
+  color: var(--ch-text-primary);
+  flex: 1;
+  min-width: 0;
+  @include truncate;
+}
+
+.finalOptionSize {
+  @include label(8px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.finalOptionWhere {
+  @include label(8px);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+  max-width: rem(180px);
+  @include truncate;
 }

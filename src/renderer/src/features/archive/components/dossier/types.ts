@@ -1,5 +1,7 @@
 import type { ProjectRecord, ProjectStage } from '@shared/domain/projects'
 import type { TagSummary } from '@shared/domain/tags'
+import type { ArtistRecord } from '@shared/domain/artists'
+import type { ReleaseAppearance } from '@shared/domain/discography'
 import type { useProjectMutations } from '@renderer/hooks/useProjects'
 import type { useTagMutations } from '@renderer/hooks/useTags'
 
@@ -25,6 +27,28 @@ export interface DossierTabProps {
   tags: {
     library: TagSummary[]
     mutations: ReturnType<typeof useTagMutations>
+  }
+  /**
+   * The roster, and where this project appears in the catalogue.
+   *
+   * Both read-only here. Crediting somebody is a patch on the *project*, so
+   * it goes through `mutations` like every other field — but the names behind
+   * the ids have to come from somewhere, and that somewhere is the same
+   * library the tag picker uses.
+   *
+   * `appearances` runs the other way and is genuinely read-only: the release
+   * owns its tracklist, so the ARCHIVE can report that a project is track 3
+   * of something but cannot change it from here. Editing the running order is
+   * DISCOGRAPHY's, which is the only place that can see the whole order.
+   */
+  artists: {
+    /*
+     * Records rather than summaries: the registry ships the roster without
+     * counts, because the ARCHIVE has no use for "on 3 releases" and
+     * computing it would mean walking the catalogue on every register read.
+     */
+    roster: ArtistRecord[]
+    appearances: ReleaseAppearance[]
   }
   /**
    * Moves the project along the pipeline.

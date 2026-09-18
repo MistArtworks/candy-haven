@@ -4,11 +4,14 @@ import { motion } from 'motion/react'
 import { getOverlay, overlaySourceUrl } from '@shared/domain/overlays'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
-import { Button } from '@renderer/components/primitives/Button'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { Checkbox, TextInput } from '@renderer/components/primitives/Input'
 import { gridVariants } from '@renderer/motion/transitions'
+import { useCopy } from '@renderer/hooks/useCopy'
 import { useOverlayInfo } from '@renderer/hooks/useRite'
+import { AddressList } from '../../components/AddressList'
+import { kitNumber } from '../../lib/kit'
+import type { AddressRow } from '../../lib/addresses'
 import styles from './EnclosurePage.module.scss'
 
 const MARQUE_LIMIT = 32
@@ -34,7 +37,7 @@ export function EnclosurePage(): ReactNode {
   const [marque, setMarque] = useState('CANDY HEIST')
   const [section, setSection] = useState('§01')
   const [air, setAir] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const copier = useCopy()
 
   /*
    * Built rather than declared, because the address is the configuration.
@@ -64,13 +67,40 @@ export function EnclosurePage(): ReactNode {
     return url.toString()
   }, [sourceUrl])
 
-  function copyUrl(): void {
-    if (!sourceUrl) return
-    void navigator.clipboard.writeText(sourceUrl).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1600)
-    })
-  }
+  /*
+   * Two rows, and the guides one is a row rather than a third button.
+   *
+   * It was `Copy address`, `Preview` and `Preview with guides` side by side,
+   * which made "with guides" look like a third way of looking at the same
+   * address when it is a *different* address — one an operator may well want to
+   * paste while cutting a scene and then replace. As a row it can be copied as
+   * well as opened, and it says plainly that the guide never appears on air.
+   */
+  const rows = useMemo<AddressRow[]>(() => {
+    if (!sourceUrl) return []
+
+    const built: AddressRow[] = [
+      {
+        key: overlay.slug,
+        label: overlay.label,
+        purpose: overlay.sourcePurpose ?? overlay.purpose,
+        canvas: overlay.canvas,
+        url: sourceUrl
+      }
+    ]
+
+    if (guidesUrl) {
+      built.push({
+        key: `${overlay.slug}:guides`,
+        label: `${overlay.label} — WITH GUIDES`,
+        purpose: 'Outlines the inset the brackets sit on. Never drawn on air.',
+        canvas: overlay.canvas,
+        url: guidesUrl
+      })
+    }
+
+    return built
+  }, [overlay, sourceUrl, guidesUrl])
 
   // Mirrors what main.ts does to the same values, so the preview cannot claim a
   // frame the browser source would not draw.
@@ -80,14 +110,15 @@ export function EnclosurePage(): ReactNode {
   return (
     <div className={styles.page}>
       <PageHeader
-        index={overlay.order + 1}
+        index={kitNumber('enclosure')}
         label={overlay.label}
+        kind={overlay.role}
         purpose={overlay.purpose}
         epigraph={overlay.epigraph}
         actions={
           <div className={styles.headerActions}>
             <Link to="/observatory" className={styles.back}>
-              Catalogue
+              ← The desk
             </Link>
             <StatusDot
               tone={air ? 'error' : 'pending'}
@@ -111,7 +142,7 @@ export function EnclosurePage(): ReactNode {
           focal
           className={styles.framePanel}
           aside={
-            <span className={styles.canvas}>
+            <span className={styles.canvasLabel}>
               {overlay.canvas.width} × {overlay.canvas.height}
             </span>
           }
@@ -167,40 +198,21 @@ export function EnclosurePage(): ReactNode {
         </Panel>
 
         <Panel label="Broadcast" index="03" className={styles.span3}>
-          {sourceUrl ? (
-            <>
-              <p className={styles.hint}>
-                Add a Browser source in OBS at this address. Width {overlay.canvas.width}, height{' '}
-                {overlay.canvas.height}, and tick <strong>Transparent</strong>. The address carries
-                the settings above, so changing one here means pasting the new address rather than
-                reloading the source.
-              </p>
-              <code className={styles.url}>{sourceUrl}</code>
-              <div className={styles.broadcastActions}>
-                <Button size="sm" variant="ghost" onClick={copyUrl}>
-                  {copied ? 'Copied' : 'Copy address'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void window.candy.shell.openExternal(sourceUrl)}
-                >
-                  Preview
-                </Button>
-                {guidesUrl ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void window.candy.shell.openExternal(guidesUrl)}
-                  >
-                    Preview with guides
-                  </Button>
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <p className={styles.hint}>Overlay server offline — no address to serve.</p>
-          )}
+          <div className={styles.broadcast}>
+            <p className={styles.hint}>
+              Tick <strong>Transparent</strong> on the OBS source. The address carries the settings
+              above, so changing one here means pasting the new address rather than reloading the
+              source — which is also what lets two scenes carry two differently-marqued frames.
+            </p>
+
+            <AddressList
+              rows={rows}
+              copied={copier.copied}
+              failed={copier.failed}
+              onCopy={copier.copy}
+              offline="Overlay server offline — no address to serve."
+            />
+          </div>
         </Panel>
       </motion.div>
     </div>

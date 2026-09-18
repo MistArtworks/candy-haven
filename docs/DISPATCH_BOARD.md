@@ -65,10 +65,10 @@ sit in a public repository.
 
 ## The accounts
 
-| Identity | UID | Rules on items |
-| --- | --- | --- |
-| `mist` | `Uc1ZbVbKXmU8cU5iSK3kWtNKXJD2` | yes |
-| `candy` | `u9mDaxAH3MZbgyIPith4lBF4Mn63` | no |
+| Identity | UID                            | Rules on items |
+| -------- | ------------------------------ | -------------- |
+| `mist`   | `Uc1ZbVbKXmU8cU5iSK3kWtNKXJD2` | yes            |
+| `candy`  | `u9mDaxAH3MZbgyIPith4lBF4Mn63` | no             |
 
 Two Firebase email/password accounts. **Neither address appears anywhere in the
 repository or in the build** — they are typed in at sign-in, and the app

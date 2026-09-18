@@ -152,10 +152,12 @@ export function ProjectBoardView({
                     </span>
                   </div>
 
-                  {/* A final master is the one fact that changes what a card
-                      can do next — it is the gate on READY, SCHEDULED and
-                      RELEASED — so it is the one badge worth the space. */}
-                  {project.hasFinalMaster ? <span className={styles.plan}>MASTERED</span> : null}
+                  {/* MASTERED was drawn here, on the strength of being the
+                      gate on READY. Nothing gates READY now — the file that
+                      ships is chosen on the DISCOGRAPHY track — so the badge
+                      reported a fact the board could no longer act on, and
+                      the column the card sits in already says how far the work
+                      has got. */}
 
                   {project.missingSampleCount > 0 ? (
                     <span className={styles.warning}>{project.missingSampleCount} missing</span>

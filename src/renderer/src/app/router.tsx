@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { ConsoleLayout } from '@renderer/layouts/ConsoleLayout'
 import { NexusPage } from '@renderer/features/home/NexusPage'
 import { ArchivePage } from '@renderer/features/archive/ArchivePage'
+import { ArtistsPage } from '@renderer/features/artists/ArtistsPage'
+import { DiscographyPage } from '@renderer/features/discography/DiscographyPage'
 import { ObservatoryPage } from '@renderer/features/observatory/ObservatoryPage'
 import { SelectionPage } from '@renderer/features/observatory/overlays/selection/SelectionPage'
 import { ConcordPage } from '@renderer/features/observatory/overlays/concord/ConcordPage'
@@ -84,6 +86,8 @@ export function AppRouter(): ReactNode {
         <Route index element={<NexusPage />} />
 
         <Route path="/archive" element={<ArchivePage />} />
+        <Route path="/discography" element={<DiscographyPage />} />
+        <Route path="/artists" element={<ArtistsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/auditorium" element={<AuditoriumPage />} />
         <Route path="/darkroom" element={<DarkroomPage />} />

@@ -13,20 +13,22 @@ understanding the split is most of understanding the department.
 - The **view** decides _how whatever is in scope is drawn_.
 
 They are independent. The ledger view of the BIN lens is a table of deleted
-projects; the plate view of the VOLUMES lens is a grid of albums. Any lens can
-be read through any view that makes sense for it.
+projects; the icons view of a shelf is a grid of plates. Any lens can be read
+through any view that makes sense for it.
 
 ## The lenses
 
 ![archive-01-lenses.png](archive-01-lenses.png)
 
-| Lens        | Scope                                                                                | Chord     |
-| ----------- | ------------------------------------------------------------------------------------ | --------- |
-| **STACKS**  | The filing tree you build — categories, genres, artists, and what is shelved on them | `Alt`+`1` |
-| **INTAKE**  | Work found elsewhere on disk that the register does not know about                   | `Alt`+`2` |
-| **VOLUMES** | Albums, EPs and compilations, and the tracks bound into each                         | `Alt`+`3` |
-| **ALL**     | The whole register, flat                                                             | `Alt`+`4` |
-| **BIN**     | Deleted projects, kept until you empty them                                          | `Alt`+`5` |
+| Lens       | Scope                                                                                | Chord     |
+| ---------- | ------------------------------------------------------------------------------------ | --------- |
+| **ALL**    | The whole register, flat                                                             | `Alt`+`1` |
+| **STACKS** | The filing tree you build — categories, genres, artists, and what is shelved on them | `Alt`+`2` |
+| **INTAKE** | Work found elsewhere on disk that the register does not know about                   | `Alt`+`3` |
+| **BIN**    | Deleted projects, kept until you empty them                                          | `Alt`+`4` |
+
+There was a **VOLUMES** lens. Albums, EPs and compilations are DISCOGRAPHY's
+now — see that chapter, and the note further down this one.
 
 STACKS is the only lens that _browses_ rather than filters — you stand inside a
 folder and can step into another. The rest narrow the register and are read as
@@ -66,7 +68,7 @@ ledger, which is the view whose job is figures.
 
 ## The pipeline
 
-Six stages in a line, and one off to the side.
+Seven stages in a line, and one off to the side.
 
 | Stage         | What it means                                           |
 | ------------- | ------------------------------------------------------- |
@@ -75,16 +77,36 @@ Six stages in a line, and one off to the side.
 | `ARRANGEMENT` | Full-length arrangement committed end to end            |
 | `MIX`         | Balance, processing and automation being resolved       |
 | `MASTER`      | Mixdown bounced; mastering passes in progress           |
-| `TRACK READY` | Final mix and master chosen, and filed where it belongs |
+| `TRACK READY` | Finished, and ready to be put out. Linkable in DISCOGRAPHY |
+| `RELEASED`    | Out in the world. Needs the final master named           |
 | `SHELVED`     | Parked indefinitely. Kept for parts, not for release    |
 
-`TRACK READY` cannot be reached until a final mix and a final master have been
-named. That is enforced, and deliberately so: the stage is a claim about a
-specific file, not a mood.
+`TRACK READY` is the gate into the catalogue. Reaching it is your statement that
+the work is finished, and only projects at `TRACK READY` or `RELEASED` can be
+linked to a track in DISCOGRAPHY — which is what keeps the track picker a list
+of real work rather than every scratch set on the disk.
 
-`SHELVED` is off-pipeline. It does not sit after `TRACK READY`, it sits beside
-the whole line, and a shelved project reports no pipeline progress rather than a
-misleading position.
+Nothing is enforced about reaching it — TRACK READY is your own mark on the
+work, exactly like a tag or a note. **The gate is one stage later**, on
+RELEASED, and that position is deliberate: TRACK READY is what makes a project
+linkable in DISCOGRAPHY, so requiring a file here would mean needing a release
+to choose the master and a master to get the release.
+
+`RELEASED` **requires the final master to be named.** A project cannot claim to
+be out in the world without saying which file went out — that is the one
+question the archive exists to stop being unanswerable. See below.
+
+`RELEASED` is usually not set by hand. Marking a release RELEASED in DISCOGRAPHY
+moves every project behind its tracks to this stage, with a line in the stage
+history naming the release; moving the release back returns them to `TRACK
+READY`. That flip is **refused** while any linked project has no final master,
+and it names the ones that need one. You can still set the stage directly, which
+is how back catalogue that has no entry in the catalogue gets recorded — the
+gate applies there too.
+
+`SHELVED` is off-pipeline. It does not sit after `RELEASED`, it sits beside the
+whole line, and a shelved project reports no pipeline progress rather than a
+misleading position. A catalogue edit never moves a shelved project.
 
 ### Changing a stage
 
@@ -104,12 +126,12 @@ project's stage history under the **RECORD** tab.
 What kind of release a project belongs to. Set on the dossier; shown on the
 ledger and used by the filters.
 
-`SINGLE` · `EP` · `ALBUM` · `COMPILATION` · `BOOTLEG` · `EXPERIMENTAL` ·
-`BEAT BATTLE`
+`SINGLE` · `EP` · `ALBUM` · `COMPILATION` · `REMIX` · `BOOTLEG` ·
+`EXPERIMENTAL` · `BEAT BATTLE`
 
-A category is a property of the project. It is not the same thing as a
-**volume**, which is an actual collection with tracks bound into it in order —
-see below.
+A category is your own label on the work and nothing validates it against the
+catalogue — a track can honestly be categorised `ALBUM` for a year before the
+album it belongs to has an entry in DISCOGRAPHY.
 
 ## Sorting and filtering
 
@@ -212,34 +234,55 @@ Filed against the project and kept in the register, not in the folder. A note is
 for what needs doing, what was tried, and what to remember — the things that do
 not survive in the set file.
 
-### Marking a final master
+### The final master
 
-![archive-09-finalmaster.png](archive-09-finalmaster.png)
+**FINAL MASTER** sits on the dossier's OVERVIEW tab, switched on from `TRACK
+READY`. It asks one question: which of this project's bounces is the finished
+master — the file that actually goes out.
 
-Audio can only be marked from the `MIX` stage onward, because before that the
-bounces that matter do not exist and an empty section on every new project
-teaches nothing.
+1. Move the project to **TRACK READY**. The panel appears.
+2. Press **CHOOSE**. It lists every audio file in the project folder, minus the
+   imported samples.
+3. Pick one. The project can now reach `RELEASED`.
 
-1. Mark considered mixdowns at `MIX` and mastered versions at `MASTER`.
-2. Move the project to **TRACK READY**.
-3. If no final is set, the dialog opens and asks which file ships.
-4. The chosen file **moves** into `Release Mastered Tracks` under the name you
-   give it, and the stage only changes once the move has actually succeeded.
+**Nothing moves.** The record stores the path to the file where it already sits,
+beside the set that made it. Clicking the name afterwards opens the folder in
+Explorer.
 
-> The project's other files are never touched. Marking a master is a statement
-> in the register about which file ships — it does not rename or rewrite the
-> rest of the folder.
+Before that: the **MIX AND MASTER** panel stood here and asked you to sort every
+bounce into WIP, mix or master, then promoted one — which **moved** it into
+`Release Mastered Tracks` under a name you typed. That took the audio away from
+its own session, which made finding the source harder rather than easier, so
+both the sorting and the move are gone.
 
-## Volumes
+> A final chosen under the old workflow is still recorded and still works, but
+> its file is sitting in `Release Mastered Tracks` rather than in the project.
+> The panel says so. The marks you made in the three buckets are still in the
+> archive too; nothing reads them, and nothing has been deleted.
 
-![archive-10-volumes.png](archive-10-volumes.png)
+The DISCOGRAPHY track takes a **copy** of this pick when you link the project,
+and the dossier's **RECORD** tab reports it back under RELEASES with a REVEAL
+button. The copy is why changing the project's master later does not rewrite
+what an already-released entry claims to have shipped.
 
-A volume is an album, EP or compilation. It is metadata only: nothing is written
-to disk, and a track's membership lives on the project rather than in a second
-list that could disagree with it.
+## Volumes are now DISCOGRAPHY
 
-Create a volume, then bind tracks into it in the order they should run. A
-project can carry a track number within its volume.
+The ARCHIVE used to hold **volumes** — albums, EPs and compilations, as metadata
+with a track's membership stored on the project. That lens is gone, and the
+records moved: one album is now one entry in **DISCOGRAPHY**, which owns its own
+running order.
+
+The reason for the reversal is that a discography entry is not made only of
+projects. A back catalogue, a label master and somebody else's remix all belong
+in it and none of them has a project on this disk, so a track's place cannot be
+stored on a project that may not exist.
+
+A project's `CATEGORY` still says what the work is — `ALBUM`, `EP`, `SINGLE`,
+`REMIX`. Nothing validates it against the catalogue any more, because the link
+lives on the release: a track can honestly be categorised `ALBUM` for a year
+before the album it belongs to has an entry.
+
+See the DISCOGRAPHY chapter.
 
 ## Tags and colours
 

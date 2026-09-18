@@ -1,0 +1,71 @@
+@use 'abstracts' as *;
+
+.bench {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+}
+
+/*
+ * What the overlay is doing, in one line.
+ *
+ * Gold and ruled on the left, which is the console's mark for a live reading.
+ * The identity block above it is deliberately unruled for the same reason: what
+ * a thing is for is not a reading, and giving both a rule made them read as two
+ * measurements of the same quantity.
+ */
+.detail {
+  @include readout(11px);
+  color: var(--ch-gold-300);
+  line-height: 1.6;
+  margin: 0;
+  padding-left: space(3);
+  border-left: 2px solid var(--ch-gold-500);
+}
+
+.aside,
+.reserved {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 68ch;
+}
+
+/*
+ * The way in to the overlay's own page.
+ *
+ * A link rather than a button, and set apart from the verbs beside it: every
+ * button in that row does something to the live broadcast and this one
+ * navigates. The distinction was on the old card and is worth keeping.
+ */
+.enter {
+  @include label(8px, 0.2em);
+  color: var(--ch-text-secondary);
+  text-decoration: none;
+  transition: color $duration-fast $ease-out-expo;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+// ---------------------------------------------------------------- addresses
+
+.addresses {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+}
+
+.addressesLabel {
+  @include label(7px, 0.2em);
+  color: var(--ch-text-faint);
+}

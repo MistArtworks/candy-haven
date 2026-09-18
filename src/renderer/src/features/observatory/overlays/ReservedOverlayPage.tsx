@@ -8,6 +8,7 @@ import { Panel } from '@renderer/components/primitives/Panel'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Sigil } from '@renderer/components/sigil/Sigil'
 import { gridVariants } from '@renderer/motion/transitions'
+import { kitIndex, kitNumber } from '../lib/kit'
 import styles from './ReservedOverlayPage.module.scss'
 
 export interface ReservedOverlayPageProps {
@@ -28,13 +29,14 @@ export function ReservedOverlayPage({ overlayId }: ReservedOverlayPageProps): Re
   return (
     <div className={styles.page}>
       <PageHeader
-        index={overlay.order + 1}
+        index={kitNumber(overlayId)}
         label={overlay.label}
+        kind={overlay.role}
         purpose={overlay.purpose}
         epigraph={overlay.epigraph}
         actions={
           <Link to="/observatory" className={styles.back}>
-            Catalogue
+            ← The desk
           </Link>
         }
       />
@@ -45,7 +47,7 @@ export function ReservedOverlayPage({ overlayId }: ReservedOverlayPageProps): Re
         initial="initial"
         animate="animate"
       >
-        <Panel label="Status" index="01" focal className={styles.notice}>
+        <Panel label="Status" index="01" focal className={styles.noticePanel}>
           <div className={styles.noticeBody}>
             <Sigil size={64} weight={1} className={styles.mark} />
             <div>
@@ -86,11 +88,13 @@ export function ReservedOverlayPage({ overlayId }: ReservedOverlayPageProps): Re
                   : 'Sits over a capture; wants ?transparent=1.'
               }
             />
-            <Field
-              label="Catalogue position"
-              value={String(overlay.order + 1).padStart(2, '0')}
-              mono
-            />
+            {/*
+              The board's own number, not `overlay.order` — see `lib/kit.ts`.
+              The board groups the kit by family and numbers across those
+              groups, so declaration order and the number an operator reads are
+              two different things.
+            */}
+            <Field label="Position in the kit" value={kitIndex(overlayId)} mono />
           </FieldGrid>
         </Panel>
       </motion.div>

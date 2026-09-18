@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { IsoDateSchema } from './dates'
 
 /**
  * CALENDAR — the dated register.
@@ -21,8 +22,8 @@ export const CALENDAR_KINDS = ['session', 'delivery', 'broadcast', 'rite', 'dead
 export const CalendarKindSchema = z.enum(CALENDAR_KINDS)
 export type CalendarKind = z.infer<typeof CalendarKindSchema>
 
-/** `YYYY-MM-DD`. Validated by shape rather than parsed, for the reason above. */
-export const IsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
+/** `YYYY-MM-DD`. Validated by shape rather than parsed — see `dates.ts`. */
+export { IsoDateSchema } from './dates'
 
 /** Minutes from local midnight, 0..1439. */
 export const MinuteOfDaySchema = z.number().int().min(0).max(1439)

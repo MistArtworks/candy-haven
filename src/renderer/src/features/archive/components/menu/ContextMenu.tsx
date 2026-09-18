@@ -1,8 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import type { ProjectSummary } from '@shared/domain/projects'
 import type { ArchiveFolder } from '@shared/domain/stacks'
-import type { VolumeSummary } from '@shared/domain/volumes'
-import { VOLUME_KIND_LABEL } from '@shared/domain/volumes.constants'
 import { MenuDivider, MenuItem as Item, MenuLabel, MenuSurface } from './MenuSurface'
 import styles from '../stacks/stacks.module.scss'
 
@@ -10,7 +8,6 @@ import styles from '../stacks/stacks.module.scss'
 export type MenuTarget =
   | { kind: 'folder'; folder: ArchiveFolder; x: number; y: number }
   | { kind: 'project'; project: ProjectSummary; x: number; y: number }
-  | { kind: 'volume'; volume: VolumeSummary; x: number; y: number }
 
 export interface ContextMenuProps {
   target: MenuTarget
@@ -22,8 +19,6 @@ export interface ContextMenuProps {
    * have shown.
    */
   filingTargets: readonly ArchiveFolder[]
-  /** Every volume, for "Assign to…". */
-  volumes: readonly VolumeSummary[]
   onClose: () => void
 
   onOpenFolder: (id: string) => void
@@ -36,21 +31,17 @@ export interface ContextMenuProps {
   onOpenProject: (id: string) => void
   onOpenInLive: (id: string) => void
   onFileProject: (projectId: string, folderId: string | null) => void
-  onAssignVolume: (projectId: string, volumeId: string | null) => void
   onForgetProject: (project: ProjectSummary) => void
   onTrashProject: (project: ProjectSummary) => void
   onRestoreProject: (project: ProjectSummary) => void
   onPurgeProject: (project: ProjectSummary) => void
-
-  onEditVolume: (volume: VolumeSummary) => void
-  onDeleteVolume: (volume: VolumeSummary) => void
 
   onToggleFavourite: (target: MenuTarget) => void
   onReveal: (path: string) => void
 }
 
 /**
- * The right-click menu for folders, projects and volumes.
+ * The right-click menu for folders and projects.
  *
  * Three menus in one component because the three targets share a shape: a
  * heading naming the thing, its verbs, then the destructive ones below a rule.
@@ -64,7 +55,6 @@ export function ContextMenu(props: ContextMenuProps): ReactNode {
     <MenuSurface x={target.x} y={target.y} onClose={onClose}>
       {target.kind === 'folder' ? <FolderItems {...props} folder={target.folder} /> : null}
       {target.kind === 'project' ? <ProjectItems {...props} project={target.project} /> : null}
-      {target.kind === 'volume' ? <VolumeItems {...props} volume={target.volume} /> : null}
     </MenuSurface>
   )
 }
@@ -198,11 +188,9 @@ function FolderItems({
 function ProjectItems({
   project,
   filingTargets,
-  volumes,
   onOpenProject,
   onOpenInLive,
   onFileProject,
-  onAssignVolume,
   onForgetProject,
   onTrashProject,
   onRestoreProject,
@@ -213,7 +201,7 @@ function ProjectItems({
   /*
    * A binned project gets a different menu entirely, not a longer one.
    *
-   * Filing it, assigning it to a volume or opening it in Ableton are all
+   * Filing it or opening it in Ableton are both
    * meaningless for something the operator has thrown away — the only two
    * questions worth asking are whether it comes back or goes for good.
    */
@@ -254,31 +242,6 @@ function ProjectItems({
       />
 
       <MenuDivider />
-      <MenuLabel>Part of</MenuLabel>
-
-      <div className={styles.menuScroll}>
-        <Item
-          label="Stands alone"
-          disabled={project.volumeId === null}
-          onClick={() => onAssignVolume(project.id, null)}
-        />
-
-        {volumes.length === 0 ? (
-          <Item label="No volumes yet" disabled />
-        ) : (
-          volumes.map((volume) => (
-            <Item
-              key={volume.id}
-              label={`${volume.title} · ${VOLUME_KIND_LABEL[volume.kind]}`}
-              swatch={volume.colour}
-              disabled={volume.id === project.volumeId}
-              onClick={() => onAssignVolume(project.id, volume.id)}
-            />
-          ))
-        )}
-      </div>
-
-      <MenuDivider />
 
       {/*
         Two removals, deliberately worded to be hard to confuse. FORGET is the
@@ -287,41 +250,6 @@ function ProjectItems({
       */}
       <Item label="Forget — keep the files" onClick={() => onForgetProject(project)} />
       <Item label="Delete to the bin" danger onClick={() => onTrashProject(project)} />
-    </>
-  )
-}
-
-function VolumeItems({
-  volume,
-  onEditVolume,
-  onDeleteVolume,
-  onToggleFavourite
-}: ContextMenuProps & { volume: VolumeSummary }): ReactNode {
-  return (
-    <>
-      <MenuLabel>{volume.title}</MenuLabel>
-
-      <Item label="Edit" onClick={() => onEditVolume(volume)} />
-      <Item
-        label={volume.favourite ? 'Remove favourite' : 'Favourite'}
-        onClick={() => onToggleFavourite({ kind: 'volume', volume, x: 0, y: 0 })}
-      />
-
-      <MenuDivider />
-
-      {/*
-        Not marked danger, and not worded as a deletion of anything real: a
-        volume owns no files, so dissolving one frees its tracks rather than
-        removing them. The label says so.
-      */}
-      <Item
-        label={
-          volume.trackCount > 0
-            ? `Dissolve — frees ${volume.trackCount} track${volume.trackCount === 1 ? '' : 's'}`
-            : 'Dissolve'
-        }
-        onClick={() => onDeleteVolume(volume)}
-      />
     </>
   )
 }

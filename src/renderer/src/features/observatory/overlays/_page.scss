@@ -1,0 +1,268 @@
+@use 'abstracts' as *;
+
+////
+/// The standing shape of an overlay console page.
+///
+/// Every page in the broadcast kit opens the same way — a masthead with a kind
+/// chip and a way back to the desk, a notice line, then a six-column grid of
+/// panels in a fixed order ending with the simulator. Nine pages had each
+/// written that chrome themselves, which is how they ended up with five
+/// spellings of the same grid and three different treatments of the same
+/// notice.
+///
+/// Emitted as a mixin rather than shared as a stylesheet because these are CSS
+/// Modules: each page gets its own hashed class names from its own file, so a
+/// plain `@use` would give nine modules nine *different* class names for the
+/// same rules and none of them would apply to markup written against another.
+/// A mixin emits the selectors into each module, where they belong.
+///
+/// A page includes this and then adds only what is genuinely its own — a roll,
+/// a ring, a tally, a marque.
+////
+
+@mixin chrome {
+  .page {
+    padding: space(10) space(10) space(12);
+    max-width: 1560px;
+    margin: 0 auto;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: space(5);
+    align-items: stretch;
+  }
+
+  // Explicit spans, never positional nth-child rules: which panel is half-width
+  // is a fact about that panel, not about where it happens to fall.
+  .span2 {
+    grid-column: span 2;
+  }
+
+  .span3 {
+    grid-column: span 3;
+  }
+
+  .span4 {
+    grid-column: span 4;
+  }
+
+  .span6 {
+    grid-column: span 6;
+  }
+
+  @include below('lg') {
+    .span2,
+    .span3,
+    .span4 {
+      grid-column: span 6;
+    }
+  }
+
+  @include below('md') {
+    .page {
+      padding: space(8) space(6) space(10);
+    }
+  }
+
+  // ---------------------------------------------------------------- masthead
+
+  .headerActions {
+    display: flex;
+    align-items: center;
+    gap: space(4);
+    flex-wrap: wrap;
+  }
+
+  /*
+   * Back to the desk.
+   *
+   * Read `Catalogue` on every one of these pages for two releases after the
+   * department stopped being one. The arrow is there because this is the only
+   * control in the masthead that leaves the page, and it should not be mistaken
+   * for a readout at a glance.
+   */
+  .back {
+    @include label(9px, 0.16em);
+    color: var(--ch-text-faint);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--ch-gold-300);
+    }
+
+    &:focus-visible {
+      @include focus-ring(2px);
+    }
+  }
+
+  // ------------------------------------------------------------------ notice
+
+  /*
+   * What a control reported back. Held until dismissed rather than timed out:
+   * it arrives because the operator pressed something, so it is worth reading
+   * rather than catching.
+   *
+   * Two tones, and the distinction is load-bearing. A refusal is crimson. A
+   * *report* — `Sent 12. 2 did not fit and stayed on the roll.` — is gold,
+   * because it is news the operator has to have and it is not a fault. One tone
+   * for both would teach them to read every notice here as a failure.
+   */
+  .notice,
+  .report {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: space(4);
+    @include readout(10px);
+    padding: space(2) space(3);
+    margin-bottom: space(4);
+    line-height: 1.6;
+  }
+
+  .notice {
+    color: var(--ch-crimson-400);
+    border-left: 2px solid var(--ch-crimson-500);
+  }
+
+  .report {
+    color: var(--ch-gold-300);
+    border-left: 2px solid var(--ch-gold-500);
+  }
+
+  .dismiss {
+    @include label(9px, 0.16em);
+    color: var(--ch-text-faint);
+    background: none;
+    border: 0;
+    padding: 0;
+    flex-shrink: 0;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--ch-text-secondary);
+    }
+
+    &:focus-visible {
+      @include focus-ring(2px);
+    }
+  }
+
+  // ------------------------------------------------------------------- prose
+
+  .hint {
+    @include readout(11px);
+    color: var(--ch-text-faint);
+    line-height: 1.65;
+    margin: 0;
+    max-width: 78ch;
+
+    // Several hints emphasise one word an operator has to act on — tick
+    // **Transparent**, this is a **scene**. Gold rather than bold, because the
+    // display face has no weight to spare at 11px and the palette does.
+    strong {
+      color: var(--ch-gold-300);
+      font-weight: 400;
+    }
+  }
+
+  .empty {
+    @include readout(11px);
+    color: var(--ch-text-faint);
+    margin: 0;
+  }
+
+  // A literal an audience will be told to type, or a URL fragment. Monospace,
+  // sunken, gold — the console's treatment for anything quoted verbatim.
+  .inline {
+    @include readout(10px);
+    color: var(--ch-gold-300);
+    background: var(--ch-surface-sunken);
+    padding: 0 space(1);
+  }
+
+  .count {
+    @include readout(9px);
+    color: var(--ch-text-faint);
+  }
+
+  // ---------------------------------------------------------------- controls
+
+  .config {
+    display: flex;
+    flex-direction: column;
+    gap: space(5);
+  }
+
+  .toggles {
+    display: flex;
+    flex-direction: column;
+    gap: space(4);
+  }
+
+  /*
+   * Switches under a heading rather than in one flat column.
+   *
+   * The presentation panels had grown to nine and twelve checkboxes stacked in
+   * a single run, which is a wall: finding "does this draw the resonance field"
+   * meant reading all twelve, and *what is drawn* and *how it is laid out* are
+   * two different questions an operator arrives with.
+   */
+  .switchGroup {
+    display: flex;
+    flex-direction: column;
+    gap: space(3);
+    padding-top: space(4);
+    @include hairline(top, 0.08);
+  }
+
+  .switchLabel {
+    @include label(7px, 0.2em);
+    color: var(--ch-text-faint);
+  }
+
+  // --------------------------------------------------------------- broadcast
+
+  .broadcast {
+    display: flex;
+    flex-direction: column;
+    gap: space(4);
+  }
+
+  // ------------------------------------------------------------------- stage
+
+  // A preview at the aspect of the real source, so what is judged here is what
+  // goes out.
+  .stage {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--ch-obsidian-900);
+    @include hairline(all, 0.14);
+    overflow: hidden;
+  }
+
+  .canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  // --------------------------------------------------------------- simulator
+
+  // Rehearsal scaffolding. Deliberately plain — it is not a shipped feature,
+  // and dressing it up would make it look like one in a screenshot.
+  .simulator {
+    display: flex;
+    flex-direction: column;
+    gap: space(3);
+    align-items: flex-start;
+  }
+
+  .simulatorRow {
+    display: flex;
+    gap: space(2);
+    flex-wrap: wrap;
+  }
+}

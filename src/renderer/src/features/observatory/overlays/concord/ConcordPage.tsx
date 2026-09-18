@@ -4,7 +4,7 @@ import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { getOverlay, overlayAddressUrl, overlayAddresses } from '@shared/domain/overlays'
+import { getOverlay } from '@shared/domain/overlays'
 import type { ConcordLayout } from '@shared/domain/concord'
 import {
   CONCORD_LAYOUTS,
@@ -15,71 +15,91 @@ import {
   OVERLAY_REFERENCE_WIDTH,
   OVERLAY_THEMES,
   OVERLAY_THEME_LABEL,
-  POLL_DURATION_MAX_MS,
-  POLL_DURATION_MIN_MS,
-  POLL_QUICK_SET,
   RESULT_LINGER_MAX_MS,
   RESULT_LINGER_MIN_MS,
-  VOTE_SYNTAXES,
-  VOTE_SYNTAX_LABEL,
   displayVoteCommand,
-  isDeadlocked,
   voteInstruction
 } from '@shared/domain/concord.constants'
-import type { ChatConnectionState } from '@shared/domain/chat.constants'
 import { CHAT_STATE_LABEL } from '@shared/domain/chat.constants'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
-import { StatusDot, type StatusTone } from '@renderer/components/primitives/StatusDot'
+import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { Checkbox, SelectInput, TextInput } from '@renderer/components/primitives/Input'
 import { Slider } from '@renderer/components/primitives/Slider'
 import { formatLogTime } from '@renderer/lib/format'
 import { gridVariants } from '@renderer/motion/transitions'
+import { useCopy } from '@renderer/hooks/useCopy'
 import { useOverlayInfo } from '@renderer/hooks/useRite'
 import { useChatStatus, useConcordActions, useConcordState } from '@renderer/hooks/useConcord'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { ConcordTally } from './components/ConcordTally'
 import { OptionRoster } from './components/OptionRoster'
-import styles from './ConcordPage.module.scss'
+import { AddressList } from '../../components/AddressList'
+import { OverlayBench } from '../../components/OverlayBench'
 import { PresentationControls } from '../../components/PresentationControls'
-
-/**
- * Chat state as a status tone.
- *
- * `idle` maps to `offline` rather than to a fault tone: nothing is listening
- * because nothing needs to be, which is the normal condition of an app that is
- * not running a poll. Showing it in crimson would have the operator trying to
- * fix something that is working correctly.
- */
-const CHAT_TONE: Record<ChatConnectionState, StatusTone> = {
-  idle: 'offline',
-  connecting: 'pending',
-  live: 'online',
-  retrying: 'warn',
-  failed: 'error'
-}
+import { addressRowsFor } from '../../lib/addresses'
+import { kitEntry, kitNumber } from '../../lib/kit'
+import {
+  CHAT_TONE,
+  actionsFor,
+  composerFor,
+  dialsFor,
+  soloDeck,
+  statusFor,
+  useCountdownClock,
+  useDeckRunner
+} from '../../lib/deck'
+import styles from './ConcordPage.module.scss'
 
 /**
  * THE CONCORD — host surface.
  *
- * One overlay out of the OBSERVATORY catalogue. The audience votes in chat and
- * sees the tally through a browser source pointed at this overlay's slug; both
- * surfaces render the same state from the same renderer, so what the operator
- * watches here is what is on the stream.
+ * The audience votes in chat and sees the tally through a browser source
+ * pointed at this overlay's slug; both surfaces render the same state from the
+ * same renderer, so what the operator watches here is what is on the stream.
  *
- * `useOverlayInfo` is imported from the rite's hook rather than duplicated — one
- * overlay server serves the whole catalogue, so there is one thing to report.
+ * On the kit's standing shape: `01` the tally as the one focal panel, `02` the
+ * controls that run it, then the ballot, chat, presentation, the addresses, and
+ * the simulator last.
+ *
+ * **THE QUESTION panel is gone**, and everything it held moved somewhere
+ * truer. Its title and question were a second implementation of the desk's two
+ * fields; both are now in `02`, from `composerFor`. Its vote syntax and its
+ * voting window are decisions taken *per question*, so they are dials on `02`
+ * too — see `dialsFor` for the rule. Its command field and its instruction line
+ * are about how chat is parsed, so they joined the CHAT panel, where the
+ * sentence explaining what a viewer types already lived.
+ *
+ * The row of quick-set window buttons went with it. It existed because "a
+ * slider that has to be dragged to its far left to mean *no timer* hides the
+ * most useful option behind a gesture" — which was right about the problem and
+ * expensive about the fix, at a second control writing one field. The dial
+ * reads `Until closed` at zero instead.
+ *
+ * `useOverlayInfo` is imported from the rite's hook rather than duplicated —
+ * one overlay server serves the whole kit, so there is one thing to report.
  */
 export function ConcordPage(): ReactNode {
   const overlay = getOverlay('concord')
+  const entry = kitEntry('concord')
+
   const state = useConcordState()
   const chat = useChatStatus()
   const server = useOverlayInfo()
+  const settings = useSettings()
+
+  const runner = useDeckRunner()
+  const copier = useCopy()
+
+  /*
+   * Still held, because `OptionRoster` writes through it — adding, reordering
+   * and cutting an option. Its `configure` carries the presentation writes
+   * below, which are not verbs and have no busy state worth drawing.
+   */
   const actions = useConcordActions()
 
-  const settings = useSettings()
   /**
    * Which address the preview is showing.
    *
@@ -87,48 +107,71 @@ export function ConcordPage(): ReactNode {
    * nothing to persist — this only decides which one the operator is looking at.
    */
   const [preview, setPreview] = useState<ConcordLayout>('full')
-  const [copied, setCopied] = useState<string | null>(null)
 
   const open = state.phase === 'open'
   const casting = state.phase === 'casting'
   const locked = open || casting
 
-  /*
-   * The gate, mirrored from the service.
-   *
-   * `open()` refuses without a configured channel unless test mode is on, and
-   * the button is disabled on the same condition — so the operator is told
-   * before they act rather than by an error afterwards. The service keeps the
-   * authoritative check; this is only there to make it visible.
-   */
   const testMode = settings?.workspace.testMode ?? false
   const configured = (settings?.integrations.twitchChannel ?? '').trim().length > 0
-  const canOpen = state.options.length >= 2 && !locked && (configured || testMode)
+
+  const deck = useMemo(
+    () =>
+      soloDeck({
+        owner: 'concord',
+        concord: state,
+        server,
+        settings,
+        chatReady: configured || testMode
+      }),
+    [state, server, settings, configured, testMode]
+  )
+
+  // Ticks only while a timed poll is running, for the `01:12 left` in the
+  // status line the bench draws.
+  const now = useCountdownClock(open && state.closesAt !== null)
+  const status = statusFor('concord', deck, now)
+  const verbs = actionsFor('concord', deck)
+
+  const [command, setCommand] = useEchoedText(
+    state.config.command,
+    (value) => void actions.configure({ command: value })
+  )
 
   /*
    * Putting the question, and closing it, without reaching for the mouse.
    *
-   * The same disabled conditions the buttons use, so a chord cannot do what a
-   * click is refused — the cheatsheet greys them rather than hiding them, which
-   * keeps the list in one order however the poll is going.
+   * Bound to the same `DeckAction`s the buttons in `02` run, found by key
+   * rather than calling the service a second way — so a chord cannot do what a
+   * click is refused, and the refusal is the service's own. The cheatsheet
+   * greys them rather than hiding them, which keeps the list in one order
+   * however the poll is going.
    */
-  const hotkeys = useMemo<Hotkey[]>(
-    () => [
+  const hotkeys = useMemo<Hotkey[]>(() => {
+    const put = verbs.find((verb) => verb.key === 'concord:open')
+    const close = verbs.find((verb) => verb.key === 'concord:close')
+    const clear = verbs.find((verb) => verb.key === 'concord:reset')
+
+    return [
       {
         chord: 'ctrl+enter',
         label: 'Put the question',
         group: 'The Concord',
         whileTyping: true,
-        disabled: !canOpen,
-        run: () => void actions.open()
+        disabled: !put || Boolean(put.refusal),
+        run: () => {
+          if (put) void runner.run(put)
+        }
       },
       {
         chord: 'ctrl+shift+enter',
         label: 'Close the chamber',
         group: 'The Concord',
         whileTyping: true,
-        disabled: !open,
-        run: () => void actions.close()
+        disabled: !close,
+        run: () => {
+          if (close) void runner.run(close)
+        }
       },
       /*
        * Clearing is off `Ctrl+Backspace`. See the muster's note and
@@ -140,54 +183,34 @@ export function ConcordPage(): ReactNode {
         chord: 'ctrl+shift+x',
         label: 'Clear the ballot',
         group: 'The Concord',
-        disabled: casting || (state.phase === 'idle' && !state.result),
-        run: () => void actions.reset()
+        disabled: !clear,
+        run: () => {
+          if (clear) void runner.run(clear)
+        }
       }
-    ],
-    [actions, canOpen, casting, open, state.phase, state.result]
-  )
+    ]
+  }, [verbs, runner])
 
   useHotkeys(hotkeys)
 
-  /*
-   * The three text fields, owned locally while they are being typed into.
-   *
-   * They were controlled straight off the pushed state, which dropped
-   * characters at speed — see `useEchoedText` for the mechanism.
-   */
-  const [title, setTitle] = useEchoedText(
-    state.config.title,
-    (value) => void actions.configure({ title: value })
-  )
-  const [prompt, setPrompt] = useEchoedText(
-    state.config.prompt,
-    (value) => void actions.configure({ prompt: value })
-  )
-  const [command, setCommand] = useEchoedText(
-    state.config.command,
-    (value) => void actions.configure({ command: value })
-  )
-
-  const addresses = overlayAddresses(overlay)
-
-  const copyUrl = (slug: string, url: string): void => {
-    void navigator.clipboard.writeText(url).then(() => {
-      setCopied(slug)
-      setTimeout(() => setCopied((current) => (current === slug ? null : current)), 1600)
-    })
+  const failure = runner.error ?? actions.error
+  const dismiss = (): void => {
+    runner.dismiss()
+    actions.dismissError()
   }
 
   return (
     <div className={styles.page}>
       <PageHeader
-        index={overlay.order + 1}
+        index={kitNumber('concord')}
         label={overlay.label}
+        kind={overlay.role}
         purpose={overlay.purpose}
         epigraph={overlay.epigraph}
         actions={
           <div className={styles.headerActions}>
             <Link to="/observatory" className={styles.back}>
-              Catalogue
+              ← The desk
             </Link>
             <StatusDot
               tone={CHAT_TONE[chat.state]}
@@ -200,10 +223,13 @@ export function ConcordPage(): ReactNode {
         }
       />
 
-      {actions.error ? (
-        <div className={styles.notice} role="alert">
-          <span>{actions.error}</span>
-          <button type="button" className={styles.dismiss} onClick={actions.dismissError}>
+      {failure || runner.report ? (
+        <div
+          className={failure ? styles.notice : styles.report}
+          role={failure ? 'alert' : 'status'}
+        >
+          <span>{failure ?? runner.report}</span>
+          <button type="button" className={styles.dismiss} onClick={dismiss}>
             Dismiss
           </button>
         </div>
@@ -252,12 +278,16 @@ export function ConcordPage(): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/* The tally is the single focal object on this page, per the brief. */}
+        {/*
+          01 — the tally is the single focal object on this page, per the brief.
+          It holds no verbs any more: they live at `02` with the fields they are
+          pressed against, which is their position on every page in the kit.
+        */}
         <Panel
           label={state.config.title || 'The Concord'}
           index="01"
           focal
-          className={styles.tallyPanel}
+          className={styles.span6}
           aside={
             casting ? (
               <span className={styles.asideLive}>Casting lots</span>
@@ -268,7 +298,7 @@ export function ConcordPage(): ReactNode {
             ) : state.result ? (
               <span className={styles.asideResult}>{state.result.label}</span>
             ) : (
-              <span className={styles.asideIdle}>{state.options.length} on the ballot</span>
+              <span className={styles.count}>{state.options.length} on the ballot</span>
             )
           }
         >
@@ -294,33 +324,6 @@ export function ConcordPage(): ReactNode {
 
             <ConcordTally state={state} layout={preview} compact />
 
-            <div className={styles.controls}>
-              <Button
-                variant="primary"
-                disabled={!canOpen}
-                busy={actions.pending === 'open'}
-                onClick={() => void actions.open()}
-              >
-                Put the question
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={!open}
-                busy={actions.pending === 'close'}
-                onClick={() => void actions.close()}
-              >
-                {isDeadlocked(state.options) && open ? 'Close — will cast lots' : 'Close the vote'}
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={casting || (state.phase === 'idle' && !state.result)}
-                busy={actions.pending === 'reset'}
-                onClick={() => void actions.reset()}
-              >
-                Clear votes
-              </Button>
-            </div>
-
             {state.result ? (
               <p className={styles.verdict}>
                 <span className={styles.verdictLabel}>
@@ -345,17 +348,42 @@ export function ConcordPage(): ReactNode {
           </div>
         </Panel>
 
-        <Panel label="Ballot" index="02" className={styles.span2}>
+        {/* 02 — the desk's own controls, on the overlay's page. */}
+        <Panel label="Run the vote" index="02" className={styles.span3}>
+          <OverlayBench
+            entry={entry}
+            status={status}
+            actions={verbs}
+            composer={composerFor('concord', deck)}
+            dials={dialsFor('concord', deck)}
+            rows={[]}
+            copier={copier}
+            runner={runner}
+            variant="page"
+          />
+        </Panel>
+
+        {/*
+          03 — composition. Reordering a ballot and cutting an option are the
+          things deliberately not on the bench: they need a list, not one line.
+        */}
+        <Panel label="Ballot" index="03" className={styles.span3}>
           <OptionRoster state={state} actions={actions} />
         </Panel>
 
+        {/*
+          04 — the connection, and how what arrives on it is read.
+          The command field is here rather than with the question because it is
+          a parsing setting, and the sentence saying what a viewer types was
+          already on this panel.
+        */}
         <Panel
           label="Chat"
-          index="03"
-          className={styles.span2}
+          index="04"
+          className={styles.span3}
           aside={<StatusDot tone={CHAT_TONE[chat.state]} label={CHAT_STATE_LABEL[chat.state]} />}
         >
-          <div className={styles.broadcast}>
+          <div className={styles.config}>
             <p className={styles.hint}>
               Chat is read anonymously — there is nothing to authorise and no token stored. Set the
               channel in <Link to="/regulation">REGULATION</Link>.
@@ -383,6 +411,17 @@ export function ConcordPage(): ReactNode {
               Reattempt
             </Button>
 
+            {state.config.voteSyntax !== 'bare' ? (
+              <TextInput
+                label="Command"
+                value={command}
+                onChange={setCommand}
+                disabled={locked}
+                placeholder="!vote"
+                hint="Another bot's command is never counted as a vote."
+              />
+            ) : null}
+
             <p className={styles.hint}>
               Viewers vote with{' '}
               <code className={styles.inline}>{state.options[0]?.token ?? '1'}</code>
@@ -397,94 +436,18 @@ export function ConcordPage(): ReactNode {
               ) : null}
               . A message naming two options is discarded rather than guessed.
             </p>
-          </div>
-        </Panel>
-
-        <Panel label="The question" index="04" className={styles.span2}>
-          <div className={styles.config}>
-            <TextInput label="Title" value={title} onChange={setTitle} placeholder="THE CONCORD" />
-            <TextInput
-              label="Question"
-              value={prompt}
-              onChange={setPrompt}
-              hint="Shown above the ballot on the overlay."
-            />
-
-            {/*
-              Zero is a real setting, not an unset one, so it gets its own
-              control rather than being the bottom of the slider's range — a
-              slider that has to be dragged to its far left to mean "no timer"
-              hides the most useful option behind a gesture.
-            */}
-            <div className={styles.presets}>
-              <span className={styles.presetLabel}>Voting window</span>
-              <div className={styles.presetRow}>
-                {POLL_QUICK_SET.map((seconds) => (
-                  <button
-                    key={seconds}
-                    type="button"
-                    className={styles.preset}
-                    data-active={state.config.durationMs === seconds * 1000 || undefined}
-                    disabled={locked}
-                    onClick={() => void actions.configure({ durationMs: seconds * 1000 })}
-                  >
-                    {seconds === 0 ? 'Manual' : `${seconds}s`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {state.config.durationMs > 0 ? (
-              <Slider
-                label="Window length"
-                min={POLL_DURATION_MIN_MS}
-                max={POLL_DURATION_MAX_MS}
-                step={5_000}
-                value={state.config.durationMs}
-                disabled={locked}
-                readout={`${Math.round(state.config.durationMs / 1000)}s`}
-                onChange={(durationMs) => void actions.configure({ durationMs })}
-              />
-            ) : (
-              <p className={styles.hint}>
-                No timer — the vote stays open until you close it. The overlay shows no countdown.
-              </p>
-            )}
-
-            <SelectInput
-              label="Vote syntax"
-              value={state.config.voteSyntax}
-              options={VOTE_SYNTAXES.map((syntax) => ({
-                value: syntax,
-                label: VOTE_SYNTAX_LABEL[syntax]
-              }))}
-              onChange={(voteSyntax) => void actions.configure({ voteSyntax })}
-              disabled={locked}
-              hint="A bare numeral gets far more turnout; the command is unambiguous. Either accepts both."
-            />
-
-            {state.config.voteSyntax !== 'bare' ? (
-              <TextInput
-                label="Command"
-                value={command}
-                onChange={setCommand}
-                disabled={locked}
-                placeholder="!vote"
-                hint="Another bot's command is never counted as a vote."
-              />
-            ) : null}
 
             <p className={styles.instruction}>{voteInstruction(state.config)}</p>
           </div>
         </Panel>
 
         {/*
-          Presentation is split from the question: everything here changes how
-          the overlay looks and nothing here changes how a vote is counted. All
-          of it is a fixed choice within the locked palette rather than
-          free-form styling — there is deliberately no colour picker.
+          05 — everything here changes how the overlay looks and nothing here
+          changes how a vote is counted. All of it is a fixed choice within the
+          locked palette rather than free-form styling — there is deliberately
+          no colour picker.
         */}
-        <Panel label="Presentation" index="05" className={styles.span2}>
+        <Panel label="Presentation" index="05" className={styles.span3}>
           <div className={styles.config}>
             <PresentationControls
               values={state.config}
@@ -537,78 +500,86 @@ export function ConcordPage(): ReactNode {
               hint="How long the settled result stays up before the chamber returns to rest."
             />
 
-            <Checkbox
-              label="Composite over the scene"
-              checked={state.config.transparent}
-              onChange={(transparent) => void actions.configure({ transparent })}
-              hint="Drops the backdrop so the tally sits over your capture. Tick Transparent on the OBS source too."
-            />
+            <div className={styles.switchGroup}>
+              <span className={styles.switchLabel}>What is drawn</span>
+              <div className={styles.toggles}>
+                <Checkbox
+                  label="Masthead"
+                  checked={state.config.showMasthead}
+                  onChange={(showMasthead) => void actions.configure({ showMasthead })}
+                />
+                <Checkbox
+                  label="Resonance field"
+                  checked={state.config.showField}
+                  onChange={(showField) => void actions.configure({ showField })}
+                  hint="Tightens and brightens with the rate votes are arriving."
+                />
+                <Checkbox
+                  label="Numerals on the ballot"
+                  checked={state.config.showTokens}
+                  onChange={(showTokens) => void actions.configure({ showTokens })}
+                  hint="Hiding these leaves the audience nothing to type."
+                />
+                <Checkbox
+                  label="Percentages"
+                  checked={state.config.showPercentages}
+                  onChange={(showPercentages) => void actions.configure({ showPercentages })}
+                />
+                <Checkbox
+                  label="Voter count"
+                  checked={state.config.showVoterCount}
+                  onChange={(showVoterCount) => void actions.configure({ showVoterCount })}
+                />
+                <Checkbox
+                  label="Voting instruction"
+                  checked={state.config.showInstruction}
+                  onChange={(showInstruction) => void actions.configure({ showInstruction })}
+                />
+                <Checkbox
+                  label="Connection readout"
+                  checked={state.config.showStatus}
+                  onChange={(showStatus) => void actions.configure({ showStatus })}
+                />
+              </div>
+            </div>
 
-            <Slider
-              label="Reserve right edge"
-              min={0}
-              max={Math.round(MAX_EDGE_RESERVE * 100)}
-              step={1}
-              value={Math.round(state.config.reserveRight * 100)}
-              readout={`${Math.round(state.config.reserveRight * 100)}% · ${Math.round(
-                state.config.reserveRight * OVERLAY_REFERENCE_WIDTH
-              )}px`}
-              onChange={(percent) => void actions.configure({ reserveRight: percent / 100 })}
-              hint={`Dead space for chat and camera — nothing is drawn there. Pixels quoted at ${OVERLAY_REFERENCE_WIDTH}px wide.`}
-            />
+            <div className={styles.switchGroup}>
+              <span className={styles.switchLabel}>Layout and sound</span>
+              <div className={styles.toggles}>
+                <Checkbox
+                  label="Composite over the scene"
+                  checked={state.config.transparent}
+                  onChange={(transparent) => void actions.configure({ transparent })}
+                  hint="Drops the backdrop so the tally sits over your capture. Tick Transparent on the OBS source too."
+                />
+                <Checkbox
+                  label="Audio cues"
+                  checked={state.config.sound}
+                  onChange={(sound) => void actions.configure({ sound })}
+                  hint="Final call, and a chime if the chamber deadlocks. Console only — the broadcast stays silent."
+                />
+              </div>
 
-            <div className={styles.toggles}>
-              <Checkbox
-                label="Masthead"
-                checked={state.config.showMasthead}
-                onChange={(showMasthead) => void actions.configure({ showMasthead })}
-              />
-              <Checkbox
-                label="Resonance field"
-                checked={state.config.showField}
-                onChange={(showField) => void actions.configure({ showField })}
-                hint="Tightens and brightens with the rate votes are arriving."
-              />
-              <Checkbox
-                label="Numerals on the ballot"
-                checked={state.config.showTokens}
-                onChange={(showTokens) => void actions.configure({ showTokens })}
-                hint="Hiding these leaves the audience nothing to type."
-              />
-              <Checkbox
-                label="Percentages"
-                checked={state.config.showPercentages}
-                onChange={(showPercentages) => void actions.configure({ showPercentages })}
-              />
-              <Checkbox
-                label="Voter count"
-                checked={state.config.showVoterCount}
-                onChange={(showVoterCount) => void actions.configure({ showVoterCount })}
-              />
-              <Checkbox
-                label="Voting instruction"
-                checked={state.config.showInstruction}
-                onChange={(showInstruction) => void actions.configure({ showInstruction })}
-              />
-              <Checkbox
-                label="Connection readout"
-                checked={state.config.showStatus}
-                onChange={(showStatus) => void actions.configure({ showStatus })}
-              />
-              <Checkbox
-                label="Audio cues"
-                checked={state.config.sound}
-                onChange={(sound) => void actions.configure({ sound })}
-                hint="Final call, and a chime if the chamber deadlocks. Console only — the broadcast stays silent."
+              <Slider
+                label="Reserve right edge"
+                min={0}
+                max={Math.round(MAX_EDGE_RESERVE * 100)}
+                step={1}
+                value={Math.round(state.config.reserveRight * 100)}
+                readout={`${Math.round(state.config.reserveRight * 100)}% · ${Math.round(
+                  state.config.reserveRight * OVERLAY_REFERENCE_WIDTH
+                )}px`}
+                onChange={(percent) => void actions.configure({ reserveRight: percent / 100 })}
+                hint={`Dead space for chat and camera — nothing is drawn there. Pixels quoted at ${OVERLAY_REFERENCE_WIDTH}px wide.`}
               />
             </div>
           </div>
         </Panel>
 
         <Panel
-          label="Broadcast source"
+          label="Broadcast"
           index="06"
-          className={styles.span2}
+          className={styles.span6}
           aside={
             <StatusDot
               tone={server.running ? 'online' : 'error'}
@@ -617,52 +588,18 @@ export function ConcordPage(): ReactNode {
           }
         >
           <div className={styles.broadcast}>
-            {server.url ? (
-              <>
-                <p className={styles.hint}>
-                  Two addresses, one poll. Add either as a Browser source — or both, in different
-                  scenes, and they stay in step.
-                </p>
+            <p className={styles.hint}>
+              Two addresses, one poll. Add either as a Browser source — or both, in different
+              scenes, and they stay in step.
+            </p>
 
-                {addresses.map((address) => {
-                  const url = overlayAddressUrl(server.url as string, address.slug)
-                  return (
-                    <div key={address.slug} className={styles.address}>
-                      <span className={styles.addressLabel}>{address.label}</span>
-                      <span className={styles.addressPurpose}>
-                        {address.purpose} · {address.canvas.width}×{address.canvas.height}
-                      </span>
-                      <code className={styles.url}>{url}</code>
-                      <div className={styles.broadcastActions}>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => copyUrl(address.slug, url)}
-                        >
-                          {copied === address.slug ? 'Copied' : 'Copy address'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void window.candy.shell.openExternal(url)}
-                        >
-                          Open
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })}
-
-                <p className={styles.hint}>
-                  Append <code className={styles.inline}>?transparent=1</code> to either address to
-                  composite over your scene instead of on its own backdrop.
-                </p>
-              </>
-            ) : (
-              <p className={styles.hint}>
-                {server.error ?? 'The overlay server is not listening.'}
-              </p>
-            )}
+            <AddressList
+              rows={addressRowsFor(overlay, server.url)}
+              copied={copier.copied}
+              failed={copier.failed}
+              onCopy={copier.copy}
+              offline={server.error ?? 'The overlay server is not listening.'}
+            />
 
             <FieldGrid columns={2}>
               <Field label="Port" value={server.port ?? '—'} mono />
@@ -671,14 +608,54 @@ export function ConcordPage(): ReactNode {
           </div>
         </Panel>
 
+        <Panel
+          label="Record"
+          index="07"
+          className={styles.span6}
+          aside={
+            state.history.length > 0 ? (
+              <button
+                type="button"
+                className={styles.dismiss}
+                onClick={() => void actions.clearHistory()}
+              >
+                Purge
+              </button>
+            ) : null
+          }
+        >
+          {state.history.length === 0 ? (
+            <p className={styles.empty}>No questions on record.</p>
+          ) : (
+            <ol className={styles.history}>
+              {state.history.map((item) => (
+                <li key={`${item.optionId}-${item.at}`} className={styles.historyRow}>
+                  <span className={styles.historyTime}>{formatLogTime(item.at)}</span>
+                  <span className={styles.historyLabel} title={item.label}>
+                    {item.label}
+                  </span>
+                  <span className={styles.historyOdds}>
+                    {item.tally} / {item.total}
+                    {item.decidedByCasting ? ` · lot of ${item.tiedWith.length + 1}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </Panel>
+
         {/*
+          Last, as on every page in the kit, so every index above it is a
+          literal. It was `07` with the record renumbering itself beneath it
+          whenever rehearsal mode was switched on in REGULATION.
+
           Rehearsal scaffolding, and the only way to exercise this feature
           without an audience. Shown when test mode is on rather than only in
           development, so a packaged console can be rehearsed against before a
           stream — which is exactly when it matters.
         */}
         {testMode ? (
-          <Panel label="Simulator" index="07" className={styles.span2}>
+          <Panel label="Simulator" index="08" className={styles.span6}>
             <div className={styles.simulator}>
               <p className={styles.hint}>
                 Injects synthetic votes through the real parser and the real counting path — not
@@ -697,60 +674,24 @@ export function ConcordPage(): ReactNode {
                     +{count}
                   </Button>
                 ))}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!open}
+                  busy={actions.pending === 'simulate'}
+                  onClick={() => void actions.simulate(300, true)}
+                >
+                  300 from a third as many voters
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={!open}
-                busy={actions.pending === 'simulate'}
-                onClick={() => void actions.simulate(300, true)}
-              >
-                300 from a third as many voters
-              </Button>
               <p className={styles.hint}>
-                The second button reuses ids, so votes change rather than accumulate — the total
+                The last button reuses ids, so votes change rather than accumulate — the total
                 should move while the voter count holds.
               </p>
-              {!open ? <p className={styles.hint}>Put the question first.</p> : null}
+              {!open ? <p className={styles.empty}>Put the question first.</p> : null}
             </div>
           </Panel>
         ) : null}
-
-        <Panel
-          label="Record"
-          index={testMode ? '08' : '07'}
-          className={testMode ? styles.span4 : styles.span6}
-          aside={
-            state.history.length > 0 ? (
-              <button
-                type="button"
-                className={styles.dismiss}
-                onClick={() => void actions.clearHistory()}
-              >
-                Purge
-              </button>
-            ) : null
-          }
-        >
-          {state.history.length === 0 ? (
-            <p className={styles.hint}>No questions on record.</p>
-          ) : (
-            <ol className={styles.history}>
-              {state.history.map((entry) => (
-                <li key={`${entry.optionId}-${entry.at}`} className={styles.historyRow}>
-                  <span className={styles.historyTime}>{formatLogTime(entry.at)}</span>
-                  <span className={styles.historyLabel} title={entry.label}>
-                    {entry.label}
-                  </span>
-                  <span className={styles.historyOdds}>
-                    {entry.tally} / {entry.total}
-                    {entry.decidedByCasting ? ` · lot of ${entry.tiedWith.length + 1}` : ''}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Panel>
       </motion.div>
     </div>
   )

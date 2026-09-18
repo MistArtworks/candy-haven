@@ -1,16 +1,13 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useDialogKeys } from '@renderer/hooks/useDialogKeys'
 import { motion } from 'motion/react'
 import type { ProjectCategory } from '@shared/domain/projects'
 import {
   PROJECT_CATEGORIES,
   PROJECT_CATEGORY_LABEL,
-  PROJECT_CATEGORY_PURPOSE,
-  requiresVolume
+  PROJECT_CATEGORY_PURPOSE
 } from '@shared/domain/projects.constants'
 import { DEFAULT_FOLDER_COLOUR, validateFolderName } from '@shared/domain/stacks.constants'
-import type { VolumeSummary } from '@shared/domain/volumes'
-import { VOLUME_KIND_LABEL } from '@shared/domain/volumes.constants'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
@@ -20,18 +17,9 @@ import styles from '../stacks/stacks.module.scss'
 export interface ProjectDialogProps {
   /** The shelf the project will be created on. */
   where: string
-  /** Volumes available to attach to, for the volume-bound categories. */
-  volumes: readonly VolumeSummary[]
   busy?: boolean
   error?: string | null
-  onSubmit: (draft: {
-    name: string
-    category: ProjectCategory
-    volumeId: string | null
-    colour: string
-  }) => void
-  /** Opens the volume dialog, pre-set to the kind the category demands. */
-  onNewVolume: (kind: 'album' | 'ep' | 'compilation') => void
+  onSubmit: (draft: { name: string; category: ProjectCategory; colour: string }) => void
   onCancel: () => void
 }
 
@@ -42,56 +30,32 @@ export interface ProjectDialogProps {
  * applies, because a project *is* a directory — an illegal character here is
  * refused before a round trip, and refused again on the way in.
  *
- * Category and volume are asked together and treated as one question, which is
- * what the service enforces: choosing ALBUM without saying which album is not a
- * half-filled form, it is an incomplete statement. So picking one of the three
- * volume-bound categories reveals the volume row immediately, with a create
- * affordance beside it for the common case of an album that does not exist yet.
+ * Category is asked and nothing follows from it.
+ *
+ * It used to be half a question: choosing ALBUM revealed a second row asking
+ * *which* album, because the service refused a volume-bound category without
+ * one. Volumes became the DISCOGRAPHY, whose tracklist lives on the release,
+ * so a project no longer names what it is a track of — it is added to a
+ * release from the release, which is the only place that knows the running
+ * order. Category is now the operator's own label and nothing validates it.
  */
 export function ProjectDialog({
   where,
-  volumes,
   busy = false,
   error = null,
   onSubmit,
-  onNewVolume,
   onCancel
 }: ProjectDialogProps): ReactNode {
   const [name, setName] = useState('')
   const [category, setCategory] = useState<ProjectCategory>('single')
-  const [volumeId, setVolumeId] = useState<string | null>(null)
   const [colour, setColour] = useState(DEFAULT_FOLDER_COLOUR)
 
-  const needsVolume = requiresVolume(category)
-
-  // Only volumes of the matching kind: an EP track cannot belong to an album,
-  // and offering the choice would only produce a refusal from the service.
-  const candidates = useMemo(
-    () => volumes.filter((volume) => volume.kind === category),
-    [volumes, category]
-  )
-
-  /*
-   * The chosen volume is *derived*, not stored back on a category change.
-   *
-   * Moving from ALBUM to EP leaves the previously picked album still held in
-   * state but no longer valid, and moving to SINGLE leaves a volume attached to
-   * something that cannot have one. Resolving that during render rather than in
-   * an effect keeps the submitted draft self-consistent at every instant, and
-   * avoids the cascading re-render an effect that calls setState would cause.
-   *
-   * The raw pick survives in state, so flipping ALBUM → EP → ALBUM restores the
-   * album the operator had already chosen instead of clearing it.
-   */
-  const resolvedVolumeId =
-    needsVolume && volumeId && candidates.some((volume) => volume.id === volumeId) ? volumeId : null
-
   const verdict = validateFolderName(name)
-  const canSubmit = verdict.ok && !busy && (!needsVolume || resolvedVolumeId !== null)
+  const canSubmit = verdict.ok && !busy
 
   const submit = (): void => {
     if (canSubmit) {
-      onSubmit({ name: name.trim(), category, volumeId: resolvedVolumeId, colour })
+      onSubmit({ name: name.trim(), category, colour })
     }
   }
 
@@ -156,52 +120,6 @@ export function ProjectDialog({
                 ))}
               </div>
             </div>
-
-            {needsVolume ? (
-              <div className={styles.field}>
-                <span className={styles.pickerLabel}>
-                  Which {PROJECT_CATEGORY_LABEL[category].toLowerCase()}
-                </span>
-
-                {candidates.length === 0 ? (
-                  <div className={styles.inlineEmpty}>
-                    <p className={styles.dialogWhere}>
-                      No{' '}
-                      {VOLUME_KIND_LABEL[category as 'album' | 'ep' | 'compilation'].toLowerCase()}{' '}
-                      exists yet.
-                    </p>
-                    <Button
-                      size="sm"
-                      onClick={() => onNewVolume(category as 'album' | 'ep' | 'compilation')}
-                    >
-                      Create one
-                    </Button>
-                  </div>
-                ) : (
-                  <div className={styles.inlineRow}>
-                    <select
-                      className={styles.select}
-                      value={resolvedVolumeId ?? ''}
-                      aria-label="Volume"
-                      onChange={(event) => setVolumeId(event.target.value || null)}
-                    >
-                      <option value="">Choose…</option>
-                      {candidates.map((volume) => (
-                        <option key={volume.id} value={volume.id}>
-                          {volume.title}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      size="sm"
-                      onClick={() => onNewVolume(category as 'album' | 'ep' | 'compilation')}
-                    >
-                      New
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : null}
 
             <SwatchPicker value={colour} onChange={setColour} subject="Project" />
 

@@ -1,36 +1,44 @@
-import { useMemo, useState, type ReactNode } from 'react'
-import { useEchoedText } from '@renderer/hooks/useEchoedText'
+import { useMemo, type ReactNode } from 'react'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import type { TimerId } from '@shared/domain/timer'
 import {
-  GRACE_MAX_MS,
   GRACE_QUICK_SET,
   TIMER_ANIMATIONS,
   TIMER_ANIMATION_LABEL,
   TIMER_KIND,
-  TIMER_MAX_MS,
-  TIMER_MIN_MS,
   TIMER_QUICK_SET,
   formatClock,
   formatDurationLabel
 } from '@shared/domain/timer.constants'
-import { getOverlay, overlaySourceUrl } from '@shared/domain/overlays'
+import { getOverlay } from '@shared/domain/overlays'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
-import { Slider } from '@renderer/components/primitives/Slider'
-import { Checkbox, SelectInput, TextInput } from '@renderer/components/primitives/Input'
+import { Checkbox, SelectInput } from '@renderer/components/primitives/Input'
 import { gridVariants } from '@renderer/motion/transitions'
+import { useCopy } from '@renderer/hooks/useCopy'
 import { useOverlayInfo } from '@renderer/hooks/useRite'
 import { useTimer, useTimerActions, useTimerFrame } from '@renderer/hooks/useTimers'
 import { TimerFacePreview } from './components/TimerFacePreview'
-import styles from './TimerPage.module.scss'
+import { AddressList } from '../../components/AddressList'
+import { OverlayBench } from '../../components/OverlayBench'
 import { PresentationControls } from '../../components/PresentationControls'
+import { addressRowsFor } from '../../lib/addresses'
+import { kitEntry, kitNumber } from '../../lib/kit'
+import {
+  actionsFor,
+  composerFor,
+  dialsFor,
+  soloDeck,
+  statusFor,
+  useDeckRunner
+} from '../../lib/deck'
+import styles from './TimerPage.module.scss'
 
 export interface TimerPageProps {
   timerId: TimerId
@@ -42,20 +50,49 @@ export interface TimerPageProps {
  * One page serves both timers — they differ in defaults and in what happens at
  * zero, not in what the operator does with them. Which one this is comes from
  * the route, and everything on the page keys off it.
+ *
+ * On the kit's standing shape: `01` the face as the one focal panel, `02` the
+ * controls that run it, then the duration, presentation, and the address.
+ *
+ * The face no longer carries the verbs or the adjust row. They were sitting
+ * under the preview on this page and in a separate implementation on the desk,
+ * which is why `Start` and `Hold` read differently depending on where you
+ * pressed them. `02` is the desk's own bench, reading the same `actionsFor` —
+ * and the terminal word is a composer field there, so only CONVENING is offered
+ * one, which is the difference between the two clocks stated in the one place
+ * where it can be seen.
  */
 export function TimerPage({ timerId }: TimerPageProps): ReactNode {
   const overlay = getOverlay(timerId)
+  const entry = kitEntry(timerId)
   const kind = TIMER_KIND[timerId]
+
   const state = useTimer(timerId)
   const frame = useTimerFrame(state)
   const server = useOverlayInfo()
+  const runner = useDeckRunner()
+  const copier = useCopy()
+
+  /*
+   * Still held for the quick-set and adjust rows below, and for the keyboard.
+   *
+   * The chords stay on this hook rather than on the bench's actions: `extend`
+   * adjusts the *duration*, so `Ctrl`+`↑` works on a stopped clock as well as a
+   * running one, while the bench only offers ±1 min while something is actually
+   * counting — see `actionsFor`. Binding the chord to a verb that comes and
+   * goes would make the chord come and go with it.
+   */
   const actions = useTimerActions()
 
-  const [copied, setCopied] = useState(false)
-
-  const sourceUrl = server.url ? overlaySourceUrl(server.url, overlay) : null
   const running = state.phase === 'running'
   const spent = frame.phase === 'elapsed'
+
+  const deck = useMemo(
+    () => soloDeck({ owner: timerId, timer: { id: timerId, state, frame }, server }),
+    [timerId, state, frame, server]
+  )
+
+  const status = statusFor(timerId, deck, 0)
 
   /*
    * A countdown is run live, so it is run from the keyboard.
@@ -112,24 +149,6 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
 
   useHotkeys(hotkeys)
 
-  // Owned locally while being typed into; see `useEchoedText`.
-  const [label, setLabel] = useEchoedText(
-    state.config.label,
-    (value) => void actions.configure(timerId, { label: value })
-  )
-  const [terminalWord, setTerminalWord] = useEchoedText(
-    state.config.terminalWord,
-    (value) => void actions.configure(timerId, { terminalWord: value })
-  )
-
-  const copyUrl = (): void => {
-    if (!sourceUrl) return
-    void navigator.clipboard.writeText(sourceUrl).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1600)
-    })
-  }
-
   // The readout mirrors the face: grace counts its own budget down, so the
   // console never shows a stopped clock while time is still being spent.
   const readout =
@@ -143,17 +162,24 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
     elapsed: 'Spent'
   }
 
+  const failure = runner.error ?? actions.error
+  const dismiss = (): void => {
+    runner.dismiss()
+    actions.dismissError()
+  }
+
   return (
     <div className={styles.page}>
       <PageHeader
-        index={overlay.order + 1}
+        index={kitNumber(timerId)}
         label={overlay.label}
+        kind={overlay.role}
         purpose={overlay.purpose}
         epigraph={overlay.epigraph}
         actions={
           <div className={styles.headerActions}>
             <Link to="/observatory" className={styles.back}>
-              Catalogue
+              ← The desk
             </Link>
             <StatusDot
               tone={
@@ -172,10 +198,13 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
         }
       />
 
-      {actions.error ? (
-        <div className={styles.notice} role="alert">
-          <span>{actions.error}</span>
-          <button type="button" className={styles.dismiss} onClick={actions.dismissError}>
+      {failure || runner.report ? (
+        <div
+          className={failure ? styles.notice : styles.report}
+          role={failure ? 'alert' : 'status'}
+        >
+          <span>{failure ?? runner.report}</span>
+          <button type="button" className={styles.dismiss} onClick={dismiss}>
             Dismiss
           </button>
         </div>
@@ -187,124 +216,119 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/* The face is the single focal object on this page. */}
+        {/* 01 — the face is the single focal object on this page. */}
         <Panel
           label="Face"
           index="01"
           focal
-          className={styles.facePanel}
+          className={styles.span6}
           aside={<span className={styles.clock}>{readout}</span>}
         >
           <div className={styles.faceBody}>
             <TimerFacePreview state={state} />
-
-            <div className={styles.controls}>
-              <Button
-                variant="primary"
-                busy={actions.pending === 'toggle'}
-                onClick={() => void actions.toggle(timerId)}
-              >
-                {running ? 'Hold' : state.phase === 'paused' ? 'Resume' : 'Start'}
-              </Button>
-              <Button
-                variant="ghost"
-                busy={actions.pending === 'restart'}
-                onClick={() => void actions.restart(timerId)}
-              >
-                Restart
-              </Button>
-              <Button
-                variant="danger"
-                disabled={state.phase === 'idle'}
-                busy={actions.pending === 'reset'}
-                onClick={() => void actions.reset(timerId)}
-              >
-                Reset
-              </Button>
-            </div>
-
-            {/*
-              Adjusting the duration rather than the clock, so this works mid-run
-              — handing yourself another two minutes is the common case for a
-              break that has overrun.
-            */}
-            <div className={styles.adjust}>
-              <span className={styles.adjustLabel}>Adjust</span>
-              {[-60_000, -30_000, 30_000, 60_000, 300_000].map((delta) => (
-                <Button
-                  key={delta}
-                  size="sm"
-                  variant="ghost"
-                  busy={actions.pending === `extend:${delta}`}
-                  onClick={() => void actions.extend(timerId, delta)}
-                >
-                  {delta > 0
-                    ? `+${delta / 60_000 >= 1 ? `${delta / 60_000}m` : `${delta / 1000}s`}`
-                    : `−${Math.abs(delta) / 60_000 >= 1 ? `${Math.abs(delta) / 60_000}m` : `${Math.abs(delta) / 1000}s`}`}
-                </Button>
-              ))}
-            </div>
           </div>
         </Panel>
 
-        <Panel label="Duration" index="02" className={styles.span2}>
+        {/* 02 — the desk's own controls, on the overlay's page. */}
+        <Panel label="Run the clock" index="02" className={styles.span3}>
+          <OverlayBench
+            entry={entry}
+            status={status}
+            actions={actionsFor(timerId, deck)}
+            composer={composerFor(timerId, deck)}
+            dials={dialsFor(timerId, deck)}
+            rows={[]}
+            copier={copier}
+            runner={runner}
+            variant="page"
+          />
+        </Panel>
+
+        {/*
+          03 — the fuller way at the same two numbers the bench dials.
+          Both write `config.durationMs` and `config.graceMs`, so they cannot
+          disagree; what this adds is the named presets and a finer adjustment
+          than ±1 minute. The bench keeps the coarse pair because that is the
+          one reached for mid-break, from the desk, with an audience waiting.
+        */}
+        <Panel label="Duration" index="03" className={styles.span3}>
           <div className={styles.config}>
-            <Slider
-              label="Time set"
-              min={TIMER_MIN_MS}
-              max={TIMER_MAX_MS}
-              step={15_000}
-              value={state.config.durationMs}
-              readout={formatClock(state.config.durationMs)}
-              onChange={(durationMs) => void actions.configure(timerId, { durationMs })}
-              hint="Takes effect immediately, including mid-run."
-            />
-
-            <div className={styles.quick}>
-              {TIMER_QUICK_SET.map((seconds) => (
-                <Button
-                  key={seconds}
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void actions.configure(timerId, { durationMs: seconds * 1_000 })}
-                >
-                  {formatDurationLabel(seconds * 1_000)}
-                </Button>
-              ))}
+            <div className={styles.quickGroup}>
+              <span className={styles.quickLabel}>Set to</span>
+              <div className={styles.quick}>
+                {TIMER_QUICK_SET.map((seconds) => (
+                  <Button
+                    key={seconds}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void actions.configure(timerId, { durationMs: seconds * 1_000 })}
+                  >
+                    {formatDurationLabel(seconds * 1_000)}
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {/*
-              Grace is a second budget beginning the instant the first is spent.
-              The readout crosses into crimson and counts it down, so overrunning
-              looks like overrunning rather than like a clock that stopped.
+              Adjusting the duration rather than the clock, so this works
+              mid-run — handing yourself another two minutes is the common case
+              for a break that has overrun.
             */}
-            <Slider
-              label="Grace time"
-              min={0}
-              max={GRACE_MAX_MS}
-              step={15_000}
-              value={state.config.graceMs}
-              readout={formatDurationLabel(state.config.graceMs)}
-              onChange={(graceMs) => void actions.configure(timerId, { graceMs })}
-              hint="Counted down in crimson past zero. None ends the timer at 00:00."
-            />
-
-            <div className={styles.quick}>
-              {GRACE_QUICK_SET.map((seconds) => (
-                <Button
-                  key={seconds}
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void actions.configure(timerId, { graceMs: seconds * 1_000 })}
-                >
-                  {formatDurationLabel(seconds * 1_000)}
-                </Button>
-              ))}
+            <div className={styles.quickGroup}>
+              <span className={styles.quickLabel}>Adjust</span>
+              <div className={styles.quick}>
+                {[-60_000, -30_000, 30_000, 60_000, 300_000].map((delta) => (
+                  <Button
+                    key={delta}
+                    size="sm"
+                    variant="ghost"
+                    busy={actions.pending === `extend:${delta}`}
+                    onClick={() => void actions.extend(timerId, delta)}
+                  >
+                    {delta > 0
+                      ? `+${delta / 60_000 >= 1 ? `${delta / 60_000}m` : `${delta / 1000}s`}`
+                      : `−${Math.abs(delta) / 60_000 >= 1 ? `${Math.abs(delta) / 60_000}m` : `${Math.abs(delta) / 1000}s`}`}
+                  </Button>
+                ))}
+              </div>
             </div>
+
+            {/*
+              Grace is a second budget beginning the instant the first is spent,
+              and only an interval has one — see `createDefaultTimerConfig`: it
+              is for work that runs over, and counting a room in does not. So
+              CONVENING gets no grace presets here and no grace dial on `02`.
+            */}
+            {kind === 'interval' ? (
+              <div className={styles.quickGroup}>
+                <span className={styles.quickLabel}>Grace past zero</span>
+                <div className={styles.quick}>
+                  {GRACE_QUICK_SET.map((seconds) => (
+                    <Button
+                      key={seconds}
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => void actions.configure(timerId, { graceMs: seconds * 1_000 })}
+                    >
+                      {formatDurationLabel(seconds * 1_000)}
+                    </Button>
+                  ))}
+                </div>
+                <p className={styles.hint}>
+                  Counted down in crimson past zero, so overrunning looks like overrunning rather
+                  than like a clock that stopped. None ends the timer at 00:00.
+                </p>
+              </div>
+            ) : null}
+
+            <FieldGrid columns={2}>
+              <Field label="Set" value={formatClock(state.config.durationMs)} mono />
+              <Field label="Grace" value={formatDurationLabel(state.config.graceMs)} mono />
+            </FieldGrid>
           </div>
         </Panel>
 
-        <Panel label="Presentation" index="03" className={styles.span2}>
+        <Panel label="Presentation" index="04" className={styles.span3}>
           <div className={styles.config}>
             <PresentationControls
               values={state.config}
@@ -320,64 +344,71 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
             />
 
             <SelectInput
-              label="Countdown animation"
+              label="Countdown face"
               value={state.config.animation}
               options={TIMER_ANIMATIONS.map((animation) => ({
                 value: animation,
                 label: TIMER_ANIMATION_LABEL[animation]
               }))}
               onChange={(animation) => void actions.configure(timerId, { animation })}
-              hint="Four presentations of the same clock. The overlay is always transparent."
+              hint="Presentations of the same clock. The overlay is always transparent."
             />
 
-            <TextInput label="Label" value={label} onChange={setLabel} placeholder="INTERVAL" />
+            <div className={styles.switchGroup}>
+              <span className={styles.switchLabel}>What is drawn</span>
+              <div className={styles.toggles}>
+                <Checkbox
+                  label="Show the label"
+                  checked={state.config.showLabel}
+                  onChange={(showLabel) => void actions.configure(timerId, { showLabel })}
+                />
+                <Checkbox
+                  label="Blink when spent"
+                  checked={state.config.blinkOnElapsed}
+                  onChange={(blinkOnElapsed) => void actions.configure(timerId, { blinkOnElapsed })}
+                  hint={
+                    kind === 'convene'
+                      ? 'A convening has arrived rather than run out, so this is usually off for it.'
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
 
-            <TextInput
-              label="Terminal word"
-              value={terminalWord}
-              onChange={setTerminalWord}
-              hint={
-                kind === 'convene'
-                  ? 'Shown in place of the clock when the countdown resolves.'
-                  : 'Only used when the countdown resolves to a word rather than blinking.'
-              }
-            />
-
-            <div className={styles.toggles}>
-              <Checkbox
-                label="Show the label"
-                checked={state.config.showLabel}
-                onChange={(showLabel) => void actions.configure(timerId, { showLabel })}
-              />
-              <Checkbox
-                label="Blink when spent"
-                checked={state.config.blinkOnElapsed}
-                onChange={(blinkOnElapsed) => void actions.configure(timerId, { blinkOnElapsed })}
-              />
-              <Checkbox
-                label="Audio cues in the console"
-                checked={state.config.sound}
-                onChange={(sound) => void actions.configure(timerId, { sound })}
-                hint={
-                  kind === 'convene'
-                    ? 'Off by default — nothing should warn an audience it is nearly time. The impact when this reaches zero needs it on.'
-                    : 'One minute out, final call at ten seconds, and once when spent. Console only, never on the broadcast.'
-                }
-              />
-              <Checkbox
-                label="Ticking clock"
-                checked={state.config.tick}
-                onChange={(tick) => void actions.configure(timerId, { tick })}
-                hint="A clock under the countdown for as long as it runs. Its own setting: the cues are three chimes, this is a bed."
-              />
+            {/*
+              Two kinds of noise, and they are deliberately two settings: the
+              cues are three chimes at moments that matter, the clock is a bed
+              that plays for the whole duration. Turning the chimes off does not
+              silence the clock, and it is not meant to.
+            */}
+            <div className={styles.switchGroup}>
+              <span className={styles.switchLabel}>Sound, in the console only</span>
+              <div className={styles.toggles}>
+                <Checkbox
+                  label="Audio cues"
+                  checked={state.config.sound}
+                  onChange={(sound) => void actions.configure(timerId, { sound })}
+                  hint={
+                    kind === 'convene'
+                      ? 'Off by default — nothing should warn an audience it is nearly time. The impact when this reaches zero needs it on.'
+                      : 'One minute out, final call at ten seconds, and once when spent. Never on the broadcast.'
+                  }
+                />
+                <Checkbox
+                  label="Ticking clock"
+                  checked={state.config.tick}
+                  onChange={(tick) => void actions.configure(timerId, { tick })}
+                  hint="A clock under the countdown for as long as it runs."
+                />
+              </div>
             </div>
           </div>
         </Panel>
 
         <Panel
-          label="Broadcast source"
-          index="04"
-          className={styles.span2}
+          label="Broadcast"
+          index="05"
+          className={styles.span6}
           aside={
             <StatusDot
               tone={server.running ? 'online' : 'error'}
@@ -386,37 +417,18 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
           }
         >
           <div className={styles.broadcast}>
-            {sourceUrl ? (
-              <>
-                <p className={styles.hint}>
-                  Add a Browser source in OBS at this address. Width {overlay.canvas.width}, height{' '}
-                  {overlay.canvas.height}, and tick <strong>Transparent</strong> — this overlay
-                  never paints a background, so it drops onto any scene.
-                </p>
-                <code className={styles.url}>{sourceUrl}</code>
-                <div className={styles.broadcastActions}>
-                  <Button size="sm" variant="ghost" onClick={copyUrl}>
-                    {copied ? 'Copied' : 'Copy address'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void window.candy.shell.openExternal(sourceUrl)}
-                  >
-                    Preview
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className={styles.hint}>
-                {server.error ?? 'The overlay server is not listening.'}
-              </p>
-            )}
+            <p className={styles.hint}>
+              Tick <strong>Transparent</strong> on the OBS source — this overlay never paints a
+              background, so it drops onto any scene.
+            </p>
 
-            <FieldGrid columns={2}>
-              <Field label="Set" value={formatClock(state.config.durationMs)} mono />
-              <Field label="Grace" value={formatDurationLabel(state.config.graceMs)} mono />
-            </FieldGrid>
+            <AddressList
+              rows={addressRowsFor(overlay, server.url)}
+              copied={copier.copied}
+              failed={copier.failed}
+              onCopy={copier.copy}
+              offline={server.error ?? 'The overlay server is not listening.'}
+            />
           </div>
         </Panel>
       </motion.div>

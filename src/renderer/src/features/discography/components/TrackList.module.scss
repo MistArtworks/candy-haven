@@ -1,0 +1,306 @@
+@use 'abstracts' as *;
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
+.tracks {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.track {
+  display: flex;
+  align-items: flex-start;
+  gap: space(3);
+  padding: space(3) 0;
+
+  & + & {
+    @include hairline(top, 0.06);
+  }
+}
+
+// A running order is read down the numerals, so they are the fixed column the
+// eye tracks; monospace keeps them from shifting as the list passes ten.
+.position {
+  @include readout(12px);
+  color: var(--ch-gold-300);
+  width: rem(24px);
+  flex-shrink: 0;
+  padding-top: space(1);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  @include readout(12px);
+  color: var(--ch-text-primary);
+  background: none;
+  border: 0;
+  border-bottom: $hairline solid transparent;
+  padding: space(1) 0;
+  width: 100%;
+
+  &:hover {
+    border-bottom-color: var(--ch-line);
+  }
+
+  &:focus-visible {
+    border-bottom-color: var(--ch-line-gold);
+    outline: none;
+  }
+}
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+.linked {
+  @include readout(9px);
+  color: var(--ch-gold-300);
+}
+
+.unlinked {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// A link pointing at a project that has been forgotten. Stated rather than
+// silently drawn as unlinked: the two mean different things, and only one of
+// them is worth investigating.
+.dangling {
+  @include readout(9px);
+  color: var(--ch-crimson-400);
+}
+
+.credits {
+  @include readout(9px);
+  color: var(--ch-text-secondary);
+}
+
+.isrc {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+
+  &[data-bad] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+// The file that shipped as this track. Clickable, because the reason for
+// referencing it in place rather than moving it is that the source can then
+// be reached from the record that names it.
+.master {
+  @include readout(9px);
+  color: var(--ch-alabaster-500);
+  text-align: left;
+  display: inline-flex;
+  align-items: baseline;
+  gap: space(2);
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.masterBytes {
+  @include label(8px);
+  color: var(--ch-text-faint);
+}
+
+// Said only when there is a project it could have come from — an incomplete
+// record, not a fault, so it recedes rather than warning.
+.noMaster {
+  @include label(8px);
+  color: var(--ch-text-muted);
+}
+
+.picker {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  padding-top: space(2);
+  flex-wrap: wrap;
+}
+
+.pickerEmpty {
+  @include label(9px);
+  color: var(--ch-text-muted);
+  width: 100%;
+}
+
+// ---------------------------------------------------------- master picker
+
+.masterPicker {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin-top: space(2);
+  padding: space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+}
+
+.masterList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  // Bounded rather than unbounded: a project with forty bounces would push the
+  // rest of the running order off the sheet. 2px gaps between rows, as the
+  // chart bars use, so the set reads as one list of candidates.
+  max-height: rem(220px);
+  overflow-y: auto;
+}
+
+.masterOption {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  padding: space(2) space(3);
+  text-align: left;
+  background: var(--ch-surface);
+  @include hairline(all, 0.06);
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+
+  &[data-on] {
+    border-color: var(--ch-line-gold);
+
+    .masterName {
+      color: var(--ch-gold-300);
+    }
+  }
+}
+
+.masterName {
+  @include readout(10px);
+  color: var(--ch-text-primary);
+  flex: 1;
+  min-width: 0;
+  @include truncate;
+}
+
+.masterSize {
+  @include label(8px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.masterWhere {
+  @include label(8px);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+  max-width: rem(180px);
+  @include truncate;
+}
+
+.masterActions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  justify-content: flex-end;
+}
+
+.masterHint {
+  @include label(9px);
+  color: var(--ch-text-muted);
+  line-height: 1.6;
+}
+
+.select {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  padding: space(2) space(3);
+  max-width: rem(280px);
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: space(1);
+  flex-shrink: 0;
+}
+
+.nudge {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  padding: space(1) space(2);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.add {
+  display: flex;
+  align-items: flex-end;
+  gap: space(3);
+  flex-wrap: wrap;
+  padding-top: space(3);
+  @include hairline(top, 0.08);
+}
+
+.addInput {
+  flex: 1;
+  min-width: rem(180px);
+}
+
+// What the button beneath the list does, said beside it rather than in a
+// placeholder that vanishes the moment anybody types.
+.addHint {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}

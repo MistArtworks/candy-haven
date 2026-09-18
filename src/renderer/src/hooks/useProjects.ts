@@ -157,18 +157,14 @@ export function useProjectMutations(): {
   >
   deleteNote: UseMutationResult<ProjectRecord, Error, { id: string; noteId: string }>
   /**
-   * Promoting a bounce to the project's final mix and master.
+   * Naming the bounce that is this project's finished master. Null clears it.
    *
-   * A real mutation rather than a bare IPC call because a *swap* changes no
-   * stage — nothing else would invalidate the register afterwards, and the
-   * dossier would keep drawing the file that just left the folder.
+   * A real mutation rather than a bare IPC call because it invalidates more
+   * than the dossier: the RELEASED stage is gated on this, so the register's
+   * readiness figures and the DISCOGRAPHY track that copies the pick both move
+   * with it.
    */
-  setFinal: UseMutationResult<
-    ProjectRecord,
-    Error,
-    { id: string; sourcePath: string; name: string }
-  >
-  clearFinal: UseMutationResult<ProjectRecord, Error, string>
+  setFinalMaster: UseMutationResult<ProjectRecord, Error, { id: string; path: string | null }>
   forget: UseMutationResult<void, Error, string>
   trash: UseMutationResult<ProjectRecord, Error, string>
   restore: UseMutationResult<ProjectRecord, Error, string>
@@ -198,13 +194,8 @@ export function useProjectMutations(): {
       mutationFn: ({ id, noteId }) => window.candy.projects.deleteNote(id, noteId),
       onSuccess
     }),
-    setFinal: useMutation({
-      mutationFn: ({ id, sourcePath, name }) =>
-        window.candy.projects.setFinal(id, sourcePath, name),
-      onSuccess
-    }),
-    clearFinal: useMutation({
-      mutationFn: (id: string) => window.candy.projects.clearFinal(id),
+    setFinalMaster: useMutation({
+      mutationFn: ({ id, path }) => window.candy.projects.setFinalMaster(id, path),
       onSuccess
     }),
     forget: useMutation({

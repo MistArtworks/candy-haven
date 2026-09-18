@@ -11,8 +11,12 @@ import { TextInput } from '@renderer/components/primitives/Input'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useOverlayInfo } from '@renderer/hooks/useRite'
+import { useCopy } from '@renderer/hooks/useCopy'
 import { GateScene } from '@renderer/features/home/components/scenes/GateScene'
 import { GalaxyScene } from '@renderer/features/home/components/scenes/GalaxyScene'
+import { AddressList } from '../../components/AddressList'
+import { kitNumber } from '../../lib/kit'
+import type { AddressRow } from '../../lib/addresses'
 import styles from './ScenePage.module.scss'
 
 const TITLE_LIMIT = 48
@@ -73,7 +77,7 @@ export function ScenePage({ overlayId }: ScenePageProps): ReactNode {
   const [scale, setScale] = useState(DEFAULTS.scale)
   const [type, setType] = useState(DEFAULTS.type)
   const [opacity, setOpacity] = useState(DEFAULTS.opacity)
-  const [copied, setCopied] = useState(false)
+  const copier = useCopy()
 
   const adjusted =
     title !== DEFAULTS.title ||
@@ -136,25 +140,35 @@ export function ScenePage({ overlayId }: ScenePageProps): ReactNode {
     opacity
   ])
 
-  function copyUrl(): void {
-    if (!sourceUrl) return
-    void navigator.clipboard.writeText(sourceUrl).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1600)
-    })
-  }
+  /** The one address, as the kit's own address row. */
+  const rows = useMemo<AddressRow[]>(
+    () =>
+      sourceUrl
+        ? [
+            {
+              key: overlay.slug,
+              label: overlay.label,
+              purpose: overlay.sourcePurpose ?? overlay.purpose,
+              canvas: overlay.canvas,
+              url: sourceUrl
+            }
+          ]
+        : [],
+    [overlay, sourceUrl]
+  )
 
   return (
     <div className={styles.page}>
       <PageHeader
-        index={overlay.order + 1}
+        index={kitNumber(overlayId)}
         label={overlay.label}
+        kind={overlay.role}
         purpose={overlay.purpose}
         epigraph={overlay.epigraph}
         actions={
           <div className={styles.headerActions}>
             <Link to="/observatory" className={styles.back}>
-              Catalogue
+              ← The desk
             </Link>
             <StatusDot
               tone={server.url ? 'online' : 'pending'}
@@ -306,32 +320,34 @@ export function ScenePage({ overlayId }: ScenePageProps): ReactNode {
           </div>
         </Panel>
 
-        <Panel label="Broadcast source" index="04" className={styles.span6}>
-          {sourceUrl ? (
-            <>
-              <p className={styles.hint}>
-                Add a Browser source in OBS at this address. Width {overlay.canvas.width}, height{' '}
-                {overlay.canvas.height}. This one is a <strong>scene</strong> rather than furniture
-                — it replaces the capture rather than sitting over it, so it does not want
-                Transparent ticked.
-              </p>
-              <code className={styles.url}>{sourceUrl}</code>
-              <div className={styles.broadcastActions}>
-                <Button size="sm" variant="ghost" onClick={copyUrl}>
-                  {copied ? 'Copied' : 'Copy address'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void window.candy.shell.openExternal(sourceUrl)}
-                >
-                  Preview
-                </Button>
-              </div>
-            </>
-          ) : (
-            <p className={styles.hint}>Overlay server offline — no address to serve.</p>
-          )}
+        <Panel label="Broadcast" index="04" className={styles.span6}>
+          <div className={styles.broadcast}>
+            <p className={styles.hint}>
+              This one is a <strong>scene</strong> rather than furniture — it replaces the capture
+              rather than sitting over it, so it does not want Transparent ticked. Everything set
+              above travels in the address, so changing one means pasting the new URL rather than
+              reloading the source.
+            </p>
+
+            {/*
+              The shared list, given the *composed* address rather than the
+              registry's bare one.
+
+              Every other overlay in the kit stores its settings and serves one
+              fixed URL. This page has no stored state at all — the URL *is* the
+              configuration, which is what lets two scenes carry two
+              differently-marqued copies — so the row is built here from what the
+              fields say. The presentation, the copy and the preview are the
+              kit's; only the address is this page's.
+            */}
+            <AddressList
+              rows={rows}
+              copied={copier.copied}
+              failed={copier.failed}
+              onCopy={copier.copy}
+              offline="Overlay server offline — no address to serve."
+            />
+          </div>
         </Panel>
       </motion.div>
     </div>

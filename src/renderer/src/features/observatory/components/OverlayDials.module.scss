@@ -1,0 +1,12 @@
+@use 'abstracts' as *;
+
+.dials {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.label {
+  @include label(7px, 0.2em);
+  color: var(--ch-text-faint);
+}

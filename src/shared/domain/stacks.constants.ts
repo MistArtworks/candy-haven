@@ -32,23 +32,22 @@ import type { FolderSwatch } from './stacks'
  * not an album track" — whereas "not on a shelf" cannot be expressed any other
  * way, and is the question the operator actually asks.
  */
-export const ARCHIVE_LENSES = ['all', 'stacks', 'unfiled', 'volumes', 'releases', 'bin'] as const
+export const ARCHIVE_LENSES = ['all', 'stacks', 'unfiled', 'bin'] as const
 export type ArchiveLens = (typeof ARCHIVE_LENSES)[number]
 
 /**
  * Lenses that are not offered at the moment.
  *
- * `releases` is stood down rather than removed. What happens after a track is
- * finished — scheduling it, wrapping it, putting it out — is being
- * respecified, and in the meantime the final mix and master lives in
- * `Release Mastered Tracks`. Leaving RELEASES on the rail would give the
- * operator two places that both claim to answer "what is going out".
+ * Empty, and kept as the seam rather than deleted.
  *
- * Hidden rather than deleted, and the distinction is the point: the service,
- * the collection and every release the operator has already raised are intact.
- * Putting the lens back is a one-line change here, not a rebuild.
+ * `releases` lived here from the archive redesign — stood down rather than
+ * removed, because what happens after a track is finished was being
+ * respecified. It has been: DISCOGRAPHY is its own department now, and it
+ * absorbed VOLUMES with it. Both lenses are gone from the list above rather
+ * than hidden, because unlike last time nothing is left behind to un-hide —
+ * the records moved. See docs/DISCOGRAPHY.md, decision D2.
  */
-export const HIDDEN_ARCHIVE_LENSES: readonly ArchiveLens[] = ['releases']
+export const HIDDEN_ARCHIVE_LENSES: readonly ArchiveLens[] = []
 
 /** The lenses actually offered on the rail, in order. */
 export const VISIBLE_ARCHIVE_LENSES: readonly ArchiveLens[] = ARCHIVE_LENSES.filter(
@@ -58,8 +57,6 @@ export const VISIBLE_ARCHIVE_LENSES: readonly ArchiveLens[] = ARCHIVE_LENSES.fil
 export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
   stacks: 'STACKS',
   unfiled: 'INTAKE',
-  volumes: 'VOLUMES',
-  releases: 'RELEASES',
   all: 'ALL',
   bin: 'BIN'
 }
@@ -67,8 +64,6 @@ export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
 export const ARCHIVE_LENS_PURPOSE: Record<ArchiveLens, string> = {
   stacks: 'Categories, genres, artists and the projects filed on them.',
   unfiled: 'Work found elsewhere on disk, and somewhere to put it.',
-  volumes: 'Albums, EPs and compilations, and the tracks bound into each.',
-  releases: 'What is going out, and the files that go with it.',
   all: 'The whole register, flat.',
   bin: 'Deleted projects, kept until you empty them.'
 }
@@ -257,6 +252,15 @@ export const PROJECTS_DIRECTORY_NAME = 'Projects'
 export const RELEASE_MASTERED_TRACKS_DIRECTORY_NAME = 'Release Mastered Tracks'
 
 /**
+ * Where the archive keeps its copies of the operator's pictures.
+ *
+ * Artist photographs and release artwork, copied in rather than referenced —
+ * see `media.store.ts`. Reserved so a category cannot be created with the
+ * name and then have files written into it by another department.
+ */
+export const MEDIA_DIRECTORY_NAME = 'Media'
+
+/**
  * Hand-off packages for raised releases.
  *
  * Stood down with the RELEASES lens — nothing creates this any more — but still
@@ -286,6 +290,7 @@ export const RECYCLE_BIN_DIRECTORY_NAME = 'RECYCLE BIN'
 export const RESERVED_WRAPPER_DIRECTORIES: readonly string[] = [
   PROJECTS_DIRECTORY_NAME,
   RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
+  MEDIA_DIRECTORY_NAME,
   RELEASES_DIRECTORY_NAME,
   RECYCLE_BIN_DIRECTORY_NAME
 ]

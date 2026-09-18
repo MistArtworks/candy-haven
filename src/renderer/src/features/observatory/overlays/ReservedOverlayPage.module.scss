@@ -1,51 +1,15 @@
 @use 'abstracts' as *;
+// A sibling here, where every other overlay page is one directory deeper.
+@use './page';
 
-.page {
-  padding: space(10) space(10) space(12);
-  max-width: 1560px;
-  margin: 0 auto;
-}
+// An overlay that is catalogued and routed but not commissioned.
+@include page.chrome;
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: space(5);
-  align-items: stretch;
-}
-
-.notice {
+// The one panel on the page, so it carries the crimson. Named `noticePanel`
+// rather than `notice`: the shared chrome uses that name for the kit's notice
+// *line*, and one slab and one alert line are not the same object.
+.noticePanel {
   grid-column: span 6;
-}
-
-.span3 {
-  grid-column: span 3;
-}
-
-@include below('md') {
-  .page {
-    padding: space(8) space(6) space(10);
-  }
-
-  .span3 {
-    grid-column: span 6;
-  }
-}
-
-.back {
-  @include label(8px, 0.18em);
-  color: var(--ch-text-secondary);
-  text-decoration: none;
-  border: $hairline solid var(--ch-line);
-  padding: space(2) space(3);
-
-  &:hover {
-    color: var(--ch-gold-300);
-    border-color: var(--ch-line-gold);
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
 }
 
 .noticeBody {

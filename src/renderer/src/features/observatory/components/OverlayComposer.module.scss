@@ -1,0 +1,92 @@
+@use 'abstracts' as *;
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-top: space(3);
+  @include hairline(top, 0.06);
+}
+
+/*
+ * Title and question side by side.
+ *
+ * They are one statement — what the overlay is called and what it asks — and
+ * stacking them put the question a scroll below the thing it belongs to on a
+ * block that is already tall. Collapses below the medium breakpoint, where
+ * two fields in half a card is two fields nobody can read.
+ */
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space(3);
+}
+
+@include below('md') {
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/*
+ * The add-one line, with its control on the baseline of the field's own input
+ * rather than its label — `flex-end` aligns the button with the box, which is
+ * what it acts on.
+ */
+.entry {
+  display: flex;
+  align-items: flex-end;
+  gap: space(3);
+}
+
+.entryInput {
+  flex: 1;
+  min-width: 0;
+}
+
+// --------------------------------------------------------------------- filed
+
+.filed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * A stamped field rather than a pill.
+ *
+ * Square corners and a hairline, like everything else here — a rounded tag
+ * would be the only soft object on the page, which is the one thing the brief
+ * rules out outright.
+ */
+.chip {
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+  padding: space(1) space(2);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  max-width: 100%;
+}
+
+.chipIndex {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.chipLabel {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  min-width: 0;
+  @include truncate;
+}
+
+.more {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  align-self: center;
+}

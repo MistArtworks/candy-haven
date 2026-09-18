@@ -23,13 +23,13 @@ moving a slider rebuilds it in 256 steps whatever the size of the image.
 
 The luminance stage, applied in this order.
 
-| Control         | Range     | What it does                                          |
-| --------------- | --------- | ----------------------------------------------------- |
-| **Exposure**    | −3 … +3   | Stops. It multiplies light, so each step is a doubling |
-| **Contrast**    | −100 … +100 | Pivots on mid grey                                  |
-| **Black point** | 0 … 1     | Luminance at or below this becomes black              |
-| **White point** | 0 … 1     | Luminance at or above this becomes white              |
-| **Gamma**       | 0.1 … 4   | The midtones. Above 1 lifts them, below 1 crushes them |
+| Control         | Range       | What it does                                           |
+| --------------- | ----------- | ------------------------------------------------------ |
+| **Exposure**    | −3 … +3     | Stops. It multiplies light, so each step is a doubling |
+| **Contrast**    | −100 … +100 | Pivots on mid grey                                     |
+| **Black point** | 0 … 1       | Luminance at or below this becomes black               |
+| **White point** | 0 … 1       | Luminance at or above this becomes white               |
+| **Gamma**       | 0.1 … 4     | The midtones. Above 1 lifts them, below 1 crushes them |
 
 ## CURVE
 

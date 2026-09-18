@@ -6,6 +6,7 @@ import {
   MAX_ENTRIES,
   MAX_ENTRY_LENGTH,
   MAX_PROMPT_LENGTH,
+  MAX_TITLE_LENGTH,
   MUSTER_PHASES,
   PER_CITIZEN_MAX,
   PER_CITIZEN_MIN
@@ -40,7 +41,7 @@ export const MusterEntrySchema = z.object({
 export type MusterEntry = z.infer<typeof MusterEntrySchema>
 
 export const MusterConfigSchema = z.object({
-  title: z.string().max(48).default('THE MUSTER'),
+  title: z.string().max(MAX_TITLE_LENGTH).default('THE MUSTER'),
   /** The standing question. A call can override it without changing this. */
   prompt: z.string().max(MAX_PROMPT_LENGTH).default('WHAT SHOULD BE PLAYED?'),
   /** The word after the bang. Stored without it. */

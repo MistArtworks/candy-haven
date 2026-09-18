@@ -1,90 +1,8 @@
 @use 'abstracts' as *;
+@use '../page';
 
-// ----------------------------------------------------------------- simulator
-
-// Rehearsal scaffolding. Deliberately plain — it is not a shipped feature, and
-// dressing it up would make it look like one in a screenshot.
-.simulator {
-  display: flex;
-  flex-direction: column;
-  gap: space(3);
-  align-items: flex-start;
-}
-
-.simulatorRow {
-  display: flex;
-  gap: space(2);
-  flex-wrap: wrap;
-}
-
-.page {
-  padding: space(10) space(10) space(12);
-  max-width: 1560px;
-  margin: 0 auto;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: space(5);
-  align-items: stretch;
-}
-
-// Explicit spans per panel, never positional nth-child rules.
-.ringPanel {
-  grid-column: span 4;
-}
-
-.span2 {
-  grid-column: span 2;
-}
-
-.span6 {
-  grid-column: span 6;
-}
-
-@include below('lg') {
-  .ringPanel {
-    grid-column: span 6;
-  }
-
-  .span2 {
-    grid-column: span 3;
-  }
-}
-
-@include below('md') {
-  .page {
-    padding: space(8) space(6) space(10);
-  }
-
-  .span2 {
-    grid-column: span 6;
-  }
-}
-
-.back {
-  @include label(8px, 0.18em);
-  color: var(--ch-text-secondary);
-  text-decoration: none;
-  border: $hairline solid var(--ch-line);
-  padding: space(2) space(3);
-
-  &:hover {
-    color: var(--ch-gold-300);
-    border-color: var(--ch-line-gold);
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: space(4);
-}
+// RESONANCE SELECTION — host surface.
+@include page.chrome;
 
 // ---------------------------------------------------------------------- ring
 
@@ -93,13 +11,6 @@
   flex-direction: column;
   align-items: center;
   gap: space(5);
-}
-
-.controls {
-  display: flex;
-  gap: space(3);
-  flex-wrap: wrap;
-  justify-content: center;
 }
 
 .asideLive {
@@ -112,11 +23,6 @@
   color: var(--ch-gold-300);
   max-width: 220px;
   @include truncate;
-}
-
-.asideIdle {
-  @include label(8px, 0.18em);
-  color: var(--ch-text-faint);
 }
 
 .verdict {
@@ -145,61 +51,6 @@
 .verdictMeta {
   @include label(8px, 0.14em);
   color: var(--ch-text-faint);
-}
-
-// ----------------------------------------------------------------- broadcast
-
-.broadcast {
-  display: flex;
-  flex-direction: column;
-  gap: space(3);
-  align-items: flex-start;
-}
-
-.hint {
-  @include readout(11px);
-  color: var(--ch-text-secondary);
-  line-height: 1.6;
-}
-
-.inline {
-  font-family: var(--ch-font-mono);
-  color: var(--ch-gold-300);
-}
-
-.url {
-  @include readout(12px);
-  color: var(--ch-gold-300);
-  background: var(--ch-surface-sunken);
-  border: $hairline solid var(--ch-line-gold);
-  padding: space(2) space(3);
-  width: 100%;
-  user-select: all;
-  word-break: break-all;
-}
-
-.broadcastActions {
-  display: flex;
-  gap: space(2);
-  flex-wrap: wrap;
-}
-
-// -------------------------------------------------------------------- config
-
-.config {
-  display: flex;
-  flex-direction: column;
-  gap: space(4);
-}
-
-// A dense block of related switches, so they read as one bank rather than as
-// five unrelated controls in the stack.
-.toggles {
-  display: flex;
-  flex-direction: column;
-  gap: space(3);
-  padding-top: space(2);
-  @include hairline(top, 0.08);
 }
 
 // ------------------------------------------------------------------- history
@@ -236,37 +87,4 @@
 .historyOdds {
   @include label(8px, 0.12em);
   color: var(--ch-text-faint);
-}
-
-// -------------------------------------------------------------------- notice
-
-.notice {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: space(4);
-  margin-bottom: space(5);
-  padding: space(3) space(4);
-  border: $hairline solid var(--ch-crimson-600);
-  background: var(--ch-crimson-900);
-  @include readout(11px);
-  color: var(--ch-text-primary);
-}
-
-.dismiss {
-  @include label(8px, 0.16em);
-  color: var(--ch-text-secondary);
-  background: none;
-  border: 0;
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-
-  &:hover {
-    color: var(--ch-gold-300);
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
 }

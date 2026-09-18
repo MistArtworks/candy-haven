@@ -50,14 +50,14 @@ survey instrument rather than a cursor. It tracks, acquires a target, and
 stamps. The geometry is the console’s own mark reduced to something that reads
 at 22 pixels.
 
-| Over                         | The mark                                     |
-| ---------------------------- | -------------------------------------------- |
-| Anything at rest             | Ring and cardinal ticks, leaning into travel  |
-| A button or link             | Corner brackets close around it               |
-| A line of text               | The ring collapses to a caret                 |
-| Something disabled           | Struck through, drained to concrete           |
-| A surface wanting an exact point | A gapped crosshair                       |
-| Something draggable          | A segmented ring                              |
+| Over                             | The mark                                     |
+| -------------------------------- | -------------------------------------------- |
+| Anything at rest                 | Ring and cardinal ticks, leaning into travel |
+| A button or link                 | Corner brackets close around it              |
+| A line of text                   | The ring collapses to a caret                |
+| Something disabled               | Struck through, drained to concrete          |
+| A surface wanting an exact point | A gapped crosshair                           |
+| Something draggable              | A segmented ring                             |
 
 Nothing had to be annotated for any of that. The mark reads whatever the
 interface already says the cursor should be, so every control that exists is

@@ -1,6 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { evaluateReadiness, getStage, marksAudio } from '@shared/domain/projects.constants'
-import type { ProjectStage } from '@shared/domain/projects'
+import { evaluateReadiness, getStage, namesMaster } from '@shared/domain/projects.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { TextArea } from '@renderer/components/primitives/Input'
@@ -11,8 +10,7 @@ import { ArchiveGlyph } from '../icons/ArchiveGlyph'
 import { StageStrip } from '../StageStrip'
 import { TagPicker } from '../tags/TagPicker'
 import { TagManagerDialog } from '../tags/TagManagerDialog'
-import { MixAndMaster } from './MixAndMaster'
-import { FinalMasterDialog } from './FinalMasterDialog'
+import { FinalMaster } from './FinalMaster'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
 import styles from './dossier.module.scss'
@@ -46,76 +44,45 @@ export function DossierOverview({
   project,
   mutations,
   tags,
+  artists,
   setStage
 }: DossierTabProps): ReactNode {
   const [draft, setDraft] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
   const [managing, setManaging] = useState(false)
-  const [shipping, setShipping] = useState(false)
-  const [shipError, setShipError] = useState<string | null>(null)
-  const [shipBusy, setShipBusy] = useState(false)
 
   /*
-   * TRACK READY asks which file ships instead of refusing because none does.
+   * FINAL MASTER is conditional, so everything after it renumbers.
    *
-   * Reaching that stage *is* choosing the final — it means "this is finished",
-   * and a project cannot be finished without saying which file is the finished
-   * thing. Refusing and sending the operator off to set it first made the
-   * stage button a quiz about a step they had not been told to take.
-   *
-   * Every other stage passes straight through. Re-entering TRACK READY when a
-   * final already exists does too: the question has an answer, and asking it
-   * again would put a dialog between the operator and a correction.
+   * The design language numbers every panel, and a tab reading 01, 03, 04
+   * says a section is missing rather than that it was never drawn — exactly
+   * the wrong thing to say about a project that is not finished yet. The same
+   * fix RECORD's RELEASES panel needed.
    */
-  const changeStage = (next: ProjectStage): void => {
-    if (next === 'ready' && project.masters.final === null) {
-      setShipError(null)
-      setShipping(true)
-      return
-    }
-    setStage(next)
-  }
-
-  /**
-   * Promotes the chosen bounce, and advances the stage only if this was the
-   * first one.
-   *
-   * A swap is not a stage change. The project was already at TRACK READY and
-   * stays there — pushing it there again would write a second, identical entry
-   * into the stage history saying the work finished twice.
-   */
-  const ship = async (sourcePath: string, name: string): Promise<void> => {
-    const wasShipping = project.masters.final !== null
-
-    setShipBusy(true)
-    setShipError(null)
-    try {
-      await mutations.setFinal.mutateAsync({ id: project.id, sourcePath, name })
-      setShipping(false)
-      // Only once the file is actually where it claims to be. A stage saying
-      // the work is finished while the move failed is the worse of the two
-      // states to be left in.
-      if (!wasShipping) setStage('ready')
-    } catch (error) {
-      setShipError(error instanceof Error ? error.message : String(error))
-    } finally {
-      setShipBusy(false)
-    }
-  }
+  const asksMaster = namesMaster(project.stage)
+  const index = (position: number): string =>
+    String(asksMaster ? position : position - 1).padStart(2, '0')
 
   /*
-   * Unlinking goes straight through, with no confirmation.
+   * Stage changes go straight through; the service holds the one gate.
    *
-   * Nothing is destroyed: the file moves back into the project folder, marked
-   * as a master, and re-shipping it is two clicks away. A dialog guarding a
-   * reversible move is a dialog the operator learns to dismiss without reading.
-   * A refusal — a scan in flight, most likely — surfaces in the dossier's
-   * notice bar like every other rejected edit.
+   * TRACK READY used to intercept here, opening a file picker instead of
+   * moving the stage, because reaching it required a final master. It does not
+   * any more — TRACK READY is the operator's own statement that the work is
+   * finished, like the tags and notes beside it.
+   *
+   * **RELEASED is the stage that is gated now**, and the refusal comes from
+   * `applyStageChange` rather than from a dialog raised here. That is the
+   * right place for it: the same rule has to hold when DISCOGRAPHY moves the
+   * project without anybody opening this tab. The FINAL MASTER panel below
+   * says what is missing before the button is ever pressed, which is what
+   * stops the refusal being the way the operator finds out.
+   *
+   * RELEASED is usually not set here at all — putting a release out in
+   * DISCOGRAPHY moves every project it credits. This control is the manual
+   * path for back catalogue that has no entry to be moved by.
    */
-  const unlink = (): void => {
-    mutations.clearFinal.mutate(project.id)
-  }
 
   /** What the final stage is still waiting on. Empty once the project is ready. */
   const outstanding = useMemo(
@@ -196,17 +163,16 @@ export function DossierOverview({
         icon={<ArchiveGlyph name="history" />}
         className={styles.span6}
       >
-        <StageStrip stage={project.stage} busy={mutations.patch.isPending} onChange={changeStage} />
+        <StageStrip stage={project.stage} busy={mutations.patch.isPending} onChange={setStage} />
 
         {/*
-          What the last stage is still waiting on, named before it is needed.
-          
-          The gate already explains itself — pressing TRACK READY without a
-          final master returns "pick one in the FILES tab". But that only
-          teaches the operator who *tries*, and the honest question they ask
-          first is "where do I choose it". The FILES tab's 2/3 badge was the
-          only standing answer, and a fraction is not an instruction.
-          
+          What TRACK READY is still waiting on, named before it is needed.
+
+          One item — being filed. The final master is *not* listed here, and
+          that is deliberate: it gates RELEASED rather than TRACK READY, and it
+          has a panel of its own directly below that says so. Naming it twice
+          would imply two requirements.
+
           Hidden once everything is met: a checklist of satisfied requirements
           is a report nobody asked for, and this panel is about where the work
           has got to rather than about itself.
@@ -227,25 +193,99 @@ export function DossierOverview({
       </Panel>
 
       {/*
-        Hidden before MIX. There is nothing to mark that early — the bounces
-        that matter do not exist yet — and an empty panel on every new project
-        is clutter that teaches nothing.
+        MIX AND MASTER stood here, and has been removed outright.
+
+        It asked the operator to classify every bounce as a WIP, a mix or a
+        master, and then to promote one of them to the final that shipped —
+        which moved the file out of the project folder into
+        `Release Mastered Tracks`.
+
+        None of that is asked any more. The file that ships is named on the
+        DISCOGRAPHY track that ships it, referenced where it already sits, and
+        the RECORD tab reports it. This tab is for what the operator writes
+        about the work; which file a release used is a fact about the release.
+
+        The marks already made are still in the database and nothing reads
+        them. See docs/DISCOGRAPHY.md, decision D5.
+
+        What stands in its place asks one question instead of four, and
+        answers it without touching the disk — see `FinalMaster`.
       */}
-      {marksAudio(project.stage) ? (
-        <MixAndMaster
+      {asksMaster ? (
+        <FinalMaster
           project={project}
-          mutations={mutations}
-          onSwap={() => {
-            setShipError(null)
-            setShipping(true)
-          }}
-          onUnlink={unlink}
+          busy={mutations.setFinalMaster.isPending}
+          onChoose={(path) => mutations.setFinalMaster.mutate({ id: project.id, path })}
         />
       ) : null}
 
+      {/*
+        CREDITS, beside TAGS and NOTES.
+        The third thing on this tab that is the operator's own statement about
+        the work rather than something the scanner read off disk — which is
+        the rule the tab already follows. Who was in the room is not in the
+        `.als`, and no rescan will ever overwrite it.
+
+        Deliberately not the same thing as the shelf the project sits on, even
+        when that shelf is an ARTIST folder: a track can credit four people
+        while living in one directory. See docs/DISCOGRAPHY.md, decision D3.
+      */}
+      <Panel
+        label="Credits"
+        index={index(3)}
+        icon={<ArchiveGlyph name="tag" />}
+        className={styles.span6}
+        aside={project.artistIds.length > 0 ? String(project.artistIds.length) : undefined}
+      >
+        {artists.roster.length === 0 ? (
+          <p className={styles.empty}>
+            Nobody on the roster yet. Add the people you work with in ARTISTS and they can be
+            credited here.
+          </p>
+        ) : (
+          <div className={styles.credits}>
+            {artists.roster.map((artist) => {
+              const credited = project.artistIds.includes(artist.id)
+              return (
+                <button
+                  key={artist.id}
+                  type="button"
+                  className={styles.creditChip}
+                  data-on={credited || undefined}
+                  aria-pressed={credited}
+                  disabled={mutations.patch.isPending}
+                  onClick={() =>
+                    mutations.patch.mutate({
+                      id: project.id,
+                      patch: {
+                        artistIds: credited
+                          ? project.artistIds.filter((entry) => entry !== artist.id)
+                          : [...project.artistIds, artist.id]
+                      }
+                    })
+                  }
+                >
+                  {artist.name}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/*
+          The appearance list has moved to RECORD.
+
+          It was here, under the credits, and it was the wrong altitude: an
+          appearance is *read*, not written, and this tab is the one the
+          dossier reserves for what the operator states about the work. RECORD
+          is where everything read deliberately lives, and it is also where
+          docs/DISCOGRAPHY.md §7 always said this belonged.
+        */}
+      </Panel>
+
       <Panel
         label="Tags"
-        index="03"
+        index={index(4)}
         icon={<ArchiveGlyph name="tag" />}
         className={styles.span3}
         aside={carried.length > 0 ? String(carried.length) : undefined}
@@ -264,7 +304,7 @@ export function DossierOverview({
 
       <Panel
         label="Notes"
-        index="04"
+        index={index(5)}
         icon={<ArchiveGlyph name="note" />}
         className={styles.span3}
         aside={project.notes.length > 0 ? String(project.notes.length) : undefined}
@@ -384,16 +424,6 @@ export function DossierOverview({
           )}
         </div>
       </Panel>
-
-      {shipping ? (
-        <FinalMasterDialog
-          project={project}
-          busy={shipBusy}
-          error={shipError}
-          onSubmit={(sourcePath, name) => void ship(sourcePath, name)}
-          onCancel={() => setShipping(false)}
-        />
-      ) : null}
 
       {managing ? (
         <TagManagerDialog

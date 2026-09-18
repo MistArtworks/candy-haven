@@ -1,0 +1,65 @@
+@use 'abstracts' as *;
+
+.verbs {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+/*
+ * The lead verb's line.
+ *
+ * On its own row so the control is unmissable — this is the one button an
+ * operator reaches for mid-broadcast, and it used to be one of five in a
+ * wrapping strip with the way out of the page among them.
+ */
+.leadRow {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+/*
+ * Wider than its label needs, which is the whole emphasis.
+ *
+ * Deliberately not a colour change: crimson is reserved for live state and
+ * destructive actions, so painting `Close the call` with it would misreport
+ * what the button does. Size, isolation and a minimum width do the work
+ * instead, and they work in both accent themes.
+ */
+.lead {
+  min-width: rem(168px);
+  justify-content: center;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-wrap: wrap;
+}
+
+/*
+ * Pushes the way out to the far end.
+ *
+ * The lead button *does* something to the live broadcast; the trailing slot
+ * navigates. Keeping it a full gap away means the control nearest a returning
+ * cursor is never the one that leaves the page mid-segment.
+ */
+.trailing {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.refusals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  @include readout(10px);
+  color: var(--ch-text-muted);
+  line-height: 1.5;
+}

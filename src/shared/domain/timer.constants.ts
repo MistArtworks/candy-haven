@@ -60,6 +60,10 @@ export type TimerAnimation = (typeof TIMER_ANIMATIONS)[number]
 
 // -------------------------------------------------------------------- limits
 
+/** The institutional label, and the word a countdown resolves to. */
+export const MAX_TIMER_LABEL = 48
+export const MAX_TERMINAL_WORD = 16
+
 export const TIMER_MIN_MS = 1_000
 /** Twelve hours. Past this a countdown is a calendar, not a timer. */
 export const TIMER_MAX_MS = 12 * 60 * 60 * 1_000

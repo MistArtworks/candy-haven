@@ -71,20 +71,22 @@ import {
   FolderPatchSchema,
   StacksTreeSchema
 } from '../domain/stacks'
-import {
-  ArchiveVolumeSchema,
-  VolumeDraftSchema,
-  VolumePatchSchema,
-  VolumeSummarySchema
-} from '../domain/volumes'
 import { TagDraftSchema, TagPatchSchema, TagSummarySchema } from '../domain/tags'
 import {
-  ArchiveReleaseSchema,
-  DeliverableAttachSchema,
+  ArtistDraftSchema,
+  ArtistPatchSchema,
+  ArtistRecordSchema,
+  ArtistSummarySchema
+} from '../domain/artists'
+import {
+  DiscographyRegistrySchema,
+  DiscographyReleaseSchema,
+  ReleaseAssetSchema,
   ReleaseDraftSchema,
   ReleasePatchSchema,
-  ReleaseSummarySchema
-} from '../domain/releases'
+  TrackDraftSchema,
+  TrackPatchSchema
+} from '../domain/discography'
 
 /**
  * The IPC contract is declared once, here, and consumed by:
@@ -224,13 +226,19 @@ export const IPC_INVOKE = {
     })
   },
 
-  'projects:set-final': {
-    input: z.object({ id: z.string(), sourcePath: z.string(), name: z.string() }),
-    output: ProjectRecordSchema
-  },
-  /** Demotes the final, moving the file back into the project folder. */
-  'projects:clear-final': {
-    input: z.object({ id: z.string() }),
+  /**
+   * Names the bounce that is this project's finished master. Null clears it.
+   *
+   * One channel where there were two — `projects:set-final`, which took a
+   * `name` because designating a final **renamed and moved** the file into
+   * `Release Mastered Tracks`, and `projects:clear-final`, which moved it
+   * back. Nothing moves now, so there is no name to take and no demotion to
+   * perform: the path is a reference to one of the project's own bounces.
+   *
+   * `released` carries `requiresMaster`, so clearing is refused at that stage.
+   */
+  'projects:final-master': {
+    input: z.object({ id: z.string(), path: z.string().nullable() }),
     output: ProjectRecordSchema
   },
 
@@ -338,32 +346,6 @@ export const IPC_INVOKE = {
   'stacks:purge': { input: z.object({ id: z.string() }), output: StacksTreeSchema },
 
   /**
-   * VOLUMES (ARCHIVE section) — albums, EPs and compilations.
-   *
-   * Metadata only: no channel here touches the filesystem. Membership is
-   * written through `projects:patch` on the *track*, not here, because the
-   * project is what holds `volumeId` — see volumes.ts for why there is no
-   * track list on the volume itself.
-   */
-  'volumes:list': { input: z.void(), output: z.array(VolumeSummarySchema) },
-  'volumes:get': { input: z.object({ id: z.string() }), output: ArchiveVolumeSchema },
-  'volumes:create': { input: VolumeDraftSchema, output: VolumeSummarySchema },
-  'volumes:update': {
-    input: z.object({ id: z.string(), patch: VolumePatchSchema }),
-    output: VolumeSummarySchema
-  },
-  /**
-   * Detaches every track first, dropping each one's category back to `single`.
-   * Nothing on disk is touched — a volume never owned a directory.
-   */
-  'volumes:delete': { input: z.object({ id: z.string() }), output: z.void() },
-  /** Reorders tracks within a volume; ids are given in their new order. */
-  'volumes:reorder': {
-    input: z.object({ id: z.string(), projectIds: z.array(z.string()) }),
-    output: z.array(VolumeSummarySchema)
-  },
-
-  /**
    * TAGS (ARCHIVE section) — the operator's own labels.
    *
    * Metadata only, like volumes: no channel here touches the filesystem.
@@ -391,30 +373,109 @@ export const IPC_INVOKE = {
   },
 
   /**
-   * RELEASES (ARCHIVE section).
+   * ARTISTS — the roster of people the practice works with.
    *
-   * A release owns a real directory under `<wrapper>/RELEASES`, so `create`,
-   * `update` (when it renames) and `delete` all move things on disk and follow
-   * the same disk-first ordering the stacks use.
+   * Metadata plus one copied picture, like tags and unlike the stacks: no
+   * channel here moves a project. Which projects credit an artist is written
+   * through `projects:patch` on the *project*, because the project is what
+   * holds `artistIds` — the one exception being `artists:create`, whose
+   * `attachTo` exists so the dossier's "create and credit" cannot
+   * half-succeed and strand a new artist on nobody.
    */
-  'releases:list': { input: z.void(), output: z.array(ReleaseSummarySchema) },
-  'releases:get': { input: z.object({ id: z.string() }), output: ArchiveReleaseSchema },
-  'releases:create': { input: ReleaseDraftSchema, output: ReleaseSummarySchema },
-  'releases:update': {
-    input: z.object({ id: z.string(), patch: ReleasePatchSchema }),
-    output: ReleaseSummarySchema
+  'artists:list': { input: z.void(), output: z.array(ArtistSummarySchema) },
+  'artists:get': { input: z.object({ id: z.string() }), output: ArtistRecordSchema },
+  'artists:create': { input: ArtistDraftSchema, output: ArtistRecordSchema },
+  'artists:update': {
+    input: z.object({ id: z.string(), patch: ArtistPatchSchema }),
+    output: ArtistRecordSchema
   },
   /**
-   * Copies a chosen file into the release folder and records both paths.
-   * A null `sourcePath` detaches, leaving any existing copy on disk.
+   * Copies a picture into `Mediartists\`. A null path clears it.
+   *
+   * Its own channel rather than a field on the patch, for the reason
+   * `projects:set-final` is: it puts a file somewhere, and that must not be
+   * something a patch can do by accident.
    */
-  'releases:attach': { input: DeliverableAttachSchema, output: ArchiveReleaseSchema },
+  'artists:set-picture': {
+    input: z.object({ id: z.string(), sourcePath: z.string().nullable() }),
+    output: ArtistRecordSchema
+  },
   /**
-   * Drops the record. The directory is left on disk: it holds copies the
-   * operator assembled deliberately, and this app does not delete those without
-   * being asked plainly — which `projects:trash` is, and this is not.
+   * Removes an artist, and strips them from everything crediting them.
+   *
+   * Returns both counts so the confirmation can say them out loud — this is
+   * the one artist action that reaches beyond the artist, exactly as
+   * `tags:delete` is.
    */
-  'releases:delete': { input: z.object({ id: z.string() }), output: z.void() },
+  'artists:delete': {
+    input: z.object({ id: z.string() }),
+    output: z.object({
+      projects: z.number().int().min(0),
+      releases: z.number().int().min(0)
+    })
+  },
+
+  /**
+   * DISCOGRAPHY — the public record of what shipped.
+   *
+   * Replaces the VOLUMES and RELEASES channels, which between them described
+   * one thing twice. Every track mutation returns the **whole release**, as
+   * the stacks and the overlays do: renumbering a running order changes every
+   * position after the one touched, so a response carrying only the changed
+   * row would leave the page to re-derive what the service already knows.
+   */
+  'discography:registry': { input: z.void(), output: DiscographyRegistrySchema },
+  'discography:get': { input: z.object({ id: z.string() }), output: DiscographyReleaseSchema },
+  'discography:create': { input: ReleaseDraftSchema, output: DiscographyReleaseSchema },
+  'discography:update': {
+    input: z.object({ id: z.string(), patch: ReleasePatchSchema }),
+    output: DiscographyReleaseSchema
+  },
+  'discography:delete': { input: z.object({ id: z.string() }), output: z.void() },
+  /** Copies artwork or a canvas into `Media
+eleases\`. Null clears it. */
+  'discography:set-asset': {
+    input: z.object({
+      id: z.string(),
+      asset: ReleaseAssetSchema,
+      sourcePath: z.string().nullable()
+    }),
+    output: DiscographyReleaseSchema
+  },
+
+  'discography:track-add': {
+    input: z.object({ id: z.string(), draft: TrackDraftSchema }),
+    output: DiscographyReleaseSchema
+  },
+  'discography:track-update': {
+    input: z.object({ id: z.string(), trackId: z.string(), patch: TrackPatchSchema }),
+    output: DiscographyReleaseSchema
+  },
+  'discography:track-remove': {
+    input: z.object({ id: z.string(), trackId: z.string() }),
+    output: DiscographyReleaseSchema
+  },
+  /** Reorders the running order; ids are given in their new order. */
+  'discography:track-reorder': {
+    input: z.object({ id: z.string(), trackIds: z.array(z.string()) }),
+    output: DiscographyReleaseSchema
+  },
+  /**
+   * Names the audio file that ships as this track. A null path clears it.
+   *
+   * Its own channel rather than a field on `TrackPatchSchema`, because it is
+   * a choice made against the linked project's own inventory rather than a
+   * value typed into a form: the service refuses any path that is not one of
+   * that project's bounces. Nothing on disk moves — see `ReleaseTrackSchema`.
+   */
+  'discography:track-set-master': {
+    input: z.object({
+      id: z.string(),
+      trackId: z.string(),
+      path: z.string().nullable()
+    }),
+    output: DiscographyReleaseSchema
+  },
 
   /**
    * Selection rite (OBSERVATORY section). The winner is drawn in main and

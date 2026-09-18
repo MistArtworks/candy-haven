@@ -19,6 +19,8 @@ export interface SourceListProps {
   serverUrl: string | null
   onCopy: (key: string, value: string) => void
   copied: string | null
+  /** Key whose copy the clipboard refused, from `useCopy`. */
+  failed: string | null
   busy: boolean
 }
 
@@ -44,6 +46,7 @@ export function SourceList({
   serverUrl,
   onCopy,
   copied,
+  failed,
   busy
 }: SourceListProps): ReactNode {
   const [presetId, setPresetId] = useState<string>('')
@@ -84,9 +87,28 @@ export function SourceList({
 
                 <div className={styles.sourceActions}>
                   {url ? (
-                    <Button size="sm" variant="ghost" onClick={() => onCopy(source.id, url)}>
-                      {copied === source.id ? 'Copied' : 'Copy URL'}
-                    </Button>
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => onCopy(source.id, url)}>
+                        {failed === source.id
+                          ? 'Blocked'
+                          : copied === source.id
+                            ? 'Copied'
+                            : 'Copy'}
+                      </Button>
+                      {/*
+                        Opens in the operator's own browser rather than in a
+                        window here, as every other address in the kit does: the
+                        point of looking is to see what OBS will see, and the
+                        console rendering it proves nothing.
+                      */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void window.candy.shell.openExternal(url)}
+                      >
+                        Preview
+                      </Button>
+                    </>
                   ) : null}
                   <Button
                     size="sm"

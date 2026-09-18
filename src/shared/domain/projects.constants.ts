@@ -29,6 +29,7 @@ export const PROJECT_STAGE_IDS = [
   'mix',
   'master',
   'ready',
+  'released',
   'shelved'
 ] as const
 
@@ -66,21 +67,57 @@ export const PROJECT_STAGES: readonly ProjectStageDefinition[] = [
     order: 4
   },
   /*
-   * The end of the pipeline, and terminal on purpose.
+   * The gate into the catalogue, and no longer the end of the pipeline.
    *
-   * SCHEDULED and RELEASED followed this and have been removed: what happens
-   * after a track is finished — scheduling it, wrapping it, putting it out —
-   * is being respecified, and a pipeline that claims stages the app no longer
-   * acts on is worse than one that stops where the work stops.
+   * This is the stage that makes a project linkable in DISCOGRAPHY — the
+   * department's project picker offers exactly this stage and the one after
+   * it, because a track on a release is finished work.
    *
-   * `requiresMaster` stays, so a project cannot claim to be ready without the
-   * operator having said which file ships.
+   * **`requiresMaster` deliberately does not sit here**, and where it sits
+   * instead is the whole point. It moved one stage later, onto `released`.
+   *
+   * Gating TRACK READY on a final master deadlocks the arrangement: this stage
+   * is what makes a project linkable, so requiring a file here while the file
+   * could only be chosen from a linked release means needing a release to get
+   * a master and a master to get a release. Gating RELEASED does not, because
+   * by then the project is already linkable and the pick has somewhere to
+   * happen — the dossier's own FINAL MASTER panel, live from this stage on.
+   *
+   * So TRACK READY stays what every other stage here is: the operator's own
+   * statement about the work, not a claim the app audits.
    */
   {
     id: 'ready',
     label: 'TRACK READY',
-    purpose: 'Final mix and master chosen, and filed where it belongs.',
-    order: 5,
+    purpose: 'Finished, and ready to be put out. Linkable in DISCOGRAPHY.',
+    order: 5
+  },
+  /*
+   * Out in the world, and the one stage this application audits.
+   *
+   * `requiresMaster` means a project cannot claim to be released until
+   * `masters.final` names the bounce that went out. That is not bookkeeping:
+   * the catalogue's entire purpose is to be able to answer "which file was
+   * that", and a release whose source nobody recorded is the one question the
+   * archive exists to stop being unanswerable.
+   *
+   * Usually not set by hand. DISCOGRAPHY writes it: flipping a release to
+   * RELEASED moves every project linked to one of its tracks here, with a
+   * history note naming the release, and moving that release back returns them
+   * to TRACK READY. See `reconcileLinkedStages` in the discography service —
+   * which refuses the status flip outright if any linked project has no final
+   * master, rather than leaving the two records disagreeing.
+   *
+   * Still settable directly, because a back catalogue that predates this
+   * application has no entry to be moved by — and refusing the operator the
+   * stage that describes their own released work would be absurd. The gate
+   * applies to that path too.
+   */
+  {
+    id: 'released',
+    label: 'RELEASED',
+    purpose: 'Out in the world. Needs the final master named.',
+    order: 6,
     requiresMaster: true,
     terminal: true
   },
@@ -88,7 +125,7 @@ export const PROJECT_STAGES: readonly ProjectStageDefinition[] = [
     id: 'shelved',
     label: 'SHELVED',
     purpose: 'Parked indefinitely. Kept for parts, not for release.',
-    order: 6,
+    order: 7,
     offPipeline: true,
     terminal: true
   }
@@ -145,6 +182,7 @@ export const PROJECT_CATEGORIES = [
   'ep',
   'album',
   'compilation',
+  'remix',
   'bootleg',
   'experimental',
   'beat-battle'
@@ -157,6 +195,7 @@ export const PROJECT_CATEGORY_LABEL: Record<ProjectCategory, string> = {
   ep: 'EP',
   album: 'ALBUM',
   compilation: 'COMPILATION',
+  remix: 'REMIX',
   bootleg: 'BOOTLEG',
   experimental: 'EXPERIMENTAL',
   'beat-battle': 'BEAT BATTLE'
@@ -164,26 +203,32 @@ export const PROJECT_CATEGORY_LABEL: Record<ProjectCategory, string> = {
 
 export const PROJECT_CATEGORY_PURPOSE: Record<ProjectCategory, string> = {
   single: 'Stands alone. The default for anything not part of a larger work.',
-  ep: 'One track of an EP. Must be attached to an EP volume.',
-  album: 'One track of an album. Must be attached to an album volume.',
-  compilation: 'One track of a compilation. Must be attached to a compilation volume.',
+  ep: 'One track of an EP.',
+  album: 'One track of an album.',
+  compilation: 'One track of a compilation.',
+  remix: 'Somebody else’s work, rebuilt — or yours, rebuilt by somebody else.',
   bootleg: 'An unofficial edit or flip. Stands alone.',
   experimental: 'A test, a study, a technique. Not aimed at release.',
   'beat-battle': 'Made to a brief, against a clock.'
 }
 
-/**
- * Categories that require a volume, and therefore cannot be set on their own.
+/*
+ * The volume invariant is gone, and its absence is the point.
  *
- * Declared here rather than in volumes.constants.ts because the *project* is
- * what carries the category, and the rule reads as a fact about categories.
- * The volume kinds themselves are the same three values, exported there.
+ * `VOLUME_BOUND_CATEGORIES` and `requiresVolume()` enforced that a project
+ * categorised `album`, `ep` or `compilation` was attached to a volume of that
+ * same kind, reconciled in the service so the two could not disagree.
+ *
+ * There is nothing left to reconcile against. Volumes became the DISCOGRAPHY
+ * (decision D2), and a release's tracklist lives on the *release* because a
+ * track need not have a project at all — so a project can no longer see what
+ * it is a track of, and an invariant it cannot evaluate is not an invariant.
+ *
+ * Category therefore becomes what it always read as: the operator's own label
+ * on the work. Nothing enforces it against the catalogue, and nothing should
+ * — a project can legitimately be categorised `album` for a year before the
+ * album it belongs to has an entry.
  */
-export const VOLUME_BOUND_CATEGORIES: readonly ProjectCategory[] = ['album', 'ep', 'compilation']
-
-export function requiresVolume(category: ProjectCategory): boolean {
-  return VOLUME_BOUND_CATEGORIES.includes(category)
-}
 
 // ------------------------------------------------------------------ masters
 
@@ -205,46 +250,40 @@ export function requiresVolume(category: ProjectCategory): boolean {
 export const AUDIO_MARKS = ['wip', 'mix', 'master'] as const
 export type AudioMark = (typeof AUDIO_MARKS)[number]
 
-export const AUDIO_MARK_LABEL: Record<AudioMark, string> = {
-  wip: 'WIPS',
-  mix: 'MIXES',
-  master: 'MASTERS'
-}
-
-export const AUDIO_MARK_HINT: Record<AudioMark, string> = {
-  wip: 'Rough bounces kept for reference. Never shipped.',
-  mix: 'Considered mixdowns.',
-  master: 'Mastered versions.'
-}
-
 /**
- * The stage each mark belongs to, and the point of the whole arrangement.
+ * Whether the dossier asks which bounce is the finished master at this stage.
  *
- * The operator marks what they produced at the stage they produced it, so the
- * question the panel asks changes as the work moves: at MIX it is "which of
- * these is a mixdown", at MASTER "which of these is mastered". A WIP is not
- * tied to a stage — a rough bounce is worth keeping whenever it happens.
- */
-export const AUDIO_MARK_STAGE: Record<AudioMark, ProjectStage | null> = {
-  wip: null,
-  mix: 'mix',
-  master: 'master'
-}
-
-/**
- * Whether audio can be marked at this stage at all.
+ * True from TRACK READY on. Before that there is nothing to answer — the
+ * finished bounce does not exist at MIX, and asking would put a permanently
+ * empty panel on every project in the department, which is the clutter the
+ * dossier has been cut back twice to avoid.
  *
- * Hidden before MIX: the bounces that matter do not exist yet, and an empty
- * section on every new project is clutter that teaches nothing. Hidden when
- * shelved, which is off the pipeline entirely.
+ * Deliberately the same set as `LINKABLE_PROJECT_STAGES`, and not expressed in
+ * terms of it. They agree because both mean "the work is finished", but they
+ * answer different questions — one gates the catalogue, one draws a panel —
+ * and tying the ARCHIVE's layout to a DISCOGRAPHY constant would make a change
+ * to either silently move the other.
  */
-export function marksAudio(stage: ProjectStage): boolean {
+export function namesMaster(stage: ProjectStage): boolean {
   const definition = getStage(stage)
-  return !definition.offPipeline && definition.order >= getStage('mix').order
+  return !definition.offPipeline && definition.order >= getStage('ready').order
 }
 
-/** The marks a final mix and master may be promoted from. */
-export const FINAL_SOURCE_MARKS: readonly AudioMark[] = ['mix', 'master']
+/*
+ * The vocabulary around these marks has gone, and the marks themselves stay.
+ *
+ * `AUDIO_MARK_LABEL`, `AUDIO_MARK_HINT`, `AUDIO_MARK_STAGE`, `marksAudio` and
+ * `FINAL_SOURCE_MARKS` existed only to draw the dossier's MIX AND MASTER
+ * panel, which has been removed: the operator no longer classifies bounces or
+ * promotes one of them, because the file that ships is now picked on the
+ * DISCOGRAPHY track that ships it.
+ *
+ * `AUDIO_MARKS` and `MasterSelectionSchema` are **not** deleted. Every mark
+ * the operator has already made is still in the database, and deleting the
+ * type that describes it would turn that data into three anonymous string
+ * arrays. A respecified master workflow reads it back; nothing is lost in the
+ * meantime.
+ */
 
 // ------------------------------------------------------------------- views
 
@@ -352,25 +391,31 @@ export function classifyExtension(fileName: string): MediaKind {
 export function evaluateReadiness(project: ProjectRecord): ReadinessRequirement[] {
   return [
     {
-      id: 'master',
-      label: 'Final mix and master selected',
-      met: project.masters.final !== null,
-      hint: 'Choose the exact audio file that ships from the bounces in this project.'
-    },
-    {
       id: 'filed',
       label: 'Filed on a shelf',
       met: project.folderId !== null,
       hint: 'Drag it onto a shelf, or right-click and choose where it belongs.'
-    },
-    {
-      id: 'volume',
-      label: requiresVolume(project.category)
-        ? `Attached to ${project.category === 'ep' ? 'an' : 'a'} ${project.category}`
-        : 'Category set',
-      met: !requiresVolume(project.category) || project.volumeId !== null,
-      hint: 'A track of a larger work has to say which one.'
     }
+    /*
+     * A second requirement stood here: a final mix and master had to be
+     * selected. It has gone with the pick itself, which now lives on the
+     * DISCOGRAPHY track — see the note on the `ready` stage above for why
+     * keeping it would have deadlocked the catalogue.
+     *
+     * Being filed is the only thing left that the *work* owes, and it earns
+     * its place: an unfiled project is one the operator cannot find twice.
+     */
+    /*
+     * There used to be a third requirement here: a track categorised as part
+     * of a larger work had to name which volume. It is gone with volumes.
+     *
+     * Nothing replaces it, deliberately. Appearing in the DISCOGRAPHY is not
+     * a condition of a track being *finished* — a master is finished the
+     * moment it is chosen, and whether a label has scheduled it is a fact
+     * about the release, which has its own status for exactly that. Gating
+     * TRACK READY on a catalogue entry would make the pipeline wait on
+     * somebody else's calendar.
+     */
   ]
 }
 

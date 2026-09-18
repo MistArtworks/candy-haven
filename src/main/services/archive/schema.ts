@@ -38,6 +38,25 @@ export const Collections = {
    */
   ArchiveTags: 'archive_tags',
   /**
+   * ARTISTS — the roster of people the practice works with.
+   *
+   * No filesystem counterpart beyond one copied picture: an artist is a
+   * record, and which projects credit them is held by `artistIds` on the
+   * project rather than by a list here. Deliberately unrelated to the ARCHIVE
+   * tree's `artist` folder kind — see docs/DISCOGRAPHY.md, decision D3.
+   */
+  Artists: 'archive_artists',
+  /**
+   * DISCOGRAPHY — the public record of what shipped.
+   *
+   * Replaces `archive_volumes` and the stood-down `releases`, which between
+   * them were two records describing one thing. Unlike every other ARCHIVE
+   * collection its tracklist is held *here* rather than on the project, and
+   * the reason is that a track need not have a project at all — see the note
+   * on `ReleaseTrackSchema`.
+   */
+  Discography: 'discography',
+  /**
    * THE STACKS — the filing tree projects are sorted into (ARCHIVE section).
    *
    * Each document describes a real directory on disk, so this collection and
@@ -82,6 +101,25 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
     { key: { folderId: 1 }, name: 'project_folder' },
     { key: { volumeId: 1, trackNumber: 1 }, name: 'project_volume_order' },
     { key: { category: 1 }, name: 'project_category' }
+  ],
+  [Collections.Artists]: [
+    // Two artists cannot share a name; `nameKey` is the case-folded form the
+    // service compares on, so `Nasko` and `nasko` collide here as intended.
+    // The unique index is the last line of defence behind the service's check.
+    { key: { nameKey: 1 }, unique: true, name: 'artist_name_unique' },
+    { key: { favourite: -1, nameKey: 1 }, name: 'artist_roster_order' }
+  ],
+  [Collections.Discography]: [
+    // The catalogue's default read is "newest first", and every other lens is
+    // a filter over the same order.
+    { key: { releaseDate: -1 }, name: 'release_by_date' },
+    { key: { status: 1, releaseDate: -1 }, name: 'release_by_status' },
+    { key: { kind: 1, releaseDate: -1 }, name: 'release_by_kind' },
+    { key: { title: 1 }, name: 'release_title' },
+    // The reverse lookup the ARCHIVE reads through: which release is this
+    // project a track on. Multikey over the embedded tracklist.
+    { key: { 'tracks.projectId': 1 }, name: 'release_track_project' },
+    { key: { artistIds: 1 }, name: 'release_artists' }
   ],
   [Collections.ArchiveFolders]: [
     // Two folders cannot describe one directory; the unique index is the last
@@ -200,7 +238,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 8
+const SCHEMA_VERSION = 10
 
 /**
  * Collections dropped by the version 2 migration.
@@ -477,9 +515,263 @@ async function applyMigrations(db: Db): Promise<void> {
     logger.info(`Added a mixes bucket to ${result.modifiedCount} projects`)
   }
 
+  if (from < 9) {
+    logger.warn(`Migrating archive schema ${from} -> 9: volumes become the discography`)
+    await migrateVolumesToDiscography(db)
+  }
+
+  if (from < 10) {
+    logger.warn(`Migrating archive schema ${from} -> 10: release statuses become two`)
+    await migrateReleaseStatuses(db)
+  }
+
   await collection.updateOne(
     { _id: 'schema' as never },
     { $set: { version: SCHEMA_VERSION, appliedAt: new Date() } },
     { upsert: true }
+  )
+}
+
+/**
+ * Folds the five release statuses onto two.
+ *
+ * `RELEASE_STATUSES` went from `idea` · `planned` · `scheduled` · `released` ·
+ * `shelved` to `scheduled` · `released` on the operator's instruction. The
+ * three removed values all mean "not out yet", so each becomes `scheduled`.
+ *
+ * ## Why this runs at all, when `.catch` already covers it
+ *
+ * `DiscographyReleaseSchema.status` carries `.catch('scheduled')`, so an
+ * unmigrated document already *reads* correctly. This is not about reading.
+ *
+ * Without it the stored value stays `shelved` until something happens to
+ * rewrite that release, so the database and the screen disagree for as long as
+ * nobody touches the record — and the next person to read the collection by
+ * hand finds a status the application no longer has. `.catch` is the safety
+ * net for the gap between this build starting and this migration finishing,
+ * not a substitute for it.
+ *
+ * ## What is lost, and it is real
+ *
+ * `shelved` on a release becomes `scheduled`, which says the opposite:
+ * something parked indefinitely now reads as committed to. Nothing else can
+ * be done — the status that meant "parked" does not exist any more, and
+ * inventing a date or deleting the entry would both be worse. Parking work is
+ * the project's SHELVED *stage*, which this does not touch.
+ *
+ * Unlike version 2 this drops nothing and rescans nothing.
+ */
+async function migrateReleaseStatuses(db: Db): Promise<void> {
+  const result = await db
+    .collection(Collections.Discography)
+    .updateMany(
+      { status: { $in: ['idea', 'planned', 'shelved'] } },
+      { $set: { status: 'scheduled' } }
+    )
+
+  logger.info(`Folded ${result.modifiedCount} release statuses onto SCHEDULED`)
+}
+
+/**
+ * Carries VOLUMES and the stood-down RELEASES into the discography.
+ *
+ * Decision D2: one record is the album, so the two that were both trying to be
+ * it are merged. Nothing is dropped on the floor — this is the opposite of the
+ * v2 migration, which rebuilt the register from a rescan. There is no rescan
+ * available here, because none of this is on disk: a volume was always
+ * metadata, and losing it would mean losing the only record that those eight
+ * tracks were one album.
+ *
+ * Three passes, in this order:
+ *
+ *  1. Every volume becomes a release, with its tracks assembled from the
+ *     projects that pointed at it — ordered by `trackNumber`, then by name for
+ *     the ones that never got a number.
+ *  2. Every *old* release document that named a project not already covered
+ *     becomes a single, so a shipped one-off is not lost. Its deliverables
+ *     carry across: `cover` becomes `artwork`, `canvas` stays, and `master` is
+ *     dropped because `Release Mastered Tracks` is where a final master lives
+ *     now and a second answer is exactly what D2 exists to prevent.
+ *  3. `volumeId` and `trackNumber` leave the projects, and `artistIds` arrives
+ *     empty. A volume's free-text `artist` string is **not** converted into
+ *     artist records: that is the `tags` → `tagIds` lesson from v3, where
+ *     inventing records from strings during a boot migration would create a
+ *     roster the operator never chose. The string is preserved verbatim in the
+ *     release's notes instead, so nothing is lost and nothing is invented.
+ *
+ * Idempotent by inspection: it reads the collections it is about to empty and
+ * skips anything already carried across by id.
+ */
+async function migrateVolumesToDiscography(db: Db): Promise<void> {
+  const volumes = await db.collection('archive_volumes').find({}).toArray()
+  const projects = await db.collection(Collections.Projects).find({}).toArray()
+  const oldReleases = await db.collection('releases').find({}).toArray()
+  const discography = db.collection(Collections.Discography)
+
+  const now = Date.now()
+  const carried = new Set(
+    (await discography.find({}, { projection: { _id: 1 } }).toArray()).map((doc) => String(doc._id))
+  )
+
+  /** Volume kinds map straight across; the other two release kinds are new. */
+  const KIND: Record<string, string> = { album: 'album', ep: 'ep', compilation: 'compilation' }
+
+  const documents: Record<string, unknown>[] = []
+  const claimed = new Set<string>()
+
+  for (const volume of volumes) {
+    const id = String(volume._id)
+    if (carried.has(id)) continue
+
+    const members = projects
+      .filter((project) => String(project.volumeId ?? '') === id)
+      .sort((a, b) => {
+        const left = typeof a.trackNumber === 'number' ? a.trackNumber : Number.MAX_SAFE_INTEGER
+        const right = typeof b.trackNumber === 'number' ? b.trackNumber : Number.MAX_SAFE_INTEGER
+        if (left !== right) return left - right
+        return String(a.name ?? '').localeCompare(String(b.name ?? ''))
+      })
+
+    for (const member of members) claimed.add(String(member._id))
+
+    const artist = String(volume.artist ?? '').trim()
+    const notes = [String(volume.notes ?? '').trim(), artist ? `Credited to ${artist}.` : '']
+      .filter(Boolean)
+      .join('\n\n')
+
+    documents.push({
+      _id: id,
+      kind: KIND[String(volume.kind)] ?? 'album',
+      title: String(volume.title ?? 'Untitled'),
+      subtitle: '',
+      artistIds: [],
+      featuredArtistIds: [],
+      label: '',
+      labelUrl: '',
+      catalogueNumber: '',
+      // `released` was the only signal a volume carried about being out.
+      // `scheduled` is the other half of a two-state set — see
+      // RELEASE_STATUSES. This wrote `planned` while that status existed.
+      status: volume.released === true ? 'released' : 'scheduled',
+      releaseDate: null,
+      upc: '',
+      phonographicLine: '',
+      copyrightLine: '',
+      // A volume's artwork was a path it merely pointed at. Recorded as the
+      // source so the operator can re-attach it, and left uncopied, because a
+      // boot migration is the wrong place to start moving image files around.
+      artwork: {
+        sourcePath: volume.artworkPath ?? null,
+        copiedPath: null,
+        copiedAt: null
+      },
+      canvas: { sourcePath: null, copiedPath: null, copiedAt: null },
+      links: [],
+      tracks: members.map((member, index) => ({
+        id: `${id}-t${index + 1}`,
+        position: index + 1,
+        title: String(member.name ?? ''),
+        projectId: String(member._id),
+        artistIds: [],
+        isrc: '',
+        durationMs: 0,
+        notes: ''
+      })),
+      colour: volume.colour ?? '#6f6656',
+      notes,
+      favourite: volume.favourite === true,
+      createdAt: typeof volume.createdAt === 'number' ? volume.createdAt : now,
+      updatedAt: now
+    })
+  }
+
+  for (const release of oldReleases) {
+    const id = `rel-${String(release._id)}`
+    if (carried.has(id)) continue
+
+    const subjectId = String(release.subjectId ?? '')
+    // A release whose subject is already a track on a migrated volume is that
+    // volume's deliverables, not a second entry for the same music.
+    if (!subjectId || claimed.has(subjectId)) continue
+
+    const subject = projects.find((project) => String(project._id) === subjectId)
+
+    documents.push({
+      _id: id,
+      kind: 'single',
+      title: String(release.title ?? subject?.name ?? 'Untitled'),
+      subtitle: '',
+      artistIds: [],
+      featuredArtistIds: [],
+      label: '',
+      labelUrl: '',
+      catalogueNumber: '',
+      status: release.releaseDate ? 'released' : 'scheduled',
+      releaseDate: release.releaseDate ?? null,
+      upc: '',
+      phonographicLine: '',
+      copyrightLine: '',
+      artwork: {
+        sourcePath: release.cover?.sourcePath ?? null,
+        copiedPath: release.cover?.copiedPath ?? null,
+        copiedAt: release.cover?.copiedAt ?? null
+      },
+      canvas: {
+        sourcePath: release.canvas?.sourcePath ?? null,
+        copiedPath: release.canvas?.copiedPath ?? null,
+        copiedAt: release.canvas?.copiedAt ?? null
+      },
+      links: [],
+      tracks: [
+        {
+          id: `${id}-t1`,
+          position: 1,
+          title: String(subject?.name ?? release.title ?? ''),
+          projectId: subject ? subjectId : null,
+          artistIds: [],
+          isrc: '',
+          durationMs: 0,
+          notes: ''
+        }
+      ],
+      colour: '#6f6656',
+      notes: String(release.notes ?? ''),
+      favourite: false,
+      createdAt: typeof release.createdAt === 'number' ? release.createdAt : now,
+      updatedAt: now
+    })
+  }
+
+  if (documents.length > 0) {
+    await discography.insertMany(documents as never[], { ordered: false })
+    logger.info(`Carried ${documents.length} volumes and releases into the discography`)
+  }
+
+  /*
+   * The project side, last.
+   *
+   * After the reads above, so a run interrupted between the two leaves the
+   * volumes still readable and simply does the whole thing again — which is
+   * what "idempotent by inspection" buys. Dropping these first and failing
+   * halfway would lose the ordering irrecoverably.
+   */
+  const cleared = await db
+    .collection(Collections.Projects)
+    .updateMany({ volumeId: { $exists: true } }, { $unset: { volumeId: '', trackNumber: '' } })
+
+  /*
+   * Two writes rather than one, and the split is not cosmetic.
+   *
+   * Combining them would have `$set: { artistIds: [] }` fire for every project
+   * matching *either* condition — so a re-run after credits had been entered
+   * would empty them. Narrowing the second to projects that genuinely have no
+   * field is what makes this safe to run twice.
+   */
+  const credited = await db
+    .collection(Collections.Projects)
+    .updateMany({ artistIds: { $exists: false } }, { $set: { artistIds: [] } })
+
+  logger.info(
+    `Moved ${cleared.modifiedCount} projects off volumes; opened credits on ${credited.modifiedCount}`
   )
 }

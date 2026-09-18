@@ -5,9 +5,14 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-09-13. Nine of ten departments delivered; INTERFACE is the
-> only one still reserved. TRANSMISSIONS was **removed** in the ARCHIVE rework
-> and will be respecified — see §10.
+> Last updated: 2026-09-16. Twelve of thirteen departments delivered;
+> INTERFACE is the only one still reserved. The department table in §10 is
+> current as of that date — **it was stale for several releases before it**, so
+> `src/shared/domain/navigation.ts` remains the source of truth and this file
+> is what needs correcting when the two disagree.
+>
+> TRANSMISSIONS was removed in the ARCHIVE rework. Release scheduling is now
+> DISCOGRAPHY — see `docs/DISCOGRAPHY.md`.
 
 ---
 
@@ -22,7 +27,7 @@ dubstep intensity. It is his console, not a product for sale.
 
 **Exactly two people, and there will not be more.** The operator (Candy Heist)
 and the developer (mist / Haneesh Raj Banisetti), who builds it for him. That is
-why DISPATCH is a *shared* board while §9's archive is otherwise strictly local:
+why DISPATCH is a _shared_ board while §9's archive is otherwise strictly local:
 the two installs are two people, not two seats.
 
 Do not propose accounts, roles, multi-tenancy, public sign-up, or onboarding for
@@ -33,7 +38,7 @@ two, these two win.
 
 To be the single place that runs **everything** — his daily life, his
 professional life, his music career, his DJ career, and all of his data —
-explicitly to *eliminate the use of other apps* and keep his projects organised.
+explicitly to _eliminate the use of other apps_ and keep his projects organised.
 That is the north star, and it is why departments keep being added rather than
 the scope settling. The operator's own framing: "EVERYTHING is interlinked."
 
@@ -43,7 +48,7 @@ the point, not an optimisation.
 
 ### The "artificial" half is not built yet
 
-The intent is a *digital **and artificial** assistant*. As of 2026-09-13 there is
+The intent is a _digital **and artificial** assistant_. As of 2026-09-13 there is
 **no AI integrated at all** and the app is purely a management console.
 **INTERFACE** is the seam reserved for it, and is the only department carrying
 `implemented: false` in `src/shared/domain/navigation.ts`.
@@ -127,7 +132,7 @@ In `npm run dev`, edits under `src/renderer/` swap in immediately. Edits under
 `src/main/` **do not reliably restart the main process.** Rebuilding does not
 help either: the running Electron process keeps the bundle it booted with.
 
-This is nasty because it fails *silently and partially* rather than loudly. The
+This is nasty because it fails _silently and partially_ rather than loudly. The
 IPC contract is bundled into main, so a stale main validates its own stale
 shape — the response passes `router.ts`'s zod check, the renderer gets an object
 missing whatever field was just added, and reads `undefined`. Nothing throws.
@@ -140,7 +145,7 @@ It has cost this project two debugging sessions, both in INTAKE:
 - The same function started hiding the `Candy Haven` wrapper. It kept appearing
   in the source pane.
 
-Both times the renderer changes in the *same commit* were visibly live, which is
+Both times the renderer changes in the _same commit_ were visibly live, which is
 exactly what makes it look like an application bug.
 
 **Check before debugging** — if the process predates the edit, restart:
@@ -333,6 +338,32 @@ zod-free merge shared by main and renderer so the two can't disagree about what
 a patch means.
 
 **If you add a domain module, follow this split.**
+
+#### A value import between two domain modules can be a load-time crash
+
+Schemas are **values**, so a `import { XSchema } from './other'` between two
+domain modules that reference each other is a real runtime cycle — unlike the
+`import type` lines all over this layer, which are erased and cannot cycle.
+
+This bit on 2026-09-16. `projects.ts` imported `ReleaseAppearanceSchema` from
+`discography.ts`, which imported `IsoDateSchema` back from `projects.ts`, and
+the app died at launch before any window appeared:
+
+```
+ReferenceError: Cannot access 'IsoDateSchema' before initialization
+```
+
+Nothing catches this: it type-checks, it lints, it *builds*, and the bundle
+only fails when it is evaluated. The fix was to move the shared schema into a
+leaf module — `domain/dates.ts`, which imports nothing but zod — rather than
+copy the declaration a third time.
+
+**The rule:** when two domain modules both need a schema, it belongs in a leaf
+neither of them owns. A quick check, if you suspect one:
+
+```bash
+grep -rnE "^\s*(import|export) [^'\"]*from '\./" src/shared/domain/*.ts | grep -v "import type"
+```
 
 ### 6.3 Renderer state — two mechanisms, split by direction
 
@@ -642,7 +673,17 @@ best-effort conversion because inventing tag documents from strings during a
 boot migration would create a library the operator never chose, coloured at
 random. Unlike version 2 it drops nothing and rescans nothing.
 
-Bump `SCHEMA_VERSION` and add a branch there for the next such change.
+**Schema version 9** carries VOLUMES and the stood-down RELEASES into the new
+`discography` collection. See `docs/DISCOGRAPHY.md` D2.
+
+**Schema version 10** folds the release statuses `idea`, `planned` and
+`shelved` onto `scheduled`, the set having been cut to two (D9). It drops
+nothing and rescans nothing. Note that `DiscographyReleaseSchema.status` also
+carries `.catch('scheduled')`, so an unmigrated document still reads — that is
+the net for the window before the migration runs, not a replacement for it.
+
+`SCHEMA_VERSION` is **10**. Bump it and add a branch there for the next such
+change.
 
 Indexes are declared declaratively in `INDEX_PLAN` and reconciled every boot
 (`createIndexes` is idempotent). Index failures are logged but **do not abort
@@ -660,18 +701,108 @@ Registry: **`src/shared/domain/navigation.ts`** — the single source of truth f
 routes, labels, order, and shipped status. The rail, titlebar, page transitions
 and Nexus all read from it.
 
-| #   | Id            | Path           | Status      | Purpose                                                |
-| --- | ------------- | -------------- | ----------- | ------------------------------------------------------ |
-| 1   | `nexus`       | `/`            | **shipped** | Operational overview and system state                  |
-| 2   | `archive`     | `/archive`     | **shipped** | Project registry, production pipeline, releases        |
-| 3   | `observatory` | `/observatory` | **shipped** | Stream overlays and live selection rites served to OBS |
-| 4   | `interface`   | `/interface`   | reserved    | Natural-language command console                       |
-| 5   | `telemetry`   | `/telemetry`   | **shipped** | Host vitals: processor, memory, graphics, storage      |
-| 6   | `regulation`  | `/regulation`  | **shipped** | Operator settings, archive control, update channel     |
+| #   | Id            | Path            | Status      | Purpose                                                |
+| --- | ------------- | --------------- | ----------- | ------------------------------------------------------ |
+| 1   | `nexus`       | `/`             | **shipped** | Operational overview and system state                  |
+| 2   | `interface`   | `/interface`    | reserved    | Natural-language command console                       |
+| 3   | `archive`     | `/archive`      | **shipped** | Project registry, filing tree, production pipeline     |
+| 4   | `discography` | `/discography`  | **shipped** | Everything released, and where it went                 |
+| 5   | `artists`     | `/artists`      | **shipped** | The roster, and who is credited on what                |
+| 6   | `calendar`    | `/calendar`     | **shipped** | The dated register                                     |
+| 7   | `auditorium`  | `/auditorium`   | **shipped** | Listening room and visualiser                          |
+| 8   | `darkroom`    | `/darkroom`     | **shipped** | Grading photographs onto the console palette           |
+| 9   | `observatory` | `/observatory`  | **shipped** | The broadcast desk and every overlay served to OBS     |
+| 10  | `telemetry`   | `/telemetry`    | **shipped** | Host vitals                                            |
+| 11  | `dispatch`    | `/dispatch`     | **shipped** | The shared board                                       |
+| 12  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
+| 13  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
+
+**Thirteen departments, twelve shipped.** INTERFACE remains the only reserved
+one. The rail has outgrown the numbered chords: `Ctrl`+`1`…`9`,`0` reach the
+first ten, and DISPATCH, REGULATION and CATECHISM have named chords
+(`Ctrl`+`Shift`+`D`, `Ctrl`+`,`, `Ctrl`+`Shift`+`K`). See `ConsoleLayout.tsx`.
+
+### DISCOGRAPHY and ARTISTS — added 2026-09-16
+
+The full design capture is **`docs/DISCOGRAPHY.md`**; read it before touching
+either. The four structural decisions were put to the operator and answered,
+and are not open. In summary:
+
+- **DISCOGRAPHY absorbed VOLUMES and the stood-down RELEASES.** Both
+  subsystems — services, repositories, domains, hooks, IPC channels and UI —
+  were **deleted**, and schema v9 carries their records into the new
+  `discography` collection. `project.volumeId` and `trackNumber` are gone.
+- **A release owns its tracklist**, reversing the volumes rule that membership
+  lives on the project. The reason is that a track need not *have* a project:
+  a back catalogue, a label master and somebody else's remix all belong in a
+  discography and none has a set in the filing root. The reverse lookup is
+  derived through `setAppearanceResolver`, never stored twice.
+- **`project.artistIds` replaced `volumeId`.** Credits are ids, like `tagIds`,
+  and the registry ships the roster alongside so the renderer can resolve them.
+- **Artist records are unrelated to the `artist` folder kind.** A folder is a
+  shelf; a record is who made the work. `FOLDER_KINDS` is untouched.
+- **A label is a field, not a record** — with autocomplete from labels used.
+- Pictures and artwork are **copied** into `Candy Haven\Media\`, which joins
+  `RESERVED_WRAPPER_DIRECTORIES`. Drawing them reuses `projects:thumbnail`.
+- `reconcileCategory`'s volume invariant is gone: there is nothing left for a
+  project to be validated against, because the link lives on the release.
 
 Note the OBSERVATORY overlay named **`transmission`** (singular, NOW
 TRANSMITTING — the Spotify now-playing surface) is unrelated to the deleted
 department and is still shipped. Do not conflate them.
+
+### The pipeline meets the catalogue — 2026-09-17
+
+Four more decisions, D5–D8 in `docs/DISCOGRAPHY.md`. Read them before touching
+either department; in summary:
+
+- **TRACK READY is the gate into the catalogue.** `LINKABLE_PROJECT_STAGES` is
+  `['ready', 'released']`, enforced in `DiscographyService.requireLinkable` as
+  well as in the picker.
+- **`released` is a project stage again**, terminal, after `ready`. DISCOGRAPHY
+  writes it: `reconcileLinkedStages` moves linked projects when a release's
+  status crosses RELEASED, and back when it leaves. **Only `ready` ⇄ `released`
+  are ever touched** — a catalogue edit must never drag work backwards through
+  the pipeline or wake a shelved project.
+- **The final master is picked in the ARCHIVE, and gates RELEASED** (D10,
+  which partly reverses D5 — read it before changing either). `requiresMaster`
+  is on `released` and nothing else: it cannot go on `ready`, because TRACK
+  READY is what makes a project linkable and gating it on a file choosable only
+  from a linked release is a deadlock. `FinalMaster` on the dossier's OVERVIEW
+  tab asks the question from TRACK READY on (`namesMaster`), against
+  `project.audio`, and **nothing on disk moves**.
+- **Two refusals.** `applyStageChange` refuses `released` without
+  `masters.final`, whichever path asks. `DiscographyService.update` separately
+  refuses a flip to `released` while any linked project lacks one, naming them
+  — otherwise the propagation silently fails to move those projects and the two
+  records disagree.
+- **`track.master` is a copy, not a read-through.** Taken from the project's
+  pick when a track is linked, then frozen, so changing the project's master
+  later cannot rewrite what an already-released entry claims to have shipped.
+  `masterFromProject` builds it.
+- `MixAndMaster`, `FinalMasterDialog`, `FinalMasterMenu` and the whole **move**
+  machinery are **deleted** — `projects:set-final`, `projects:clear-final`,
+  `StacksService.setFinalMaster`/`clearFinalMaster`/`returnFinalMaster`,
+  `ProjectsService.applyFinalMaster`. One channel replaces the two:
+  `projects:final-master { id, path | null }`. `masters.final` keeps its name
+  and widens its meaning to "the finished bounce, wherever it sits"; a legacy
+  value still points into `Release Mastered Tracks` and is not migrated.
+  Stored mark buckets (`wips`/`mixes`/`masters`) are untouched and unread.
+- **Release credits** are `credits: { role, artistIds, note }[]`, release level
+  only, reusing `ARTIST_ROLES` via a second label table `ARTIST_ROLE_CREDIT`
+  (`PRODUCED BY` rather than `PRODUCER`). `BILLED AS` is relabelled **MAIN
+  ARTIST**; the stored field is still `artistIds`.
+- The release sheet is **five tabs**, mirroring `ProjectDossier`'s strip.
+- `MediaFileSchema` moved to a leaf, `domain/media.ts`, for the §6.2 reason —
+  that rule has now paid for itself twice.
+- **`RELEASE_STATUSES` is two: `scheduled` · `released`** (D9). `idea`,
+  `planned` and `shelved` were cut on the operator's instruction, against a
+  recommendation to keep them. Consequences: `scheduled` does **not** require a
+  date (a null `releaseDate` is the only thing left that can mean "intended,
+  not dated"), `scheduled` is the default for a new entry, the SHELVED lens is
+  gone, and **schema version 10** folds the three removed values onto
+  `scheduled`. Do not re-litigate; do not re-add one without reading D9's
+  "what this costs".
 
 Reserved sections render `ReservedPage` with a commissioning scope list (defined
 inline in `src/renderer/src/app/router.tsx`) — deliberately not an empty page, so
@@ -690,6 +821,52 @@ The rail, transitions and titlebar pick it up automatically.
 
 **TELEMETRY is the best reference implementation** — it exercises a service, a
 push channel with subscribe/unsubscribe, a domain split, charts, and a full page.
+
+### OBSERVATORY specifics
+
+Reworked 2026-09-17. Full capture in **`docs/OBSERVATORY_REDESIGN.md`** — read
+it before touching the department. In summary:
+
+**The desk is a board and a bench.** The board lists the whole kit grouped by
+`family`, and it is a *readout*: nothing on it is pressed, and a row stays
+quiet until its overlay is doing something. The bench is the page's single
+`focal` panel and carries everything you do to one overlay. The rail and the
+cards it replaced were the same information twice, over about eight screens.
+
+**`OverlayBench` is drawn in two places** — the desk, and slot `02` of every
+overlay's console page. That is deliberate and load-bearing: the desk's
+composer and each page's config panel used to be separate code writing one
+setting. `actionsFor` / `composerFor` / `dialsFor` in
+`features/observatory/lib/deck.ts` answer for both surfaces.
+
+**The altitude rule:** the bench carries what changes *between segments*, the
+overlay's own page carries what is *set once*. A call's length is a dial; its
+command word is not.
+
+**`soloDeck` rests on an invariant.** An overlay page must not mount
+`useOverlayDeck` — that claims the chat socket and starts the Spotify poll — so
+it hands over its own slice and `soloDeck` fills the rest with defaults. That is
+safe only because every case in those four functions reads the slice named by
+its own `id` and nothing else. A case that ever needs a second overlay's state
+must take it as an argument. The note on the function says so.
+
+**`overlay.order` is declaration order and is not displayed.**
+`features/observatory/lib/kit.ts` owns every index an operator sees, because the
+board numbers across family groups and has to make room for THE CHORUS — which
+is in the kit and deliberately not in `OVERLAYS`, since every member there is a
+document the build emits and the server routes.
+
+**The registry carries `role`, `family`, `how` and `sourcePurpose`** alongside a
+`purpose` rewritten into plain operator language. `epigraph` is unchanged and is
+drawn last and faint; it used to lead every card, which spent the top of the
+page on mood rather than function.
+
+**Every overlay page follows one slot order**, with the **simulator last** so
+each index above it is a literal — three pages used to renumber themselves when
+rehearsal mode was switched on. Their shared chrome is a Sass mixin in
+`features/observatory/overlays/_page.scss`, a mixin rather than a stylesheet
+because CSS Modules would otherwise give nine files nine class names for one
+rule.
 
 ### ARCHIVE specifics
 
@@ -1100,7 +1277,7 @@ Display face is used uppercase with wide tracking. Note the pattern: wide
   local-first model needs revisiting.
 - **No backup story.** The archive is local to each machine by the operator's
   explicit choice (§9, reaffirmed 2026-09-13 over a shared remote). Because the
-  app is intended to hold *everything* of his, one dead drive currently loses all
+  app is intended to hold _everything_ of his, one dead drive currently loses all
   of it. Raise this before anything irreplaceable is committed to it.
 
 ### Planned, but explicitly not being built yet
@@ -1109,18 +1286,20 @@ Described by the operator on 2026-09-13 **as context only** — "we are not goin
 to build that just yet". Do not start, scaffold, or propose these unless asked.
 They are recorded so nearer-term work does not foreclose them.
 
-- **Website.** Does not exist yet. Candy Haven is meant to *generate and publish*
+- **Website.** Does not exist yet. Candy Haven is meant to _generate and publish_
   it, so the site becomes a projection of app data rather than an integration
   target. No stack or host chosen.
 - **Gigs.** Their own records — venue, promoter, fee, payment status, set time,
   travel — cross-linked to CALENDAR rather than being mere calendar entries.
   Gigs are money and logistics, not just dates.
-- **Discography.** All his tracks, albums and EPs, surfaced in a discography
-  section on the website. The load-bearing detail: an entry **links to an ARCHIVE
-  project when one exists and otherwise stands alone**, and a standalone entry
-  can be linked later. Discography is therefore *not* a derivation of ARCHIVE —
-  when the release model in §10 is next extended, leave room for a public record
-  with no project behind it.
+- ~~**Discography.**~~ **Built on 2026-09-16** as its own department, with
+  ARTISTS beside it. The load-bearing detail recorded here — that an entry
+  links to an ARCHIVE project when one exists and otherwise stands alone — is
+  exactly what shipped, and it is why a release owns its tracklist rather than
+  the project owning its membership. See `docs/DISCOGRAPHY.md`.
+
+  What remains outstanding from this bullet is the **website**: the
+  discography is a private record until something publishes it.
 
 ---
 
