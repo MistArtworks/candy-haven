@@ -114,6 +114,51 @@ Two mechanisms, split by direction of data flow:
 
 ---
 
+## THE VESTIBULE — the startup window
+
+Launching does not open the console. It opens a small window with four doors:
+**a new project**, **the console**, **ARCHIVE**, or **OBSERVATORY**.
+
+Most launches are the first, and the console is a ten-department operator
+station standing in front of what is really four fields. So the vestibule
+provisions the set itself — name, shelf, category, colour — copies the template
+`.als`, hands it to Ableton and retires the application to the tray. The console
+never loads.
+
+The other three open the console; the last two land it straight on the
+department the operator came for, because filing a set and putting a stream on
+are what this console gets opened for, and arriving at NEXUS to then navigate is
+a step that exists for no reason. The destination travels in the hash, which is
+what `HashRouter` already reads, and is checked against the section registry in
+the main process rather than trusted from the renderer.
+
+It is its own renderer document
+([`src/renderer/vestibule.html`](src/renderer/vestibule.html)) rather than a
+query parameter on the console's, because the console's entry pulls in the
+router and every feature page, and the whole point of this window is being on
+screen before any of that. It loads about 810 kB against the console's 2.3 MB,
+and shares the preload, so `window.candy` is the same bridge.
+
+**Boot still runs behind it.** The sequence is driven by the main process
+regardless of which window is up, so the archive warms while the operator reads
+the two tiles. The bottom rail mirrors it — the same snapshot the boot screen
+draws — and NEW PROJECT stays disarmed, saying why, until the archive is
+connected and the department is set up, because `projects:create` needs a folder
+tree out of MongoDB and a template on disk. Choosing THE CONSOLE after a boot
+that already finished opens it past the boot screen; a failed or still-running
+boot lands on it as usual, with its retry.
+
+Behind both states is the plexus, built on the same
+[`scene-kit`](src/renderer/src/features/home/components/scenes/scene-kit.ts)
+every NEXUS scene uses — laid out as a slab rather than a sphere, because a
+sphere is a focal object and the focal object here is whichever door the
+operator is reaching for.
+
+Turn it off in **REGULATION → STARTUP**. A sign-in launch (`--hidden`) never
+shows it either way.
+
+---
+
 ## The boot sequence
 
 The boot screen is not a timed animation. It mirrors a real state machine in

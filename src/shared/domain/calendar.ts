@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { IsoDateSchema } from './dates'
+import { CALENDAR_KINDS } from './calendar.constants'
 
 /**
  * CALENDAR — the dated register.
@@ -18,7 +19,9 @@ import { IsoDateSchema } from './dates'
  * minutes from local midnight for the same reason — a number, not a moment.
  */
 
-export const CALENDAR_KINDS = ['session', 'delivery', 'broadcast', 'rite', 'deadline'] as const
+// Declared in the zod-free half and imported back, so the renderer can read the
+// list without this module — and zod — coming with it. See the note there.
+export { CALENDAR_KINDS }
 export const CalendarKindSchema = z.enum(CALENDAR_KINDS)
 export type CalendarKind = z.infer<typeof CalendarKindSchema>
 

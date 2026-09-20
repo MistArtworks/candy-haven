@@ -571,6 +571,133 @@ status colour, check contrast.
 
 ---
 
+## 7.7 THE VESTIBULE — the startup window (2026-09-19)
+
+Launching opens a small window before the console with **four square doors**:
+THE CONSOLE, NEW PROJECT, ARCHIVE, OBSERVATORY. Creating a project happens
+there — name, shelf, colour — and the console never loads: the set is
+provisioned, handed to Ableton, and the application retires to the tray. The
+other three open the console, the last two landing it straight on that
+department (the route travels in the hash, which is what `HashRouter` reads, and
+is checked against `SECTIONS` in main rather than trusted from the renderer).
+
+The operator's four answers, asked before it was built:
+
+| Question               | Answer                                                     |
+| ---------------------- | ---------------------------------------------------------- |
+| Where does the form go? | In the startup window, with a mini archive browser for the shelf |
+| Which category?         | None asked — always a single, changed later in the dossier  |
+| After Ableton opens it? | Retire to the tray                                         |
+| three.js for the plexus? | No — reuse `scene-kit.ts`                                 |
+| Can it be turned off?   | Yes, `system.showVestibule` in REGULATION                  |
+
+**Its own document, not a `?popout=`.** `src/renderer/vestibule.html` +
+`src/renderer/src/vestibule.tsx`, one entry in `electron.vite.config.ts`. The
+popout idiom loads `App.tsx`, which imports the router and all ten feature
+pages — the one window whose job is being up before the console cannot afford
+to be the console. It loads ~810 kB against the console's ~2.3 MB, and shares
+the preload so `window.candy` is the same bridge.
+
+**Four lifecycle landmines, all in `src/main/index.ts`:**
+
+1. `window-all-closed` calls `app.quit()`. On handover the console is created
+   **first**, then the vestibule closes — reversed, those two lines quit the app
+   on the way to opening it. Closing the vestibule with its own ✕ *should* quit
+   and needs no guard.
+2. Retiring to the tray is the exception, and needs `retiringToTray` — a
+   one-shot flag consumed by the first `window-all-closed`. The vestibule is
+   *destroyed* rather than hidden, because a hidden launcher can never be shown
+   again and would stop that event ever firing for the console.
+3. `tray.reveal()` and `second-instance` both went through `windows.reveal()`,
+   which **creates** the console when none exists — bypassing the vestibule
+   entirely. Both now go through a `reveal` that focuses the vestibule when it
+   is the live window.
+4. `before-quit` disposes each service in turn; the vestibule joins that chain.
+
+**Settings are loaded before the first window**, because `configuration` is the
+*second* boot stage and the decision is needed before either window exists.
+`settings.load()` re-reads the same file when that stage runs, so the boot
+readout stays honest — it costs one early read.
+
+**Boot is unaffected.** Main drives it regardless of which window is up, so the
+archive warms behind the vestibule; measured on this machine, the window is on
+screen **4.2 s before boot completes**. The bottom rail mirrors the same
+snapshot the boot screen draws. NEW PROJECT stays disarmed until the archive is
+connected *and* `setup.ready`, because `projects:create` needs the folder tree
+out of Mongo and a template on disk.
+
+`windows.create({ entered })` appends `?entered=1`, read at module scope by
+`renderer/src/app/launch.ts` and used to seed `shellPhase` in the store —
+**at the initialiser, not from an effect**, which would paint one frame of boot
+screen and tear it down. `entered` is computed in main at the moment of
+handover from the live snapshot, so only a boot that actually succeeded skips
+the screen.
+
+**Two departures from house style, both deliberate:**
+
+- **No `motion`.** It shares a vendor chunk with GSAP and anime.js — 505 kB of
+  animation runtime, none of it otherwise used here, ahead of the first thing
+  the operator sees. The entrance is a CSS keyframe on the house easing token.
+  The cost is no exit animation.
+- **No tile is `focal` at rest.** The brief allows one focal object per view,
+  but a fork with a pre-picked answer is not a fork. Crimson arrives on hover and
+  focus instead — the palette's other sanctioned use, live state. It lights
+  through `--ch-accent`, not a crimson literal, because it changes on interaction
+  and must follow the accent setting. **Hovering moves focus** (`takeFocus`), so
+  the lit tile and the focused tile are always the same one — without that,
+  `autoFocus` on THE CONSOLE plus a hovered shortcut lights two at once.
+
+### Layout, after three passes
+
+The hierarchy is **spatial, not chromatic**: THE CONSOLE is the operator's most
+common destination, so it is the largest thing in the reading position and takes
+`autoFocus`. Marking it with the accent instead would spend the one saturated
+colour on a resting state.
+
+It went 2x2-of-equals → console-column-plus-three-rows → **four squares**, on the
+operator's note that the buttons should be square. The squares come from the
+**track sizes**, not `aspect-ratio` on the tiles: an `aspect-ratio` item in an
+`auto` column asks the column for a width derived from its height while the
+column asks the item for an intrinsic width, and the loop resolves *larger* than
+the space available. Nothing errors — the bottom row silently left the window by
+15px. One custom property (`--door`, a shortcut's side, in `rem` so interface
+scale carries it) now defines the whole block; the primary is three of those plus
+two gaps, which is exactly the height of the column beside it.
+
+### Two visual notes the operator gave
+
+- **The glow was too bright.** `--ch-accent-glow` neat for the wash plus
+  `--ch-shadow-focal` (a 60px bloom at full spread) put more light on a hovered
+  tile than the boot orb gets. The wash is `color-mix`ed to 40% and the bloom
+  drawn in with a negative spread so it haloes the edge.
+- **The glow animation read as snappy.** It was on `$ease-out-expo`, which
+  reaches ~95% in the first quarter of its duration — right for a panel
+  arriving, wrong for a lamp. **Lighting is not movement**: the glow swells on
+  `$ease-in-out` over `$duration-slow`, and only `transform` keeps the fast
+  curve.
+
+**The plexus** is `scene-kit`'s, laid out as a **slab** rather than a sphere: a
+sphere is a focal object, and the focal object here is whichever door is being
+reached for. Nodes thin toward the middle because the tiles are opaque and every
+node behind one is missing from the edges, which is the only plexus on screen. A
+first pass at `strength: 0.18` with `brass` lines was invisible — that works out
+at a maximum link alpha of 0.054 over a near-black floor. It sits with
+`VigilScene`'s constellation now: gold, `strength: 0.55`, `reach: 620` against a
+mean node spacing of ~410.
+
+### Incidental, but worth knowing
+
+`calendar.constants.ts` value-imported `CALENDAR_KINDS` from `calendar.ts`. That
+one import put **the whole of zod (~167 kB) into every renderer window**:
+`TextInput` reads the date helpers, every form uses `TextInput`, and
+`calendar.ts` opens with `import { z }`. The list now lives in the zod-free half
+and `calendar.ts` imports it back, which is what the domain split is for (§6.2).
+The console still pulls zod through other value imports of schema modules —
+`navigation`, `darkroom`, `overlays`, `auditorium`, `reticle` — which is a
+larger cleanup that has not been done.
+
+---
+
 ## 8. The boot sequence
 
 `src/main/app/boot-sequence.ts` is a real observable state machine. **The boot

@@ -471,6 +471,31 @@ export function RegulationPage(): ReactNode {
               <Panel label="Startup" index="01">
                 <div className={styles.controls}>
                   <div className={styles.control}>
+                    <span className={styles.controlLabel}>Open the vestibule first</span>
+                    <button
+                      type="button"
+                      className={styles.toggle}
+                      role="switch"
+                      aria-checked={system?.showVestibule ?? true}
+                      data-on={system?.showVestibule || undefined}
+                      onClick={() =>
+                        applySettings({
+                          system: { showVestibule: !(system?.showVestibule ?? true) }
+                        })
+                      }
+                    >
+                      <span className={styles.toggleThumb} />
+                    </button>
+                    <p className={styles.controlHint}>
+                      A small window opens ahead of the console offering two things: a new project,
+                      or the console proper. Creating one there files it, copies your template set
+                      and opens it in Ableton without the console ever loading. Turn this off and
+                      launching goes straight to the console, as it used to. A sign-in launch never
+                      shows it either way.
+                    </p>
+                  </div>
+
+                  <div className={styles.control}>
                     <span className={styles.controlLabel}>Launch at sign-in</span>
                     <button
                       type="button"

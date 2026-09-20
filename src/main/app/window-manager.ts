@@ -81,6 +81,21 @@ export class WindowManager {
    */
   private startHidden = false
   /**
+   * Opens the console past the boot screen, for this launch only.
+   *
+   * Set when the vestibule hands over after a boot that already succeeded. See
+   * `load` for why that is not the same as skipping the boot screen generally.
+   */
+  private startEntered = false
+  /**
+   * A department to open on, for this launch only.
+   *
+   * Set when the vestibule offers a door straight into one. Already checked
+   * against the navigation registry by the handler — see `load` for why it
+   * travels in the hash rather than the search string.
+   */
+  private startRoute: string | null = null
+  /**
    * Decides what the console's own close button means. Returns true to retire
    * to the tray instead of ending the session; see `requestClose`.
    */
@@ -110,10 +125,14 @@ export class WindowManager {
     this.closeIntercept = intercept
   }
 
-  async create(options: { hidden?: boolean } = {}): Promise<BrowserWindow> {
+  async create(
+    options: { hidden?: boolean; entered?: boolean; route?: string | null } = {}
+  ): Promise<BrowserWindow> {
     if (this.window && !this.window.isDestroyed()) return this.window
 
     this.startHidden = options.hidden ?? false
+    this.startEntered = options.entered ?? false
+    this.startRoute = options.route ?? null
 
     const persisted = await readPersistedState()
 
@@ -226,11 +245,37 @@ export class WindowManager {
     return window
   }
 
+  /**
+   * Loads the console, telling it whether boot has already been watched.
+   *
+   * `entered` is set only when the vestibule hands over after a *successful*
+   * boot. The sequence is finished, its log has scrolled past in the
+   * vestibule's status rail, and making the operator sit through the cinematic
+   * and click "Enter console" would be asking them to acknowledge something
+   * they already watched. A failed or still-running boot withholds the flag, so
+   * the console lands on the boot screen with its readout and its retry.
+   *
+   * It travels in the search string rather than the hash for the same reason
+   * `popout` does: the console routes with `HashRouter`, and the answer has to
+   * be known at module scope, before anything mounts.
+   *
+   * `startRoute` is the opposite case and goes in the **hash**, because that is
+   * precisely what `HashRouter` reads — the router picks it up as the initial
+   * location with no code of ours involved, which is why opening the console on
+   * a department needs nothing on the renderer side at all.
+   */
   private async load(window: BrowserWindow): Promise<void> {
+    const options: { query?: Record<string, string>; hash?: string } = {}
+    if (this.startEntered) options.query = { entered: '1' }
+    if (this.startRoute) options.hash = this.startRoute
+
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-      await window.loadURL(process.env['ELECTRON_RENDERER_URL'])
+      const url = new URL(process.env['ELECTRON_RENDERER_URL'])
+      if (this.startEntered) url.searchParams.set('entered', '1')
+      if (this.startRoute) url.hash = this.startRoute
+      await window.loadURL(url.toString())
     } else {
-      await window.loadFile(join(__dirname, '../renderer/index.html'))
+      await window.loadFile(join(__dirname, '../renderer/index.html'), options)
     }
   }
 

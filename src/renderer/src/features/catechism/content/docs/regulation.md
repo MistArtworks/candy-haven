@@ -74,6 +74,13 @@ there to draw from.
 
 Whether this console starts with the machine, and what closing it means.
 
+- **Open the vestibule first** — a small window opens ahead of the console
+  offering two things: a new project, or the console proper. Creating one there
+  files it, copies your template set and opens it in Ableton without the console
+  ever loading, then leaves the application in the tray. On by default. Turn it
+  off and launching goes straight to the console. A sign-in launch never shows
+  it either way — the point of starting with the machine is that the archive and
+  the overlay server are up, not that you are asked a question.
 - **Launch at startup** — registers the application with Windows.
 - **Start minimised** — launches to the tray rather than to a window.
 - **Close to tray** — the close button hides the window instead of quitting.

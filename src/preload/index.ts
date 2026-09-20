@@ -307,6 +307,12 @@ const api: CandyHavenApi = {
     minimize: () => invoke('popout:minimize'),
     close: () => invoke('popout:close')
   },
+  vestibule: {
+    minimize: () => invoke('vestibule:minimize'),
+    close: () => invoke('vestibule:close'),
+    console: (route = null) => invoke('vestibule:console', { route }),
+    handoff: (id) => invoke('vestibule:handoff', { id })
+  },
   shell: {
     openExternal: (url) => invoke('shell:open-external', { url }),
     reveal: (path) => invoke('shell:reveal', { path }),

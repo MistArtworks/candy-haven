@@ -1,5 +1,4 @@
 import type { CalendarEntry, CalendarKind } from './calendar'
-import { CALENDAR_KINDS } from './calendar'
 
 /**
  * Calendar vocabulary and date arithmetic.
@@ -9,6 +8,24 @@ import { CALENDAR_KINDS } from './calendar'
  * `Date` only in UTC — never local time — so no operation here can move an
  * entry across a day boundary. See the note at the top of domain/calendar.ts.
  */
+
+/**
+ * The kinds, declared **here** rather than in `calendar.ts`.
+ *
+ * This looks like it belongs beside its schema, and it used to — this file
+ * imported it as a value from `calendar.ts`. That single import was enough to
+ * put the whole of zod into the renderer bundle, because `TextInput` reads the
+ * date helpers below, every form in the application uses `TextInput`, and
+ * `calendar.ts` opens with `import { z }`. Around 220 kB, loaded by every
+ * window before it drew anything, to spell five words.
+ *
+ * The domain split exists precisely to stop that (see the note on
+ * `boot.constants.ts`): schemas on one side, plain values on the other, and the
+ * renderer takes only the second. `calendar.ts` imports this back and builds
+ * `CalendarKindSchema` from it, so there is still exactly one list. The type
+ * flows the other way and is erased, so the cycle is types-only at runtime.
+ */
+export const CALENDAR_KINDS = ['session', 'delivery', 'broadcast', 'rite', 'deadline'] as const
 
 export interface CalendarKindDefinition {
   id: CalendarKind

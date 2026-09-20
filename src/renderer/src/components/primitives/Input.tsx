@@ -23,7 +23,8 @@ import styles from './Input.module.scss'
  * corners, institutional labels above the control — so a form reads as a filed
  * record rather than as a web form dropped into the shell.
  *
- * A field is **ruled, not boxed**: the value sits on the surface with one
+ * A field is **ruled, not boxed** by default (`boxed` opts out, for surfaces
+ * carrying a single field): the value sits on the surface with one
  * hairline under it, which is `Field` — the read primitive — made writable.
  * See `%entry` for why that replaced the sunken slot these started as.
  */
@@ -105,6 +106,13 @@ export interface TextInputProps {
   size?: 'md' | 'lg'
   /** `gutter` puts the label in a fixed left column beside the value. */
   layout?: 'stacked' | 'gutter'
+  /**
+   * Draws the field as a box rather than as a rule.
+   *
+   * For surfaces carrying a single field, where there is no column of siblings
+   * to establish that these are writable — see the note in the stylesheet.
+   */
+  boxed?: boolean
   className?: string
 }
 
@@ -123,6 +131,7 @@ export function TextInput({
   invalid = false,
   size = 'md',
   layout = 'stacked',
+  boxed = false,
   className
 }: TextInputProps): ReactNode {
   const id = useId()
@@ -142,6 +151,7 @@ export function TextInput({
         type={password ? 'password' : 'text'}
         className={[
           styles.input,
+          boxed ? styles.boxed : '',
           mono || password ? styles.mono : '',
           size === 'lg' ? styles.lg : '',
           invalid ? styles.invalid : ''
@@ -387,7 +397,12 @@ export function DateInput({
           id={id}
           type="text"
           inputMode="numeric"
-          className={[styles.input, styles.mono, styles.date, invalid || refused ? styles.invalid : '']
+          className={[
+            styles.input,
+            styles.mono,
+            styles.date,
+            invalid || refused ? styles.invalid : ''
+          ]
             .filter(Boolean)
             .join(' ')}
           value={draft}
@@ -433,12 +448,7 @@ export function DateInput({
             className={styles.datePanel}
             style={position}
           >
-            <Calendar
-              value={value}
-              onChange={pick}
-              onDismiss={close}
-              clearable={clearable}
-            />
+            <Calendar value={value} onChange={pick} onDismiss={close} clearable={clearable} />
           </div>
         </Portal>
       ) : null}

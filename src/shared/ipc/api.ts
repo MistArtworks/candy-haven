@@ -474,6 +474,20 @@ export interface CandyHavenApi {
     minimize(): Promise<void>
     close(): Promise<void>
   }
+  /** THE VESTIBULE — the startup window, and the two ways out of it. */
+  readonly vestibule: {
+    minimize(): Promise<void>
+    close(): Promise<void>
+    /**
+     * Opens the console and closes this window, in that order.
+     *
+     * `route` lands it on a department — a section path such as `/archive`.
+     * Omitted, it opens wherever the console opens.
+     */
+    console(route?: string | null): Promise<void>
+    /** Opens the new set in Ableton and retires the application to the tray. */
+    handoff(id: string): Promise<void>
+  }
   readonly shell: {
     openExternal(url: string): Promise<void>
     reveal(path: string): Promise<void>

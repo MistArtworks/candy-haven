@@ -6,6 +6,7 @@ import type { WindowState } from '@shared/domain/system'
 import type { UpdateStatus } from '@shared/domain/update'
 import { createInitialArchiveStatus } from '@shared/domain/archive.constants'
 import { createInitialBootSnapshot } from '@shared/domain/boot.constants'
+import { enteredFromVestibule } from '@renderer/app/launch'
 
 /**
  * Mirror of main-process push state.
@@ -90,7 +91,12 @@ export const useSystemStore = create<SystemState>()((set) => ({
   unsavedNudge: 0,
   unsaved: null,
   window: { isMaximized: false, isFullScreen: false, isFocused: true },
-  shellPhase: 'booting',
+  /*
+   * `booting` unless THE VESTIBULE already watched the sequence finish and
+   * handed this window over — see app/launch.ts for why that is read here, at
+   * the initialiser, rather than applied from an effect.
+   */
+  shellPhase: enteredFromVestibule() ? 'ready' : 'booting',
 
   setBoot: (boot) => set({ boot }),
   setArchive: (archive) => set({ archive }),

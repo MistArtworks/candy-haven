@@ -158,6 +158,41 @@
 }
 
 /*
+ * A boxed field, for surfaces with nothing else to establish the pattern.
+ *
+ * The ruled field above is right for the console: a sheet of them reads as a
+ * record rather than as a web form, and the note on `%entry` explains why the
+ * box was taken away. That reasoning depends on there being *several* fields
+ * in a column — the repetition is what says "these are writable".
+ *
+ * THE VESTIBULE has one. On its own, on a dark plate, a rule under a word is
+ * indistinguishable from a divider, and the operator said so: "its hard to know
+ * if it is a text field." So this is opt-in and additive — the console is
+ * untouched, and a lone field on a small surface can ask to look like one.
+ */
+.boxed {
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.16);
+  border-radius: $radius-control;
+  padding: space(2) space(3);
+
+  &:hover:not(:disabled) {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    border-color: var(--ch-accent);
+    // Replaces `%entry`'s single rule under the caret, which would otherwise
+    // draw a second line across the bottom edge of the box.
+    box-shadow: inset 0 0 0 1px var(--ch-accent);
+  }
+
+  &:disabled {
+    border-style: dashed;
+  }
+}
+
+/*
  * The record's own name, and the only field allowed to be bigger.
  *
  * In the display face, because at this size the body face reads as a heading

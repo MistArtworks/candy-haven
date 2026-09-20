@@ -214,7 +214,20 @@ export const SystemSettingsSchema = z.object({
    * quietly refusing to honour it is how an app becomes impossible to get rid
    * of. The tray menu carries an explicit QUIT for the same reason.
    */
-  closeToTray: z.boolean().default(true)
+  closeToTray: z.boolean().default(true),
+  /**
+   * Open THE VESTIBULE ahead of the console.
+   *
+   * The small window that asks whether this launch is a new project or the
+   * console proper. On by default, because most launches are the former and
+   * the console is a ten-department station standing in front of four fields.
+   *
+   * Sited in `system` rather than `workspace` because it describes how the
+   * application *starts*, alongside the login item and the tray policy — not
+   * how the operator's filing behaves. Always skipped on a sign-in launch
+   * whatever this says; see app/vestibule.ts.
+   */
+  showVestibule: z.boolean().default(true)
 })
 export type SystemSettings = z.infer<typeof SystemSettingsSchema>
 

@@ -805,6 +805,42 @@ export const IPC_INVOKE = {
   'popout:minimize': { input: z.void(), output: z.void() },
   'popout:close': { input: z.void(), output: z.void() },
 
+  /*
+   * THE VESTIBULE — the window that opens ahead of the console.
+   *
+   * Its two chrome controls resolve the sender for the same reason the
+   * popout's do: `window:close` means "retire the console to the tray" and
+   * consults the close policy, which is not what this window's own button is
+   * for.
+   */
+  'vestibule:minimize': { input: z.void(), output: z.void() },
+  'vestibule:close': { input: z.void(), output: z.void() },
+  /**
+   * Leaves the vestibule for the console, optionally at a department.
+   *
+   * Ordering is load-bearing and lives in the handler: the console is created
+   * *before* the vestibule closes, because closing the last window takes the
+   * count to zero and ends the session.
+   *
+   * `route` is a section path from the shared navigation registry, validated
+   * against it in the handler rather than trusted — this crosses the bridge,
+   * and the one thing a renderer must not be able to do is name an arbitrary
+   * location for the console to load.
+   */
+  'vestibule:console': {
+    input: z.object({ route: z.string().nullable().default(null) }).default({ route: null }),
+    output: z.void()
+  },
+  /**
+   * Hands a newly provisioned set to Ableton and stands the application down.
+   *
+   * The whole point of creating a project here rather than in ARCHIVE: the
+   * console never loads, and what the operator is left looking at is the set
+   * they asked for. Candy Haven stays resident in the tray with the archive
+   * connected, so the next thing asked of it is immediate.
+   */
+  'vestibule:handoff': { input: z.object({ id: z.string() }), output: z.void() },
+
   'shell:open-external': { input: z.object({ url: z.string() }), output: z.void() },
   'shell:reveal': { input: z.object({ path: z.string() }), output: z.void() },
   /** Opens a file with whatever the OS has registered for it. */

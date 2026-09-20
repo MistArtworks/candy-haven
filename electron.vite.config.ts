@@ -70,6 +70,17 @@ export default defineConfig({
         input: {
           index: resolve('src/renderer/index.html'),
           /*
+           * THE VESTIBULE — the startup window, ahead of the console.
+           *
+           * Its own document rather than a query parameter on `index`, which is
+           * how the auditorium popout does it. A popout is a second view of a
+           * department and can afford the console's bundle; this window exists
+           * precisely because the console has not loaded yet, and reaching it
+           * through `index` would pull the router and all ten feature pages
+           * into the one window whose whole job is being up before them.
+           */
+          vestibule: resolve('src/renderer/vestibule.html'),
+          /*
            * A contact sheet of the NEXUS landing fields.
            *
            * Not reachable from the application and not linked from anywhere —

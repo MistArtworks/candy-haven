@@ -7,6 +7,7 @@ import { browseDirectory } from '@main/services/projects/scanner'
 import { AUDIO_EXTENSIONS, MAX_AUDIO_BYTES } from '@shared/domain/auditorium'
 import { CANVAS_EXTENSIONS, MAX_CANVAS_BYTES } from '@shared/domain/discography.constants'
 import { bundleFilename } from '@shared/domain/settings-bundle'
+import { SECTIONS } from '@shared/domain/navigation'
 import type { RuntimeInfo } from '@shared/domain/system'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogFilePath, getLogger } from '@main/core/logger'
@@ -15,6 +16,7 @@ import type { ServiceContainer } from '@main/services/container'
 import type { BootSequence } from '@main/app/boot-sequence'
 import type { WindowManager } from '@main/app/window-manager'
 import type { PopoutManager } from '@main/app/popout'
+import type { VestibuleManager } from '@main/app/vestibule'
 import { applyLaunchAtStartup } from '@main/app/startup'
 import type { IpcRouter } from './router'
 
@@ -29,12 +31,22 @@ export interface HandlerDependencies {
   boot: BootSequence
   windows: WindowManager
   popouts: PopoutManager
+  vestibule: VestibuleManager
+  /**
+   * Stands the application down to the tray with no window on screen.
+   *
+   * Owned by the entry point rather than by a manager, because it is a decision
+   * about the *session* — it has to know whether there is a tray to retire to,
+   * and it has to suppress the `window-all-closed` quit that closing the last
+   * window would otherwise trigger.
+   */
+  retireToTray: () => void
   /** Called when the renderer reports the boot cinematic has finished. */
   onBootEntered: () => void
 }
 
 export function registerIpcHandlers(deps: HandlerDependencies): void {
-  const { router, services, boot, windows, popouts, onBootEntered } = deps
+  const { router, services, boot, windows, popouts, vestibule, retireToTray, onBootEntered } = deps
   const { settings, archive, updates } = services
 
   // ------------------------------------------------------------------ runtime
@@ -540,6 +552,59 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     // be actively wrong here: hiding a detached player leaves it playing with
     // nothing to click.
     BrowserWindow.fromWebContents(event.sender)?.close()
+  })
+
+  // --------------------------------------------------------- vestibule chrome
+
+  router.handle('vestibule:minimize', (_input, event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize()
+  })
+
+  router.handle('vestibule:close', (_input, event) => {
+    /*
+     * A real close, and it ends the session.
+     *
+     * Closing the vestibule is the operator declining both of the things it
+     * offered, so there is nothing left to be resident for. It is also the only
+     * window at that point, so `window-all-closed` reaches `app.quit()` on its
+     * own and this needs no help — the flag that suppresses that quit is set
+     * only on the retire path.
+     */
+    BrowserWindow.fromWebContents(event.sender)?.close()
+  })
+
+  router.handle('vestibule:console', async ({ route }) => {
+    /*
+     * The destination is checked against the registry, not taken on trust.
+     *
+     * It arrives from a renderer and ends up in the URL the console loads, so
+     * an unrecognised path is dropped rather than forwarded — the console then
+     * opens where it always does. `implemented` is part of the test because a
+     * reserved section is a page that says "not commissioned yet", which is a
+     * pointless place to open an application at.
+     */
+    const target = route
+      ? (SECTIONS.find((section) => section.path === route && section.implemented)?.path ?? null)
+      : null
+
+    if (route && !target) logger.warn(`Ignored an unknown vestibule destination: ${route}`)
+
+    /*
+     * Console first, vestibule second. Not interchangeable.
+     *
+     * Destroying the vestibule while it is the only window takes the count to
+     * zero, and `window-all-closed` ends the session — so reversing these two
+     * lines quits the application on the way to opening it.
+     */
+    await windows.create({ entered: boot.current.phase === 'ready', route: target })
+    vestibule.close()
+  })
+
+  router.handle('vestibule:handoff', async ({ id }) => {
+    // The set opens before the window goes, so a failure to launch Ableton
+    // surfaces in the pane that asked rather than against a closing window.
+    await services.projects.openInLive(id)
+    retireToTray()
   })
 
   router.handle('shell:open-external', async ({ url }) => {

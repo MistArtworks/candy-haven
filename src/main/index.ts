@@ -6,6 +6,7 @@ import { BootSequence } from './app/boot-sequence'
 import { WindowManager } from './app/window-manager'
 import { TrayController } from './app/tray'
 import { PopoutManager } from './app/popout'
+import { VestibuleManager } from './app/vestibule'
 import { applyLaunchAtStartup, launchedHidden } from './app/startup'
 import { IpcRouter } from './ipc/router'
 import { registerEventBridges, registerIpcHandlers } from './ipc/register-handlers'
@@ -27,10 +28,22 @@ async function start(): Promise<void> {
   const services = createServiceContainer()
   const windows = new WindowManager()
   const popouts = new PopoutManager()
+  const vestibule = new VestibuleManager()
   const boot = new BootSequence(services)
   const router = new IpcRouter()
 
   let shuttingDown = false
+
+  /**
+   * Suppresses the next `window-all-closed` quit, exactly once.
+   *
+   * The vestibule retires to the tray after handing a new set to Ableton, and
+   * at that moment it is the only window there is — so closing it takes the
+   * count to zero and the session would end with the archive still warming up
+   * behind it. Consumed on the first `window-all-closed` rather than left
+   * standing, so the console closing later still quits the way it always has.
+   */
+  let retiringToTray = false
 
   /*
    * Whether this launch came from the login item.
@@ -43,15 +56,31 @@ async function start(): Promise<void> {
    */
   const hiddenLaunch = launchedHidden()
 
+  /**
+   * What "the operator asked for this application" means, wherever they asked.
+   *
+   * While the vestibule is up it is the front door, and both the tray and the
+   * single-instance guard must land on it rather than build the console behind
+   * it — `windows.reveal()` creates the console when none exists, which would
+   * leave two front doors open and the vestibule's choice already made.
+   */
+  const reveal = (): void => {
+    if (vestibule.isOpen()) {
+      vestibule.focus()
+      return
+    }
+    void windows.reveal()
+  }
+
   const tray = new TrayController({
-    reveal: () => void windows.reveal(),
+    reveal,
     checkForUpdates: () => {
       // Fire and forget: the result belongs in REGULATION, and a tray menu is
       // not a place that can report one.
       void services.updates.check().catch((error) => {
         logger.warn('Update check from the tray failed', error)
       })
-      void windows.reveal()
+      reveal()
     },
     quit: () => {
       logger.info('Quit requested from the tray')
@@ -62,7 +91,7 @@ async function start(): Promise<void> {
   // A second launch reveals the console rather than merely focusing it: when
   // the app is resident in the tray, "already running" is exactly the state the
   // operator is trying to get out of by launching it again.
-  app.on('second-instance', () => void windows.reveal())
+  app.on('second-instance', reveal)
 
   await app.whenReady()
 
@@ -131,12 +160,40 @@ async function start(): Promise<void> {
     })
   }
 
+  /**
+   * Leaves the application resident with no window on screen.
+   *
+   * Where the vestibule goes once it has handed a new set to Ableton: the
+   * archive stays connected and the overlay server stays up, so the next thing
+   * asked of the console costs nothing, and the operator is left looking at
+   * Ableton rather than at us.
+   *
+   * Guarded on the tray existing, for the same reason `setCloseIntercept` is.
+   * With no icon to click, "resident with no window" is an application the
+   * operator cannot reach and cannot quit, which is worse than simply ending
+   * the session.
+   */
+  const retireToTray = (): void => {
+    if (!tray.isActive) {
+      logger.warn('No tray to retire to; ending the session instead')
+      app.quit()
+      return
+    }
+
+    retiringToTray = true
+    tray.setWindowVisible(false)
+    vestibule.close()
+    logger.info('Retired to the tray')
+  }
+
   registerIpcHandlers({
     router,
     services,
     boot,
     windows,
     popouts,
+    vestibule,
+    retireToTray,
     onBootEntered: () => {
       logger.info('Operator entered the console')
       scanOnLaunch()
@@ -144,7 +201,27 @@ async function start(): Promise<void> {
   })
   registerEventBridges({ router, services, boot, windows })
 
-  await windows.create({ hidden: hiddenLaunch })
+  /*
+   * The vestibule opens ahead of the console, and instead of it.
+   *
+   * Settings are loaded here rather than waited for, because the decision is
+   * needed before the first window and `configuration` is the second boot
+   * stage. `load()` re-reads the same file when that stage runs, so the boot
+   * readout stays honest and nothing is skipped — this costs one early read.
+   *
+   * A sign-in launch never sees it. The point of `startMinimised` is that the
+   * archive and the overlay server come up without a window in the operator's
+   * face, and a launcher asking them to choose something every morning is the
+   * exact opposite of that.
+   */
+  const { system } = await services.settings.load()
+  const openVestibule = system.showVestibule && !hiddenLaunch
+
+  if (openVestibule) {
+    await vestibule.open()
+  } else {
+    await windows.create({ hidden: hiddenLaunch })
+  }
 
   // The boot sequence runs alongside window creation: the renderer paints the
   // boot screen immediately and subscribes to progress already in flight.
@@ -169,11 +246,21 @@ async function start(): Promise<void> {
     /*
      * Windows-only target: with the window genuinely gone, the session ends.
      *
-     * Retiring to the tray does not reach here — a hidden window is still a
-     * window — so this stays the honest response to Alt+F4 and to the taskbar's
-     * Close. The tray's own Quit goes through `app.quit()` and lands on
-     * `before-quit` below, which is the one shutdown path either way.
+     * The console retiring to the tray does not reach here — a hidden window is
+     * still a window — so this stays the honest response to Alt+F4 and to the
+     * taskbar's Close. The tray's own Quit goes through `app.quit()` and lands
+     * on `before-quit` below, which is the one shutdown path either way.
+     *
+     * The vestibule is the exception, and the reason for the flag: it is
+     * *destroyed* rather than hidden when it retires, because a hidden launcher
+     * is a window that can never be shown again and would keep this from ever
+     * firing for the console.
      */
+    if (retiringToTray) {
+      retiringToTray = false
+      return
+    }
+
     app.quit()
   })
 
@@ -191,6 +278,7 @@ async function start(): Promise<void> {
       try {
         await windows.persistState()
         popouts.dispose()
+        vestibule.dispose()
         tray.dispose()
         boot.dispose()
         router.dispose()
