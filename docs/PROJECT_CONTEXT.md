@@ -883,6 +883,34 @@ D20-D22 in `docs/DISCOGRAPHY.md`.
   button is never disabled for these; re-deriving five service conditions in
   the renderer would be a second opinion that could disagree with the first.
 
+### The register remembers a release — 2026-09-19
+
+D29 in `docs/DISCOGRAPHY.md`.
+
+- **Anniversaries are derived from the D20 projection**, and are the return on
+  it: no schema field, no migration, no channel, nothing stored. An anniversary
+  is the release-date reading with the year swapped for the year being drawn,
+  so moving a release moves every one of its markers and deleting it removes
+  them all, with nothing to reconcile.
+- **`features/calendar/anniversaries.ts` is renderer-only** and deliberately
+  not in `calendar.constants.ts` — that module knows dates and not releases,
+  and coupling the register's arithmetic to the catalogue's vocabulary would
+  buy nothing. `anniversariesBetween(releases, from, to)` is the whole of it;
+  `anniversariesOn` is that with both ends the same day.
+- **Released entries only, starting at one year on**, so a marker can never
+  coincide with the release's own on the original date. **29 February is
+  skipped, not observed** — printing it on the 28th would record a date the
+  record did not come out on.
+- **`AnniversaryMark` borrows `ReleaseMark`'s class** rather than declaring a
+  second set of parts: same object, recessive. Hollow `◇` against the filled
+  `◆`, title at text-secondary, the count in the slot the kind takes. Gold
+  throughout — crimson is live state and an anniversary is the opposite of it.
+- All four views take it. `MonthView` never counts it against `CHIPS_PER_CELL`;
+  `DayView`'s `THE DAY IS CLEAR.` now checks **three** lists. **`AgendaView`
+  needed a horizon** and the other three did not — a ledger running forward
+  with no far end would generate rows forever, so it bounds them to one year
+  from the anchor, which is every record exactly once.
+
 ### The date picker is drawn in the document — 2026-09-18
 
 D28 in `docs/DISCOGRAPHY.md`.

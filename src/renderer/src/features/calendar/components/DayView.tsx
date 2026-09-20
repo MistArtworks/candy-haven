@@ -13,6 +13,8 @@ import { TimeGrid } from './TimeGrid'
 import styles from '../CalendarPage.module.scss'
 
 import type { CalendarRelease } from '@shared/domain/calendar'
+import { anniversariesOn } from '../anniversaries'
+import { AnniversaryMark } from './AnniversaryMark'
 import { ReleaseMark } from './ReleaseMark'
 
 export interface DayViewProps {
@@ -48,6 +50,7 @@ export function DayView({
 }: DayViewProps): ReactNode {
   const filed = entriesOn(entries, date)
   const out = releases.filter((release) => release.date === date)
+  const marked = anniversariesOn(releases, date)
   const isToday = date === todayIso()
 
   return (
@@ -71,19 +74,25 @@ export function DayView({
         </header>
 
         {/*
-          A release out today is business, so the day is not clear. Two
-          conditions rather than one ternary because the sheet can now
-          hold either list, both, or neither.
+          A release out today is business, so the day is not clear — and
+          neither is a day the catalogue is marking. Three conditions rather
+          than one ternary because the sheet can hold any of the lists, all
+          of them, or none.
         */}
-        {filed.length === 0 && out.length === 0 ? (
+        {filed.length === 0 && out.length === 0 && marked.length === 0 ? (
           <p className={styles.sheetEmpty}>THE DAY IS CLEAR.</p>
         ) : null}
 
-        {out.length > 0 ? (
+        {out.length > 0 || marked.length > 0 ? (
           <ul className={styles.sheetReleases}>
             {out.map((release) => (
               <li key={release.releaseId}>
                 <ReleaseMark release={release} />
+              </li>
+            ))}
+            {marked.map((anniversary) => (
+              <li key={`${anniversary.releaseId}-${anniversary.years}`}>
+                <AnniversaryMark anniversary={anniversary} />
               </li>
             ))}
           </ul>

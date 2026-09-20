@@ -14,6 +14,8 @@ import { EntryChip } from './EntryChip'
 import styles from '../CalendarPage.module.scss'
 
 import type { CalendarRelease } from '@shared/domain/calendar'
+import { anniversariesOn } from '../anniversaries'
+import { AnniversaryMark } from './AnniversaryMark'
 import { ReleaseMark } from './ReleaseMark'
 
 export interface TimeGridProps {
@@ -137,10 +139,13 @@ export function TimeGrid({
     entries: entriesOn(entries, date).filter((entry) => entry.startMinute === null),
     // A release has no time of day, so it belongs in the band an all-day
     // entry already uses rather than pinned to midnight on the clock.
-    releases: releases.filter((release) => release.date === date)
+    releases: releases.filter((release) => release.date === date),
+    // An anniversary has even less of a time of day than a release does.
+    anniversaries: anniversariesOn(releases, date)
   }))
   const hasAllDay = allDayByDate.some(
-    (column) => column.entries.length > 0 || column.releases.length > 0
+    (column) =>
+      column.entries.length > 0 || column.releases.length > 0 || column.anniversaries.length > 0
   )
 
   return (
@@ -180,6 +185,13 @@ export function TimeGrid({
                 <ReleaseMark
                   key={release.releaseId}
                   release={release}
+                  terse={dates.length > 1}
+                />
+              ))}
+              {column.anniversaries.map((anniversary) => (
+                <AnniversaryMark
+                  key={`${anniversary.releaseId}-${anniversary.years}`}
+                  anniversary={anniversary}
                   terse={dates.length > 1}
                 />
               ))}

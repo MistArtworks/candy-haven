@@ -13,6 +13,8 @@ import { EntryChip } from './EntryChip'
 import styles from '../CalendarPage.module.scss'
 
 import type { CalendarRelease } from '@shared/domain/calendar'
+import { anniversariesOn } from '../anniversaries'
+import { AnniversaryMark } from './AnniversaryMark'
 import { ReleaseMark } from './ReleaseMark'
 
 export interface MonthViewProps {
@@ -68,6 +70,7 @@ export function MonthView({
         {days.map((date) => {
           const filed = entriesOn(entries, date)
           const out = releases.filter((release) => release.date === date)
+          const marked = anniversariesOn(releases, date)
           const shown = filed.slice(0, CHIPS_PER_CELL)
           const overflow = filed.length - shown.length
           const { day } = parseIsoDate(date)
@@ -111,6 +114,20 @@ export function MonthView({
                 */}
                 {out.map((release) => (
                   <ReleaseMark key={release.releaseId} release={release} terse />
+                ))}
+                {/*
+                  Anniversaries follow the releases and lead the chips, and
+                  are likewise never truncated. They are bounded by how many
+                  records happen to share one calendar date, which for one
+                  catalogue is a small number — unlike the entries below
+                  them, which the operator can file without limit.
+                */}
+                {marked.map((anniversary) => (
+                  <AnniversaryMark
+                    key={`${anniversary.releaseId}-${anniversary.years}`}
+                    anniversary={anniversary}
+                    terse
+                  />
                 ))}
                 {shown.map((entry) => (
                   <EntryChip key={entry.id} entry={entry} onOpen={onOpenEntry} />

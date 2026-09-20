@@ -94,6 +94,30 @@ release that is out reads dimmer.
 > A day holding nothing but a release still says so. In WEEK and DAY the marker
 > sits in the **ALL DAY** band, because a release date has no hour.
 
+## Anniversaries
+
+Once a release is **out**, the register keeps its birthday. On the same day in
+every year after, a **hollow** diamond appears saying how many years it has
+been — `MOVES LIKE JAGGAR · 3 YEARS`. Clicking it opens the release, exactly as
+the release marker does.
+
+Hollow rather than filled, and quieter than a release proper, so a day that
+carries a record going out **and** the anniversary of an older one reads as two
+different things rather than two releases.
+
+Nothing is stored for this. It is worked out from the release dates the
+calendar already reads, which is why moving a release date moves every
+anniversary with it and deleting a release removes them all.
+
+- Only **released** entries have one. A scheduled record's day has not happened
+  yet.
+- It starts at **one year on**, so it never doubles up with the release's own
+  marker on the original date.
+- A record released on **29 February** is marked only in leap years. Printing
+  it on the 28th would be recording a date it did not come out on.
+- **AGENDA** lists anniversaries for one year ahead of whatever date it opens
+  on, which is every record in the catalogue exactly once.
+
 ## Editing and removing
 
 Click an existing entry to open it for editing. The dialog is the same one used

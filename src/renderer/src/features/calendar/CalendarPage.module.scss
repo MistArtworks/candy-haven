@@ -386,6 +386,27 @@ $kind-tones: (
       color: var(--ch-text-muted);
     }
   }
+
+  /*
+   * An anniversary of a release, rather than a release.
+   *
+   * The same object made recessive, which is why it borrows this class
+   * instead of declaring a second one: it is a reading of the same record,
+   * and giving it its own parts would imply it was a different kind of
+   * thing. The seal is hollow in the markup and the title drops to
+   * secondary here, so a day carrying a record out *and* the anniversary of
+   * an older one reads as two different statements at 10px.
+   */
+  &[data-anniversary] {
+    .releaseMarkSeal {
+      color: var(--ch-gold-500);
+      opacity: 0.7;
+    }
+
+    .releaseMarkTitle {
+      color: var(--ch-text-secondary);
+    }
+  }
 }
 
 .releaseMarkSeal {
@@ -404,6 +425,17 @@ $kind-tones: (
 .releaseMarkKind {
   @include label(8px, 0.16em);
   color: var(--ch-text-faint);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+// How many years, in the slot a release proper gives its kind. Gold rather
+// than faint: the count is the whole reason the marker is there, and dimming
+// it would leave a row that says a record exists without saying what about it
+// is true today.
+.anniversaryYears {
+  @include label(8px, 0.16em);
+  color: var(--ch-gold-500);
   flex-shrink: 0;
   margin-left: auto;
 }

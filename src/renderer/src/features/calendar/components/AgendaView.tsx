@@ -3,6 +3,7 @@ import type { CalendarEntry } from '@shared/domain/calendar'
 import {
   CALENDAR_KIND,
   WEEKDAY_LABELS,
+  addDays,
   compareEntries,
   entrySpan,
   formatMinute,
@@ -13,6 +14,8 @@ import { MONTHS, formatCountdown, todayIso } from '@renderer/lib/format'
 import styles from '../CalendarPage.module.scss'
 
 import type { CalendarRelease } from '@shared/domain/calendar'
+import { anniversariesBetween } from '../anniversaries'
+import { AnniversaryMark } from './AnniversaryMark'
 import { ReleaseMark } from './ReleaseMark'
 
 export interface AgendaViewProps {
@@ -76,12 +79,28 @@ export function AgendaView({
       if (!grouped.has(release.date)) grouped.set(release.date, [])
     }
 
+    /*
+     * And so does an anniversary, bounded to one year ahead.
+     *
+     * The bound is what the other three views do not need: a month, a week
+     * and a day are finite, and this is a list running forward from a date
+     * with no far end. Anniversaries recur for as long as the catalogue
+     * exists, so without a horizon the ledger would never stop. One year
+     * shows every record in the catalogue exactly once, which is the most
+     * the question "what is coming" can honestly want.
+     */
+    const marks = anniversariesBetween(releases, from, addDays(from, 365))
+    for (const mark of marks) {
+      if (!grouped.has(mark.date)) grouped.set(mark.date, [])
+    }
+
     return {
       days: [...grouped.entries()]
         .map(([date, filed]) => ({
           date,
           filed,
-          out: out.filter((release) => release.date === date)
+          out: out.filter((release) => release.date === date),
+          marked: marks.filter((mark) => mark.date === date)
         }))
         // Insertion order was sorted while every day came from the
         // sorted entry list. A release can open a day in the middle of
@@ -112,7 +131,7 @@ export function AgendaView({
         </p>
       ) : null}
 
-      {days.map(({ date, filed, out }) => {
+      {days.map(({ date, filed, out, marked }) => {
         const { day, month } = parseIsoDate(date)
 
         return (
@@ -142,6 +161,15 @@ export function AgendaView({
                   className={`${styles.agendaRow} ${styles.agendaRelease}`}
                 >
                   <ReleaseMark release={release} />
+                </li>
+              ))}
+
+              {marked.map((anniversary) => (
+                <li
+                  key={`${anniversary.releaseId}-${anniversary.years}`}
+                  className={`${styles.agendaRow} ${styles.agendaRelease}`}
+                >
+                  <AnniversaryMark anniversary={anniversary} />
                 </li>
               ))}
 

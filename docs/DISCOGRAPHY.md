@@ -1967,3 +1967,93 @@ says in words rather than as an asterisk.
   that is the right trade, but it is a trade.
 - **The platform's own affordances** — its segmented spinner and whatever
   format Windows was showing — are gone. ISO replaces them.
+
+---
+
+## 34. D29 — the register remembers, 2026-09-19
+
+*"Is it possible for all the tracks which are released — we have an anniversary
+item in the calendar for any tracks which are released."*
+
+An anniversary marker on the CALENDAR for every released record, on the day it
+came out, in every year after.
+
+### It cost one module and no schema at all
+
+This is the return on D20. Release dates are a **projection**: the calendar
+stores none of them and re-reads them on every build, so an anniversary is that
+same reading with the year swapped for the year being drawn. No field, no
+migration, no channel, no second copy of a date to keep in step — the marker
+moves when the release moves and vanishes when it is deleted, because there is
+nothing to reconcile.
+
+Had release dates been filed as `CalendarEntry` records, as the alternative in
+D20 proposed, this feature would have meant generating and storing an entry per
+release per year, forever, and a rule for what happens to them when the release
+date changes.
+
+### `anniversaries.ts` is renderer-only, deliberately
+
+It is a reading of a list the page already holds, so it never leaves the
+renderer. It is **not** in `calendar.constants.ts`, which knows about dates and
+nothing about releases: teaching the register's arithmetic the catalogue's
+vocabulary would couple two things that currently share only a date format.
+
+`anniversariesBetween(releases, from, to)` is the whole of it, and
+`anniversariesOn` is that with both ends the same day. One implementation, four
+views.
+
+### Released records only, and never year zero
+
+A `scheduled` entry has no anniversary — the day has not happened yet, and a
+marker counting years since a future date is a countdown wearing the wrong
+clothes. The count starts at **one year on**, so it can never coincide with the
+release's own `ReleaseMark` on the original date.
+
+### 29 February is skipped, not observed
+
+A record released on a leap day draws a marker only in leap years. Observing it
+on the 28th or the 1st means printing a date the record was not released on,
+in a register. Matching the day exactly is the honest reading and the marker
+returns in four years.
+
+### The same seal, made recessive
+
+`AnniversaryMark` borrows `ReleaseMark`'s own class rather than declaring a
+second set of parts, because it is the same kind of object — a reading of a
+record that lives in DISCOGRAPHY — and drawing it differently would imply it
+was something else. What changes is emphasis:
+
+| | Release | Anniversary |
+| --- | --- | --- |
+| Seal | `◆` filled, gold-400 | `◇` hollow, gold-500 at 0.7 |
+| Title | gold-300 | text-secondary |
+| Trailing slot | the kind | the count |
+
+Gold throughout, as `ReleaseMark` is. Crimson is live state and an anniversary
+is the opposite of live: it is a date being remembered. A day carrying a record
+out **and** the anniversary of an older one therefore reads as two different
+statements at 10px, which is the size this has to survive.
+
+Read-only and it navigates to `/discography?release=<id>`, for the reason
+`ReleaseMark` records at length. An anniversary is one step further from
+writable again — it is not stored anywhere to be written.
+
+### Where it lands in each of the four views
+
+| View | Where |
+| --- | --- |
+| `MonthView` | after the release marks, ahead of the chips, and likewise **never** counted by `CHIPS_PER_CELL` — bounded by how many records share one calendar date, which for one catalogue is a small number |
+| `TimeGrid` | the all-day band, `terse` in the week's narrow columns; the band now opens for a day whose only business is an anniversary |
+| `DayView` | the ruled release band, and `THE DAY IS CLEAR.` now checks **three** lists |
+| `AgendaView` | folded into the grouping, as release dates already are |
+
+### The agenda needed a horizon, and the other three did not
+
+A month, a week and a day are finite. The ledger runs forward from a date with
+no far end, and anniversaries recur for as long as the catalogue exists — so
+without a bound it would never stop generating rows.
+
+**One year from the anchor.** That shows every record in the catalogue exactly
+once, which is the most the question "what is coming" can honestly want. It is
+the one arbitrary number in this feature and it is confined to one call site.
