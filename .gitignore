@@ -21,3 +21,17 @@ info/firebaseconfig.md
 # Windows shortcuts. They point at paths on one machine and mean nothing on
 # another, and one left in `info/` blocks the release script's clean-tree check.
 *.lnk
+
+# Credentials for the one-off discography seeder, and the track list pasted
+# out of SoundCloud's web player.
+#
+# This repository is public. The seeder reads these from disk at runtime in the
+# main process — they are never bundled, never handed to the renderer, and
+# never leave the machine except as the API calls they exist for.
+.env.seed
+info/soundcloud-tracks.txt
+
+# Raw API responses cached by the seeder. His catalogue rather than a secret,
+# but it is data about one artist in a public repository, and the harvest is
+# reproducible from the credentials anyway.
+.seed-cache/

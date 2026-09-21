@@ -1674,6 +1674,17 @@ Display face is used uppercase with wide tracking. Note the pattern: wide
 
 ---
 
+## 13.5 The discography seeder (temporary)
+
+A run-once feature that fills DISCOGRAPHY from the platforms the music is
+already on: Spotify as the spine, Apple and Deezer and TIDAL joined by UPC or
+ISRC, SoundCloud and YouTube joined by title and adjudicated by a model. It
+runs on the operator's machine, takes its credentials from a form rather than
+from settings, writes additively, and is **deleted once it has been used**.
+
+Full design, the API limits measured rather than remembered, and the removal
+checklist: `docs/DISCOGRAPHY_SEEDER.md`.
+
 ## 14. Known gaps / open items
 
 - **`publish.url` in `electron-builder.yml` is a placeholder.** Auto-update
