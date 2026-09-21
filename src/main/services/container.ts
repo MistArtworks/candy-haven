@@ -7,6 +7,8 @@ import { StacksService } from './stacks/stacks.service'
 import { TagsService } from './tags/tags.service'
 import { ArtistsService } from './artists/artists.service'
 import { DiscographyService } from './discography/discography.service'
+/* THE SEEDER · temporary. Delete this import with the feature. */
+import { SeedService } from './seed/seed.service'
 import { CalendarService } from './calendar/calendar.service'
 import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
@@ -58,6 +60,8 @@ export interface ServiceContainer {
    * project behind it. See docs/DISCOGRAPHY.md.
    */
   readonly discography: DiscographyService
+  /** THE SEEDER · temporary. See docs/DISCOGRAPHY_SEEDER.md §7. */
+  readonly seed: SeedService
   /**
    * CALENDAR — the dated register. Reads and writes its own collection and
    * nothing else's: an entry is the operator's statement of intent, not a
@@ -129,6 +133,9 @@ export function createServiceContainer(): ServiceContainer {
    */
   const artists = new ArtistsService(archive, projects, stacks)
   const discography = new DiscographyService(archive, projects, artists, stacks)
+  // THE SEEDER · temporary. Writes through the discography service's own
+  // front door, so it depends on nothing the catalogue does not already do.
+  const seed = new SeedService(discography, artists)
 
   artists.setReleaseCreditReader(() => discography.creditIndex())
   artists.setArtistCreditReader((artistId) => discography.creditsForArtist(artistId))
@@ -187,6 +194,7 @@ export function createServiceContainer(): ServiceContainer {
     tags,
     artists,
     discography,
+    seed,
     calendar,
     overlayServer,
     chat,

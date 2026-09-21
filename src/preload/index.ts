@@ -193,6 +193,18 @@ const api: CandyHavenApi = {
     setTrackMaster: (id, trackId, path) =>
       invoke('discography:track-set-master', { id, trackId, path })
   },
+  /* THE SEEDER · temporary. Delete this block with the feature. */
+  seed: {
+    state: () => invoke('seed:state'),
+    run: (credentials) => invoke('seed:run', credentials),
+    decide: (key, choice) => invoke('seed:decide', { key, choice }),
+    include: (key, include) => invoke('seed:include', { key, include }),
+    apply: () => invoke('seed:apply'),
+    reset: () => invoke('seed:reset'),
+    undo: () => invoke('seed:undo'),
+    accept: () => invoke('seed:accept'),
+    onProgress: (listener) => subscribe('seed:progress', listener)
+  },
   rite: {
     state: () => invoke('rite:state'),
     addPetition: (draft) => invoke('rite:petition-add', draft),

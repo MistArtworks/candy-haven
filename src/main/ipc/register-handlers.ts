@@ -278,6 +278,21 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.discography.setTrackMaster(id, trackId, path)
   )
 
+  /*
+   * THE SEEDER — temporary. Delete this block with the feature.
+   *
+   * `seed:run` is the only channel that carries credentials, and it carries
+   * them one way. Nothing here returns one.
+   */
+  router.handle('seed:state', () => services.seed.getState())
+  router.handle('seed:run', (credentials) => services.seed.run(credentials))
+  router.handle('seed:decide', ({ key, choice }) => services.seed.decide(key, choice))
+  router.handle('seed:include', ({ key, include }) => services.seed.setIncluded(key, include))
+  router.handle('seed:apply', () => services.seed.apply())
+  router.handle('seed:reset', () => services.seed.reset())
+  router.handle('seed:undo', () => services.seed.undo())
+  router.handle('seed:accept', () => services.seed.acceptRun())
+
   // --------------------------------------------------------------------- rite
 
   router.handle('rite:state', () => services.rite.current)
@@ -784,6 +799,9 @@ export function registerEventBridges(deps: {
   services.muster.on('state', (state) => router.broadcast('muster:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   services.calendar.on('changed', (state) => router.broadcast('calendar:state', state))
+
+  // THE SEEDER · temporary. Delete with the feature.
+  services.seed.on('progress', (progress) => router.broadcast('seed:progress', progress))
 
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

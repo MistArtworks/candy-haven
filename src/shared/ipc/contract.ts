@@ -89,6 +89,16 @@ import {
   TrackDraftSchema,
   TrackPatchSchema
 } from '../domain/discography'
+/* --- THE SEEDER · temporary. Delete this import with the feature. --- */
+import {
+  SeedChoiceSchema,
+  SeedCredentialsSchema,
+  SeedOutcomeSchema,
+  SeedPlanSchema,
+  SeedProgressSchema,
+  SeedStateSchema,
+  SeedUndoResultSchema
+} from '../domain/seed'
 
 /**
  * The IPC contract is declared once, here, and consumed by:
@@ -512,6 +522,47 @@ export const IPC_INVOKE = {
     output: DiscographyReleaseSchema
   },
 
+  /*
+   * ------------------------------------------------------------------------
+   * THE SEEDER — temporary. Six channels, one folder, one route.
+   *
+   * Fills an empty DISCOGRAPHY from the platforms the music is already on,
+   * runs once on the operator's machine, and is then deleted along with
+   * everything in this block. See docs/DISCOGRAPHY_SEEDER.md §7.
+   *
+   * Note what is *not* here: no channel returns credentials. They cross the
+   * bridge once, inbound, on `seed:run`, and live in the service's memory for
+   * the run. `SeedState` has no field that could carry one back.
+   * ------------------------------------------------------------------------
+   */
+  'seed:state': { input: z.void(), output: SeedStateSchema },
+  /** Harvests all six sources and proposes a plan. Writes nothing. */
+  'seed:run': { input: SeedCredentialsSchema, output: SeedPlanSchema },
+  /** Overrules one flagged call. Returns the whole plan, rebuilt. */
+  'seed:decide': {
+    input: z.object({ key: z.string(), choice: SeedChoiceSchema }),
+    output: SeedPlanSchema
+  },
+  /** Ticks a record off the plan, or back on. */
+  'seed:include': {
+    input: z.object({ key: z.string(), include: z.boolean() }),
+    output: SeedPlanSchema
+  },
+  /** Writes the plan the operator has just confirmed. Additive; see apply.ts. */
+  'seed:apply': { input: z.void(), output: SeedOutcomeSchema },
+  /** Forgets the credentials, the harvest and the plan. Keeps the journal. */
+  'seed:reset': { input: z.void(), output: z.void() },
+  /**
+   * Takes back the last run, exactly — see `src/main/services/seed/journal.ts`.
+   *
+   * Reverses what the journal records and nothing else: created records go,
+   * added rows come off records that already existed, and anything the
+   * operator has done since is untouched.
+   */
+  'seed:undo': { input: z.void(), output: SeedUndoResultSchema },
+  /** Drops the journal without undoing. For a run the operator is happy with. */
+  'seed:accept': { input: z.void(), output: z.void() },
+
   /**
    * Selection rite (OBSERVATORY section). The winner is drawn in main and
    * travels inside the spin command, so the console and every browser source
@@ -915,7 +966,9 @@ export const IPC_EVENT = {
   'overlay:info': OverlayServerInfoSchema,
   'calendar:state': CalendarStateSchema,
   'auditorium:file': z.object({ path: z.string().nullable() }),
-  'window:state': WindowStateSchema
+  'window:state': WindowStateSchema,
+  /** THE SEEDER · temporary. Delete with the feature. */
+  'seed:progress': SeedProgressSchema
 } satisfies Record<string, z.ZodType>
 
 export type EventMap = typeof IPC_EVENT

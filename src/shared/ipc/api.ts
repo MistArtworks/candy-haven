@@ -66,6 +66,16 @@ import type {
   TrackDraft,
   TrackPatch
 } from '../domain/discography'
+/* THE SEEDER · temporary. Delete this import with the feature. */
+import type {
+  SeedChoice,
+  SeedCredentials,
+  SeedOutcome,
+  SeedPlan,
+  SeedProgress,
+  SeedState,
+  SeedUndoResult
+} from '../domain/seed'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -306,6 +316,30 @@ export interface CandyHavenApi {
      * disk moves.
      */
     setTrackMaster(id: string, trackId: string, path: string | null): Promise<DiscographyRelease>
+  }
+  /**
+   * THE SEEDER — temporary. Fills an empty DISCOGRAPHY from the platforms the
+   * music is already on, then this whole block is deleted.
+   *
+   * Three gestures: harvest, review, write. `run` proposes and writes
+   * nothing; `decide` and `include` rebuild the proposal from the cached
+   * harvest so the confirm screen always shows what `apply` would do.
+   *
+   * Credentials travel **inbound only** — no method here returns one, and
+   * `SeedState` has no field that could carry one.
+   */
+  readonly seed: {
+    state(): Promise<SeedState>
+    run(credentials: SeedCredentials): Promise<SeedPlan>
+    decide(key: string, choice: SeedChoice): Promise<SeedPlan>
+    include(key: string, include: boolean): Promise<SeedPlan>
+    apply(): Promise<SeedOutcome>
+    reset(): Promise<void>
+    /** Reverses the last run, exactly and only. */
+    undo(): Promise<SeedUndoResult>
+    /** Keeps the run and forgets how to undo it. */
+    accept(): Promise<void>
+    onProgress(listener: (progress: SeedProgress) => void): Unsubscribe
   }
   /**
    * The selection rite served to OBS. Every method returns the whole state:

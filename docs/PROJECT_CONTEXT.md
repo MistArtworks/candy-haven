@@ -1682,8 +1682,39 @@ ISRC, SoundCloud and YouTube joined by title and adjudicated by a model. It
 runs on the operator's machine, takes its credentials from a form rather than
 from settings, writes additively, and is **deleted once it has been used**.
 
+It is a **sequence, not a dashboard**: credentials, then a confirm screen
+showing every record, link, track and uncertain call, then one button. Nothing
+is written until the operator has read the proposal and said so, and changing
+anything on that screen rebuilds the whole proposal from the cached harvest —
+so what is drawn is always exactly what writing would do.
+
 Full design, the API limits measured rather than remembered, and the removal
 checklist: `docs/DISCOGRAPHY_SEEDER.md`.
+
+## 13.6 The oracle (general, and not temporary)
+
+`src/main/core/oracle/` — typed questions answered with **probabilities**
+rather than prose. Written for the seeder, deliberately outside it, and kept
+when the seeder is deleted.
+
+Three pieces:
+
+- **`types.ts`** — the vocabulary. `choice` picks from a closed set,
+  `noul` answers yes/no as a probability, `score` grades. Plus `bandOf`,
+  which splits an answer into *decided yes* / *ask a human* / *decided no* at
+  0.85 and 0.15. That split is the point of the whole module: it turns a few
+  hundred judgement calls into a dozen.
+- **`jev.ts`** — one implementation, TypeSafe's System One. A second, an
+  ordinary LLM wearing the same `Oracle` interface, is expected; nothing
+  outside this file knows which one it is holding.
+- **`pipeline.ts`** — `runPipeline` runs many objects through many **staged**
+  questions, where each stage decides whether it applies from what the last
+  one answered. Ordered results, one subject's failure isolated to that
+  subject, progress reported, and nothing decided for you.
+
+`src/main/core/net.ts` is its sibling: a retrying fetch that honours
+`Retry-After`, a concurrency pool, and a calls-per-minute limiter. Both are
+dependency-free and Electron-free.
 
 ## 14. Known gaps / open items
 

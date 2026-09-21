@@ -1,0 +1,549 @@
+@use 'abstracts' as *;
+
+/*
+ * THE SEEDER's one surface. Temporary — deleted with the feature.
+ *
+ * Written against the same primitives every department uses, so it reads as
+ * part of the institution rather than as a tool bolted on. Nothing here is
+ * shared with another page and nothing else imports it, which is the point:
+ * `rm -r` on this folder leaves no dangling rule behind.
+ */
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: space(6);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+.aside {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+}
+
+.blurb {
+  margin: 0 0 space(4);
+  max-width: 78ch;
+  font-size: rem(13);
+  line-height: 1.6;
+  color: var(--ch-text-secondary);
+
+  strong {
+    color: var(--ch-text-primary);
+    font-weight: 600;
+  }
+}
+
+.alarm {
+  padding: space(3) space(4);
+  font-size: rem(12);
+  color: var(--ch-crimson-400);
+  background: var(--ch-crimson-900);
+  border-left: 2px solid var(--ch-crimson-500);
+}
+
+.mono {
+  font-family: var(--ch-font-mono);
+  font-size: rem(11);
+}
+
+// ------------------------------------------------------------- credentials
+
+/*
+ * Four groups, two across.
+ *
+ * Grouped by *service* rather than by required-ness, because the operator is
+ * pasting from four browser tabs and one tab is one group. The required one
+ * says so in its own heading instead of being separated out.
+ */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: space(6);
+  align-items: start;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.groupLabel {
+  @include label(10px, 0.18em);
+  margin: 0;
+  color: var(--ch-gold-300);
+}
+
+.groupNote {
+  margin: 0;
+  font-size: rem(12);
+  line-height: 1.55;
+  color: var(--ch-text-muted);
+}
+
+.runRow {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  flex-wrap: wrap;
+  margin-top: space(6);
+  padding-top: space(5);
+  @include hairline(top, 0.1);
+}
+
+.runButton {
+  min-width: 260px;
+}
+
+.runNote {
+  margin: 0;
+  font-size: rem(12);
+  color: var(--ch-text-muted);
+
+  strong {
+    color: var(--ch-text-secondary);
+  }
+}
+
+.progress {
+  margin-top: space(5);
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.progressNote {
+  margin: 0;
+  @include readout(11px);
+  color: var(--ch-text-muted);
+}
+
+// ------------------------------------------------------------------ tally
+
+.tally {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: space(4);
+  margin-bottom: space(5);
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  padding: space(3) space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+}
+
+.figureWarn {
+  border-color: var(--ch-line-gold);
+
+  .figureValue {
+    color: var(--ch-gold-300);
+  }
+}
+
+.figureValue {
+  font-family: var(--ch-font-display);
+  font-size: rem(30);
+  line-height: 1;
+  color: var(--ch-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.figureCaption {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+}
+
+.warnings {
+  margin: 0 0 space(5);
+  padding-left: space(5);
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  font-size: rem(12);
+  line-height: 1.5;
+  color: var(--ch-text-muted);
+}
+
+// ----------------------------------------------------------------- commit
+
+.commitRow {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+  padding-top: space(5);
+  @include hairline(top, 0.1);
+}
+
+/*
+ * Wide, and the only primary button on the page at review time.
+ *
+ * This is the irreversible gesture. Everything above it is reading; this is
+ * the one control that changes the catalogue, so it is given the width that
+ * says so and nothing competes with it.
+ */
+.commitButton {
+  min-width: 340px;
+}
+
+.commitWarn {
+  margin: space(3) 0 0;
+  font-size: rem(12);
+  color: var(--ch-gold-300);
+}
+
+// --------------------------------------------------------------- decisions
+
+.decision {
+  padding: space(4) 0;
+  @include hairline(bottom, 0.08);
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+/* Already resolved, so it sits back and lets the flagged ones lead. */
+.decisionQuiet {
+  opacity: 0.66;
+
+  &:hover,
+  &:focus-within {
+    opacity: 1;
+  }
+}
+
+.decisionHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+}
+
+.decisionSource {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  min-width: 94px;
+}
+
+.decisionTitle {
+  flex: 1;
+  font-size: rem(13);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.decisionScore {
+  font-family: var(--ch-font-mono);
+  font-size: rem(12);
+  color: var(--ch-gold-300);
+  font-variant-numeric: tabular-nums;
+}
+
+.decisionReason {
+  margin: space(1) 0 space(3) calc(94px + #{space(3)});
+  font-size: rem(12);
+  color: var(--ch-text-muted);
+}
+
+.choices {
+  display: flex;
+  gap: space(2);
+  margin-left: calc(94px + #{space(3)});
+  flex-wrap: wrap;
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: space(2) space(3);
+  background: transparent;
+  color: var(--ch-text-secondary);
+  cursor: pointer;
+  @include label(9px, 0.14em);
+  @include hairline(all, 0.12);
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.choiceOn {
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-raised);
+  border-color: var(--ch-line-gold);
+}
+
+.choiceAs {
+  @include label(8px, 0.1em);
+  color: var(--ch-text-muted);
+  text-transform: none;
+}
+
+// ----------------------------------------------------------------- records
+
+.records {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.record {
+  padding: space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+}
+
+/*
+ * Ticked off, and it has to *look* excluded at a glance.
+ *
+ * Dimming alone was not enough in a list of twenty — the eye reads a column
+ * of slabs, not individual opacities. The strikethrough on the title is what
+ * actually carries it.
+ */
+.recordOff {
+  opacity: 0.4;
+
+  .recordTitle {
+    text-decoration: line-through;
+  }
+}
+
+.recordHead {
+  display: flex;
+  align-items: flex-start;
+  gap: space(3);
+}
+
+.recordIdentity {
+  flex: 1;
+  min-width: 0;
+}
+
+.recordTitle {
+  margin: 0;
+  font-family: var(--ch-font-display);
+  font-size: rem(16);
+  letter-spacing: 0.01em;
+  color: var(--ch-text-primary);
+}
+
+.recordMeta {
+  margin: space(1) 0 0;
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  flex-wrap: wrap;
+  font-size: rem(11);
+  color: var(--ch-text-muted);
+}
+
+.chip {
+  @include label(8px, 0.14em);
+  padding: 2px space(2);
+  color: var(--ch-text-secondary);
+  @include hairline(all, 0.12);
+}
+
+.chipGold {
+  color: var(--ch-gold-300);
+  border-color: var(--ch-line-gold);
+}
+
+.action {
+  @include label(9px, 0.16em);
+  padding: 2px space(2);
+  color: var(--ch-text-muted);
+  @include hairline(all, 0.12);
+  white-space: nowrap;
+}
+
+/* An update touches something that exists, which is worth a second look. */
+.actionUpdate {
+  color: var(--ch-gold-300);
+  border-color: var(--ch-line-gold);
+}
+
+.recordNote {
+  margin: space(2) 0 0 calc(18px + #{space(3)});
+  font-size: rem(12);
+  color: var(--ch-text-muted);
+
+  strong {
+    color: var(--ch-text-secondary);
+  }
+}
+
+.recordBody {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(190px, 1fr);
+  gap: space(5);
+  margin: space(4) 0 0 calc(18px + #{space(3)});
+
+  @include below('md') {
+    grid-template-columns: 1fr;
+    gap: space(3);
+  }
+}
+
+.tracks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+}
+
+.track {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  font-size: rem(12);
+  color: var(--ch-text-secondary);
+}
+
+.trackNumber {
+  font-family: var(--ch-font-mono);
+  font-size: rem(10);
+  color: var(--ch-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.trackTitle {
+  flex: 1;
+  @include truncate;
+}
+
+.trackIsrc {
+  font-family: var(--ch-font-mono);
+  font-size: rem(10);
+  color: var(--ch-text-faint);
+}
+
+.trackHeld {
+  @include label(8px, 0.12em);
+  color: var(--ch-gold-300);
+}
+
+.links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+}
+
+.link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(2);
+  font-size: rem(11);
+  color: var(--ch-text-secondary);
+}
+
+.linkPlatform {
+  @include label(9px, 0.14em);
+}
+
+/*
+ * How the link was arrived at, and the two cases look different on purpose.
+ *
+ * `by UPC` and `by ISRC` cannot be wrong. `by title` is a judgement somebody
+ * made, and the operator scanning this column should be able to see which is
+ * which without reading the words.
+ */
+.linkVia {
+  font-family: var(--ch-font-mono);
+  font-size: rem(10);
+  color: var(--ch-gold-300);
+}
+
+.linkViaSoft {
+  color: var(--ch-text-faint);
+}
+
+.linkNone {
+  font-size: rem(11);
+  color: var(--ch-text-faint);
+}
+
+// -------------------------------------------------------------------- tick
+
+.tick {
+  position: relative;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 3px;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  input:disabled {
+    cursor: default;
+  }
+}
+
+.tickBox {
+  width: 18px;
+  height: 18px;
+  @include hairline(all, 0.2);
+  background: var(--ch-obsidian-800);
+  transition: background 120ms ease, border-color 120ms ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    background: var(--ch-gold-300);
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+}
+
+.tick input:checked + .tickBox {
+  border-color: var(--ch-line-gold);
+
+  &::after {
+    opacity: 1;
+  }
+}
+
+.tick input:focus-visible + .tickBox {
+  @include focus-ring(1px);
+}

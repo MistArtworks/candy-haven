@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { getSection } from '@shared/domain/navigation'
 import type {
@@ -220,6 +220,14 @@ export function DiscographyPage(): ReactNode {
             {counts.forthcoming > 0 ? (
               <StatusDot tone="pending" label={`${counts.forthcoming} coming`} />
             ) : null}
+            {/*
+              THE SEEDER — temporary, and the only way in. It is not on the
+              rail because it is run once and then removed; see
+              docs/DISCOGRAPHY_SEEDER.md §7. Delete this link with it.
+            */}
+            <Link className={styles.seedLink} to="/discography/seed">
+              Seed from the platforms
+            </Link>
           </div>
         }
       />

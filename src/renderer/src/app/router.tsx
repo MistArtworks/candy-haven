@@ -5,6 +5,8 @@ import { NexusPage } from '@renderer/features/home/NexusPage'
 import { ArchivePage } from '@renderer/features/archive/ArchivePage'
 import { ArtistsPage } from '@renderer/features/artists/ArtistsPage'
 import { DiscographyPage } from '@renderer/features/discography/DiscographyPage'
+/* THE SEEDER · temporary. Delete this import and its route with the feature. */
+import { SeedPage } from '@renderer/features/discography/seed/SeedPage'
 import { ObservatoryPage } from '@renderer/features/observatory/ObservatoryPage'
 import { SelectionPage } from '@renderer/features/observatory/overlays/selection/SelectionPage'
 import { ConcordPage } from '@renderer/features/observatory/overlays/concord/ConcordPage'
@@ -87,6 +89,13 @@ export function AppRouter(): ReactNode {
 
         <Route path="/archive" element={<ArchivePage />} />
         <Route path="/discography" element={<DiscographyPage />} />
+        {/*
+          THE SEEDER — temporary, and deliberately not on the rail. It is
+          reached from one button on DISCOGRAPHY and nowhere else, because it
+          is run once and then this route is deleted. See
+          docs/DISCOGRAPHY_SEEDER.md §7.
+        */}
+        <Route path="/discography/seed" element={<SeedPage />} />
         <Route path="/artists" element={<ArtistsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/auditorium" element={<AuditoriumPage />} />

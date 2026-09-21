@@ -1730,3 +1730,28 @@
   color: var(--ch-text-faint);
   margin: 0;
 }
+
+/*
+ * THE SEEDER's way in. Temporary — delete this rule with the feature.
+ *
+ * A ghost link rather than a button: it is run once and then the route goes
+ * away, and a primary control in the masthead would imply otherwise every
+ * day until then.
+ */
+.seedLink {
+  @include label(9px, 0.16em);
+  padding: space(2) space(3);
+  color: var(--ch-text-muted);
+  text-decoration: none;
+  @include hairline(all, 0.1);
+  transition: color 120ms ease, border-color 120ms ease;
+
+  &:hover {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
