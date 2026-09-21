@@ -98,6 +98,117 @@
   color: var(--ch-text-secondary);
 }
 
+/*
+ * The record this row already has of itself — `From MOVES LIKE JAGGAR`.
+ *
+ * Gold rather than faint, and that is the whole point of drawing it: a row
+ * that is an existing single is a *stronger* statement than a row somebody
+ * typed, because the ISRC, the duration and the project link all came from a
+ * record instead of from a keyboard. It reads at the same weight as the
+ * project link beside it, which is the same kind of fact one register over.
+ */
+.collected {
+  @include readout(9px);
+  color: var(--ch-gold-300);
+}
+
+// ------------------------------------------------------ the catalogue picker
+
+/*
+ * Opened in place of the two add buttons rather than as a dialog.
+ *
+ * A dialog over a sheet that is itself over a page is the third layer of
+ * overlay, and the choice being made here is small: which record this row is.
+ * Taking the footer's own space keeps the running order visible behind the
+ * choice, which is what the operator is choosing against.
+ */
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-top: space(3);
+  @include hairline(top, 0.08);
+}
+
+.pickerHead {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+}
+
+.pickerSearch {
+  @include readout(11px);
+  flex: 1;
+  min-width: 0;
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: 0;
+  @include hairline(bottom, 0.16);
+  padding: space(2) space(3);
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-bottom-color: var(--ch-gold-500);
+  }
+}
+
+// Bounded and scrolled: a back catalogue is dozens of records, and a picker
+// that grew to all of them would push the running order off the sheet.
+.pickerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: rem(240px);
+  overflow-y: auto;
+}
+
+.pickerRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(4);
+  width: 100%;
+  padding: space(2) space(3);
+  background: none;
+  border: 0;
+  @include hairline(bottom, 0.06);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    background: rgba(210, 169, 97, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+.pickerTitle {
+  @include label(10px, 0.1em);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.pickerMeta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+}
+
 .isrc {
   @include readout(9px);
   color: var(--ch-text-faint);

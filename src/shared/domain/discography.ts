@@ -178,6 +178,31 @@ export const ReleaseTrackSchema = z.object({
    */
   master: MediaFileSchema.nullable().default(null),
   /** Identifies a *recording*, so it belongs here rather than on the release. */
+  /**
+   * The release that is this recording's own record, when there is one.
+   *
+   * A single comes out in May; the album carrying it comes out in September.
+   * Those are **two products** — two UPCs, two dates, two sleeves — that share
+   * one recording, and both are real. This is the album's row saying "this is
+   * that single", so the register can draw `ALSO ON — CREATURE` on one and
+   * `01 MOVES LIKE JAGGAR — from the single` on the other.
+   *
+   * ## Why it lives on the row and not on the release
+   *
+   * A recording lives on several products over its life: the single, then the
+   * album, then a compilation, then a best-of. A `partOf` field on the release
+   * could hold one of those and would have to lie about the rest. Each product
+   * already owns an ordered tracklist, so a row per product holds all of them
+   * and the relationship is stored exactly once.
+   *
+   * This is not the ARCHIVE's `volumeId` in another coat. That groups *work* —
+   * the four sets an album is being made from — and an album's tracklist is
+   * allowed to disagree with it: a track gets cut, a bonus track arrives, a
+   * remix joins late. This groups *products that shipped*.
+   *
+   * Null is the ordinary case: a recording that exists only here.
+   */
+  releaseId: z.string().nullable().default(null),
   isrc: z.string().default(''),
   /** Carried from the project's analysis when linked, so it survives unlinking. */
   durationMs: z.number().int().min(0).default(0),
@@ -314,7 +339,16 @@ export const DiscographySummarySchema = DiscographyReleaseSchema.omit({ tracks: 
   linkedCount: z.number().int().min(0).default(0),
   /** Resolved names, so the catalogue draws credits without a second fetch. */
   artistNames: z.array(z.string()).default([]),
-  year: z.number().int().nullable().default(null)
+  year: z.number().int().nullable().default(null),
+  /**
+   * The releases that collect this one, by id.
+   *
+   * Derived on every read from the track rows pointing here, never stored —
+   * the same arrangement as `ReleaseAppearance` and `ArtistSummary`'s counts,
+   * and for the same reason: one relationship, one copy of it. A single knows
+   * nothing about the albums it ends up on, and does not need to.
+   */
+  appearsOn: z.array(z.string()).default([])
 })
 export type DiscographySummary = z.infer<typeof DiscographySummarySchema>
 
@@ -381,7 +415,9 @@ export const TrackDraftSchema = z.object({
   /** Link as it is added, which is the usual way a track gets here. */
   projectId: z.string().nullable().optional(),
   artistIds: z.array(z.string()).optional(),
-  isrc: z.string().optional()
+  isrc: z.string().optional(),
+  /** The release this row is a copy of. See `ReleaseTrackSchema.releaseId`. */
+  releaseId: z.string().nullable().optional()
 })
 export type TrackDraft = z.infer<typeof TrackDraftSchema>
 
@@ -391,7 +427,8 @@ export const TrackPatchSchema = z.object({
   artistIds: z.array(z.string()).optional(),
   isrc: z.string().optional(),
   durationMs: z.number().int().min(0).optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  releaseId: z.string().nullable().optional()
 })
 export type TrackPatch = z.infer<typeof TrackPatchSchema>
 

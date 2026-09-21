@@ -1285,7 +1285,6 @@
   color: var(--ch-gold-300);
 }
 
-
 // ------------------------------------------------------------ running order
 
 .detailsTracks {
@@ -1603,4 +1602,17 @@
   line-height: 1.7;
   max-width: 78ch;
   white-space: pre-wrap;
+}
+
+/*
+ * The records that collect this one — the reverse of a row's membership.
+ *
+ * Gold, because it is something the register worked out rather than a field
+ * somebody filled: the same treatment the ARCHIVE gives an appearance line.
+ */
+.alsoOn {
+  @include readout(11px);
+  color: var(--ch-gold-300);
+  line-height: 1.6;
+  margin: 0;
 }

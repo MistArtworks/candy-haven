@@ -144,8 +144,10 @@ export class DiscographyService {
       ...new Set(releases.map((release) => release.label.trim()).filter(Boolean))
     ].sort((a, b) => a.localeCompare(b))
 
+    const collectedBy = this.collectedByIndex(releases)
+
     return {
-      releases: releases.map((release) => this.summarise(release, roster)),
+      releases: releases.map((release) => this.summarise(release, roster, collectedBy)),
       labels,
       total: releases.length
     }
@@ -316,6 +318,9 @@ export class DiscographyService {
         artistIds: [...project.artistIds],
         // Carried over from the project's own pick — see `masterFromProject`.
         master: this.masterFromProject(project),
+        // Nothing collected: this row *is* the recording's first record of
+        // itself. See `ReleaseTrackSchema.releaseId`.
+        releaseId: null,
         isrc: '',
         durationMs: 0,
         notes: ''
@@ -334,6 +339,7 @@ export class DiscographyService {
         position: 1,
         title,
         projectId: null,
+        releaseId: null,
         artistIds: [],
         master: null,
         isrc: '',
@@ -803,6 +809,26 @@ export class DiscographyService {
     let artistIds = draft.artistIds ?? []
     let master: MediaFile | null = null
 
+    /*
+     * Adding an existing release as a row: the row is filled *from* it.
+     *
+     * A title, an ISRC and a duration typed a second time are three chances
+     * to disagree with the record that already holds them, and the point of
+     * naming a release here is that this is the same recording. Anything the
+     * caller passed explicitly still wins — the album may legitimately retitle
+     * a track — so this only fills what was left out.
+     */
+    const collected = draft.releaseId ? await this.requireCollectable(id, draft.releaseId) : null
+
+    if (collected) {
+      const source = collected.tracks[0] ?? null
+      if (!title) title = source?.title || collected.title
+      if (artistIds.length === 0) {
+        artistIds = [...(source?.artistIds.length ? source.artistIds : collected.artistIds)]
+      }
+      master = source?.master ?? null
+    }
+
     if (draft.projectId) {
       // Refuses a project that is not in the register rather than writing a
       // dangling id, and refuses one that is not finished — see
@@ -827,6 +853,7 @@ export class DiscographyService {
       projectId: draft.projectId ?? null,
       artistIds,
       master,
+      releaseId: collected?.id ?? null,
       isrc: draft.isrc ? normaliseIsrc(draft.isrc) : '',
       durationMs: 0,
       notes: ''
@@ -845,6 +872,10 @@ export class DiscographyService {
     }
 
     const repointedTo = patch.projectId ? await this.requireLinkable(patch.projectId) : null
+
+    // Naming a release on an existing row goes through the same guard adding
+    // one does; clearing it (an explicit null) needs no check.
+    if (patch.releaseId) await this.requireCollectable(id, patch.releaseId)
 
     /*
      * Re-pointing a track adopts the new project's master, or clears it.
@@ -872,7 +903,8 @@ export class DiscographyService {
             ...(patch.artistIds !== undefined ? { artistIds: patch.artistIds } : {}),
             ...(patch.isrc !== undefined ? { isrc: normaliseIsrc(patch.isrc) } : {}),
             ...(patch.durationMs !== undefined ? { durationMs: patch.durationMs } : {}),
-            ...(patch.notes !== undefined ? { notes: patch.notes } : {})
+            ...(patch.notes !== undefined ? { notes: patch.notes } : {}),
+            ...(patch.releaseId !== undefined ? { releaseId: patch.releaseId } : {})
           }
         : track
     )
@@ -1108,6 +1140,44 @@ export class DiscographyService {
     return names
   }
 
+  /**
+   * The release a row may name, or a refusal saying why not.
+   *
+   * Three things are checked, and the third is the one worth stating. A
+   * release cannot collect itself, which would make its own tracklist cite
+   * the record it constitutes. And it cannot collect something that already
+   * collects *it*: a compilation carrying an album's track is fine, and the
+   * album then carrying the compilation's is a loop, so the reverse direction
+   * is refused at the point it would close.
+   *
+   * Deeper cycles are not chased. Membership in this catalogue is one product
+   * inside another and stops there in practice; a full ancestry walk would be
+   * three reads per added row to prevent something nobody has ever filed.
+   */
+  private async requireCollectable(
+    releaseId: string,
+    collectedId: string
+  ): Promise<DiscographyRelease> {
+    if (collectedId === releaseId) {
+      throw new AppError('A release cannot be part of itself.', {
+        code: ErrorCode.Validation,
+        recoverable: false
+      })
+    }
+
+    const collected = await this.get(collectedId)
+
+    if (collected.tracks.some((track) => track.releaseId === releaseId)) {
+      throw new AppError(`"${collected.title}" already carries this release.`, {
+        code: ErrorCode.Validation,
+        hint: 'Two releases cannot each be part of the other.',
+        recoverable: false
+      })
+    }
+
+    return collected
+  }
+
   private async requireLinkable(projectId: string): Promise<ProjectRecord> {
     const project = await this.projects.get(projectId)
 
@@ -1238,7 +1308,8 @@ export class DiscographyService {
 
   private summarise(
     release: DiscographyRelease,
-    roster: ReadonlyMap<string, string>
+    roster: ReadonlyMap<string, string>,
+    collectedBy: ReadonlyMap<string, readonly string[]> = new Map()
   ): DiscographySummary {
     const { tracks, ...rest } = release
     const names = [...release.artistIds, ...release.featuredArtistIds]
@@ -1250,7 +1321,34 @@ export class DiscographyService {
       trackCount: tracks.length,
       linkedCount: tracks.filter((track) => track.projectId !== null).length,
       artistNames: names,
-      year: releaseYear(release.releaseDate)
+      year: releaseYear(release.releaseDate),
+      appearsOn: [...(collectedBy.get(release.id) ?? [])]
     }
+  }
+
+  /**
+   * Which releases collect which, by the id of the one collected.
+   *
+   * One pass over the catalogue rather than a query per release: a track row
+   * naming a release is the only place that membership is written, so reading
+   * it backwards is the whole of the reverse view. `summarise` takes the
+   * result; nothing stores it.
+   */
+  private collectedByIndex(
+    releases: readonly DiscographyRelease[]
+  ): Map<string, readonly string[]> {
+    const index = new Map<string, string[]>()
+
+    for (const release of releases) {
+      // Deduped per release: an album that carries both sides of a single as
+      // two rows still collects that single once.
+      for (const member of new Set(
+        release.tracks.map((track) => track.releaseId).filter((id): id is string => Boolean(id))
+      )) {
+        index.set(member, [...(index.get(member) ?? []), release.id])
+      }
+    }
+
+    return index
   }
 }

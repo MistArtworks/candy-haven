@@ -1,11 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import type { ArtistRecord } from '@shared/domain/artists'
-import type { ReleaseTrack, TrackPatch } from '@shared/domain/discography'
+import type { DiscographySummary, ReleaseTrack, TrackPatch } from '@shared/domain/discography'
 import { MAX_TRACK_TITLE, formatIsrc, isValidIsrc } from '@shared/domain/discography.constants'
 import type { ProjectSummary } from '@shared/domain/projects'
 import { Button } from '@renderer/components/primitives/Button'
 import { formatBytes } from '@renderer/lib/format'
 import { MasterPicker } from './MasterPicker'
+import { ReleasePicker } from './ReleasePicker'
 import styles from './TrackList.module.scss'
 
 export interface TrackListProps {
@@ -35,9 +36,27 @@ export interface TrackListProps {
    */
   linkable: readonly ProjectSummary[]
   roster: readonly ArtistRecord[]
+  /**
+   * The catalogue, for the two things a row can say about another release.
+   *
+   * Resolving the title of a release a row already collects, and offering the
+   * rest as candidates. Summaries rather than records: this needs titles,
+   * kinds and dates, not tracklists.
+   */
+  releases: readonly DiscographySummary[]
+  /** This release's own id, so it is never offered as part of itself. */
+  releaseId: string
   busy: boolean
   /** Opens the add-a-track dialog; the page owns the form. */
   onAdd: () => void
+  /**
+   * Adds a row that *is* an existing release — see `ReleaseTrackSchema`.
+   *
+   * A separate callback rather than a flag on `onAdd`, because the two gather
+   * different things: one opens a form for a recording that has no record
+   * yet, the other names one that already does.
+   */
+  onCollect: (releaseId: string) => void
   onPatch: (trackId: string, patch: TrackPatch) => void
   onRemove: (trackId: string) => void
   onReorder: (trackIds: string[]) => void
@@ -95,8 +114,11 @@ export function TrackList({
   projects,
   linkable,
   roster,
+  releases,
+  releaseId,
   busy,
   onAdd,
+  onCollect,
   onPatch,
   onRemove,
   onReorder,
@@ -105,8 +127,21 @@ export function TrackList({
   const [linking, setLinking] = useState<string | null>(null)
   /** Which track is choosing a master, by id. One at a time, as linking is. */
   const [mastering, setMastering] = useState<string | null>(null)
+  /** Whether the catalogue picker is open. One at a time, as the others are. */
+  const [collecting, setCollecting] = useState(false)
 
   const names = useMemo(() => new Map(roster.map((artist) => [artist.id, artist.name])), [roster])
+
+  // Titles for the rows that carry a release, and the ids the picker must not
+  // offer a second time.
+  const titles = useMemo(
+    () => new Map(releases.map((release) => [release.id, release.title])),
+    [releases]
+  )
+  const collectedIds = useMemo(
+    () => tracks.map((track) => track.releaseId).filter((id): id is string => Boolean(id)),
+    [tracks]
+  )
 
   const move = (index: number, delta: number): void => {
     const next = [...tracks]
@@ -164,6 +199,21 @@ export function TrackList({
 
                     {credits.length > 0 ? (
                       <span className={styles.credits}>{credits.join(', ')}</span>
+                    ) : null}
+
+                    {/*
+                      The record this row already has of itself.
+
+                      Drawn with the project link rather than beside the title,
+                      because it answers the same shape of question — where
+                      this recording comes from — one register over. A pointer
+                      whose release has since been deleted simply resolves to
+                      nothing and is not drawn: the id is harmless, and a row
+                      shouting about a missing record it cannot name would be
+                      worse than a quiet one.
+                    */}
+                    {track.releaseId && titles.has(track.releaseId) ? (
+                      <span className={styles.collected}>From {titles.get(track.releaseId)}</span>
                     ) : null}
 
                     {track.isrc ? (
@@ -342,16 +392,41 @@ export function TrackList({
         a sentence saying what the kind means.
       */}
       {tracks.length < maxTracks ? (
-        <div className={styles.add}>
-          <Button size="sm" variant="ghost" disabled={busy} onClick={onAdd}>
-            Add a track
-          </Button>
-          <span className={styles.addHint}>
-            {tracks.length > 0
-              ? 'Joins the end of the running order.'
-              : 'By name, or linked to a project in the ARCHIVE.'}
-          </span>
-        </div>
+        collecting ? (
+          <ReleasePicker
+            releases={releases}
+            currentId={releaseId}
+            collectedIds={collectedIds}
+            busy={busy}
+            onChoose={(id) => {
+              setCollecting(false)
+              onCollect(id)
+            }}
+            onCancel={() => setCollecting(false)}
+          />
+        ) : (
+          <div className={styles.add}>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={onAdd}>
+              Add a track
+            </Button>
+            {/*
+              The second door, and it is a door rather than a mode: an album
+              is assembled from singles that are already out, and typing their
+              titles in again is how a catalogue ends up disagreeing with
+              itself. Hidden when there is nothing else to collect.
+            */}
+            {releases.length > 1 ? (
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => setCollecting(true)}>
+                Add from the catalogue
+              </Button>
+            ) : null}
+            <span className={styles.addHint}>
+              {tracks.length > 0
+                ? 'Joins the end of the running order.'
+                : 'By name, linked to a project, or a release already in the catalogue.'}
+            </span>
+          </div>
+        )
       ) : (
         <p className={styles.addHint}>
           {maxTracks === 1

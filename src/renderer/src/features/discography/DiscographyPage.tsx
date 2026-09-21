@@ -463,9 +463,19 @@ export function DiscographyPage(): ReactNode {
               setNotice(null)
               mutations.setAsset.mutate({ id: openId, asset, sourcePath }, { onError: report })
             }}
+            releases={data?.releases ?? []}
             onAddTrack={() => {
               setNotice(null)
               setAddingTrack(true)
+            }}
+            /*
+              Adding an existing record as a row: the same channel a typed
+              track goes through, with the release named instead of a title.
+              The service fills the row from it — see `addTrack`.
+            */
+            onCollectTrack={(releaseId) => {
+              setNotice(null)
+              mutations.addTrack.mutate({ id: openId, draft: { releaseId } }, { onError: report })
             }}
             onPatchTrack={(trackId, trackPatch: TrackPatch) => {
               setNotice(null)

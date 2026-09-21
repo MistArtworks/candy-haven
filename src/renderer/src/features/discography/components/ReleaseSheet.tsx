@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import type { ArtistRecord } from '@shared/domain/artists'
 import type {
   DiscographyRelease,
+  DiscographySummary,
   ReleaseCredit,
   ReleaseKind,
   ReleasePatch,
@@ -99,7 +100,15 @@ export interface ReleaseSheetProps {
   publishing: boolean
   onSetAsset: (asset: 'artwork' | 'canvas', sourcePath: string | null) => void
   /** Opens the add-a-track dialog, which the page owns. */
+  /**
+   * The rest of the catalogue, for the running order's two release-aware
+   * pieces: the picker that adds an existing record as a row, and the
+   * `ALSO ON` line naming the records that collect this one.
+   */
+  releases: readonly DiscographySummary[]
   onAddTrack: () => void
+  /** Adds an existing release to the running order. See `TrackList`. */
+  onCollectTrack: (releaseId: string) => void
   onPatchTrack: (trackId: string, patch: TrackPatch) => void
   onRemoveTrack: (trackId: string) => void
   onReorderTracks: (trackIds: string[]) => void
@@ -144,7 +153,9 @@ export function ReleaseSheet({
   published,
   publishing,
   onSetAsset,
+  releases,
   onAddTrack,
+  onCollectTrack,
   onPatchTrack,
   onRemoveTrack,
   onReorderTracks,
@@ -154,6 +165,18 @@ export function ReleaseSheet({
 }: ReleaseSheetProps): ReactNode {
   const [confirming, setConfirming] = useState(false)
   const [tab, setTab] = useState<SheetTab>('release')
+
+  /*
+   * The titles of the records that collect this one.
+   *
+   * `appearsOn` carries ids; the catalogue this sheet was handed carries the
+   * titles behind them. Resolved rather than shipped resolved, for the reason
+   * the registry ships ids for everything else: one list, read by whoever
+   * needs a name out of it.
+   */
+  const collectedOn = (releases.find((entry) => entry.id === release.id)?.appearsOn ?? [])
+    .map((id) => releases.find((entry) => entry.id === id)?.title)
+    .filter((title): title is string => Boolean(title))
   /*
    * The sheet opens as a record, not as a form.
    *
@@ -630,6 +653,23 @@ export function ReleaseSheet({
 
                   {/* ------------------------------------------------ the tracks */}
 
+                  {/*
+                    The reverse of the membership a row can hold: the records
+                    that collect *this* one.
+
+                    Read from `appearsOn`, which the register derives on every
+                    read from the rows pointing here — a single stores nothing
+                    about the albums it ends up on, and does not need to. Drawn
+                    only when there is something to say, which for most of a
+                    catalogue is never.
+                  */}
+                  {tab === 'tracks' && collectedOn.length > 0 ? (
+                    <div className={styles.gutterRow}>
+                      <span className={styles.gutterLabel}>Also on</span>
+                      <p className={styles.alsoOn}>{collectedOn.join(' · ')}</p>
+                    </div>
+                  ) : null}
+
                   {tab === 'tracks' ? (
                     <div className={styles.gutterRow}>
                       <span className={styles.gutterLabel}>Running order</span>
@@ -639,8 +679,11 @@ export function ReleaseSheet({
                         projects={projects}
                         linkable={linkable}
                         roster={roster}
+                        releases={releases}
+                        releaseId={release.id}
                         busy={busy}
                         onAdd={onAddTrack}
+                        onCollect={onCollectTrack}
                         onPatch={onPatchTrack}
                         onRemove={onRemoveTrack}
                         onReorder={onReorderTracks}
