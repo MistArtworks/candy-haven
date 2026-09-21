@@ -33,8 +33,19 @@ export function HotkeyProvider({ children }: { children: ReactNode }): ReactNode
    */
   const [owners, setOwners] = useState<ReadonlyMap<symbol, readonly Hotkey[]>>(new Map())
 
+  /*
+   * A second line of defence against the loop `useHotkeys` documents.
+   *
+   * Re-registering the identical list is a no-op rather than a new Map: state
+   * here re-renders every page in the console, so the one thing this must
+   * never do is treat "the same bindings again" as a change. The hook already
+   * avoids calling with a fresh array; this makes it harmless if one ever
+   * does.
+   */
   const register = useCallback((owner: symbol, hotkeys: readonly Hotkey[]) => {
-    setOwners((current) => new Map(current).set(owner, hotkeys))
+    setOwners((current) =>
+      current.get(owner) === hotkeys ? current : new Map(current).set(owner, hotkeys)
+    )
   }, [])
 
   const release = useCallback((owner: symbol) => {
