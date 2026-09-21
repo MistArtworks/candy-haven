@@ -348,6 +348,22 @@ export class DiscographyService {
       })
     }
 
+    /*
+     * The singles this release is made of, collected as it is raised.
+     *
+     * In the same call for the reason `fromProjectId` is: create-then-collect
+     * leaves an empty album behind whenever the second half fails, and the
+     * operator raising `OSSUARY` has the four singles in front of them at the
+     * moment they name it. Silently capped at the kind's ceiling rather than
+     * refused — the dialog only offers what fits, so a payload that overruns
+     * came from somewhere else and losing the overflow beats losing the lot.
+     */
+    for (const collectedId of draft.collect ?? []) {
+      if (tracks.length >= maxTracksFor(kind)) break
+      const collected = await this.get(collectedId)
+      tracks.push(this.rowFromCollected(collected, tracks.length + 1))
+    }
+
     const release: DiscographyRelease = {
       id: randomUUID(),
       kind,
@@ -808,6 +824,8 @@ export class DiscographyService {
     let title = draft.title?.trim() ?? ''
     let artistIds = draft.artistIds ?? []
     let master: MediaFile | null = null
+    /** The row the collected release produced, for the fields not asked for. */
+    let carried: ReleaseTrack | null = null
 
     /*
      * Adding an existing release as a row: the row is filled *from* it.
@@ -821,12 +839,13 @@ export class DiscographyService {
     const collected = draft.releaseId ? await this.requireCollectable(id, draft.releaseId) : null
 
     if (collected) {
-      const source = collected.tracks[0] ?? null
-      if (!title) title = source?.title || collected.title
-      if (artistIds.length === 0) {
-        artistIds = [...(source?.artistIds.length ? source.artistIds : collected.artistIds)]
-      }
-      master = source?.master ?? null
+      const row = this.rowFromCollected(collected, release.tracks.length + 1)
+      // Anything the caller passed explicitly still wins: an album may
+      // legitimately retitle a track it carries.
+      if (!title) title = row.title
+      if (artistIds.length === 0) artistIds = [...row.artistIds]
+      master = row.master
+      carried = row
     }
 
     if (draft.projectId) {
@@ -854,8 +873,8 @@ export class DiscographyService {
       artistIds,
       master,
       releaseId: collected?.id ?? null,
-      isrc: draft.isrc ? normaliseIsrc(draft.isrc) : '',
-      durationMs: 0,
+      isrc: draft.isrc ? normaliseIsrc(draft.isrc) : (carried?.isrc ?? ''),
+      durationMs: carried?.durationMs ?? 0,
       notes: ''
     }
 
@@ -1154,6 +1173,38 @@ export class DiscographyService {
    * inside another and stops there in practice; a full ancestry walk would be
    * three reads per added row to prevent something nobody has ever filed.
    */
+  /**
+   * A running-order row that *is* an existing release.
+   *
+   * One builder for both paths — raising a release around singles, and adding
+   * one to a running order that already exists — because "collected" has to
+   * mean the same thing whichever door it came through.
+   *
+   * The recording's own identity comes with it: **the ISRC and the duration
+   * belong to the recording, not to the product**, so the same master on an
+   * album carries the same code it carried as a single. Copying them is what
+   * lets a harvest recognise the two as one recording later, and re-typing
+   * them would be the disagreement this whole feature exists to prevent.
+   */
+  private rowFromCollected(collected: DiscographyRelease, position: number): ReleaseTrack {
+    const source = collected.tracks[0] ?? null
+
+    return {
+      id: randomUUID(),
+      position,
+      title: source?.title || collected.title,
+      // Carried across, so the ARCHIVE reports the set appearing on both
+      // records — see `appearances`.
+      projectId: source?.projectId ?? null,
+      releaseId: collected.id,
+      artistIds: [...(source?.artistIds.length ? source.artistIds : collected.artistIds)],
+      master: source?.master ?? null,
+      isrc: source?.isrc ?? '',
+      durationMs: source?.durationMs ?? 0,
+      notes: ''
+    }
+  }
+
   private async requireCollectable(
     releaseId: string,
     collectedId: string

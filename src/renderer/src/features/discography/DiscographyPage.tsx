@@ -390,6 +390,7 @@ export function DiscographyPage(): ReactNode {
 
       {raising ? (
         <ReleaseDialog
+          releases={data?.releases ?? []}
           roster={roster}
           busy={mutations.create.isPending}
           error={notice}

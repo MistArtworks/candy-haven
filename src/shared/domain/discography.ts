@@ -371,6 +371,16 @@ export type DiscographyRegistry = z.infer<typeof DiscographyRegistrySchema>
 
 export const ReleaseDraftSchema = z.object({
   title: z.string(),
+  /**
+   * Releases already in the catalogue that this one collects, in order.
+   *
+   * The running order of an album is usually *known* before the album record
+   * exists — the singles are out, and having them is the reason for raising
+   * it. One call rather than create-then-collect, for the reason
+   * `fromProjectId` is one call: the two-step version leaves an empty album
+   * behind whenever the second half fails. See `ReleaseTrackSchema.releaseId`.
+   */
+  collect: z.array(z.string()).max(MAX_TRACKS).optional(),
   kind: ReleaseKindSchema.optional(),
   status: ReleaseStatusSchema.optional(),
   releaseDate: IsoDateSchema.nullable().optional(),

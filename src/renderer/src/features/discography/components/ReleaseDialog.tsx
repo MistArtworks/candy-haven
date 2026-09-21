@@ -1,6 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import type { ArtistRecord } from '@shared/domain/artists'
-import type { ReleaseDraft, ReleaseKind, ReleaseStatus } from '@shared/domain/discography'
+import type {
+  DiscographySummary,
+  ReleaseDraft,
+  ReleaseKind,
+  ReleaseStatus
+} from '@shared/domain/discography'
 import {
   MAX_RELEASE_TITLE,
   RELEASE_KINDS,
@@ -10,6 +15,7 @@ import {
   RELEASE_STATUSES,
   RELEASE_STATUS_LABEL,
   RELEASE_STATUS_PURPOSE,
+  maxTracksFor,
   seedsOneTrack
 } from '@shared/domain/discography.constants'
 import {
@@ -19,9 +25,15 @@ import {
   DialogField
 } from '@renderer/components/primitives/Dialog'
 import { DateInput, TextInput } from '@renderer/components/primitives/Input'
+import styles from '../DiscographyPage.module.scss'
 
 export interface ReleaseDialogProps {
   roster: readonly ArtistRecord[]
+  /**
+   * The catalogue, offered as the running order of anything that holds more
+   * than one track. See `ReleaseDraft.collect`.
+   */
+  releases: readonly DiscographySummary[]
   busy: boolean
   error: string | null
   onSubmit: (draft: ReleaseDraft) => void
@@ -48,6 +60,7 @@ export interface ReleaseDialogProps {
  */
 export function ReleaseDialog({
   roster,
+  releases,
   busy,
   error,
   onSubmit,
@@ -66,6 +79,19 @@ export function ReleaseDialog({
     () => roster.filter((artist) => artist.isOperator).map((artist) => artist.id)
   )
 
+  /*
+   * The singles this record is made of, chosen as it is named.
+   *
+   * Held in order of choosing, which becomes the running order: an operator
+   * ticking four singles is reading their album's sleeve, not a set. Cleared
+   * when the kind changes to one that holds a single track, because a single
+   * carrying somebody else's release would be a contradiction rather than a
+   * mistake to warn about.
+   */
+  const [collect, setCollect] = useState<string[]>([])
+  const collects = !seedsOneTrack(kind)
+  const ceiling = maxTracksFor(kind)
+
   const needsDate = status === 'released' && !releaseDate
   const canConfirm = title.trim().length > 0 && !needsDate && !busy
 
@@ -76,7 +102,8 @@ export function ReleaseDialog({
       kind,
       status,
       releaseDate: releaseDate || null,
-      artistIds
+      artistIds,
+      collect: collects ? collect : []
     })
   }
 
@@ -93,7 +120,10 @@ export function ReleaseDialog({
       footnote={
         seedsOneTrack(kind)
           ? `A ${RELEASE_KIND_LABEL[kind].toLowerCase()} arrives with one track, taking the title. Artwork, label and the distribution codes are added on the sheet, which opens next.`
-          : 'Tracks, artwork, label and the distribution codes are added on the sheet, which opens next. It does not need a project in the ARCHIVE behind it.'
+          : // Tracks are no longer only a later thing for these kinds: the
+            // running order above takes the ones that already have records, and
+            // the sheet takes the rest.
+            'Anything not already in the catalogue — and the artwork, the label and the distribution codes — is added on the sheet, which opens next. It does not need a project in the ARCHIVE behind it.'
       }
     >
       <TextInput
@@ -113,7 +143,10 @@ export function ReleaseDialog({
               on={kind === entry}
               label={RELEASE_KIND_LABEL[entry]}
               title={RELEASE_KIND_PURPOSE[entry]}
-              onClick={() => setKind(entry)}
+              onClick={() => {
+                setKind(entry)
+                if (seedsOneTrack(entry)) setCollect([])
+              }}
             />
           ))}
         </DialogChips>
@@ -154,6 +187,41 @@ export function ReleaseDialog({
         }
       />
 
+      {/*
+        The running order, where it is already known.
+
+        Only for the kinds that hold more than one track, and only when there
+        is something to offer: a single has one row and it takes the title, so
+        a picker there would be a control with nothing it could do. Ticking is
+        the whole interaction — the search is there because a back catalogue
+        is dozens of records, and the order is the order they were ticked in.
+      */}
+      {collects && releases.length > 0 ? (
+        <DialogField
+          label="Running order"
+          hint={
+            collect.length > 0
+              ? `${collect.length} of ${ceiling} — in the order you ticked them. More can be added on the sheet.`
+              : 'Tick the singles this is made of. Optional, and they can be added on the sheet instead.'
+          }
+        >
+          <CatalogueTicks
+            releases={releases}
+            chosen={collect}
+            ceiling={ceiling}
+            onToggle={(id) =>
+              setCollect((current) =>
+                current.includes(id)
+                  ? current.filter((entry) => entry !== id)
+                  : current.length < ceiling
+                    ? [...current, id]
+                    : current
+              )
+            }
+          />
+        </DialogField>
+      ) : null}
+
       {roster.length > 0 ? (
         <DialogField label="Billed as" hint="Who it is by. Features are added on the sheet.">
           <DialogChips>
@@ -175,5 +243,84 @@ export function ReleaseDialog({
         </DialogField>
       ) : null}
     </Dialog>
+  )
+}
+
+interface CatalogueTicksProps {
+  releases: readonly DiscographySummary[]
+  chosen: readonly string[]
+  ceiling: number
+  onToggle: (releaseId: string) => void
+}
+
+/**
+ * The catalogue as a ticklist, with a search over it.
+ *
+ * Its own component rather than `DialogChips`, which is right for a closed set
+ * of five kinds and wrong for a growing register: a chip row of forty releases
+ * wraps into a wall, and none of those chips can say what kind of record it is
+ * or when it came out — which is exactly what tells two similarly titled
+ * entries apart.
+ *
+ * Ordered as the register hands them over, and the *choice* order is kept by
+ * the caller: ticking four singles in running order should produce that running
+ * order, not the catalogue's.
+ */
+function CatalogueTicks({ releases, chosen, ceiling, onToggle }: CatalogueTicksProps): ReactNode {
+  const [search, setSearch] = useState('')
+
+  const needle = search.trim().toLowerCase()
+  const offered = needle
+    ? releases.filter((release) => release.title.toLowerCase().includes(needle))
+    : releases
+  const full = chosen.length >= ceiling
+
+  return (
+    <div className={styles.ticks}>
+      {releases.length > 6 ? (
+        <input
+          className={styles.tickSearch}
+          value={search}
+          aria-label="Search the catalogue"
+          placeholder="Search the catalogue"
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      ) : null}
+
+      {offered.length === 0 ? (
+        <p className={styles.tickEmpty}>Nothing matches that.</p>
+      ) : (
+        <ul className={styles.tickList}>
+          {offered.map((release) => {
+            const on = chosen.includes(release.id)
+            const position = chosen.indexOf(release.id) + 1
+
+            return (
+              <li key={release.id}>
+                <button
+                  type="button"
+                  className={styles.tickRow}
+                  data-on={on || undefined}
+                  aria-pressed={on}
+                  // A full running order refuses further ticks rather than
+                  // silently dropping them; untick to swap one out.
+                  disabled={!on && full}
+                  onClick={() => onToggle(release.id)}
+                >
+                  <span className={styles.tickMark} aria-hidden="true">
+                    {on ? String(position).padStart(2, '0') : '—'}
+                  </span>
+                  <span className={styles.tickTitle}>{release.title}</span>
+                  <span className={styles.tickMeta}>
+                    {RELEASE_KIND_LABEL[release.kind]}
+                    {release.year ? ` · ${release.year}` : ''}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
   )
 }

@@ -569,7 +569,6 @@
   }
 }
 
-
 // Pushes the destructive control away from the constructive one, so REMOVE
 // and READY TO PUBLISH are never adjacent under the pointer.
 .footSpacer {
@@ -1614,5 +1613,120 @@
   @include readout(11px);
   color: var(--ch-gold-300);
   line-height: 1.6;
+  margin: 0;
+}
+
+// -------------------------------------------- the running order, at raise time
+
+/*
+ * The catalogue as a ticklist inside the raise dialog.
+ *
+ * A list rather than a chip row, which is what `DialogChips` gives the five
+ * kinds beside it: forty releases as chips wrap into a wall, and a chip cannot
+ * carry the kind and the year that tell two similar titles apart.
+ */
+.ticks {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.tickSearch {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: 0;
+  @include hairline(bottom, 0.16);
+  padding: space(2) space(3);
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-bottom-color: var(--ch-gold-500);
+  }
+}
+
+// Bounded and scrolled: the dialog must stay a dialog, not become the page.
+.tickList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: rem(216px);
+  overflow-y: auto;
+}
+
+.tickRow {
+  display: grid;
+  grid-template-columns: rem(24px) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: space(3);
+  width: 100%;
+  padding: space(2) space(2);
+  background: none;
+  border: 0;
+  @include hairline(bottom, 0.06);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color $duration-fast linear,
+    box-shadow $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    background: rgba(210, 169, 97, 0.05);
+  }
+
+  // Ticked rows carry the rib the console uses for "this is the one" rather
+  // than a fill, so a chosen row and a hovered row cannot be confused.
+  &[data-on] {
+    background: var(--ch-surface-raised);
+    box-shadow: inset 2px 0 0 var(--ch-gold-500);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+// The position it will hold, which is the whole reason ticking is ordered: an
+// operator reading their own sleeve ticks 01, 02, 03 and sees them numbered.
+.tickMark {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+
+  .tickRow[data-on] & {
+    color: var(--ch-gold-300);
+  }
+}
+
+.tickTitle {
+  @include label(10px, 0.1em);
+  color: var(--ch-text-secondary);
+  min-width: 0;
+  @include truncate;
+
+  .tickRow[data-on] & {
+    color: var(--ch-text-primary);
+  }
+}
+
+.tickMeta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+}
+
+.tickEmpty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
   margin: 0;
 }
