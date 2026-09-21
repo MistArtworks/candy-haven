@@ -19,6 +19,7 @@ import { consoleEnterVariants, pageVariants, sweepVariants } from '@renderer/mot
 import { PageSweep } from '@renderer/components/chrome/PageSweep'
 import { useSystemStore, selectSettings } from '@renderer/app/store/system.store'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
+import { usePageNonce, usePageRefresh } from '@renderer/hooks/usePageRefresh'
 import { PageOutlet } from './PageOutlet'
 import styles from './ConsoleLayout.module.scss'
 
@@ -33,6 +34,10 @@ export function ConsoleLayout(): ReactNode {
   const location = useLocation()
   const navigate = useNavigate()
   const section = getSectionByPath(location.pathname)
+
+  // The refresh, shared between the title bar's control and its two shortcuts.
+  const { refresh } = usePageRefresh()
+  const nonce = usePageNonce()
 
   /*
    * Which page transition to run.
@@ -150,12 +155,35 @@ export function ConsoleLayout(): ReactNode {
         group: 'Global',
         whileTyping: true,
         run: () => navigate(getSection('catechism').path)
+      },
+      {
+        /*
+         * The two keys every application on this desktop reloads with, bound
+         * to this console's own idea of a reload — see `usePageRefresh`, which
+         * refetches and remounts the department rather than dropping the
+         * renderer.
+         *
+         * `whileTyping` is off, unusually for a global. `Ctrl+R` from inside a
+         * text field would throw away what is being typed along with the rest
+         * of the page's state, and somebody naming a project is not asking for
+         * the register to be re-read.
+         */
+        chord: 'ctrl+r',
+        label: 'Refresh this department',
+        group: 'Global',
+        run: refresh
+      },
+      {
+        chord: 'f5',
+        label: 'Refresh this department',
+        group: 'Global',
+        run: refresh
       }
     ],
     // `setGuideOpen` is listed although a setState function is stable:
     // the compiler infers dependencies from the body, and a manual array
     // narrower than what it infers makes it drop the memo entirely.
-    [navigate, setGuideOpen]
+    [navigate, setGuideOpen, refresh]
   )
 
   useHotkeys(navigation)
@@ -256,7 +284,13 @@ export function ConsoleLayout(): ReactNode {
               animate="animate"
               exit={silent ? undefined : 'exit'}
             >
-              <PageOutlet />
+              {/*
+                Keyed on the refresh nonce, which is the whole of what a
+                refresh does to the tree: the page below this remounts, and
+                everything above it — the chrome, the transport, playback —
+                does not. See `usePageRefresh`.
+              */}
+              <PageOutlet key={nonce} />
             </motion.div>
           </AnimatePresence>
 

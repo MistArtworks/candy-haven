@@ -148,6 +148,33 @@
 }
 
 /*
+ * Re-read, which is not a window control.
+ *
+ * It sits in the same bank because that bank is the only part of the console
+ * that is on screen whatever is routed — but a gap holds it off the three that
+ * manage the window, so the switch two seats from Close is never pressed by a
+ * hand reaching for Minimise. No lamp of its own beyond the shared one: it is
+ * an ordinary switch that happens to be first.
+ */
+.refresh {
+  margin-right: space(3);
+
+  // Turning while the console reads. The glyph is a ring, so rotation is the
+  // one animation that says "again" without moving anything in the bar.
+  &[data-busy] svg {
+    @include motion-safe {
+      animation: turning 900ms linear infinite;
+    }
+  }
+}
+
+@keyframes turning {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*
  * Dismissal. Marked at rest by a crimson rule along the bottom edge — the
  * opposite edge to the hover lamp, so the two never read as the same signal.
  */

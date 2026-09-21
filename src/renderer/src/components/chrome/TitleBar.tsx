@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { getSectionByPath } from '@shared/domain/navigation'
 import { APP_NAME } from '@shared/constants'
 import { useSystemStore, selectArchive, selectWindow } from '@renderer/app/store/system.store'
+import { usePageRefresh } from '@renderer/hooks/usePageRefresh'
 import { Sigil } from '@renderer/components/sigil/Sigil'
 import { StatusDot, type StatusTone } from '@renderer/components/primitives/StatusDot'
 import type { ArchiveState } from '@shared/domain/archive'
@@ -36,6 +37,7 @@ export function TitleBar(): ReactNode {
   const location = useLocation()
   const archive = useSystemStore(selectArchive)
   const windowState = useSystemStore(selectWindow)
+  const { refresh, busy } = usePageRefresh()
 
   const section = getSectionByPath(location.pathname)
   const status = describeArchive(archive.state)
@@ -82,6 +84,46 @@ export function TitleBar(): ReactNode {
         "Minimise" should not have to know this world's vocabulary for it.
       */}
       <div className={styles.controls}>
+        {/*
+          Re-read the department, from anywhere.
+
+          In the bank because it is the only place on the console that is on
+          screen no matter what is routed, and set apart from the three beside
+          it by a gap: those manage the window and this one does not. What it
+          actually does is in `usePageRefresh` — it refetches and remounts the
+          page, and leaves the renderer, the transport and every subscription
+          alone.
+
+          `Ctrl+R` and `F5` run the same thing; both are registered in
+          `ConsoleLayout` so they appear in the shortcut sheet.
+        */}
+        <button
+          type="button"
+          className={`${styles.control} ${styles.refresh}`}
+          data-busy={busy || undefined}
+          aria-busy={busy}
+          onClick={refresh}
+          aria-label="Refresh this department"
+          title="Refresh this department (Ctrl+R)"
+        >
+          {/* A ring broken at the top right, closed by a bracket rather than
+              by a filled head — the portal motif turning back on itself. */}
+          <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" fill="none">
+            <path
+              d="M9.2 3.4A4 4 0 1 1 6 2"
+              stroke="currentColor"
+              strokeWidth="1"
+              strokeLinecap="square"
+            />
+            <path
+              d="M7.3 3.1 9.5 3.4 9.2 5.6"
+              stroke="currentColor"
+              strokeWidth="1"
+              strokeLinecap="square"
+            />
+          </svg>
+        </button>
+
         <button
           type="button"
           className={styles.control}
