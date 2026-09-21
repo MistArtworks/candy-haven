@@ -11,6 +11,14 @@ files:
   - '!src/*'
   - '!info/*'
   - '!release/*'
+  # Developer tooling, not the application. `scripts/release.mjs` runs from a
+  # checkout and `scripts/seed/` is the terminal half of the discography
+  # seeder, superseded by the in-app one — neither belongs in a shipped asar.
+  - '!scripts/*'
+  # The seeder's harvest, which is his whole catalogue read back from six
+  # services. Public information, but it is working data written on one
+  # machine and there is no reason for it to travel inside a binary.
+  - '!.seed-cache/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
