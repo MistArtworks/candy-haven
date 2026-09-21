@@ -199,46 +199,169 @@
 
 .card {
   display: flex;
-  align-items: flex-start;
-  gap: space(4);
+  flex-direction: column;
   width: 100%;
-  height: 100%;
   background: none;
   border: 0;
   padding: 0;
   text-align: left;
   cursor: pointer;
-  position: relative;
 
   &:focus-visible {
-    @include focus-ring;
+    @include focus-ring(-2px);
   }
 }
 
-.cardBody {
+/*
+ * The picture, at the full width of the tile.
+ *
+ * `Plate fill` is the same square the ARCHIVE draws a cover at, and it is
+ * square for the same reason: a grid of squares reads as a catalogue, and a
+ * grid of whatever aspect each photograph happened to be shot at reads as a
+ * pile of photographs.
+ */
+.frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  // Everything inside is sized against the tile rather than against the root,
+  // so a three-across roster and a one-across one both look drawn for their
+  // width instead of one of them looking like a mistake.
+  container-type: inline-size;
+
+  // The picture lifts very slightly under the pointer — enough to say the
+  // whole tile is the target, not enough to move the name.
+  img {
+    transition: transform $duration-base $ease-out-expo;
+  }
+
+  .card:hover & img {
+    @include motion-safe {
+      transform: scale(1.02);
+    }
+  }
+}
+
+/*
+ * The initials, when there is no photograph.
+ *
+ * Reached through the element rather than the class because the span belongs
+ * to `Plate`, whose hashed names this module cannot see. Sized here rather
+ * than in `Plate` deliberately: a filled plate in DISCOGRAPHY draws the word
+ * `COVER` in a frame beside a form, and this is a face-sized hole in a poster
+ * — the same component, two different jobs for the fallback.
+ */
+.plate > span {
+  font-size: clamp(#{rem(28px)}, 13cqw, #{rem(64px)});
+  letter-spacing: 0.14em;
+  color: var(--ch-brass-600);
+}
+
+/*
+ * The wash: a slight darkening, with a touch of blur behind it.
+ *
+ * Deliberately weak. The picture still has to be the thing you recognise the
+ * person by — this is the difference between a photograph sitting *in* the
+ * console and one sitting on top of it, and at any strength where you would
+ * notice it as an effect it has gone too far. It lifts on hover, so the tile
+ * under the pointer is the clearest one on the page.
+ */
+.wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(10, 9, 11, 0.32);
+  backdrop-filter: blur(1.5px);
+  transition:
+    background-color $duration-base $ease-out-expo,
+    backdrop-filter $duration-base $ease-out-expo;
+
+  .card:hover & {
+    background: rgba(10, 9, 11, 0.16);
+    backdrop-filter: blur(0.5px);
+  }
+}
+
+/*
+ * Legibility for a caption over an image nobody in this console graded.
+ *
+ * Tall and soft rather than a band: the name sits in the bottom sixth, and a
+ * hard edge across a portrait is the one thing that would make the tile look
+ * like a stock photo with a label stuck on it.
+ */
+.scrim {
+  position: absolute;
+  inset: auto 0 0;
+  height: 62%;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(10, 9, 11, 0.94) 0%,
+    rgba(10, 9, 11, 0.72) 26%,
+    rgba(10, 9, 11, 0.28) 58%,
+    transparent 100%
+  );
+}
+
+// Bottom right, and right-aligned with it: the two lines read as one block
+// hung off the corner rather than as a caption that happens to be indented.
+.identity {
+  position: absolute;
+  inset: auto space(4) space(4) space(4);
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: space(1);
-  min-width: 0;
-  flex: 1;
+  text-align: right;
+  pointer-events: none;
 }
 
+/*
+ * The name, at poster size.
+ *
+ * Wrapping rather than truncating — this is the thing the tile exists to say,
+ * and `RESONANCE SELECTION` losing its second word to an ellipsis would be
+ * the opposite of the point. The shadow is for the photographs that come in
+ * bright at the bottom edge; on the dark ones it is invisible.
+ */
+.name {
+  @include label(22px, 0.06em);
+  // Poster type: it tracks the tile, within bounds that keep a long alias
+  // readable at three-across and stop a short one shouting at one-across.
+  font-size: clamp(#{rem(18px)}, 7cqw, #{rem(36px)});
+  color: var(--ch-text-primary);
+  line-height: 1.08;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 12px rgba(10, 9, 11, 0.75);
+}
+
+/*
+ * The legal name, beneath the alias.
+ *
+ * Kept because it is searched and because half the roster is only ever
+ * invoiced under it — secondary rather than faint, since it now has a
+ * photograph behind it instead of a panel.
+ */
 .realName {
   @include readout(11px);
-  color: var(--ch-text-primary);
+  color: var(--ch-text-secondary);
+  max-width: 100%;
   @include truncate;
+  text-shadow: 0 1px 8px rgba(10, 9, 11, 0.8);
 }
 
-.roles {
-  @include label(8px, 0.14em);
-  color: var(--ch-text-faint);
-  @include truncate;
+// The register's own line, under the picture.
+.foot {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  padding: space(3) space(4) space(4);
 }
 
 .counts {
   @include readout(10px);
   color: var(--ch-gold-300);
-  margin-top: space(1);
 }
 
 .linkCount {
@@ -249,9 +372,8 @@
 .self {
   @include label(7px, 0.18em);
   color: var(--ch-accent-bright);
-  position: absolute;
-  right: 0;
-  bottom: 0;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 /*
@@ -310,9 +432,15 @@
 .sheetHead {
   display: flex;
   align-items: center;
-  gap: space(4);
+  gap: space(5);
   padding: space(5);
   @include hairline(bottom, 0.1);
+}
+
+// Square and hairlined like every other plate, one size up: on this sheet the
+// picture is the subject rather than a mark beside a name.
+.sheetPlate {
+  align-self: flex-start;
 }
 
 .sheetTitle {
@@ -331,9 +459,225 @@
   color: var(--ch-text-primary);
 }
 
+// The name, with room for the operator's mark beside it.
+.sheetNameRow {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex-wrap: wrap;
+}
+
+// Crimson, because "this record is the operator" is live state about the
+// register rather than a preference — the same reason the tile is focal.
+.sheetSelf {
+  @include label(8px, 0.2em);
+  color: var(--ch-accent-bright);
+  border: $hairline solid rgba(163, 43, 35, 0.5);
+  padding: space(1) space(2);
+}
+
+.sheetReal {
+  @include readout(12px);
+  color: var(--ch-text-secondary);
+}
+
+.sheetRoles {
+  @include label(8px, 0.16em);
+  color: var(--ch-gold-500);
+}
+
 .sheetMeta {
   @include readout(10px);
   color: var(--ch-text-faint);
+  margin-top: space(1);
+}
+
+/*
+ * The operator's claim, at the top of the sheet.
+ *
+ * Two states and they are not symmetrical, which is the whole reason this is
+ * not a `YES` / `NO` pair in a field grid any more. **Unset it asks a
+ * question** — a brass dashed frame, the console's mark for a slot waiting to
+ * be filled, with a primary button in it. **Set it makes a statement**: a
+ * crimson-edged plate, because "this record is the operator" is live state
+ * about the register rather than a preference, and crimson is what this
+ * console reserves for exactly that. Unsetting is not offered while reading;
+ * it is a thing you go into Edit to do.
+ */
+.claim {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  margin: space(5) space(5) 0;
+  padding: space(4);
+  border: $hairline dashed var(--ch-line-gold);
+  background: linear-gradient(180deg, rgba(210, 169, 97, 0.05), transparent);
+
+  &[data-set] {
+    border-style: solid;
+    border-color: rgba(163, 43, 35, 0.55);
+    background: linear-gradient(180deg, rgba(67, 18, 15, 0.34), rgba(67, 18, 15, 0.1));
+    box-shadow: inset 0 0 30px rgba(163, 43, 35, 0.12);
+  }
+}
+
+.claimAsk {
+  @include label(12px, 0.2em);
+  color: var(--ch-gold-200);
+  flex-shrink: 0;
+}
+
+.claimMark {
+  @include label(12px, 0.22em);
+  color: var(--ch-accent-bright);
+  flex-shrink: 0;
+}
+
+.claimText {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  flex: 1;
+  min-width: 0;
+}
+
+// ------------------------------------------------------------------ read view
+
+.readBlock {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.readEmpty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  margin: 0;
+}
+
+.readNotes {
+  @include readout(12px);
+  color: var(--ch-text-primary);
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+  padding-left: space(3);
+  border-left: 2px solid var(--ch-brass-700);
+}
+
+/*
+ * A credit, as one ruled row.
+ *
+ * Three columns rather than a sentence: the title is what is being named, the
+ * middle is what kind of thing it is, and the right is *how they are on it* —
+ * which is the one thing a credit list exists to say and the thing a prose
+ * line buries in the middle of itself.
+ */
+.creditList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.credit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: space(4);
+  padding: space(3) 0;
+  @include hairline(bottom, 0.06);
+
+  &:first-child {
+    padding-top: 0;
+  }
+}
+
+.creditTitle {
+  @include label(11px, 0.1em);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.creditSub {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: space(2);
+}
+
+.creditMeta {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+}
+
+// Gold for a named credit, faint for a track appearance: the difference
+// between "this is their record" and "they are on it" is worth seeing.
+.creditAs {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+  white-space: nowrap;
+
+  &[data-as='primary'],
+  &[data-as='featured'] {
+    color: var(--ch-gold-300);
+  }
+}
+
+.linkList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.linkRow {
+  display: grid;
+  grid-template-columns: rem(96px) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: space(4);
+  width: 100%;
+  padding: space(3) space(2);
+  background: none;
+  border: 0;
+  @include hairline(bottom, 0.06);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(210, 169, 97, 0.05);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+.linkPlatform {
+  @include label(8px, 0.16em);
+  color: var(--ch-gold-300);
+}
+
+.linkUrl {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  min-width: 0;
+  @include truncate;
+}
+
+.linkGo {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+
+  .linkRow:hover & {
+    color: var(--ch-gold-300);
+  }
 }
 
 .sheetActions {

@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import type {
+  ArtistCredits,
   ArtistDraft,
   ArtistLink,
   ArtistPatch,
   ArtistRecord,
+  ArtistReleaseCredit,
   ArtistSummary
 } from '@shared/domain/artists'
 import {
@@ -35,6 +37,11 @@ const logger = getLogger('artists')
  */
 export type ReleaseCreditReader = () => Promise<readonly (readonly string[])[]>
 
+/** Which releases one artist is named on. See `DiscographyService`. */
+export type ArtistReleaseCreditReader = (
+  artistId: string
+) => Promise<readonly ArtistReleaseCredit[]>
+
 /**
  * ARTISTS — the roster.
  *
@@ -62,6 +69,7 @@ export type ReleaseCreditReader = () => Promise<readonly (readonly string[])[]>
  */
 export class ArtistsService {
   private readReleaseCredits: ReleaseCreditReader | null = null
+  private readCreditsForArtist: ArtistReleaseCreditReader | null = null
 
   constructor(
     private readonly archive: ArchiveService,
@@ -83,6 +91,11 @@ export class ArtistsService {
    */
   setReleaseCreditReader(reader: ReleaseCreditReader): void {
     this.readReleaseCredits = reader
+  }
+
+  /** The named version of the above, for one artist's sheet. */
+  setArtistCreditReader(reader: ArtistReleaseCreditReader): void {
+    this.readCreditsForArtist = reader
   }
 
   // ----------------------------------------------------------------- reading
@@ -130,6 +143,41 @@ export class ArtistsService {
   /** Every artist, without touching either register. For the registries. */
   async listPlain(): Promise<ArtistRecord[]> {
     return this.repository.listAll()
+  }
+
+  /**
+   * What one artist is actually on, named.
+   *
+   * The roster's figures are a tally over both registers; a sheet has room to
+   * say which records they came from, and "0 projects · 1 release" is a
+   * question rather than an answer. Read when the sheet opens rather than
+   * shipped with the summary — the roster draws every artist and would be
+   * paying for a list nobody has asked to see.
+   *
+   * Binned projects are left out, for the same reason they are left out of the
+   * counts: a credit that resolves to something in the recycle bin reads as a
+   * record that is still being worked on.
+   */
+  async credits(id: string): Promise<ArtistCredits> {
+    // Throws if the artist is gone, so a stale sheet gets the same refusal it
+    // would get from any other read rather than an empty pair of lists.
+    await this.get(id)
+
+    const records = await this.projects.listRecords()
+    const projects = records
+      .filter((record) => record.trashedAt === null && record.artistIds.includes(id))
+      .map((record) => ({
+        projectId: record.id,
+        title: record.name,
+        stage: record.stage,
+        category: record.category,
+        updatedAt: record.updatedAt
+      }))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+
+    const releases = [...((await this.readCreditsForArtist?.(id)) ?? [])]
+
+    return { projects, releases }
   }
 
   async get(id: string): Promise<ArtistRecord> {

@@ -131,6 +131,7 @@ export function createServiceContainer(): ServiceContainer {
   const discography = new DiscographyService(archive, projects, artists, stacks)
 
   artists.setReleaseCreditReader(() => discography.creditIndex())
+  artists.setArtistCreditReader((artistId) => discography.creditsForArtist(artistId))
   artists.detachFromReleases = (artistId) => discography.detachArtist(artistId)
 
   // The ARCHIVE's half of the one-directional link: which release a project is

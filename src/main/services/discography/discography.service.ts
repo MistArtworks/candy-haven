@@ -29,6 +29,7 @@ import {
 import type { CalendarRelease } from '@shared/domain/calendar'
 import type { MediaFile, ProjectRecord } from '@shared/domain/projects'
 import { getStage } from '@shared/domain/projects.constants'
+import type { ArtistReleaseCredit } from '@shared/domain/artists'
 import { checkLinkUrl } from '@shared/domain/artists.constants'
 import { isHexColour, normaliseHex } from '@shared/domain/stacks.constants'
 import { randomTagColour } from '@shared/domain/tags.constants'
@@ -228,6 +229,49 @@ export class DiscographyService {
         status: release.status,
         date: release.releaseDate
       }))
+  }
+
+  /**
+   * Every release one artist is named on, and how.
+   *
+   * The named half of `creditIndex`. That one answers "how many" for the
+   * whole roster in a single pass and is read on every roster draw; this one
+   * answers "which" for one person and is read when their sheet opens, so it
+   * is a filter rather than an index.
+   *
+   * **One line per release, however many ways they are on it.** A remix EP
+   * crediting somebody as primary artist and on two of its tracks is one
+   * record they worked on, which is the same rule the counts follow — `as`
+   * carries the strongest of those claims and `tracks` names the tracks, so
+   * the sheet can say "primary · 2 tracks" without inventing three entries.
+   */
+  async creditsForArtist(artistId: string): Promise<ArtistReleaseCredit[]> {
+    const releases = await this.repository.listAll()
+
+    return releases
+      .map((release) => {
+        const tracks = release.tracks.filter((track) => track.artistIds.includes(artistId))
+        const primary = release.artistIds.includes(artistId)
+        const featured = release.featuredArtistIds.includes(artistId)
+        if (!primary && !featured && tracks.length === 0) return null
+
+        return {
+          releaseId: release.id,
+          title: release.title,
+          subtitle: release.subtitle,
+          kind: release.kind,
+          status: release.status,
+          releaseDate: release.releaseDate || null,
+          as: primary
+            ? ('primary' as const)
+            : featured
+              ? ('featured' as const)
+              : ('track' as const),
+          tracks: tracks.map((track) => track.title).filter(Boolean)
+        }
+      })
+      .filter((credit): credit is ArtistReleaseCredit => credit !== null)
+      .sort((a, b) => (b.releaseDate ?? '').localeCompare(a.releaseDate ?? ''))
   }
 
   /** Every release's credits, for the roster's counts. See `ArtistsService`. */

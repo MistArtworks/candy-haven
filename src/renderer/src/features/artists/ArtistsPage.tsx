@@ -74,6 +74,24 @@ export function ArtistsPage(): ReactNode {
     })
   }, [roster, search, favouritesOnly, roleFilter])
 
+  /*
+   * The operator leads the roster, always.
+   *
+   * `isOperator` exists so that the register can do exactly this — see the
+   * note on the field — and it holds through every filter and every search:
+   * if you are in the result at all, you are at the front of it. Sorted here
+   * rather than in the service because the service answers with a register and
+   * this is a question about how one page reads it.
+   *
+   * Stable beyond that: the service returns the roster in its own order, and
+   * re-sorting the rest would make the numbers on the tiles move for reasons
+   * the operator did not ask for.
+   */
+  const ordered = useMemo(() => {
+    const mine = shown.filter((artist) => artist.isOperator)
+    return mine.length > 0 ? [...mine, ...shown.filter((artist) => !artist.isOperator)] : shown
+  }, [shown])
+
   const filtered = favouritesOnly || roleFilter.length > 0 || search.trim().length > 0
 
   const clearFilters = (): void => {
@@ -251,9 +269,9 @@ export function ArtistsPage(): ReactNode {
           >
             {isLoading ? (
               <>
-                <Skeleton height="148px" className={styles.span2} />
-                <Skeleton height="148px" className={styles.span2} />
-                <Skeleton height="148px" className={styles.span2} />
+                <Skeleton height="360px" className={styles.span2} />
+                <Skeleton height="360px" className={styles.span2} />
+                <Skeleton height="360px" className={styles.span2} />
               </>
             ) : shown.length === 0 ? (
               <Panel label="Roster" index="01" className={styles.span6}>
@@ -264,7 +282,7 @@ export function ArtistsPage(): ReactNode {
                 </p>
               </Panel>
             ) : (
-              shown.map((artist, index) => (
+              ordered.map((artist, index) => (
                 <ArtistCard
                   key={artist.id}
                   artist={artist}
@@ -331,6 +349,28 @@ interface ArtistCardProps {
  * point of a picture field is that the register becomes scannable. The counts
  * beneath it are what makes this a register rather than an address book —
  * "who have I actually worked with" is the question it answers.
+ *
+ * **The alias is the loud text, and the legal name is the caption.** It was the
+ * other way round: the panel header carried `CANDY HEIST` at header-label size
+ * while `Yedu Renjith` sat in the body at full brightness, so the tile that is
+ * meant to be scanned for the name everybody knows was scanned for the name
+ * nobody uses. Filed as a suggestion in the ARCHIVE and fixed here.
+ *
+ * The header keeps the index and takes the *roles* — the entry's classification
+ * is what an institutional header label is for, and moving it there means the
+ * name is said once on the tile rather than twice.
+ *
+ * ## The picture is the tile
+ *
+ * A 72px plate beside three lines of text made the photograph a bullet point:
+ * the roster read as a list that happened to have faces on it. It is now a
+ * full-bleed square with the name set over the foot of it, which is how a
+ * sleeve, a poster and a contact sheet all do the same job — you recognise the
+ * person, and the name confirms it rather than announcing it.
+ *
+ * Bottom **right** specifically, and the legal name beneath. A face sits in
+ * the upper two-thirds of almost any portrait, so the corner opposite is the
+ * one place a caption can be large without covering the thing it captions.
  */
 function ArtistCard({ artist, index, onOpen, onToggleFavourite }: ArtistCardProps): ReactNode {
   const counts = [
@@ -342,11 +382,35 @@ function ArtistCard({ artist, index, onOpen, onToggleFavourite }: ArtistCardProp
       : null
   ].filter(Boolean)
 
+  /*
+   * Three roles on the header, then a count.
+   *
+   * A panel's header label never shrinks or truncates — that is what lets the
+   * rule beside it run unbroken — so somebody marked with all eight roles
+   * would set the width of the tile. Three is what a two-column tile holds.
+   */
+  const named = artist.roles.slice(0, 3).map((role) => ARTIST_ROLE_LABEL[role])
+  const roles = (
+    artist.roles.length > named.length
+      ? [...named, `+${artist.roles.length - named.length}`]
+      : named
+  ).join(' · ')
+
   return (
     <Panel
-      label={artist.name}
+      label={roles || 'Artist'}
       index={String(index + 1).padStart(2, '0')}
       className={styles.span2}
+      flush
+      /*
+        The operator's own tile takes the page's single focal treatment.
+        A roster is read evenly — which is why `ArtistsPage` has no focal panel
+        of its own — but exactly one entry on it is *you*, and that is a fact
+        about the register rather than emphasis chosen for effect. It is also
+        always the first tile, so the crimson edge cannot compete with anything
+        above it.
+      */
+      focal={artist.isOperator}
       aside={
         <button
           type="button"
@@ -361,22 +425,45 @@ function ArtistCard({ artist, index, onOpen, onToggleFavourite }: ArtistCardProp
       }
     >
       <button type="button" className={styles.card} onClick={onOpen}>
-        <Plate
-          path={artist.picture.copiedPath}
-          fallback={initialsOf(artist.name)}
-          size={72}
-          alt=""
-        />
+        <div className={styles.frame}>
+          <Plate
+            path={artist.picture.copiedPath}
+            fallback={initialsOf(artist.name)}
+            fill
+            alt=""
+            className={styles.plate}
+          />
 
-        <div className={styles.cardBody}>
-          {artist.realName ? <span className={styles.realName}>{artist.realName}</span> : null}
+          {/*
+            The scrim, not a solid bar. Every picture on this roster is
+            somebody else's photograph at somebody else's exposure, and a
+            caption has to be legible over all of them — a gradient does that
+            without deciding how much of the picture it is allowed to cover.
+          */}
+          {/*
+            A slight dark wash with a touch of blur under it, over the whole
+            picture rather than just the caption's end of it. Two jobs: it
+            settles a photograph nobody in this console graded into the
+            surface around it, and it gives the name a floor everywhere, not
+            only where the gradient reaches.
+          */}
+          <div className={styles.wash} aria-hidden="true" />
 
-          {artist.roles.length > 0 ? (
-            <span className={styles.roles}>
-              {artist.roles.map((role) => ARTIST_ROLE_LABEL[role]).join(' · ')}
-            </span>
-          ) : null}
+          <div className={styles.scrim} aria-hidden="true" />
 
+          <div className={styles.identity}>
+            <span className={styles.name}>{artist.name}</span>
+            {artist.realName ? <span className={styles.realName}>{artist.realName}</span> : null}
+          </div>
+        </div>
+
+        {/*
+          What the register is for, under the picture rather than over it.
+          The counts are the answer to "who have I actually worked with", and
+          they are a reading — putting them on the photograph would make the
+          tile two things at once.
+        */}
+        <div className={styles.foot}>
           <span className={styles.counts}>
             {counts.length > 0 ? counts.join(' · ') : 'Not credited yet'}
           </span>
@@ -386,10 +473,10 @@ function ArtistCard({ artist, index, onOpen, onToggleFavourite }: ArtistCardProp
               {artist.links.length} link{artist.links.length === 1 ? '' : 's'}
             </span>
           ) : null}
-        </div>
 
-        {/* The operator's own record leads the roster and says so. */}
-        {artist.isOperator ? <span className={styles.self}>THIS IS ME</span> : null}
+          {/* The operator's own record leads the roster and says so. */}
+          {artist.isOperator ? <span className={styles.self}>THIS IS ME</span> : null}
+        </div>
       </button>
     </Panel>
   )

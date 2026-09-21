@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { DEFAULT_FOLDER_COLOUR, isHexColour } from './stacks.constants'
+import { RELEASE_KINDS, RELEASE_STATUSES } from './discography.constants'
+import { PROJECT_CATEGORIES, PROJECT_STAGE_IDS } from './projects.constants'
 import {
   ARTIST_ROLES,
   MAX_ARTIST_LINKS,
@@ -171,3 +173,59 @@ export const ArtistPatchSchema = z.object({
   isOperator: z.boolean().optional()
 })
 export type ArtistPatch = z.infer<typeof ArtistPatchSchema>
+
+// -------------------------------------------------------------------- credits
+
+/*
+ * What an artist is actually on, named rather than counted.
+ *
+ * `ArtistSummary` carries figures because the roster draws the whole register
+ * at once; this is the other half of the note on it — "the ids behind them are
+ * one query away on the artist's own sheet" — and this is that query's shape.
+ *
+ * The enums come from the two constants files rather than from the schema
+ * modules that also define them: `discography.ts` imports `ManagedImageSchema`
+ * from here, so importing its schemas back would close a cycle. The tuples are
+ * zod-free for exactly this reason.
+ */
+
+export const ArtistProjectCreditSchema = z.object({
+  projectId: z.string(),
+  /** The set's name, as the ARCHIVE draws it. */
+  title: z.string().default(''),
+  stage: z.enum(PROJECT_STAGE_IDS).default('idea').catch('idea'),
+  category: z.enum(PROJECT_CATEGORIES).default('single').catch('single'),
+  /** Last touched, so the sheet can lead with what is live. */
+  updatedAt: z.number().default(0)
+})
+export type ArtistProjectCredit = z.infer<typeof ArtistProjectCreditSchema>
+
+/** How somebody is named on a release. Ordered loudest first. */
+export const ARTIST_CREDIT_ROLES = ['primary', 'featured', 'track'] as const
+export type ArtistCreditRole = (typeof ARTIST_CREDIT_ROLES)[number]
+
+export const ArtistReleaseCreditSchema = z.object({
+  releaseId: z.string(),
+  title: z.string().default(''),
+  subtitle: z.string().default(''),
+  kind: z.enum(RELEASE_KINDS).default('single').catch('single'),
+  status: z.enum(RELEASE_STATUSES).default('scheduled').catch('scheduled'),
+  releaseDate: z.string().nullable().default(null),
+  /**
+   * The strongest way they are named on it.
+   *
+   * A release crediting somebody as a primary artist *and* on two of its
+   * tracks is one line on the sheet, not three — the same rule the roster's
+   * counts follow. `tracks` still lists the tracks, so the line can say which.
+   */
+  as: z.enum(ARTIST_CREDIT_ROLES).default('track').catch('track'),
+  /** Titles of the tracks they are credited on, in running order. */
+  tracks: z.array(z.string()).default([])
+})
+export type ArtistReleaseCredit = z.infer<typeof ArtistReleaseCreditSchema>
+
+export const ArtistCreditsSchema = z.object({
+  projects: z.array(ArtistProjectCreditSchema).default([]),
+  releases: z.array(ArtistReleaseCreditSchema).default([])
+})
+export type ArtistCredits = z.infer<typeof ArtistCreditsSchema>

@@ -49,7 +49,13 @@ import type {
   StacksTree
 } from '../domain/stacks'
 import type { TagDraft, TagPatch, TagSummary } from '../domain/tags'
-import type { ArtistDraft, ArtistPatch, ArtistRecord, ArtistSummary } from '../domain/artists'
+import type {
+  ArtistCredits,
+  ArtistDraft,
+  ArtistPatch,
+  ArtistRecord,
+  ArtistSummary
+} from '../domain/artists'
 import type {
   DiscographyRegistry,
   DiscographyRelease,
@@ -235,6 +241,8 @@ export interface CandyHavenApi {
   readonly artists: {
     list(): Promise<ArtistSummary[]>
     get(id: string): Promise<ArtistRecord>
+    /** Which projects and releases name them. Read when a sheet opens. */
+    credits(id: string): Promise<ArtistCredits>
     /** An existing name is returned rather than refused. See `ArtistsService`. */
     create(draft: ArtistDraft): Promise<ArtistRecord>
     /** Renaming propagates everywhere at once; records hold ids, not names. */

@@ -242,6 +242,7 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
 
   router.handle('artists:list', () => services.artists.list())
   router.handle('artists:get', ({ id }) => services.artists.get(id))
+  router.handle('artists:credits', ({ id }) => services.artists.credits(id))
   router.handle('artists:create', (draft) => services.artists.create(draft))
   router.handle('artists:update', ({ id, patch }) => services.artists.update(id, patch))
   router.handle('artists:set-picture', ({ id, sourcePath }) =>

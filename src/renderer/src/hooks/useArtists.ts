@@ -6,7 +6,13 @@ import {
   type UseMutationResult,
   type UseQueryResult
 } from '@tanstack/react-query'
-import type { ArtistDraft, ArtistPatch, ArtistRecord, ArtistSummary } from '@shared/domain/artists'
+import type {
+  ArtistCredits,
+  ArtistDraft,
+  ArtistPatch,
+  ArtistRecord,
+  ArtistSummary
+} from '@shared/domain/artists'
 
 /**
  * Data access for ARTISTS — the roster.
@@ -28,6 +34,26 @@ export function useArtists(enabled = true): UseQueryResult<ArtistSummary[]> {
     queryKey: ARTISTS_KEY,
     queryFn: () => window.candy.artists.list(),
     enabled,
+    staleTime: 10_000
+  })
+}
+
+/**
+ * What one artist is on, named.
+ *
+ * Its own query rather than part of the summary: the roster draws every
+ * artist and would be paying for a list nobody has asked to see, while a
+ * sheet has room for it and is opened one at a time. Keyed under `artists`,
+ * so the same invalidation that follows a credit change clears it too.
+ *
+ * `enabled` is how the sheet asks for it only once it is open — a query keyed
+ * on a null id would be a cache entry per closed sheet.
+ */
+export function useArtistCredits(id: string | null): UseQueryResult<ArtistCredits> {
+  return useQuery({
+    queryKey: ['artists', 'credits', id],
+    queryFn: () => window.candy.artists.credits(id as string),
+    enabled: id !== null,
     staleTime: 10_000
   })
 }

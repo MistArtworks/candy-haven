@@ -170,6 +170,7 @@ const api: CandyHavenApi = {
   artists: {
     list: () => invoke('artists:list'),
     get: (id) => invoke('artists:get', { id }),
+    credits: (id) => invoke('artists:credits', { id }),
     create: (draft) => invoke('artists:create', draft),
     update: (id, patch) => invoke('artists:update', { id, patch }),
     setPicture: (id, sourcePath) => invoke('artists:set-picture', { id, sourcePath }),

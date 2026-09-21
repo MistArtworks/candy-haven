@@ -75,6 +75,7 @@ import { TagDraftSchema, TagPatchSchema, TagSummarySchema } from '../domain/tags
 import {
   ArtistDraftSchema,
   ArtistPatchSchema,
+  ArtistCreditsSchema,
   ArtistRecordSchema,
   ArtistSummarySchema
 } from '../domain/artists'
@@ -377,6 +378,8 @@ export const IPC_INVOKE = {
    */
   'artists:list': { input: z.void(), output: z.array(ArtistSummarySchema) },
   'artists:get': { input: z.object({ id: z.string() }), output: ArtistRecordSchema },
+  // What they are on, named. Read when a sheet opens; see `ArtistsService`.
+  'artists:credits': { input: z.object({ id: z.string() }), output: ArtistCreditsSchema },
   'artists:create': { input: ArtistDraftSchema, output: ArtistRecordSchema },
   'artists:update': {
     input: z.object({ id: z.string(), patch: ArtistPatchSchema }),
