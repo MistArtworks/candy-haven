@@ -9,8 +9,10 @@ import type { MotionPreference } from '@shared/domain/settings'
  *
  * Keeping this in one place means no component has to consult the setting
  * directly to decide whether to animate or how large to draw.
+ *
+ * @param zoom Frame zoom to apply instead of the stored interface scale.
  */
-export function useThemePreferences(): void {
+export function useThemePreferences(zoom?: number): void {
   const settings = useSystemStore(selectSettings)
 
   useEffect(() => {
@@ -44,9 +46,17 @@ export function useThemePreferences(): void {
      * Chromium remembers a zoom factor per origin across reloads — without
      * asserting it here, a reload could come back at whatever the last session
      * left rather than at what is stored.
+     *
+     * `zoom` overrides the stored preference for a window whose *frame* was
+     * built around one particular scale and cannot reflow to another. THE
+     * VESTIBULE is the only one: it is drawn to the pixel at 880x560 and the
+     * main process sizes it to `uiScale` capped at what the display holds, so
+     * it passes back the scale it actually got. Everywhere else this is
+     * undefined and the stored preference stands.
      */
-    window.candy.window.setZoom(settings?.appearance.uiScale ?? 1)
+    window.candy.window.setZoom(zoom ?? settings?.appearance.uiScale ?? 1)
   }, [
+    zoom,
     settings?.appearance.motion,
     settings?.appearance.accent,
     settings?.appearance.grain,

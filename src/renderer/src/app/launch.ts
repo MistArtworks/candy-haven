@@ -21,3 +21,21 @@
 export function enteredFromVestibule(): boolean {
   return new URLSearchParams(window.location.search).get('entered') === '1'
 }
+
+/**
+ * The frame zoom THE VESTIBULE was built around.
+ *
+ * That window is laid out to the pixel against a fixed, unresizable frame, so
+ * it cannot apply the stored interface scale the way every other window does —
+ * at 1.25 the composition overflowed the frame and `overflow: hidden` took the
+ * bottom door off. The main process sizes the frame to the operator's scale,
+ * capped at what the display holds, and passes the scale it settled on here.
+ *
+ * Read from `location.search` at module scope for the same reason as
+ * `enteredFromVestibule`, and defaulted to 1 so a document opened without the
+ * parameter — a reload from devtools, say — still draws at a sane size.
+ */
+export function fittedScale(): number {
+  const raw = Number(new URLSearchParams(window.location.search).get('scale'))
+  return Number.isFinite(raw) && raw > 0 ? raw : 1
+}

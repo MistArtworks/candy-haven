@@ -1,4 +1,4 @@
-import { BrowserWindow, shell } from 'electron'
+import { BrowserWindow, screen, shell } from 'electron'
 import { join } from 'node:path'
 import { is } from '@electron-toolkit/utils'
 import { getLogger } from '@main/core/logger'
@@ -15,6 +15,32 @@ const logger = getLogger('vestibule')
  */
 const WIDTH = 880
 const HEIGHT = 560
+
+/**
+ * The window is sized in the operator's interface scale, not in CSS pixels.
+ *
+ * `uiScale` is applied as the frame's **zoom factor** — see the preload's
+ * `window.setZoom` — which multiplies every CSS pixel in the document. The
+ * console absorbs that by reflowing; this window cannot, because it is laid
+ * out to the pixel against a frame that is fixed and unresizable. At 1.25 the
+ * composition was 1100x700 inside an 880x560 frame with `overflow: hidden`
+ * over it, so the fourth door and the status rail were simply cut off.
+ *
+ * So the frame grows with the scale and the composition stays exactly as
+ * drawn. The scale is capped at what the display can actually hold, because a
+ * doorway larger than the screen is a worse failure than a smaller one — and
+ * the fitted value is handed to the document so the renderer zooms to what the
+ * window was built for rather than to what was stored.
+ */
+function fitScale(requested: number): number {
+  const { workAreaSize } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+  // A tenth of the work area kept back, so the vestibule never sits edge to
+  // edge with the taskbar on the scales that need the whole screen.
+  const room = Math.min((workAreaSize.width * 0.9) / WIDTH, (workAreaSize.height * 0.9) / HEIGHT)
+  // Never below 1: the composition has a floor, and shrinking it to fit a
+  // small display would trade a clipped door for an unreadable one.
+  return Math.max(1, Math.min(requested, room))
+}
 
 /**
  * THE VESTIBULE — the room before the department.
@@ -39,17 +65,26 @@ const HEIGHT = 560
 export class VestibuleManager {
   private window: BrowserWindow | null = null
 
-  /** Opens the vestibule, or focuses the one already open. */
-  async open(): Promise<BrowserWindow> {
+  /**
+   * Opens the vestibule, or focuses the one already open.
+   *
+   * `uiScale` comes from the settings the main process has already loaded by
+   * this point — the renderer could not be asked for it, because the window
+   * has to be the right size before the document it would be asked from
+   * exists.
+   */
+  async open(uiScale = 1): Promise<BrowserWindow> {
     const existing = this.window
     if (existing && !existing.isDestroyed()) {
       this.focus()
       return existing
     }
 
+    const scale = fitScale(uiScale)
+
     const window = new BrowserWindow({
-      width: WIDTH,
-      height: HEIGHT,
+      width: Math.round(WIDTH * scale),
+      height: Math.round(HEIGHT * scale),
       center: true,
       show: false,
       frame: false,
@@ -87,18 +122,30 @@ export class VestibuleManager {
       return { action: 'deny' }
     })
 
-    await this.load(window)
-    logger.info('Vestibule opened')
+    await this.load(window, scale)
+    logger.info(`Vestibule opened at ${scale.toFixed(2)}x`)
     return window
   }
 
-  private async load(window: BrowserWindow): Promise<void> {
+  private async load(window: BrowserWindow, scale: number): Promise<void> {
+    /*
+     * The fitted scale travels with the document.
+     *
+     * The renderer applies `appearance.uiScale` on hydration like every other
+     * window does, and would put back the zoom this window was sized *around*
+     * — including the part `fitScale` refused. `VestibulePage` reads this and
+     * zooms to it instead.
+     */
+    const query = { scale: scale.toFixed(4) }
+
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
       // Its own document, so the dev-server URL needs the path appended rather
       // than a query parameter added.
-      await window.loadURL(new URL('/vestibule.html', process.env['ELECTRON_RENDERER_URL']).href)
+      const url = new URL('/vestibule.html', process.env['ELECTRON_RENDERER_URL'])
+      url.searchParams.set('scale', query.scale)
+      await window.loadURL(url.href)
     } else {
-      await window.loadFile(join(__dirname, '../renderer/vestibule.html'))
+      await window.loadFile(join(__dirname, '../renderer/vestibule.html'), { query })
     }
   }
 

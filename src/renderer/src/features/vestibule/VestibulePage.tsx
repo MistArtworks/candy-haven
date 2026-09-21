@@ -8,6 +8,7 @@ import {
 import { BOOT_STAGES } from '@shared/domain/boot.constants'
 import type { BootPhase } from '@shared/domain/boot'
 import { useSystemStore, selectArchive, selectBoot } from '@renderer/app/store/system.store'
+import { fittedScale } from '@renderer/app/launch'
 import { useArchiveSetup, useStacksTree } from '@renderer/hooks/useStacks'
 import { useProjectMutations } from '@renderer/hooks/useProjects'
 import { useThemePreferences } from '@renderer/hooks/useMotionPreference'
@@ -57,8 +58,15 @@ export function VestibulePage(): ReactNode {
    * without it the vestibule would draw at the default accent and scale
    * whatever REGULATION says, and being the *first* thing on screen is exactly
    * where that drift would show.
+   *
+   * The scale comes from the frame rather than from the setting. This window
+   * is drawn to the pixel at 880x560 and `overflow: hidden` over it, so a
+   * document zoomed past the size of its own frame loses the bottom door and
+   * the status rail — which is what 125% did. The main process sizes the frame
+   * to the operator's scale, capped at what the display can hold, and hands
+   * back what it settled on. See `main/app/vestibule.ts`.
    */
-  useThemePreferences()
+  useThemePreferences(fittedScale())
 
   const [mode, setMode] = useState<Mode>('choose')
   const [storedShelfId, setStoredShelfId] = useState<string | null>(() =>

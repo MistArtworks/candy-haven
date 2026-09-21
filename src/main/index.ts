@@ -214,11 +214,12 @@ async function start(): Promise<void> {
    * face, and a launcher asking them to choose something every morning is the
    * exact opposite of that.
    */
-  const { system } = await services.settings.load()
+  const { system, appearance } = await services.settings.load()
   const openVestibule = system.showVestibule && !hiddenLaunch
 
   if (openVestibule) {
-    await vestibule.open()
+    // The scale has to be known before the frame is made; see `fitScale`.
+    await vestibule.open(appearance.uiScale)
   } else {
     await windows.create({ hidden: hiddenLaunch })
   }
