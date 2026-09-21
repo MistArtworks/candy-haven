@@ -17,12 +17,12 @@ import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
 import { Dialog } from '@renderer/components/primitives/Dialog'
-import { Meter } from '@renderer/components/primitives/Meter'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { TextArea, TextInput } from '@renderer/components/primitives/Input'
 import { gridVariants } from '@renderer/motion/transitions'
 import { formatIsoDate } from '@renderer/lib/format'
 import { useSeed } from '@renderer/hooks/useSeed'
+import { HarvestLog } from './HarvestLog'
 import styles from './SeedPage.module.scss'
 
 /**
@@ -37,9 +37,13 @@ import styles from './SeedPage.module.scss'
  * The page is a sequence rather than a dashboard, because the operator does
  * these once and in order:
  *
- *   **Credentials** → **Review** → **Written**
+ *   **Credentials** → **Harvest** → **Review** → **Written**
  *
- * The middle one is the whole feature. A harvest that wrote straight to the
+ * **Harvest** is a modal that narrates itself — see `HarvestLog`. It is
+ * the first of two gates rather than a spinner: when the reading finishes
+ * it asks to continue, and only then is the proposal revealed.
+ *
+ * **Review** is the second, and the whole feature. A harvest that wrote straight to the
  * catalogue would be a tool nobody could point at a catalogue that already
  * has records in it. So the plan is drawn in full — every record, every
  * link, every track, and every call the adjudicator was not sure about —
@@ -91,7 +95,7 @@ export function SeedPage(): ReactNode {
   const set = <K extends keyof SeedCredentials>(key: K, value: SeedCredentials[K]): void =>
     setForm((current) => ({ ...current, [key]: value }))
 
-  const { plan, outcome, journal, undone, progress, working } = seed
+  const { plan, outcome, journal, undone, log, showLog, progress, working } = seed
 
   /** Spotify is the spine; without it there is nothing to match against. */
   const canRun =
@@ -108,7 +112,6 @@ export function SeedPage(): ReactNode {
     [plan]
   )
 
-  const bar = progress.total > 0 ? progress.done / progress.total : null
   const running =
     working || !['idle', 'review', 'done', 'failed'].includes(progress.phase)
 
@@ -201,7 +204,7 @@ export function SeedPage(): ReactNode {
       ) : null}
 
       {/* ------------------------------------------------------ 1 · credentials */}
-      {!plan ? (
+      {!plan || showLog ? (
         <Panel
           label="CREDENTIALS"
           index="01"
@@ -334,22 +337,11 @@ export function SeedPage(): ReactNode {
             </p>
           </div>
 
-          {running ? (
-            <div className={styles.progress}>
-              <Meter
-                value={bar}
-                label={SEED_PHASE_LABEL[progress.phase]}
-                readout={progress.total > 0 ? `${progress.done} / ${progress.total}` : progress.note}
-                tone="gold"
-              />
-              <p className={styles.progressNote}>{progress.note}</p>
-            </div>
-          ) : null}
         </Panel>
       ) : null}
 
       {/* ----------------------------------------------------------- 2 · review */}
-      {plan && !outcome ? (
+      {plan && !outcome && !showLog ? (
         <>
           <Panel
             label="WHAT THIS WOULD DO"
@@ -518,6 +510,21 @@ export function SeedPage(): ReactNode {
             </Button>
           </div>
         </Panel>
+      ) : null}
+
+      {showLog ? (
+        <HarvestLog
+          log={log}
+          progress={progress}
+          plan={plan}
+          running={running}
+          error={seed.error}
+          onContinue={seed.dismissLog}
+          onDiscard={() => {
+            seed.dismissLog()
+            void seed.reset()
+          }}
+        />
       ) : null}
 
       {undoing && journal ? (

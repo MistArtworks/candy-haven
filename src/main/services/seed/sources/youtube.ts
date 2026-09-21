@@ -24,6 +24,7 @@
 import { request } from '@main/core/net'
 import { titleKey } from '../normalise'
 import type { SpotifyHarvest } from './spotify'
+import type { SeedReporter } from '../reporter'
 
 const API = 'https://www.googleapis.com/youtube/v3'
 
@@ -120,7 +121,7 @@ export interface YoutubeOptions {
   channelUrl: string
   topicChannelUrl: string
   harvest: SpotifyHarvest
-  report: (note: string, done: number, total: number) => void
+  reporter: SeedReporter
 }
 
 export async function harvestYoutube({
@@ -128,10 +129,15 @@ export async function harvestYoutube({
   channelUrl,
   topicChannelUrl,
   harvest,
-  report
+  reporter
 }: YoutubeOptions): Promise<YoutubeHarvest> {
   const warnings: string[] = []
-  if (!apiKey) return { videos: [], channels: [], warnings: ['YouTube was skipped — no API key.'] }
+  if (!apiKey) {
+    reporter.warn('youtube', 'skipped — no API key')
+    return { videos: [], channels: [], warnings: ['YouTube was skipped — no API key.'] }
+  }
+
+  reporter.step('youtube', 'Fuzzy — no identifier, only a title. Contributes links, never records.')
 
   const wanted = [
     { kind: 'main', url: channelUrl },
@@ -144,9 +150,11 @@ export async function harvestYoutube({
     []
 
   for (const source of wanted) {
-    report(`resolving the ${source.kind} channel`, 0, 0)
+    reporter.progress(`resolving the ${source.kind} channel`, 0, 0)
     try {
+      reporter.request('youtube', `youtube/v3/channels for the ${source.kind} channel — ${source.url}`)
       const channel = await resolveChannel(source.url, apiKey)
+      reporter.response('youtube', `${source.kind}: "${channel.title}" (${channel.id})`)
 
       /*
        * The same channel twice is the trap this guards.
@@ -158,6 +166,10 @@ export async function harvestYoutube({
        * forty-six videos that are twenty-three.
        */
       if (seenChannels.has(channel.id)) {
+        reporter.warn(
+          'youtube',
+          `the ${source.kind} channel is the same channel as the other — read once, not twice`
+        )
         warnings.push(
           `The ${source.kind} channel is the same channel as the other one, so it was read once.`
         )
@@ -165,12 +177,16 @@ export async function harvestYoutube({
       }
       seenChannels.add(channel.id)
 
+      reporter.request('youtube', `youtube/v3/playlistItems for uploads ${channel.uploads}`)
       const videos = channel.uploads ? await uploads(channel.uploads, apiKey) : []
+      reporter.response('youtube', `${videos.length} uploads on "${channel.title}"`)
       for (const video of videos) all.push({ ...video, channel: source.kind })
       gathered.push({ kind: source.kind, title: channel.title, count: videos.length })
-      report(`read ${channel.title}`, all.length, all.length)
+      reporter.progress(`read ${channel.title}`, all.length, all.length)
     } catch (error) {
-      warnings.push(`The ${source.kind} YouTube channel was skipped — ${(error as Error).message}`)
+      const reason = (error as Error).message
+      reporter.warn('youtube', `the ${source.kind} channel was skipped — ${reason}`)
+      warnings.push(`The ${source.kind} YouTube channel was skipped — ${reason}`)
     }
   }
 
@@ -206,6 +222,12 @@ export async function harvestYoutube({
       matchTitle: ''
     }
   })
+
+  const exact = videos.filter((v) => v.verdict === 'exact').length
+  reporter.note(
+    'youtube',
+    `${videos.length} uploads · ${exact} matched a released recording by title · ${videos.length - exact} for the adjudicator`
+  )
 
   return { videos, channels: gathered, warnings }
 }

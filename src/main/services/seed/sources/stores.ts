@@ -23,6 +23,7 @@
  */
 import { basicAuth, paced, pool, request } from '@main/core/net'
 import type { SpotifyHarvest } from './spotify'
+import type { SeedReporter } from '../reporter'
 
 export interface StoreHit {
   found: boolean
@@ -161,7 +162,7 @@ export interface StoreOptions {
   storefront: string
   tidalClientId: string
   tidalClientSecret: string
-  report: (note: string, done: number, total: number) => void
+  reporter: SeedReporter
 }
 
 export async function harvestStores({
@@ -169,10 +170,15 @@ export async function harvestStores({
   storefront,
   tidalClientId,
   tidalClientSecret,
-  report
+  reporter
 }: StoreOptions): Promise<StoreHarvest> {
   const warnings: string[] = []
   const recordings = harvest.releases.flatMap((release) => release.tracks)
+
+  reporter.step(
+    'stores',
+    'Three sources joined by an identifier — a link here is either right or absent'
+  )
 
   /*
    * Apple is paced to twenty a minute.
@@ -182,42 +188,78 @@ export async function harvestStores({
    * minute either way, and being throttled mid-harvest costs more than the
    * pacing does.
    */
+  reporter.step(
+    'apple',
+    `${harvest.releases.length} records by UPC, paced to 20/min — past that it answers 403`
+  )
   const appleByRelease: Record<string, StoreHit> = {}
   let appleDone = 0
   await paced(harvest.releases, 20, async (release) => {
-    appleByRelease[release.id] = await apple(release.upc, storefront).catch((error: Error) =>
-      miss(error.message)
-    )
-    report('Apple Music, by UPC', ++appleDone, harvest.releases.length)
+    reporter.request('apple', `itunes.apple.com/lookup?upc=${release.upc || '(none)'}&country=${storefront}`)
+    const hit = await apple(release.upc, storefront).catch((error: Error) => miss(error.message))
+    appleByRelease[release.id] = hit
+    reporter.response('apple', hit.found ? `"${release.title}" found` : `"${release.title}" — ${hit.reason}`)
+    reporter.progress('Apple Music, by UPC', ++appleDone, harvest.releases.length)
   })
+  reporter.note(
+    'apple',
+    `${Object.values(appleByRelease).filter((h) => h.found).length} of ${harvest.releases.length} records`
+  )
 
+  reporter.step('deezer', `${recordings.length} recordings by ISRC, keyless, 5 in flight`)
   const deezerByTrack: Record<string, StoreHit> = {}
   let deezerDone = 0
   await pool(recordings, 5, async (track) => {
-    deezerByTrack[track.id] = await deezer(track.isrc).catch((error: Error) => miss(error.message))
-    report('Deezer, by ISRC', ++deezerDone, recordings.length)
+    const hit = await deezer(track.isrc).catch((error: Error) => miss(error.message))
+    deezerByTrack[track.id] = hit
+    deezerDone += 1
+    if (deezerDone <= 4) {
+      reporter.request('deezer', `api.deezer.com/track/isrc:${track.isrc || '(none)'}`)
+      reporter.response('deezer', hit.found ? `"${hit.title}"` : hit.reason)
+    }
+    reporter.progress('Deezer, by ISRC', deezerDone, recordings.length)
   })
+  reporter.note(
+    'deezer',
+    `${Object.values(deezerByTrack).filter((h) => h.found).length} of ${recordings.length} recordings`
+  )
 
   const tidalByTrack: Record<string, StoreHit> = {}
   if (tidalClientId && tidalClientSecret) {
     try {
+      reporter.step('tidal', `${recordings.length} recordings by ISRC — rate-limits hard, 4 in flight`)
+      reporter.request('tidal', 'POST auth.tidal.com/v1/oauth2/token (client credentials)')
       const bearer = await tidalToken(tidalClientId, tidalClientSecret)
+      reporter.response('tidal', 'authenticated')
+
       let tidalDone = 0
       // Four in flight rather than five: TIDAL rate-limits harder than the
       // others and answers 429 in bursts. `request` backs off either way.
       await pool(recordings, 4, async (track) => {
-        tidalByTrack[track.id] = await tidal(track.isrc, bearer).catch((error: Error) =>
-          miss(error.message)
-        )
-        report('TIDAL, by ISRC', ++tidalDone, recordings.length)
+        const hit = await tidal(track.isrc, bearer).catch((error: Error) => miss(error.message))
+        tidalByTrack[track.id] = hit
+        tidalDone += 1
+        if (tidalDone <= 4) {
+          reporter.request('tidal', `openapi.tidal.com/v2/tracks?filter[isrc]=${track.isrc || '(none)'}`)
+          reporter.response('tidal', hit.found ? `"${hit.title}"` : hit.reason)
+        }
+        reporter.progress('TIDAL, by ISRC', tidalDone, recordings.length)
       })
+      reporter.note(
+        'tidal',
+        `${Object.values(tidalByTrack).filter((h) => h.found).length} of ${recordings.length} recordings`
+      )
     } catch (error) {
-      warnings.push(`TIDAL was skipped — ${(error as Error).message}`)
+      const reason = (error as Error).message
+      reporter.warn('tidal', `skipped — ${reason}`)
+      warnings.push(`TIDAL was skipped — ${reason}`)
     }
   } else {
+    reporter.warn('tidal', 'skipped — no client id and secret were given')
     warnings.push('TIDAL was skipped — no client id and secret were given.')
   }
 
+  reporter.warn('amazon', 'no public catalogue API exists, and Odesli is no longer keyless')
   warnings.push('Amazon Music has no public route, so no record will carry an Amazon link.')
 
   return { apple: appleByRelease, deezer: deezerByTrack, tidal: tidalByTrack, warnings }

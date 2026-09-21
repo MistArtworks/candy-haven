@@ -4,6 +4,7 @@ import type {
   SeedChoice,
   SeedCredentials,
   SeedJournal,
+  SeedLogEntry,
   SeedOutcome,
   SeedPlan,
   SeedProgress,
@@ -31,6 +32,13 @@ import type {
 
 const IDLE: SeedProgress = { phase: 'idle', note: '', done: 0, total: 0, error: '' }
 
+/** The phases during which the harvest is still reading somebody's API. */
+const HARVESTING = ['spotify', 'stores', 'youtube', 'soundcloud', 'adjudicating', 'planning']
+
+export function isHarvesting(phase: SeedProgress['phase']): boolean {
+  return HARVESTING.includes(phase)
+}
+
 export interface SeedController {
   progress: SeedProgress
   plan: SeedPlan | null
@@ -38,6 +46,19 @@ export interface SeedController {
   /** The last run, if it is still on record and can therefore be undone. */
   journal: SeedJournal | null
   undone: SeedUndoResult | null
+  /** Everything the run has said about itself, oldest first. */
+  log: SeedLogEntry[]
+  /**
+   * Whether the narration modal is up.
+   *
+   * Opened by `run`, and on mount when a harvest is already in flight —
+   * which is what makes walking off the page and back not lose the account
+   * of a run that takes two minutes. Closed only by `dismissLog`, so a
+   * finished harvest waits on the operator rather than dropping them into
+   * the proposal.
+   */
+  showLog: boolean
+  dismissLog: () => void
   /** True while the harvest or the write is in flight. */
   working: boolean
   /** The last refusal, in the operator's language. */
@@ -57,6 +78,8 @@ export function useSeed(): SeedController {
   const [plan, setPlan] = useState<SeedPlan | null>(null)
   const [outcome, setOutcome] = useState<SeedOutcome | null>(null)
   const [journal, setJournal] = useState<SeedJournal | null>(null)
+  const [log, setLog] = useState<SeedLogEntry[]>([])
+  const [showLog, setShowLog] = useState(false)
   const [undone, setUndone] = useState<SeedUndoResult | null>(null)
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
@@ -77,16 +100,31 @@ export function useSeed(): SeedController {
       setPlan(state.plan)
       setOutcome(state.outcome)
       setJournal(state.journal)
+      setLog(state.log)
+      /*
+       * Re-open the modal only for a run still in flight.
+       *
+       * A finished harvest found at mount means the operator has already
+       * been through this and walked away, so dropping them straight into
+       * the proposal is right. One still running is the case where the
+       * account of it is the whole reason to be on the page.
+       */
+      setShowLog(isHarvesting(state.progress.phase))
     })
 
-    const stop = window.candy.seed.onProgress((next) => {
+    const stopProgress = window.candy.seed.onProgress((next) => {
       setProgress(next)
       if (next.phase === 'failed' && next.error) setError(next.error)
     })
 
+    const stopLog = window.candy.seed.onLog((batch) => {
+      setLog((current) => [...current, ...batch.entries])
+    })
+
     return () => {
       live = false
-      stop()
+      stopProgress()
+      stopLog()
     }
   }, [])
 
@@ -107,10 +145,15 @@ export function useSeed(): SeedController {
     (credentials: SeedCredentials) =>
       attempt(async () => {
         setOutcome(null)
+        setLog([])
+        setShowLog(true)
         setPlan(await window.candy.seed.run(credentials))
       }),
     [attempt]
   )
+
+  /** Press Continue. The plan is already loaded; this only closes the modal. */
+  const dismissLog = useCallback(() => setShowLog(false), [])
 
   const decide = useCallback(
     (key: string, choice: SeedChoice) =>
@@ -185,6 +228,8 @@ export function useSeed(): SeedController {
         setPlan(null)
         setOutcome(null)
         setUndone(null)
+        setLog([])
+        setShowLog(false)
         setProgress(IDLE)
       }),
     [attempt]
@@ -196,6 +241,9 @@ export function useSeed(): SeedController {
     outcome,
     journal,
     undone,
+    log,
+    showLog,
+    dismissLog,
     working,
     error,
     run,

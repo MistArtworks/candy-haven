@@ -70,6 +70,7 @@ import type {
 import type {
   SeedChoice,
   SeedCredentials,
+  SeedLogBatch,
   SeedOutcome,
   SeedPlan,
   SeedProgress,
@@ -340,6 +341,8 @@ export interface CandyHavenApi {
     /** Keeps the run and forgets how to undo it. */
     accept(): Promise<void>
     onProgress(listener: (progress: SeedProgress) => void): Unsubscribe
+    /** The run narrating itself, in batches of a tenth of a second. */
+    onLog(listener: (batch: SeedLogBatch) => void): Unsubscribe
   }
   /**
    * The selection rite served to OBS. Every method returns the whole state:

@@ -20,6 +20,7 @@
 import { pool, request } from '@main/core/net'
 import { titleKey } from '../normalise'
 import type { SpotifyHarvest } from './spotify'
+import type { SeedReporter } from '../reporter'
 
 export interface SoundcloudTrack {
   url: string
@@ -42,13 +43,13 @@ export interface SoundcloudOptions {
   /** One URL per line, as pasted. Anything that is not a track URL is ignored. */
   urls: string
   harvest: SpotifyHarvest
-  report: (note: string, done: number, total: number) => void
+  reporter: SeedReporter
 }
 
 export async function harvestSoundcloud({
   urls,
   harvest,
-  report
+  reporter
 }: SoundcloudOptions): Promise<SoundcloudHarvest> {
   const list = urls
     .split(/\r?\n/)
@@ -56,8 +57,14 @@ export async function harvestSoundcloud({
     .filter((line) => line.startsWith('https://soundcloud.com/'))
 
   if (list.length === 0) {
+    reporter.warn('soundcloud', 'skipped — no track links were given')
     return { tracks: [], warnings: ['SoundCloud was skipped — no track links were given.'] }
   }
+
+  reporter.step(
+    'soundcloud',
+    `${list.length} links via oEmbed — no API key exists for an Artist account, and no ISRC comes back`
+  )
 
   let done = 0
   const read = await pool(list, 4, async (url) => {
@@ -74,7 +81,9 @@ export async function harvestSoundcloud({
       const data = await request<{ title?: string; thumbnail_url?: string; description?: string }>(
         `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(url)}`
       )
-      report('SoundCloud, by title', ++done, list.length)
+      done += 1
+      if (done <= 4) reporter.response('soundcloud', `"${(data.title ?? '').slice(0, 70)}"`)
+      reporter.progress('SoundCloud, by title', done, list.length)
       return {
         ...base,
         // oEmbed titles read "Title by Artist"; the artist is already known.
@@ -84,7 +93,9 @@ export async function harvestSoundcloud({
         found: true
       }
     } catch (error) {
-      report('SoundCloud, by title', ++done, list.length)
+      done += 1
+      reporter.warn('soundcloud', `${url} — ${(error as Error).message}`)
+      reporter.progress('SoundCloud, by title', done, list.length)
       return { ...base, found: false, reason: (error as Error).message }
     }
   })
@@ -115,6 +126,12 @@ export async function harvestSoundcloud({
     const near = known.filter((entry) => entry.key.includes(key) || key.includes(entry.key))
     return { ...track, verdict: near.length > 0 ? 'near' : 'unmatched' }
   })
+
+  const exact = tracks.filter((t) => t.verdict === 'exact').length
+  reporter.note(
+    'soundcloud',
+    `${tracks.filter((t) => t.found).length} read · ${exact} matched a released recording · ${tracks.length - exact} for the adjudicator`
+  )
 
   return { tracks, warnings: [] }
 }

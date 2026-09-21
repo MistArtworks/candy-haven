@@ -93,6 +93,7 @@ import {
 import {
   SeedChoiceSchema,
   SeedCredentialsSchema,
+  SeedLogBatchSchema,
   SeedOutcomeSchema,
   SeedPlanSchema,
   SeedProgressSchema,
@@ -967,8 +968,16 @@ export const IPC_EVENT = {
   'calendar:state': CalendarStateSchema,
   'auditorium:file': z.object({ path: z.string().nullable() }),
   'window:state': WindowStateSchema,
-  /** THE SEEDER · temporary. Delete with the feature. */
-  'seed:progress': SeedProgressSchema
+  /** THE SEEDER · temporary. Delete both with the feature. */
+  'seed:progress': SeedProgressSchema,
+  /**
+   * The harvest narrating itself, batched.
+   *
+   * Separate from `seed:progress` because the two are different kinds of
+   * thing: progress replaces itself and drives a bar, and this accumulates
+   * and is read. See `SeedLogEntrySchema`.
+   */
+  'seed:log': SeedLogBatchSchema
 } satisfies Record<string, z.ZodType>
 
 export type EventMap = typeof IPC_EVENT

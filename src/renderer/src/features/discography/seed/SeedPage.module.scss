@@ -114,19 +114,6 @@
   }
 }
 
-.progress {
-  margin-top: space(5);
-  display: flex;
-  flex-direction: column;
-  gap: space(2);
-}
-
-.progressNote {
-  margin: 0;
-  @include readout(11px);
-  color: var(--ch-text-muted);
-}
-
 // ------------------------------------------------------------------ tally
 
 .tally {

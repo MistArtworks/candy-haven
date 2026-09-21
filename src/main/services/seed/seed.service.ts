@@ -34,6 +34,9 @@ import type {
   SeedChoice,
   SeedCredentials,
   SeedJournal,
+  SeedLogBatch,
+  SeedLogEntry,
+  SeedLogLevel,
   SeedOutcome,
   SeedPhase,
   SeedPlan,
@@ -51,6 +54,7 @@ import { adjudicate, type Verdict } from './adjudicate'
 import { applyPlan } from './apply'
 import { clearJournal, readJournal, undoJournal, writeJournal } from './journal'
 import { buildPlan } from './plan'
+import { reporterFor, type SeedReporter } from './reporter'
 import { harvestSoundcloud, type SoundcloudHarvest } from './sources/soundcloud'
 import { harvestSpotify, type SpotifyHarvest } from './sources/spotify'
 import { harvestStores, type StoreHarvest } from './sources/stores'
@@ -60,7 +64,27 @@ const logger = getLogger('seed')
 
 interface SeedEvents {
   progress: SeedProgress
+  log: SeedLogBatch
 }
+
+/**
+ * How many lines of narration are kept.
+ *
+ * A full harvest writes around four hundred. The cap is there for the run
+ * that goes wrong — a source retrying against a 429 for ten minutes — where
+ * an uncapped buffer would be the largest thing crossing the bridge on every
+ * `seed:state`. Oldest lines go first; the recent ones are the useful ones.
+ */
+const LOG_CEILING = 4000
+
+/**
+ * Lines are emitted in batches on a short timer, not one per call.
+ *
+ * At the peak the harvest logs several lines a millisecond, and one IPC
+ * message each would flood the renderer with re-renders for text nobody can
+ * read that fast. A tenth of a second reads as live and costs one message.
+ */
+const LOG_FLUSH_MS = 100
 
 /** Everything the harvest learned, kept so a rebuild costs no network. */
 interface Harvest {
@@ -96,6 +120,10 @@ export class SeedService extends TypedEmitter<SeedEvents> {
    * the whole point of the journal is to be there afterwards.
    */
   private journal: SeedJournal | null | undefined = undefined
+  private log: SeedLogEntry[] = []
+  private pending: SeedLogEntry[] = []
+  private flushTimer: NodeJS.Timeout | null = null
+  private startedAt = 0
 
   // ------------------------------------------------------------------ state
 
@@ -112,8 +140,48 @@ export class SeedService extends TypedEmitter<SeedEvents> {
       plan: this.plan,
       outcome: this.outcome,
       armed: this.credentials !== null,
-      journal: this.journal
+      journal: this.journal,
+      log: this.log
     }
+  }
+
+  // -------------------------------------------------------------- narration
+
+  private say(level: SeedLogLevel, source: string, text: string): void {
+    const entry: SeedLogEntry = {
+      at: this.startedAt === 0 ? 0 : Date.now() - this.startedAt,
+      level,
+      source,
+      text
+    }
+
+    this.log.push(entry)
+    if (this.log.length > LOG_CEILING) this.log.splice(0, this.log.length - LOG_CEILING)
+
+    this.pending.push(entry)
+    if (this.flushTimer) return
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null
+      this.flush()
+    }, LOG_FLUSH_MS)
+  }
+
+  private flush(): void {
+    if (this.pending.length === 0) return
+    const entries = this.pending
+    this.pending = []
+    this.emit('log', { entries })
+  }
+
+  /** The object every rung of the harvest narrates through. */
+  private reporterFor(phase: SeedPhase): SeedReporter {
+    return reporterFor({
+      progress: (note, done, total) => {
+        this.progress = { phase, note, done, total, error: '' }
+        this.emit('progress', this.progress)
+      },
+      log: (level, source, text) => this.say(level, source, text)
+    })
   }
 
   private advance(phase: SeedPhase, note = '', done = 0, total = 0): void {
@@ -131,6 +199,11 @@ export class SeedService extends TypedEmitter<SeedEvents> {
 
   private fail(error: unknown): never {
     const message = error instanceof Error ? error.message : String(error)
+    // Into the narration as well as the log file: the operator is reading the
+    // modal, not `%APPDATA%`, and a run that stops with a blank pane is the
+    // one failure mode this whole feature was meant to remove.
+    this.say('error', 'seeder', message)
+    this.flush()
     this.progress = { phase: 'failed', note: '', done: 0, total: 0, error: message }
     this.emit('progress', this.progress)
     logger.error(`The harvest failed: ${message}`)
@@ -159,11 +232,16 @@ export class SeedService extends TypedEmitter<SeedEvents> {
     this.credentials = credentials
     this.outcome = null
 
+    this.log = []
+    this.pending = []
+    this.startedAt = Date.now()
+    this.say('step', 'seeder', 'Harvest started. Nothing is written until you confirm.')
+
     try {
       this.advance('spotify', 'authenticating')
       const spotify = await harvestSpotify({
         credentials,
-        report: this.reporter('spotify')
+        reporter: this.reporterFor('spotify')
       })
       logger.info(
         `Spotify: ${spotify.releases.length} records, ${spotify.releases.reduce(
@@ -178,7 +256,7 @@ export class SeedService extends TypedEmitter<SeedEvents> {
         storefront: credentials.appleStorefront || 'ca',
         tidalClientId: credentials.tidalClientId,
         tidalClientSecret: credentials.tidalClientSecret,
-        report: this.reporter('stores')
+        reporter: this.reporterFor('stores')
       })
 
       this.advance('youtube', 'reading the channels')
@@ -187,14 +265,14 @@ export class SeedService extends TypedEmitter<SeedEvents> {
         channelUrl: credentials.youtubeChannelUrl,
         topicChannelUrl: credentials.youtubeTopicChannelUrl,
         harvest: spotify,
-        report: this.reporter('youtube')
+        reporter: this.reporterFor('youtube')
       })
 
       this.advance('soundcloud', 'reading the uploads')
       const soundcloud = await harvestSoundcloud({
         urls: credentials.soundcloudTrackUrls,
         harvest: spotify,
-        report: this.reporter('soundcloud')
+        reporter: this.reporterFor('soundcloud')
       })
 
       this.advance('adjudicating', 'weighing the uncertain ones')
@@ -203,7 +281,7 @@ export class SeedService extends TypedEmitter<SeedEvents> {
         harvest: spotify,
         soundcloud,
         youtube,
-        report: this.reporter('adjudicating')
+        reporter: this.reporterFor('adjudicating')
       })
 
       this.harvest = {
@@ -228,7 +306,20 @@ export class SeedService extends TypedEmitter<SeedEvents> {
       this.excluded.clear()
 
       this.advance('planning', 'comparing against the catalogue')
+      this.say('step', 'plan', 'Grouping exclusives and matching against the catalogue as it stands')
       const plan = await this.rebuild()
+
+      this.say(
+        'note',
+        'plan',
+        `${plan.summary.creating} records to raise · ${plan.summary.updating} to update · ${plan.summary.recordings} recordings · ${plan.summary.dropped} dropped`
+      )
+      if (plan.summary.flagged > 0) {
+        this.say('warn', 'plan', `${plan.summary.flagged} calls need your eye before writing`)
+      }
+      this.say('step', 'seeder', 'Harvest finished. Nothing has been written.')
+      this.flush()
+
       this.advance('review', 'nothing has been written')
       return plan
     } catch (error) {
@@ -328,6 +419,7 @@ export class SeedService extends TypedEmitter<SeedEvents> {
     this.busy = true
     try {
       this.advance('applying', 'writing', 0, plan.records.filter((r) => r.include).length)
+      this.say('step', 'write', `Writing ${plan.summary.records} records through the catalogue's own service`)
 
       const { outcome, journal } = await applyPlan({
         plan,
@@ -335,6 +427,16 @@ export class SeedService extends TypedEmitter<SeedEvents> {
         artists: this.artists,
         report: this.reporter('applying')
       })
+
+      this.say(
+        'note',
+        'write',
+        `${outcome.created} raised · ${outcome.updated} updated · ${outcome.tracksAdded} tracks · ${outcome.linksAdded} links · ${outcome.artistsCreated} artists`
+      )
+      for (const failure of outcome.failures) {
+        this.say('error', 'write', `${failure.title} — ${failure.reason}`)
+      }
+      this.flush()
 
       /*
        * Journalled before anything is reported.
@@ -391,6 +493,7 @@ export class SeedService extends TypedEmitter<SeedEvents> {
     this.busy = true
     try {
       this.advance('applying', 'undoing', 0, journal.releases.length + journal.artistIds.length)
+      this.say('step', 'undo', `Reversing ${journal.releases.length} records and ${journal.artistIds.length} artists`)
       const result = await undoJournal({
         journal,
         discography: this.discography,
@@ -400,6 +503,12 @@ export class SeedService extends TypedEmitter<SeedEvents> {
 
       this.journal = null
       this.outcome = null
+      this.say(
+        'note',
+        'undo',
+        `${result.releasesRemoved} removed · ${result.releasesReverted} reverted · ${result.artistsRemoved} artists`
+      )
+      this.flush()
       this.advance('done', `${result.releasesRemoved} removed, ${result.artistsRemoved} artists`)
 
       // The plan, if one is still loaded, now describes a catalogue that no
@@ -422,6 +531,9 @@ export class SeedService extends TypedEmitter<SeedEvents> {
     this.excluded.clear()
     this.plan = null
     this.outcome = null
+    this.log = []
+    this.pending = []
+    this.startedAt = 0
     this.advance('idle')
   }
 

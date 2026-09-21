@@ -802,6 +802,7 @@ export function registerEventBridges(deps: {
 
   // THE SEEDER · temporary. Delete with the feature.
   services.seed.on('progress', (progress) => router.broadcast('seed:progress', progress))
+  services.seed.on('log', (batch) => router.broadcast('seed:log', batch))
 
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

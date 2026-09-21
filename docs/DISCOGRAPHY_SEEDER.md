@@ -228,9 +228,27 @@ delete next week should not look like one of the ten.
    settings, never returned across the bridge, and gone when the window
    closes. `SeedState` — the only thing the renderer can read — has no field
    that could carry one back.
-2. **Harvest.** Reads all six sources, adjudicates what a title could not
-   settle, and builds a plan. It writes **nothing**. The whole harvest is held
-   in the service's memory, so the page can be left and come back to.
+2. **Harvest.** A modal opens and the run narrates itself: every call that
+   goes out, what came back, and what each rung concluded — timestamped, one
+   line each, colour-coded by which band of the pipeline produced it. It
+   writes **nothing**.
+
+   That is not decoration. A harvest is two minutes of somebody else's
+   computers being asked questions, and a bar says only that it has not
+   finished; the operator watching it is deciding whether to trust what comes
+   out, and that judgement needs the working. It is also the only diagnostic
+   there is — when TIDAL rate-limits or a channel handle resolves to somebody
+   else's account, the line that says so is the difference between a fixable
+   run and a mysterious one.
+
+   **URLs are redacted before they reach the renderer.** A YouTube request
+   carries its key in the query string and this pane is the likeliest thing
+   in the feature to end up in a screenshot. See `redact` in `reporter.ts`.
+
+   The modal does not close itself. When the reading finishes it becomes the
+   **first of two gates** — `Continue` — and only then is the proposal
+   revealed. The whole harvest is held in the service's memory, so the page
+   can be left and come back to mid-run.
 3. **Review — the confirm screen.** Every record it would raise or update,
    every platform link with *how it was matched*, every track with its ISRC,
    and every call the adjudicator was unsure about with its odds. Two things
@@ -242,10 +260,11 @@ delete next week should not look like one of the ten.
    Either rebuilds the whole plan from the cached harvest. That is not an
    optimisation: it is what guarantees the screen describes the writes, rather
    than describing the writes plus some adjustments.
-4. **Write.** One button, and a dialog that restates the totals before it
-   does anything. **Additive and idempotent** — see §6.
+4. **Write.** The second gate: one button, and a dialog that restates the
+   totals before it does anything. **Additive and idempotent** — see §6.
 
-The gap between 2 and 4 is the feature. A seeder that harvested and wrote in
+Two deliberate presses stand between reading a public API and changing the
+catalogue. The gap between 2 and 4 is the feature. A seeder that harvested and wrote in
 one press would be a tool nobody could point at a catalogue that already has
 records in it.
 

@@ -123,6 +123,47 @@ export const SeedProgressSchema = z.object({
 })
 export type SeedProgress = z.infer<typeof SeedProgressSchema>
 
+// --------------------------------------------------------------------- log
+
+export const SEED_LOG_LEVELS = ['step', 'request', 'response', 'note', 'warn', 'error'] as const
+export type SeedLogLevel = (typeof SEED_LOG_LEVELS)[number]
+
+/**
+ * One line of the harvest's account of itself.
+ *
+ * ## Why the run is narrated rather than metered
+ *
+ * A harvest is two minutes of somebody else's computers being asked
+ * questions, and a progress bar says only that it has not finished. The
+ * operator watching it is not waiting — they are deciding whether to trust
+ * what comes out, and that judgement needs the working: which service was
+ * asked, what it was asked for, what it said, and what that means for the
+ * next step.
+ *
+ * It is also the only diagnostic there is. When TIDAL rate-limits or a
+ * channel handle resolves to the wrong account, the line that says so is the
+ * difference between a fixable run and a mysterious one.
+ *
+ * **URLs are redacted before they get here.** A YouTube request carries its
+ * API key in the query string, and this list crosses the bridge into a
+ * renderer that could be screen-shared. See `redact` in `reporter.ts`.
+ */
+export const SeedLogEntrySchema = z.object({
+  /** Milliseconds since the run began, not a wall clock — this is a stopwatch. */
+  at: z.number().int().min(0).default(0),
+  level: z.enum(SEED_LOG_LEVELS).default('note'),
+  /** Which rung produced it: `spotify`, `tidal`, `jev`, `plan`, `write`. */
+  source: z.string().default(''),
+  text: z.string().default('')
+})
+export type SeedLogEntry = z.infer<typeof SeedLogEntrySchema>
+
+/** Emitted in batches, because a harvest writes a few hundred of these. */
+export const SeedLogBatchSchema = z.object({
+  entries: z.array(SeedLogEntrySchema).default([])
+})
+export type SeedLogBatch = z.infer<typeof SeedLogBatchSchema>
+
 // -------------------------------------------------------------------- plan
 
 export const SeedPlatformSchema = z.object({
@@ -341,6 +382,13 @@ export const SeedStateSchema = z.object({
    * The last run, if one is still on record — which is what makes undo
    * offerable. Null both before the first write and after an undo.
    */
-  journal: SeedJournalSchema.nullable().default(null)
+  journal: SeedJournalSchema.nullable().default(null),
+  /**
+   * The narration so far, so the page can be left and come back to mid-run.
+   *
+   * Capped in the service. A log that grew without limit would eventually be
+   * the largest thing crossing the bridge on every `seed:state`.
+   */
+  log: z.array(SeedLogEntrySchema).default([])
 })
 export type SeedState = z.infer<typeof SeedStateSchema>

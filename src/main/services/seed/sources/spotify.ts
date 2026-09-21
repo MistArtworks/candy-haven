@@ -25,6 +25,7 @@
  */
 import { basicAuth, pool, request } from '@main/core/net'
 import { spotifyArtistId } from '../normalise'
+import type { SeedReporter } from '../reporter'
 import type { SeedCredentials } from '@shared/domain/seed'
 
 const API = 'https://api.spotify.com/v1'
@@ -99,12 +100,13 @@ interface RawTrack {
  * user to send to a consent screen and no refresh token to store. The redirect
  * URI the dashboard insisted on is never used.
  */
-async function token(credentials: SeedCredentials): Promise<string> {
+async function token(credentials: SeedCredentials, reporter: SeedReporter): Promise<string> {
   const { spotifyClientId, spotifyClientSecret } = credentials
   if (!spotifyClientId || !spotifyClientSecret) {
     throw new Error('Spotify needs a client id and secret.')
   }
 
+  reporter.request('spotify', 'POST https://accounts.spotify.com/api/token (client credentials)')
   const granted = await request<{ access_token: string }>(
     'https://accounts.spotify.com/api/token',
     {
@@ -117,6 +119,7 @@ async function token(credentials: SeedCredentials): Promise<string> {
     }
   )
 
+  reporter.response('spotify', 'a bearer token, good for this run')
   return granted.access_token
 }
 
@@ -136,25 +139,29 @@ async function all<T>(url: string, bearer: string): Promise<T[]> {
 
 export interface SpotifyOptions {
   credentials: SeedCredentials
-  /** Called as each step learns its own size, so the bar can fill honestly. */
-  report: (note: string, done: number, total: number) => void
+  reporter: SeedReporter
 }
 
 export async function harvestSpotify({
   credentials,
-  report
+  reporter
 }: SpotifyOptions): Promise<SpotifyHarvest> {
   const artistId = spotifyArtistId(credentials.spotifyArtistUrl)
   if (!artistId) throw new Error('The Spotify artist link is empty.')
 
-  const bearer = await token(credentials)
+  reporter.step('spotify', 'The spine — the only source carrying ISRC and UPC')
+  reporter.note('spotify', `Artist id ${artistId}, taken from the link. Never matched by name.`)
 
-  report('reading the artist', 0, 0)
+  const bearer = await token(credentials, reporter)
+
+  reporter.progress('reading the artist', 0, 0)
+  reporter.request('spotify', `${API}/artists/${artistId}`)
   const artist = await request<{
     id: string
     name: string
     external_urls?: { spotify?: string }
   }>(`${API}/artists/${artistId}`, auth(bearer))
+  reporter.response('spotify', `"${artist.name}"`)
 
   /*
    * Album *groups* rather than album types: the group says how this artist
@@ -164,12 +171,15 @@ export async function harvestSpotify({
   const groups = ['album', 'single', 'compilation', 'appears_on']
   const seen = new Map<string, { id: string; groups: string[] }>()
 
+  reporter.step('spotify', 'Listing four album groups — limit is 10 per page, not the documented 50')
   for (const group of groups) {
-    report(`listing ${group}`, 0, 0)
+    reporter.progress(`listing ${group}`, 0, 0)
+    reporter.request('spotify', `${API}/artists/${artistId}/albums?include_groups=${group}&limit=10`)
     const found = await all<{ id: string }>(
       `${API}/artists/${artistId}/albums?include_groups=${group}&limit=10&market=${MARKET}`,
       bearer
     )
+    reporter.response('spotify', `${group}: ${found.length}`)
     for (const album of found) {
       // Spotify returns the same record under more than one group; the id is
       // what makes it one record.
@@ -179,17 +189,31 @@ export async function harvestSpotify({
   }
 
   const ids = [...seen.keys()]
+  reporter.note('spotify', `${ids.length} distinct records across the four groups`)
 
-  // Full records: the artist endpoint returns summaries with no UPC, no label
-  // and no tracklist.
+  /*
+   * Full records: the artist endpoint returns summaries with no UPC, no label
+   * and no tracklist. One call each, because the batch endpoint answers 403
+   * for applications registered now.
+   */
+  reporter.step('spotify', `Reading ${ids.length} records in full — one call each, 5 in flight`)
   let readRecords = 0
   const detailed = (
     await pool(ids, 5, async (id) => {
       const full = await request<RawAlbum>(`${API}/albums/${id}?market=${MARKET}`, auth(bearer))
-      report('reading records', ++readRecords, ids.length)
+      readRecords += 1
+      if (readRecords <= 4 || readRecords === ids.length) {
+        const count = full.tracks.items.length
+        reporter.response(
+          'spotify',
+          `"${full.name}" — ${count} ${count === 1 ? 'track' : 'tracks'}, UPC ${full.external_ids?.upc || 'none'}`
+        )
+      }
+      reporter.progress('reading records', readRecords, ids.length)
       return full
     })
   ).filter(Boolean)
+  reporter.response('spotify', `${detailed.length} records read`)
 
   /*
    * ISRCs come from the track endpoint, not from the album's tracklist.
@@ -199,15 +223,25 @@ export async function harvestSpotify({
    * says two recordings on two platforms are the same recording.
    */
   const trackIds = [...new Set(detailed.flatMap((album) => album.tracks.items.map((t) => t.id)))]
+  reporter.step(
+    'spotify',
+    `Reading ${trackIds.length} recordings for their ISRCs — an album's tracklist does not carry them`
+  )
   let readTracks = 0
   const tracks = new Map<string, RawTrack>()
   for (const track of await pool(trackIds, 5, async (id) => {
     const full = await request<RawTrack>(`${API}/tracks/${id}?market=${MARKET}`, auth(bearer))
-    report('reading recordings', ++readTracks, trackIds.length)
+    readTracks += 1
+    if (readTracks <= 4) {
+      reporter.response('spotify', `"${full.name}" — ISRC ${full.external_ids?.isrc || 'none'}`)
+    }
+    reporter.progress('reading recordings', readTracks, trackIds.length)
     return full
   })) {
     if (track) tracks.set(track.id, track)
   }
+  const withIsrc = [...tracks.values()].filter((t) => t.external_ids?.isrc).length
+  reporter.response('spotify', `${withIsrc} of ${trackIds.length} recordings carry an ISRC`)
 
   return {
     fetchedAt: new Date().toISOString(),

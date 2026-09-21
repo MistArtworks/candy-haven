@@ -49,6 +49,7 @@
  */
 import { choice, describe, jevFor, noul, runPipeline, type Stage } from '@main/core/oracle'
 import { clock } from './normalise'
+import type { SeedReporter } from './reporter'
 import type { SeedChoice } from '@shared/domain/seed'
 import type { SpotifyHarvest } from './sources/spotify'
 import type { SoundcloudHarvest } from './sources/soundcloud'
@@ -105,7 +106,7 @@ export interface AdjudicateOptions {
   harvest: SpotifyHarvest
   soundcloud: SoundcloudHarvest
   youtube: YoutubeHarvest
-  report: (note: string, done: number, total: number) => void
+  reporter: SeedReporter
 }
 
 export async function adjudicate({
@@ -113,7 +114,7 @@ export async function adjudicate({
   harvest,
   soundcloud,
   youtube,
-  report
+  reporter
 }: AdjudicateOptions): Promise<{ verdicts: Verdict[]; warnings: string[] }> {
   const warnings: string[] = []
   const artistName = harvest.artist.name
@@ -165,9 +166,19 @@ export async function adjudicate({
       }))
   ]
 
+  reporter.step(
+    'jev',
+    `${uploads.length} uploads a title could not settle, against ${candidates.length} released recordings`
+  )
+  reporter.note(
+    'jev',
+    'Three staged questions: which recording is this · is it even music · is it the same master'
+  )
+
   const oracle = jevFor(jevApiKey)
 
   if (!oracle) {
+    reporter.warn('jev', `no key — all ${uploads.length} come to you instead of being decided`)
     warnings.push(
       `No Jev key, so all ${uploads.length} uncertain uploads are flagged for you rather than decided.`
     )
@@ -288,12 +299,17 @@ export async function adjudicate({
     })
   }
 
+  let asked = 0
   const results = await runPipeline(uploads, {
     oracle,
     stages: [identify, nature, identity],
     initial: () => ({ candidates, match: null, nature: '', identical: 0 }),
-    onProgress: (done, total) => report('adjudicating', done, total)
+    onProgress: (done, total) => {
+      asked = done
+      reporter.progress('adjudicating', done, total)
+    }
   })
+  reporter.response('jev', `${asked} answered`)
 
   const verdicts = results.map(({ subject, context, band, confidence, error }): Verdict => {
     const base = {
@@ -356,6 +372,15 @@ export async function adjudicate({
         : `The same recording as "${context.match.title}", so it becomes a link on it.`
     }
   })
+
+  const count = (name: string): number => verdicts.filter((v) => v.proposal === name).length
+  reporter.note(
+    'jev',
+    `${count('merge')} same recording · ${count('exclusive')} its own record · ${count('drop')} not a record · ${verdicts.filter((v) => v.flagged).length} for you`
+  )
+  for (const verdict of verdicts.filter((v) => v.flagged).slice(0, 8)) {
+    reporter.response('jev', `${verdict.probability.toFixed(2)} — "${verdict.title.slice(0, 60)}"`)
+  }
 
   return { verdicts, warnings }
 }

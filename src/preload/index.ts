@@ -203,7 +203,8 @@ const api: CandyHavenApi = {
     reset: () => invoke('seed:reset'),
     undo: () => invoke('seed:undo'),
     accept: () => invoke('seed:accept'),
-    onProgress: (listener) => subscribe('seed:progress', listener)
+    onProgress: (listener) => subscribe('seed:progress', listener),
+    onLog: (listener) => subscribe('seed:log', listener)
   },
   rite: {
     state: () => invoke('rite:state'),
