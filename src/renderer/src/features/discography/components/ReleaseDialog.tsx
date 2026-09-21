@@ -92,6 +92,17 @@ export function ReleaseDialog({
   const collects = !seedsOneTrack(kind)
   const ceiling = maxTracksFor(kind)
 
+  /*
+   * Only the records that *are* one recording.
+   *
+   * A row of a running order is one recording, so the things it can be are
+   * singles and remixes — `seedsOneTrack`, the same predicate that gives those
+   * kinds a ceiling of one. An album is twelve recordings wide and cannot be a
+   * line of somebody else's tracklist; the way to put one of its tracks on a
+   * compilation is that track's own single, or by name.
+   */
+  const collectable = releases.filter((release) => seedsOneTrack(release.kind))
+
   const needsDate = status === 'released' && !releaseDate
   const canConfirm = title.trim().length > 0 && !needsDate && !busy
 
@@ -196,7 +207,7 @@ export function ReleaseDialog({
         the whole interaction — the search is there because a back catalogue
         is dozens of records, and the order is the order they were ticked in.
       */}
-      {collects && releases.length > 0 ? (
+      {collects && collectable.length > 0 ? (
         <DialogField
           label="Running order"
           hint={
@@ -206,7 +217,7 @@ export function ReleaseDialog({
           }
         >
           <CatalogueTicks
-            releases={releases}
+            releases={collectable}
             chosen={collect}
             ceiling={ceiling}
             onToggle={(id) =>

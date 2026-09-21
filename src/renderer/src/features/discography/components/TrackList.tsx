@@ -1,7 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import type { ArtistRecord } from '@shared/domain/artists'
 import type { DiscographySummary, ReleaseTrack, TrackPatch } from '@shared/domain/discography'
-import { MAX_TRACK_TITLE, formatIsrc, isValidIsrc } from '@shared/domain/discography.constants'
+import {
+  MAX_TRACK_TITLE,
+  formatIsrc,
+  isValidIsrc,
+  seedsOneTrack
+} from '@shared/domain/discography.constants'
 import type { ProjectSummary } from '@shared/domain/projects'
 import { Button } from '@renderer/components/primitives/Button'
 import { formatBytes } from '@renderer/lib/format'
@@ -141,6 +146,24 @@ export function TrackList({
   const collectedIds = useMemo(
     () => tracks.map((track) => track.releaseId).filter((id): id is string => Boolean(id)),
     [tracks]
+  )
+
+  /*
+   * Whether there is anything the picker could offer.
+   *
+   * The same rule it applies — a row is one recording, so only singles and
+   * remixes qualify — asked here so the door is absent rather than opening on
+   * an empty list. See `ReleasePicker`.
+   */
+  const collectable = useMemo(
+    () =>
+      releases.some(
+        (release) =>
+          seedsOneTrack(release.kind) &&
+          release.id !== releaseId &&
+          !collectedIds.includes(release.id)
+      ),
+    [releases, releaseId, collectedIds]
   )
 
   const move = (index: number, delta: number): void => {
@@ -415,7 +438,7 @@ export function TrackList({
               titles in again is how a catalogue ends up disagreeing with
               itself. Hidden when there is nothing else to collect.
             */}
-            {releases.length > 1 ? (
+            {collectable ? (
               <Button size="sm" variant="ghost" disabled={busy} onClick={() => setCollecting(true)}>
                 Add from the catalogue
               </Button>

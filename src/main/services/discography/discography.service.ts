@@ -361,6 +361,11 @@ export class DiscographyService {
     for (const collectedId of draft.collect ?? []) {
       if (tracks.length >= maxTracksFor(kind)) break
       const collected = await this.get(collectedId)
+      // The same rule the sheet's picker goes through — see
+      // `assertOneRecording`. Refused rather than skipped: a caller naming an
+      // album here has misunderstood what a row is, and silently dropping it
+      // would hide that at exactly the moment it is cheapest to say.
+      this.assertOneRecording(collected)
       tracks.push(this.rowFromCollected(collected, tracks.length + 1))
     }
 
@@ -1205,6 +1210,35 @@ export class DiscographyService {
     }
   }
 
+  /**
+   * A row is one recording, so only a one-recording release can be a row.
+   *
+   * `seedsOneTrack` is that set — a single or a remix — and it is the same
+   * predicate the kind's ceiling is built from, which is the point: a release
+   * that holds one track *is* a track-sized record, and one that holds twelve
+   * is not a row however you look at it.
+   *
+   * An earlier pass let any kind be collected, reasoning that a compilation
+   * legitimately carries an album's track. It does — but the thing it carries
+   * is the *track*, not the album, and the way to say so is to collect that
+   * track's own single or to add it by name. Offering the album was offering
+   * a record twelve recordings wide as one line of a running order.
+   */
+  private assertOneRecording(collected: DiscographyRelease): void {
+    if (seedsOneTrack(collected.kind)) return
+
+    const kind = RELEASE_KIND_LABEL[collected.kind].toLowerCase()
+    // `an album`, `an ep`, `a compilation` — by the word rather than by a list
+    // of kinds, so a kind added later reads correctly without being remembered.
+    const article = /^[aeiou]/.test(kind) ? 'an' : 'a'
+
+    throw new AppError(`"${collected.title}" is ${article} ${kind}, not a single recording.`, {
+      code: ErrorCode.Validation,
+      hint: 'A running order collects singles and remixes. Add anything else by name.',
+      recoverable: false
+    })
+  }
+
   private async requireCollectable(
     releaseId: string,
     collectedId: string
@@ -1217,6 +1251,7 @@ export class DiscographyService {
     }
 
     const collected = await this.get(collectedId)
+    this.assertOneRecording(collected)
 
     if (collected.tracks.some((track) => track.releaseId === releaseId)) {
       throw new AppError(`"${collected.title}" already carries this release.`, {

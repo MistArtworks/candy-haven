@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import type { DiscographySummary } from '@shared/domain/discography'
-import { RELEASE_KIND_LABEL } from '@shared/domain/discography.constants'
+import { RELEASE_KIND_LABEL, seedsOneTrack } from '@shared/domain/discography.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { formatIsoDate } from '@renderer/lib/format'
 import styles from './TrackList.module.scss'
@@ -29,14 +29,17 @@ export interface ReleasePickerProps {
  * from it and records the membership, which is what lets a single say `ALSO ON
  * — CREATURE` without either record storing the relationship twice.
  *
- * ## Why singles and EPs, not everything
+ * ## Singles and remixes only
  *
- * Offered in catalogue order with the kind on every row, and nothing is
- * excluded by kind: a compilation legitimately collects an album's track, and
- * refusing that would be guessing at how somebody files their own back
- * catalogue. What *is* excluded is this release and anything already on it —
- * the first would be a record citing itself, and the second is a duplicate
- * row the service would take and nobody wants.
+ * A row is one recording, so the records it can be are the ones that *are* one
+ * recording — `seedsOneTrack`, the same predicate behind those kinds' ceiling
+ * of one. An earlier pass excluded nothing by kind, reasoning that a
+ * compilation legitimately carries an album's track. It does, but the thing it
+ * carries is that **track**, and the way to say so is the track's own single
+ * or a row by name; offering the album offered twelve recordings as one line.
+ *
+ * Also excluded: this release, which would be a record citing itself, and
+ * anything already on the running order.
  *
  * The search is over the title alone. A back catalogue is dozens of records,
  * not thousands, and a filter that also read labels and years would be a
@@ -57,6 +60,7 @@ export function ReleasePicker({
     const taken = new Set(collectedIds)
 
     return releases.filter((release) => {
+      if (!seedsOneTrack(release.kind)) return false
       if (release.id === currentId || taken.has(release.id)) return false
       if (!needle) return true
       return release.title.toLowerCase().includes(needle)
@@ -80,11 +84,9 @@ export function ReleasePicker({
 
       {offered.length === 0 ? (
         <p className={styles.addHint}>
-          {releases.length <= 1
-            ? 'Nothing else in the catalogue yet.'
-            : search.trim()
-              ? 'Nothing matches that.'
-              : 'Everything else is already on this running order.'}
+          {search.trim()
+            ? 'Nothing matches that.'
+            : 'No singles or remixes left to collect — a running order takes those, and anything else goes on by name.'}
         </p>
       ) : (
         <ul className={styles.pickerList}>
@@ -100,7 +102,6 @@ export function ReleasePicker({
                 <span className={styles.pickerMeta}>
                   {RELEASE_KIND_LABEL[release.kind]}
                   {release.releaseDate ? ` · ${formatIsoDate(release.releaseDate)}` : ''}
-                  {release.trackCount > 1 ? ` · ${release.trackCount} tracks` : ''}
                 </span>
               </button>
             </li>
