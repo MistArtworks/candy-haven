@@ -140,7 +140,7 @@ because `electron.vite.config.ts` reads that module:
 
 | Field           | For                                                      |
 | --------------- | -------------------------------------------------------- |
-| `role`          | The kind chip — `OPEN CALL`, `CHAT VOTE`, `BREAK CLOCK`  |
+| `role`          | The kind chip — `OPEN CALL`, `CHAT VOTE`, `PRIZE DRAW`   |
 | `family`        | Which group of the board it sits in                      |
 | `how`           | Three plain steps for how it runs                        |
 | `sourcePurpose` | Caption for the *primary* address, where it differs      |
@@ -173,9 +173,16 @@ own console page, reading the same `actionsFor` / `composerFor` / `dialsFor`.
 That is the fix for §2.4: a verb that gains a refusal or a field that gains a
 limit gains it everywhere at once.
 
-It is composed of pieces that are each useful alone: `OverlayIdentity`,
-`OverlayVerbs`, `OverlayComposer` (already existed), `OverlayDials`, and
-`AddressList` (already existed).
+It is composed of pieces that are each useful alone: `OverlayVerbs`,
+`OverlayComposer` (already existed), `OverlayDials`, and `AddressList` (already
+existed).
+
+An `OverlayIdentity` was among them and has since been removed. It drew the
+kind chip, the plain sentence, three numbered steps and the epigraph — a
+paragraph of prose above every control, on a surface somebody has open while a
+stream is live. The operator asked for the controls and nothing else. The chip
+survives, drawn at the size the prose was; the sentence is the board row's
+tooltip; the procedure is CATECHISM's.
 
 ### 3.7 The altitude rule decides what is a dial
 

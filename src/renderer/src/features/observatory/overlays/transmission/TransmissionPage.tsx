@@ -172,23 +172,25 @@ export function TransmissionPage(): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/* 01 — the face is the single focal object on this page. */}
-        <Panel
-          label="Face"
-          index="01"
-          focal
-          className={styles.span6}
-          aside={
-            <span className={styles.nowLabel}>
-              {selected ? selected.name : '—'}
-              {state.track ? (state.track.isPlaying ? ' · Playing' : ' · Paused') : ' · Idle'}
-            </span>
-          }
-        >
-          <FacePreview state={state} config={config} />
-        </Panel>
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            {/* 01 — the face is the single focal object on this page. */}
+            <Panel
+              label="Face"
+              index="01"
+              focal
 
-        {/*
+              aside={
+                <span className={styles.nowLabel}>
+                  {selected ? selected.name : '—'}
+                  {state.track ? (state.track.isPlaying ? ' · Playing' : ' · Paused') : ' · Idle'}
+                </span>
+              }
+            >
+              <FacePreview state={state} config={config} />
+            </Panel>
+
+            {/*
           02 — the desk's own controls, and what they produced.
 
           The RECORD panel folded in here rather than keeping a slab of its own:
@@ -197,305 +199,306 @@ export function TransmissionPage(): ReactNode {
           page opened with a panel of four fields that were empty until a
           different panel had been used.
         */}
-        <Panel label="The link" index="02" className={styles.span3}>
-          <div className={styles.config}>
-            <OverlayBench
-              entry={entry}
-              status={statusFor('transmission', deck, 0)}
-              actions={actionsFor('transmission', deck)}
-              composer={null}
-              dials={[]}
-              rows={[]}
-              copier={copier}
-              runner={runner}
-              variant="page"
-            />
-
-            {state.track ? (
-              <FieldGrid columns={1}>
-                <Field label="Title" value={state.track.title} />
-                <Field label="Artist" value={formatArtists(state.track.artists) || '—'} />
-                <Field label="Album" value={state.track.album || '—'} />
-                <Field
-                  label="Position"
-                  value={`${formatTrackTime(trackProgressAt(state.track, clock))} / ${formatTrackTime(state.track.durationMs)}`}
-                  mono
+            <Panel label="The link" index="02">
+              <div className={styles.config}>
+                <OverlayBench
+                  entry={entry}
+                  status={statusFor('transmission', deck, 0)}
+                  actions={actionsFor('transmission', deck)}
+                  composer={null}
+                  dials={[]}
+                  rows={[]}
+                  copier={copier}
+                  runner={runner}
+                  variant="page"
                 />
-              </FieldGrid>
-            ) : (
-              <p className={styles.hint}>
-                {linked
-                  ? 'Nothing is playing. Start something in Spotify and it will appear here within a few seconds.'
-                  : 'Link a Spotify account to read live playback.'}
-              </p>
-            )}
-          </div>
-        </Panel>
 
-        {/*
+                {state.track ? (
+                  <FieldGrid columns={1}>
+                    <Field label="Title" value={state.track.title} />
+                    <Field label="Artist" value={formatArtists(state.track.artists) || '—'} />
+                    <Field label="Album" value={state.track.album || '—'} />
+                    <Field
+                      label="Position"
+                      value={`${formatTrackTime(trackProgressAt(state.track, clock))} / ${formatTrackTime(state.track.durationMs)}`}
+                      mono
+                    />
+                  </FieldGrid>
+                ) : (
+                  <p className={styles.hint}>
+                    {linked
+                      ? 'Nothing is playing. Start something in Spotify and it will appear here within a few seconds.'
+                      : 'Link a Spotify account to read live playback.'}
+                  </p>
+                )}
+              </div>
+            </Panel>
+
+            {/*
           03 — a one-time chore with an exact string in it: the redirect URI has
           to match the Spotify dashboard entry to the character, and it depends
           on the live server port.
         */}
-        <Panel
-          label="Spotify setup"
-          index="03"
-          className={styles.span3}
-          aside={
-            <StatusDot
-              tone={LINK_TONE[state.link.state] ?? 'pending'}
-              label={linked ? 'Linked' : 'Not linked'}
-            />
-          }
-        >
-          <div className={styles.setup}>
-            <ol className={styles.steps}>
-              <li>
-                <span className={styles.stepIndex}>01</span>
-                <span>
-                  Create an app at <code className={styles.inline}>developer.spotify.com</code> and
-                  copy its Client ID.
-                </span>
-              </li>
-              <li>
-                <span className={styles.stepIndex}>02</span>
-                <span>
-                  Add this exact Redirect URI to that app, then save it there:
-                  {setup.redirectUri ? (
-                    <>
-                      <code className={styles.url}>{setup.redirectUri}</code>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => copier.copy('redirect', setup.redirectUri as string)}
-                      >
-                        {copier.failed === 'redirect'
-                          ? 'Blocked'
-                          : copier.copied === 'redirect'
-                            ? 'Copied'
-                            : 'Copy redirect URI'}
-                      </Button>
-                    </>
-                  ) : (
-                    <span className={styles.warn}> the overlay server is not listening.</span>
-                  )}
-                </span>
-              </li>
-              <li>
-                <span className={styles.stepIndex}>03</span>
-                <span>
-                  Paste the Client ID into REGULATION, then authorise below.{' '}
-                  {setup.hasClientId ? (
-                    <span className={styles.ok}>A client id is saved.</span>
-                  ) : (
-                    <span className={styles.warn}>No client id saved yet.</span>
-                  )}
-                </span>
-              </li>
-            </ol>
+            <Panel
+              label="Spotify setup"
+              index="03"
 
-            {/*
+              aside={
+                <StatusDot
+                  tone={LINK_TONE[state.link.state] ?? 'pending'}
+                  label={linked ? 'Linked' : 'Not linked'}
+                />
+              }
+            >
+              <div className={styles.setup}>
+                <ol className={styles.steps}>
+                  <li>
+                    <span className={styles.stepIndex}>01</span>
+                    <span>
+                      Create an app at <code className={styles.inline}>developer.spotify.com</code>{' '}
+                      and copy its Client ID.
+                    </span>
+                  </li>
+                  <li>
+                    <span className={styles.stepIndex}>02</span>
+                    <span>
+                      Add this exact Redirect URI to that app, then save it there:
+                      {setup.redirectUri ? (
+                        <>
+                          <code className={styles.url}>{setup.redirectUri}</code>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copier.copy('redirect', setup.redirectUri as string)}
+                          >
+                            {copier.failed === 'redirect'
+                              ? 'Blocked'
+                              : copier.copied === 'redirect'
+                                ? 'Copied'
+                                : 'Copy redirect URI'}
+                          </Button>
+                        </>
+                      ) : (
+                        <span className={styles.warn}> the overlay server is not listening.</span>
+                      )}
+                    </span>
+                  </li>
+                  <li>
+                    <span className={styles.stepIndex}>03</span>
+                    <span>
+                      Paste the Client ID into REGULATION, then authorise below.{' '}
+                      {setup.hasClientId ? (
+                        <span className={styles.ok}>A client id is saved.</span>
+                      ) : (
+                        <span className={styles.warn}>No client id saved yet.</span>
+                      )}
+                    </span>
+                  </li>
+                </ol>
+
+                {/*
               Authorising and unlinking are verbs, so they are on `02` with the
               rest of them. This panel had its own pair, which meant a linked
               account showed two controls for linking — and the desk offered a
               third. `actionsFor` answers for all of them now.
             */}
-            {!setup.hasClientId || !setup.redirectUri ? (
-              <p className={styles.warn}>
-                Authorising is blocked until both of the above are in place.
-              </p>
-            ) : null}
+                {!setup.hasClientId || !setup.redirectUri ? (
+                  <p className={styles.warn}>
+                    Authorising is blocked until both of the above are in place.
+                  </p>
+                ) : null}
 
-            {/*
+                {/*
               One poller serves every source, so this is not a per-source
               setting — twenty sources must not mean twenty opinions about how
               often to ask Spotify what is playing.
             */}
-            <Slider
-              label="Check Spotify every"
-              min={POLL_MIN_SECONDS}
-              max={POLL_MAX_SECONDS}
-              step={1}
-              value={state.pollSeconds}
-              readout={`${state.pollSeconds}s`}
-              onChange={(seconds) => void actions.setPollSeconds(seconds)}
-              hint="Applies to every source: there is one poller. It sets how fast a track change or a pause shows up, not how smoothly the timeline moves — the playhead is worked out locally between checks, so it glides either way. Nothing is asked at all while neither this page nor a browser source is open."
-            />
+                <Slider
+                  label="Check Spotify every"
+                  min={POLL_MIN_SECONDS}
+                  max={POLL_MAX_SECONDS}
+                  step={1}
+                  value={state.pollSeconds}
+                  readout={`${state.pollSeconds}s`}
+                  onChange={(seconds) => void actions.setPollSeconds(seconds)}
+                  hint="Applies to every source: there is one poller. It sets how fast a track change or a pause shows up, not how smoothly the timeline moves — the playhead is worked out locally between checks, so it glides either way. Nothing is asked at all while neither this page nor a browser source is open."
+                />
 
-            <p className={styles.hint}>
-              Read-only access: this reads what is playing and cannot change it. The refresh token
-              is stored encrypted by the OS keystore, never in settings.
-            </p>
+                <p className={styles.hint}>
+                  Read-only access: this reads what is playing and cannot change it. The refresh
+                  token is stored encrypted by the OS keystore, never in settings.
+                </p>
+              </div>
+            </Panel>
           </div>
-        </Panel>
+          <div className={styles.column}>
+            <Panel
+              label="Presentation"
+              index="04"
 
-        <Panel
-          label="Presentation"
-          index="04"
-          className={styles.span3}
-          aside={<span className={styles.nowLabel}>{selected?.name ?? '—'}</span>}
-        >
-          <div className={styles.config}>
-            {selected ? (
-              <SourceIdentity
-                key={selected.id}
-                name={selected.name}
-                note={selected.note}
-                slug={selected.slug}
-                busy={actions.pending === 'rename'}
-                onSave={(name, note) => void actions.renameSource(selected.id, name, note)}
-              />
-            ) : null}
+              aside={<span className={styles.nowLabel}>{selected?.name ?? '—'}</span>}
+            >
+              <div className={styles.config}>
+                {selected ? (
+                  <SourceIdentity
+                    key={selected.id}
+                    name={selected.name}
+                    note={selected.note}
+                    slug={selected.slug}
+                    busy={actions.pending === 'rename'}
+                    onSave={(name, note) => void actions.renameSource(selected.id, name, note)}
+                  />
+                ) : null}
 
-            <SelectInput
-              label="Style"
-              value={config.style}
-              options={NOW_PLAYING_STYLES.map((style) => ({
-                value: style,
-                label: NOW_PLAYING_STYLE_LABEL[style]
-              }))}
-              onChange={(style) => set({ style })}
-              hint={`Recommended source size: ${canvas.width} × ${canvas.height}.`}
-            />
+                <SelectInput
+                  label="Style"
+                  value={config.style}
+                  options={NOW_PLAYING_STYLES.map((style) => ({
+                    value: style,
+                    label: NOW_PLAYING_STYLE_LABEL[style]
+                  }))}
+                  onChange={(style) => set({ style })}
+                  hint={`Recommended source size: ${canvas.width} × ${canvas.height}.`}
+                />
 
-            {/*
+                {/*
               The knobs sit directly beneath the style, because they are read
               relative to it: the style decides what this source looks like and
               these nudge it, so a cranked-up PLATE is still a PLATE.
             */}
-            <PresentationControls
-              values={config}
-              onChange={(patch) => set(patch)}
-              onReset={() => set({ scale: 1, typeScale: 1, opacity: 1, coverScale: 1 })}
-              adjusted={
-                config.scale !== 1 ||
-                config.typeScale !== 1 ||
-                config.opacity !== 1 ||
-                config.coverScale !== 1
-              }
-            >
-              <Slider
-                label="Cover size"
-                value={config.coverScale}
-                min={PRESENTATION_LIMITS.scale.min}
-                max={PRESENTATION_LIMITS.scale.max}
-                step={PRESENTATION_LIMITS.scale.step}
-                onChange={(coverScale) => set({ coverScale })}
-                readout={`${config.coverScale.toFixed(2)}×`}
-                hint="The artwork alone. Clamped so it cannot crowd out the title."
-                width="full"
-                disabled={!config.showCover}
-              />
-            </PresentationControls>
+                <PresentationControls
+                  values={config}
+                  onChange={(patch) => set(patch)}
+                  onReset={() => set({ scale: 1, typeScale: 1, opacity: 1, coverScale: 1 })}
+                  adjusted={
+                    config.scale !== 1 ||
+                    config.typeScale !== 1 ||
+                    config.opacity !== 1 ||
+                    config.coverScale !== 1
+                  }
+                >
+                  <Slider
+                    label="Cover size"
+                    value={config.coverScale}
+                    min={PRESENTATION_LIMITS.scale.min}
+                    max={PRESENTATION_LIMITS.scale.max}
+                    step={PRESENTATION_LIMITS.scale.step}
+                    onChange={(coverScale) => set({ coverScale })}
+                    readout={`${config.coverScale.toFixed(2)}×`}
+                    hint="The artwork alone. Clamped so it cannot crowd out the title."
+                    width="full"
+                    disabled={!config.showCover}
+                  />
+                </PresentationControls>
 
-            <SelectInput
-              label="Accent"
-              value={config.accent}
-              options={NOW_PLAYING_ACCENTS.map((accent) => ({
-                value: accent,
-                label: NOW_PLAYING_ACCENT_LABEL[accent]
-              }))}
-              onChange={(accent) => set({ accent })}
-              hint="Carries the timeline and the label."
-            />
+                <SelectInput
+                  label="Accent"
+                  value={config.accent}
+                  options={NOW_PLAYING_ACCENTS.map((accent) => ({
+                    value: accent,
+                    label: NOW_PLAYING_ACCENT_LABEL[accent]
+                  }))}
+                  onChange={(accent) => set({ accent })}
+                  hint="Carries the timeline and the label."
+                />
 
-            {/*
+                {/*
               Only when it means something. A colour well sitting under a GOLD
               accent invites the operator to set a value that will not be drawn.
             */}
-            {config.accent === 'custom' ? (
-              <label className={styles.accentRow}>
-                <span
-                  className={styles.accentChip}
-                  style={{ background: config.accentHex }}
-                  aria-hidden="true"
-                />
-                <span className={styles.accentLabel}>Custom colour</span>
-                <span className={styles.accentHex}>{config.accentHex}</span>
-                <input
-                  type="color"
-                  aria-label="Custom accent colour"
-                  value={config.accentHex}
-                  onChange={(event) => set({ accentHex: event.target.value })}
-                />
-              </label>
-            ) : null}
+                {config.accent === 'custom' ? (
+                  <label className={styles.accentRow}>
+                    <span
+                      className={styles.accentChip}
+                      style={{ background: config.accentHex }}
+                      aria-hidden="true"
+                    />
+                    <span className={styles.accentLabel}>Custom colour</span>
+                    <span className={styles.accentHex}>{config.accentHex}</span>
+                    <input
+                      type="color"
+                      aria-label="Custom accent colour"
+                      value={config.accentHex}
+                      onChange={(event) => set({ accentHex: event.target.value })}
+                    />
+                  </label>
+                ) : null}
 
-            <TextInput
-              label="Label"
-              value={label}
-              onChange={setLabel}
-              placeholder="NOW TRANSMITTING"
-            />
+                <TextInput
+                  label="Label"
+                  value={label}
+                  onChange={setLabel}
+                  placeholder="NOW TRANSMITTING"
+                />
 
-            {/*
+                {/*
               Nine switches, in two groups rather than one run.
               What is *drawn* and how it *behaves* are two questions, and a
               single stack of nine meant reading all nine to answer either.
             */}
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>What is drawn</span>
-              <div className={styles.toggles}>
-                <Checkbox
-                  label="Show the label"
-                  checked={config.showLabel}
-                  onChange={(showLabel) => set({ showLabel })}
-                />
-                <Checkbox
-                  label="Show cover art"
-                  checked={config.showCover}
-                  onChange={(showCover) => set({ showCover })}
-                />
-                <Checkbox
-                  label="Show the album"
-                  checked={config.showAlbum}
-                  onChange={(showAlbum) => set({ showAlbum })}
-                />
-                <Checkbox
-                  label="Show the timeline"
-                  checked={config.showTimeline}
-                  onChange={(showTimeline) => set({ showTimeline })}
-                />
-                <Checkbox
-                  label="Explicit badge"
-                  checked={config.showExplicit}
-                  onChange={(showExplicit) => set({ showExplicit })}
-                />
-              </div>
-            </div>
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>What is drawn</span>
+                  <div className={styles.toggles}>
+                    <Checkbox
+                      label="Show the label"
+                      checked={config.showLabel}
+                      onChange={(showLabel) => set({ showLabel })}
+                    />
+                    <Checkbox
+                      label="Show cover art"
+                      checked={config.showCover}
+                      onChange={(showCover) => set({ showCover })}
+                    />
+                    <Checkbox
+                      label="Show the album"
+                      checked={config.showAlbum}
+                      onChange={(showAlbum) => set({ showAlbum })}
+                    />
+                    <Checkbox
+                      label="Show the timeline"
+                      checked={config.showTimeline}
+                      onChange={(showTimeline) => set({ showTimeline })}
+                    />
+                    <Checkbox
+                      label="Explicit badge"
+                      checked={config.showExplicit}
+                      onChange={(showExplicit) => set({ showExplicit })}
+                    />
+                  </div>
+                </div>
 
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>How it behaves</span>
-              <div className={styles.toggles}>
-                <Checkbox
-                  label="Count time remaining"
-                  checked={config.showRemaining}
-                  onChange={(showRemaining) => set({ showRemaining })}
-                  hint="Rather than the track length."
-                />
-                <Checkbox
-                  label="Scroll long titles"
-                  checked={config.marquee}
-                  onChange={(marquee) => set({ marquee })}
-                  hint="Off truncates with an ellipsis instead."
-                />
-                <Checkbox
-                  label="Turn the record"
-                  checked={config.spinCover}
-                  onChange={(spinCover) => set({ spinCover })}
-                  hint="DISC style only. Stops when playback pauses."
-                />
-                <Checkbox
-                  label="Hide when nothing is playing"
-                  checked={config.hideWhenIdle}
-                  onChange={(hideWhenIdle) => set({ hideWhenIdle })}
-                />
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>How it behaves</span>
+                  <div className={styles.toggles}>
+                    <Checkbox
+                      label="Count time remaining"
+                      checked={config.showRemaining}
+                      onChange={(showRemaining) => set({ showRemaining })}
+                      hint="Rather than the track length."
+                    />
+                    <Checkbox
+                      label="Scroll long titles"
+                      checked={config.marquee}
+                      onChange={(marquee) => set({ marquee })}
+                      hint="Off truncates with an ellipsis instead."
+                    />
+                    <Checkbox
+                      label="Turn the record"
+                      checked={config.spinCover}
+                      onChange={(spinCover) => set({ spinCover })}
+                      hint="DISC style only. Stops when playback pauses."
+                    />
+                    <Checkbox
+                      label="Hide when nothing is playing"
+                      checked={config.hideWhenIdle}
+                      onChange={(hideWhenIdle) => set({ hideWhenIdle })}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </Panel>
+            </Panel>
 
-        {/*
+            {/*
           05 — this page's BROADCAST panel, and it is the source list.
 
           Every other overlay in the kit answers on one or two fixed addresses
@@ -505,56 +508,59 @@ export function TransmissionPage(): ReactNode {
           drew the same URLs a second time, for whichever source happened to be
           selected.
         */}
-        <Panel
-          label="Broadcast sources"
-          index="05"
-          className={styles.span6}
-          aside={
-            <StatusDot
-              tone={server.running ? 'online' : 'error'}
-              label={
-                server.running
-                  ? `${state.sources.length} source${state.sources.length === 1 ? '' : 's'}`
-                  : 'Server offline'
+            <Panel
+              label="Broadcast sources"
+              index="05"
+
+              aside={
+                <StatusDot
+                  tone={server.running ? 'online' : 'error'}
+                  label={
+                    server.running
+                      ? `${state.sources.length} source${state.sources.length === 1 ? '' : 's'}`
+                      : 'Server offline'
+                  }
+                />
               }
-            />
-          }
-        >
-          <div className={styles.broadcast}>
-            <p className={styles.hint}>
-              The four presentations, as four browser sources — each with its own address and its
-              own settings. Add all of them to OBS and point each scene at whichever shape suits its
-              layout; they draw the same live playback, so switching scenes changes the shape and
-              nothing else. Tick <strong>Transparent</strong> on each: this overlay never paints a
-              background.
-            </p>
+            >
+              <div className={styles.broadcast}>
+                <p className={styles.hint}>
+                  The four presentations, as four browser sources — each with its own address and
+                  its own settings. Add all of them to OBS and point each scene at whichever shape
+                  suits its layout; they draw the same live playback, so switching scenes changes
+                  the shape and nothing else. Tick <strong>Transparent</strong> on each: this
+                  overlay never paints a background.
+                </p>
 
-            <SourceList
-              sources={state.sources}
-              selectedId={selected?.id ?? null}
-              onSelect={setPickedId}
-              onAdd={(presetId, name) => void actions.addSource({ presetId, name })}
-              onRemove={(id) => void actions.removeSource(id)}
-              serverUrl={server.url}
-              onCopy={copier.copy}
-              copied={copier.copied}
-              failed={copier.failed}
-              busy={actions.pending === 'add' || actions.pending === 'remove'}
-            />
+                <SourceList
+                  sources={state.sources}
+                  selectedId={selected?.id ?? null}
+                  onSelect={setPickedId}
+                  onAdd={(presetId, name) => void actions.addSource({ presetId, name })}
+                  onRemove={(id) => void actions.removeSource(id)}
+                  serverUrl={server.url}
+                  onCopy={copier.copy}
+                  copied={copier.copied}
+                  failed={copier.failed}
+                  busy={actions.pending === 'add' || actions.pending === 'remove'}
+                />
 
-            {!server.running ? (
-              <p className={styles.warn}>
-                {server.error ?? 'The overlay server is not listening, so there is no address yet.'}
-              </p>
-            ) : null}
+                {!server.running ? (
+                  <p className={styles.warn}>
+                    {server.error ??
+                      'The overlay server is not listening, so there is no address yet.'}
+                  </p>
+                ) : null}
 
-            <FieldGrid columns={3}>
-              <Field label="Selected" value={selected?.name ?? '—'} />
-              <Field label="Canvas" value={`${canvas.width} × ${canvas.height}`} mono />
-              <Field label="Poll" value={`${state.pollSeconds}s`} mono />
-            </FieldGrid>
+                <FieldGrid columns={3}>
+                  <Field label="Selected" value={selected?.name ?? '—'} />
+                  <Field label="Canvas" value={`${canvas.width} × ${canvas.height}`} mono />
+                  <Field label="Poll" value={`${state.pollSeconds}s`} mono />
+                </FieldGrid>
+              </div>
+            </Panel>
           </div>
-        </Panel>
+        </div>
       </motion.div>
     </div>
   )

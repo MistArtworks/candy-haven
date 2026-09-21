@@ -64,18 +64,18 @@
 }
 
 /*
- * One line at rest, two when something is running.
+ * One line, always.
  *
- * `grid-template-rows: auto` with the second row added implicitly, rather than
- * two declared rows: a reserved empty row would hold every quiet entry at
- * double height for a line that is not there.
+ * Every row is the same height whatever its overlay is doing. It used to grow
+ * a second line while something ran, which meant the board reflowed underneath
+ * whichever row an operator was about to press — the timer alone did it twice
+ * a minute.
  */
 .select {
   display: grid;
   grid-template-columns: rem(20px) rem(22px) minmax(0, 1fr) auto;
   align-items: center;
   column-gap: space(3);
-  row-gap: space(1);
   width: 100%;
   min-width: 0;
   padding: space(2) space(4);
@@ -141,37 +141,14 @@
 }
 
 /*
- * The live figure — `12 filed`, `04:12`, `On air`.
+ * The state, in words, for assistive technology only.
  *
- * Accent-bright, because on a board of eleven rows the moving numbers are the
- * only thing that needs to carry across a room. Taken out of the layout
- * entirely while the overlay is at rest: the text stays in the DOM for the
- * row's accessible name, but `At rest` printed eleven times is the noise this
- * board was simplified to remove.
+ * `12 filed`, `04:12`, `On air` were drawn here and are not any more — the
+ * board is a list of what the kit *is*, and what each piece is *doing* is the
+ * bench's job. The dot beside this carries the same fact without spending a
+ * line on it. Kept in the DOM because `StatusDot` may not convey state by
+ * colour alone.
  */
 .readout {
-  @include readout(9px);
-  color: var(--ch-accent-bright);
-  white-space: nowrap;
-
-  &[data-quiet] {
-    @include visually-hidden;
-  }
+  @include visually-hidden;
 }
-
-/*
- * The live line, present only while something is running.
- *
- * Clamped to one line: `The chamber sits · 240 votes from 63 citizens · 01:12
- * left` is longer than the column, and a row that wrapped to three lines would
- * shuffle everything below it at the exact moment an operator is reading the
- * board.
- */
-.line {
-  @include readout(10px);
-  color: var(--ch-text-secondary);
-  grid-column: 3 / -1;
-  min-width: 0;
-  @include truncate;
-}
-

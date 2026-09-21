@@ -4,12 +4,6 @@
 // THE GATE and THE SURVEY — one host surface, two fields.
 @include page.chrome;
 
-// `scenePanel` is kept as the scene's own alias for a full-width row: the panel
-// is named for what it holds rather than for how wide it is.
-.scenePanel {
-  grid-column: span 6;
-}
-
 // ----------------------------------------------------------- the real scene
 
 /*
@@ -23,6 +17,9 @@
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
+  // Bounded by the page's `--stage-cap`; see `overlays/_page.scss`.
+  max-width: calc(var(--stage-cap, 42vh) * 16 / 9);
+  margin-inline: auto;
   overflow: hidden;
   border: $hairline solid var(--ch-line);
   background: var(--ch-obsidian-900);
@@ -117,6 +114,3 @@
   padding-top: space(2);
   border-top: $hairline solid var(--ch-line);
 }
-
-
-

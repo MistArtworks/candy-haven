@@ -278,371 +278,378 @@ export function ConcordPage(): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/*
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            {/*
           01 — the tally is the single focal object on this page, per the brief.
           It holds no verbs any more: they live at `02` with the fields they are
           pressed against, which is their position on every page in the kit.
         */}
-        <Panel
-          label={state.config.title || 'The Concord'}
-          index="01"
-          focal
-          className={styles.span6}
-          aside={
-            casting ? (
-              <span className={styles.asideLive}>Casting lots</span>
-            ) : open ? (
-              <span className={styles.asideLive}>
-                {state.voters} {state.voters === 1 ? 'vote' : 'votes'}
-              </span>
-            ) : state.result ? (
-              <span className={styles.asideResult}>{state.result.label}</span>
-            ) : (
-              <span className={styles.count}>{state.options.length} on the ballot</span>
-            )
-          }
-        >
-          <div className={styles.tallyBody}>
-            {/*
+            <Panel
+              label={state.config.title || 'The Concord'}
+              index="01"
+              focal
+
+              aside={
+                casting ? (
+                  <span className={styles.asideLive}>Casting lots</span>
+                ) : open ? (
+                  <span className={styles.asideLive}>
+                    {state.voters} {state.voters === 1 ? 'vote' : 'votes'}
+                  </span>
+                ) : state.result ? (
+                  <span className={styles.asideResult}>{state.result.label}</span>
+                ) : (
+                  <span className={styles.count}>{state.options.length} on the ballot</span>
+                )
+              }
+            >
+              <div className={styles.tallyBody}>
+                {/*
               Both addresses are live simultaneously, so this picks which one is
               being *looked at* rather than changing anything about the poll.
             */}
-            <div className={styles.presetRow} role="group" aria-label="Preview layout">
-              {CONCORD_LAYOUTS.map((layout) => (
-                <button
-                  key={layout}
-                  type="button"
-                  className={styles.preset}
-                  data-active={preview === layout || undefined}
-                  aria-pressed={preview === layout}
-                  onClick={() => setPreview(layout)}
-                >
-                  {CONCORD_LAYOUT_LABEL[layout].split(' — ')[0]}
-                </button>
-              ))}
-            </div>
+                <div className={styles.presetRow} role="group" aria-label="Preview layout">
+                  {CONCORD_LAYOUTS.map((layout) => (
+                    <button
+                      key={layout}
+                      type="button"
+                      className={styles.preset}
+                      data-active={preview === layout || undefined}
+                      aria-pressed={preview === layout}
+                      onClick={() => setPreview(layout)}
+                    >
+                      {CONCORD_LAYOUT_LABEL[layout].split(' — ')[0]}
+                    </button>
+                  ))}
+                </div>
 
-            <ConcordTally state={state} layout={preview} compact />
+                <ConcordTally state={state} layout={preview} compact />
 
-            {state.result ? (
-              <p className={styles.verdict}>
-                <span className={styles.verdictLabel}>
-                  {state.result.decidedByCasting ? 'Settled by lot' : 'Carried'}
-                </span>
-                <span className={styles.verdictValue}>{state.result.label}</span>
-                <span className={styles.verdictMeta}>
-                  {state.result.tally} of {state.result.total} votes from {state.result.voters}{' '}
-                  {state.result.voters === 1 ? 'citizen' : 'citizens'} at{' '}
-                  {formatLogTime(state.result.at)}
-                  {state.result.tiedWith.length > 0
-                    ? ` — tied with ${state.result.tiedWith.join(', ')}`
-                    : ''}
-                </span>
-              </p>
-            ) : state.phase === 'resolved' ? (
-              // Nobody voted. Said plainly rather than dressed up as a result.
-              <p className={styles.verdict}>
-                <span className={styles.verdictMeta}>The chamber did not speak.</span>
-              </p>
-            ) : null}
-          </div>
-        </Panel>
+                {state.result ? (
+                  <p className={styles.verdict}>
+                    <span className={styles.verdictLabel}>
+                      {state.result.decidedByCasting ? 'Settled by lot' : 'Carried'}
+                    </span>
+                    <span className={styles.verdictValue}>{state.result.label}</span>
+                    <span className={styles.verdictMeta}>
+                      {state.result.tally} of {state.result.total} votes from {state.result.voters}{' '}
+                      {state.result.voters === 1 ? 'citizen' : 'citizens'} at{' '}
+                      {formatLogTime(state.result.at)}
+                      {state.result.tiedWith.length > 0
+                        ? ` — tied with ${state.result.tiedWith.join(', ')}`
+                        : ''}
+                    </span>
+                  </p>
+                ) : state.phase === 'resolved' ? (
+                  // Nobody voted. Said plainly rather than dressed up as a result.
+                  <p className={styles.verdict}>
+                    <span className={styles.verdictMeta}>The chamber did not speak.</span>
+                  </p>
+                ) : null}
+              </div>
+            </Panel>
 
-        {/* 02 — the desk's own controls, on the overlay's page. */}
-        <Panel label="Run the vote" index="02" className={styles.span3}>
-          <OverlayBench
-            entry={entry}
-            status={status}
-            actions={verbs}
-            composer={composerFor('concord', deck)}
-            dials={dialsFor('concord', deck)}
-            rows={[]}
-            copier={copier}
-            runner={runner}
-            variant="page"
-          />
-        </Panel>
+            {/* 02 — the desk's own controls, on the overlay's page. */}
+            <Panel label="Run the vote" index="02">
+              <OverlayBench
+                entry={entry}
+                status={status}
+                actions={verbs}
+                composer={composerFor('concord', deck)}
+                dials={dialsFor('concord', deck)}
+                rows={[]}
+                copier={copier}
+                runner={runner}
+                variant="page"
+              />
+            </Panel>
 
-        {/*
-          03 — composition. Reordering a ballot and cutting an option are the
-          things deliberately not on the bench: they need a list, not one line.
-        */}
-        <Panel label="Ballot" index="03" className={styles.span3}>
-          <OptionRoster state={state} actions={actions} />
-        </Panel>
-
-        {/*
+            {/*
           04 — the connection, and how what arrives on it is read.
           The command field is here rather than with the question because it is
           a parsing setting, and the sentence saying what a viewer types was
           already on this panel.
         */}
-        <Panel
-          label="Chat"
-          index="04"
-          className={styles.span3}
-          aside={<StatusDot tone={CHAT_TONE[chat.state]} label={CHAT_STATE_LABEL[chat.state]} />}
-        >
-          <div className={styles.config}>
-            <p className={styles.hint}>
-              Chat is read anonymously — there is nothing to authorise and no token stored. Set the
-              channel in <Link to="/regulation">REGULATION</Link>.
-            </p>
+            <Panel
+              label="Chat"
+              index="04"
 
-            <FieldGrid columns={2}>
-              <Field label="Channel" value={chat.channel ?? '—'} mono />
-              <Field label="Messages seen" value={chat.messages} mono />
-              <Field
-                label="Last message"
-                value={chat.lastMessageAt ? formatLogTime(chat.lastMessageAt) : '—'}
-                mono
-              />
-              <Field label="Attempts" value={chat.failures} mono />
-            </FieldGrid>
-
-            {chat.error ? <p className={styles.warnText}>{chat.error}</p> : null}
-
-            <Button
-              size="sm"
-              variant="ghost"
-              busy={actions.pending === 'chat'}
-              onClick={() => void actions.reconnectChat()}
+              aside={
+                <StatusDot tone={CHAT_TONE[chat.state]} label={CHAT_STATE_LABEL[chat.state]} />
+              }
             >
-              Reattempt
-            </Button>
+              <div className={styles.config}>
+                <p className={styles.hint}>
+                  Chat is read anonymously — there is nothing to authorise and no token stored. Set
+                  the channel in <Link to="/regulation">REGULATION</Link>.
+                </p>
 
-            {state.config.voteSyntax !== 'bare' ? (
-              <TextInput
-                label="Command"
-                value={command}
-                onChange={setCommand}
-                disabled={locked}
-                placeholder="!vote"
-                hint="Another bot's command is never counted as a vote."
-              />
-            ) : null}
+                <FieldGrid columns={2}>
+                  <Field label="Channel" value={chat.channel ?? '—'} mono />
+                  <Field label="Messages seen" value={chat.messages} mono />
+                  <Field
+                    label="Last message"
+                    value={chat.lastMessageAt ? formatLogTime(chat.lastMessageAt) : '—'}
+                    mono
+                  />
+                  <Field label="Attempts" value={chat.failures} mono />
+                </FieldGrid>
 
-            <p className={styles.hint}>
-              Viewers vote with{' '}
-              <code className={styles.inline}>{state.options[0]?.token ?? '1'}</code>
-              {state.config.voteSyntax !== 'bare' ? (
-                <>
-                  {' '}
-                  or{' '}
-                  <code className={styles.inline}>
-                    {displayVoteCommand(state.config.command)} {state.options[0]?.token ?? '1'}
-                  </code>
-                </>
-              ) : null}
-              . A message naming two options is discarded rather than guessed.
-            </p>
+                {chat.error ? <p className={styles.warnText}>{chat.error}</p> : null}
 
-            <p className={styles.instruction}>{voteInstruction(state.config)}</p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  busy={actions.pending === 'chat'}
+                  onClick={() => void actions.reconnectChat()}
+                >
+                  Reattempt
+                </Button>
+
+                {state.config.voteSyntax !== 'bare' ? (
+                  <TextInput
+                    label="Command"
+                    value={command}
+                    onChange={setCommand}
+                    disabled={locked}
+                    placeholder="!vote"
+                    hint="Another bot's command is never counted as a vote."
+                  />
+                ) : null}
+
+                <p className={styles.hint}>
+                  Viewers vote with{' '}
+                  <code className={styles.inline}>{state.options[0]?.token ?? '1'}</code>
+                  {state.config.voteSyntax !== 'bare' ? (
+                    <>
+                      {' '}
+                      or{' '}
+                      <code className={styles.inline}>
+                        {displayVoteCommand(state.config.command)} {state.options[0]?.token ?? '1'}
+                      </code>
+                    </>
+                  ) : null}
+                  . A message naming two options is discarded rather than guessed.
+                </p>
+
+                <p className={styles.instruction}>{voteInstruction(state.config)}</p>
+              </div>
+            </Panel>
+
+            <Panel
+              label="Broadcast"
+              index="06"
+
+              aside={
+                <StatusDot
+                  tone={server.running ? 'online' : 'error'}
+                  label={server.running ? 'Serving' : 'Offline'}
+                />
+              }
+            >
+              <div className={styles.broadcast}>
+                <p className={styles.hint}>
+                  Two addresses, one poll. Add either as a Browser source — or both, in different
+                  scenes, and they stay in step.
+                </p>
+
+                <AddressList
+                  rows={addressRowsFor(overlay, server.url)}
+                  copied={copier.copied}
+                  failed={copier.failed}
+                  onCopy={copier.copy}
+                  offline={server.error ?? 'The overlay server is not listening.'}
+                />
+
+                <FieldGrid columns={2}>
+                  <Field label="Port" value={server.port ?? '—'} mono />
+                  <Field label="Attached" value={server.clients} mono />
+                </FieldGrid>
+              </div>
+            </Panel>
           </div>
-        </Panel>
+          <div className={styles.column}>
+            {/*
+          03 — composition. Reordering a ballot and cutting an option are the
+          things deliberately not on the bench: they need a list, not one line.
+        */}
+            <Panel label="Ballot" index="03">
+              <OptionRoster state={state} actions={actions} />
+            </Panel>
 
-        {/*
+            {/*
           05 — everything here changes how the overlay looks and nothing here
           changes how a vote is counted. All of it is a fixed choice within the
           locked palette rather than free-form styling — there is deliberately
           no colour picker.
         */}
-        <Panel label="Presentation" index="05" className={styles.span3}>
-          <div className={styles.config}>
-            <PresentationControls
-              values={state.config}
-              onChange={(patch) => void actions.configure(patch)}
-              onReset={() => void actions.configure({ scale: 1, typeScale: 1, opacity: 1 })}
-              adjusted={
-                state.config.scale !== 1 ||
-                state.config.typeScale !== 1 ||
-                state.config.opacity !== 1
-              }
-            />
+            <Panel label="Presentation" index="05">
+              <div className={styles.config}>
+                <PresentationControls
+                  values={state.config}
+                  onChange={(patch) => void actions.configure(patch)}
+                  onReset={() => void actions.configure({ scale: 1, typeScale: 1, opacity: 1 })}
+                  adjusted={
+                    state.config.scale !== 1 ||
+                    state.config.typeScale !== 1 ||
+                    state.config.opacity !== 1
+                  }
+                />
 
-            <SelectInput
-              label="Presentation"
-              value={state.config.presentation}
-              options={CONCORD_PRESENTATIONS.map((presentation) => ({
-                value: presentation,
-                label: CONCORD_PRESENTATION_LABEL[presentation]
-              }))}
-              onChange={(presentation) => void actions.configure({ presentation })}
-              hint="Applies to both addresses. Options are told apart by engraving and length, never by colour — THE COUNCIL wants more room than the widget has."
-            />
+                <SelectInput
+                  label="Presentation"
+                  value={state.config.presentation}
+                  options={CONCORD_PRESENTATIONS.map((presentation) => ({
+                    value: presentation,
+                    label: CONCORD_PRESENTATION_LABEL[presentation]
+                  }))}
+                  onChange={(presentation) => void actions.configure({ presentation })}
+                  hint="Applies to both addresses. Options are told apart by engraving and length, never by colour — THE COUNCIL wants more room than the widget has."
+                />
 
-            <SelectInput
-              label="Preset"
-              value={state.config.theme}
-              options={OVERLAY_THEMES.map((theme) => ({
-                value: theme,
-                label: OVERLAY_THEME_LABEL[theme]
-              }))}
-              onChange={(theme) => void actions.configure({ theme })}
-              hint="Five materials, three arrangements. Crimson stays on the focal point in all of them."
-            />
+                <SelectInput
+                  label="Preset"
+                  value={state.config.theme}
+                  options={OVERLAY_THEMES.map((theme) => ({
+                    value: theme,
+                    label: OVERLAY_THEME_LABEL[theme]
+                  }))}
+                  onChange={(theme) => void actions.configure({ theme })}
+                  hint="Five materials, three arrangements. Crimson stays on the focal point in all of them."
+                />
 
-            {/*
+                {/*
               There is no "appear and withdraw" any more. The source used to be
               absent between polls, on the reasoning that a widget living
               permanently in a scene should not show an empty ballot — but the
               rest of the kit holds its resting state, and an overlay that
               vanishes reads as a broken source rather than as an idle one.
             */}
-            <Slider
-              label="Hold the result"
-              min={RESULT_LINGER_MIN_MS}
-              max={RESULT_LINGER_MAX_MS}
-              step={1_000}
-              value={state.config.resultLingerMs}
-              readout={`${Math.round(state.config.resultLingerMs / 1000)}s`}
-              onChange={(resultLingerMs) => void actions.configure({ resultLingerMs })}
-              hint="How long the settled result stays up before the chamber returns to rest."
-            />
+                <Slider
+                  label="Hold the result"
+                  min={RESULT_LINGER_MIN_MS}
+                  max={RESULT_LINGER_MAX_MS}
+                  step={1_000}
+                  value={state.config.resultLingerMs}
+                  readout={`${Math.round(state.config.resultLingerMs / 1000)}s`}
+                  onChange={(resultLingerMs) => void actions.configure({ resultLingerMs })}
+                  hint="How long the settled result stays up before the chamber returns to rest."
+                />
 
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>What is drawn</span>
-              <div className={styles.toggles}>
-                <Checkbox
-                  label="Masthead"
-                  checked={state.config.showMasthead}
-                  onChange={(showMasthead) => void actions.configure({ showMasthead })}
-                />
-                <Checkbox
-                  label="Resonance field"
-                  checked={state.config.showField}
-                  onChange={(showField) => void actions.configure({ showField })}
-                  hint="Tightens and brightens with the rate votes are arriving."
-                />
-                <Checkbox
-                  label="Numerals on the ballot"
-                  checked={state.config.showTokens}
-                  onChange={(showTokens) => void actions.configure({ showTokens })}
-                  hint="Hiding these leaves the audience nothing to type."
-                />
-                <Checkbox
-                  label="Percentages"
-                  checked={state.config.showPercentages}
-                  onChange={(showPercentages) => void actions.configure({ showPercentages })}
-                />
-                <Checkbox
-                  label="Voter count"
-                  checked={state.config.showVoterCount}
-                  onChange={(showVoterCount) => void actions.configure({ showVoterCount })}
-                />
-                <Checkbox
-                  label="Voting instruction"
-                  checked={state.config.showInstruction}
-                  onChange={(showInstruction) => void actions.configure({ showInstruction })}
-                />
-                <Checkbox
-                  label="Connection readout"
-                  checked={state.config.showStatus}
-                  onChange={(showStatus) => void actions.configure({ showStatus })}
-                />
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>What is drawn</span>
+                  <div className={styles.toggles}>
+                    <Checkbox
+                      label="Masthead"
+                      checked={state.config.showMasthead}
+                      onChange={(showMasthead) => void actions.configure({ showMasthead })}
+                    />
+                    <Checkbox
+                      label="Resonance field"
+                      checked={state.config.showField}
+                      onChange={(showField) => void actions.configure({ showField })}
+                      hint="Tightens and brightens with the rate votes are arriving."
+                    />
+                    <Checkbox
+                      label="Numerals on the ballot"
+                      checked={state.config.showTokens}
+                      onChange={(showTokens) => void actions.configure({ showTokens })}
+                      hint="Hiding these leaves the audience nothing to type."
+                    />
+                    <Checkbox
+                      label="Percentages"
+                      checked={state.config.showPercentages}
+                      onChange={(showPercentages) => void actions.configure({ showPercentages })}
+                    />
+                    <Checkbox
+                      label="Voter count"
+                      checked={state.config.showVoterCount}
+                      onChange={(showVoterCount) => void actions.configure({ showVoterCount })}
+                    />
+                    <Checkbox
+                      label="Voting instruction"
+                      checked={state.config.showInstruction}
+                      onChange={(showInstruction) => void actions.configure({ showInstruction })}
+                    />
+                    <Checkbox
+                      label="Connection readout"
+                      checked={state.config.showStatus}
+                      onChange={(showStatus) => void actions.configure({ showStatus })}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>Layout and sound</span>
+                  <div className={styles.toggles}>
+                    <Checkbox
+                      label="Composite over the scene"
+                      checked={state.config.transparent}
+                      onChange={(transparent) => void actions.configure({ transparent })}
+                      hint="Drops the backdrop so the tally sits over your capture. Tick Transparent on the OBS source too."
+                    />
+                    <Checkbox
+                      label="Audio cues"
+                      checked={state.config.sound}
+                      onChange={(sound) => void actions.configure({ sound })}
+                      hint="Final call, and a chime if the chamber deadlocks. Console only — the broadcast stays silent."
+                    />
+                  </div>
+
+                  <Slider
+                    label="Reserve right edge"
+                    min={0}
+                    max={Math.round(MAX_EDGE_RESERVE * 100)}
+                    step={1}
+                    value={Math.round(state.config.reserveRight * 100)}
+                    readout={`${Math.round(state.config.reserveRight * 100)}% · ${Math.round(
+                      state.config.reserveRight * OVERLAY_REFERENCE_WIDTH
+                    )}px`}
+                    onChange={(percent) => void actions.configure({ reserveRight: percent / 100 })}
+                    hint={`Dead space for chat and camera — nothing is drawn there. Pixels quoted at ${OVERLAY_REFERENCE_WIDTH}px wide.`}
+                  />
+                </div>
               </div>
-            </div>
+            </Panel>
 
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>Layout and sound</span>
-              <div className={styles.toggles}>
-                <Checkbox
-                  label="Composite over the scene"
-                  checked={state.config.transparent}
-                  onChange={(transparent) => void actions.configure({ transparent })}
-                  hint="Drops the backdrop so the tally sits over your capture. Tick Transparent on the OBS source too."
-                />
-                <Checkbox
-                  label="Audio cues"
-                  checked={state.config.sound}
-                  onChange={(sound) => void actions.configure({ sound })}
-                  hint="Final call, and a chime if the chamber deadlocks. Console only — the broadcast stays silent."
-                />
-              </div>
+            <Panel
+              label="Record"
+              index="07"
 
-              <Slider
-                label="Reserve right edge"
-                min={0}
-                max={Math.round(MAX_EDGE_RESERVE * 100)}
-                step={1}
-                value={Math.round(state.config.reserveRight * 100)}
-                readout={`${Math.round(state.config.reserveRight * 100)}% · ${Math.round(
-                  state.config.reserveRight * OVERLAY_REFERENCE_WIDTH
-                )}px`}
-                onChange={(percent) => void actions.configure({ reserveRight: percent / 100 })}
-                hint={`Dead space for chat and camera — nothing is drawn there. Pixels quoted at ${OVERLAY_REFERENCE_WIDTH}px wide.`}
-              />
-            </div>
+              aside={
+                state.history.length > 0 ? (
+                  <button
+                    type="button"
+                    className={styles.dismiss}
+                    onClick={() => void actions.clearHistory()}
+                  >
+                    Purge
+                  </button>
+                ) : null
+              }
+            >
+              {state.history.length === 0 ? (
+                <p className={styles.empty}>No questions on record.</p>
+              ) : (
+                <ol className={styles.history}>
+                  {state.history.map((item) => (
+                    <li key={`${item.optionId}-${item.at}`} className={styles.historyRow}>
+                      <span className={styles.historyTime}>{formatLogTime(item.at)}</span>
+                      <span className={styles.historyLabel} title={item.label}>
+                        {item.label}
+                      </span>
+                      <span className={styles.historyOdds}>
+                        {item.tally} / {item.total}
+                        {item.decidedByCasting ? ` · lot of ${item.tiedWith.length + 1}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </Panel>
           </div>
-        </Panel>
-
-        <Panel
-          label="Broadcast"
-          index="06"
-          className={styles.span6}
-          aside={
-            <StatusDot
-              tone={server.running ? 'online' : 'error'}
-              label={server.running ? 'Serving' : 'Offline'}
-            />
-          }
-        >
-          <div className={styles.broadcast}>
-            <p className={styles.hint}>
-              Two addresses, one poll. Add either as a Browser source — or both, in different
-              scenes, and they stay in step.
-            </p>
-
-            <AddressList
-              rows={addressRowsFor(overlay, server.url)}
-              copied={copier.copied}
-              failed={copier.failed}
-              onCopy={copier.copy}
-              offline={server.error ?? 'The overlay server is not listening.'}
-            />
-
-            <FieldGrid columns={2}>
-              <Field label="Port" value={server.port ?? '—'} mono />
-              <Field label="Attached" value={server.clients} mono />
-            </FieldGrid>
-          </div>
-        </Panel>
-
-        <Panel
-          label="Record"
-          index="07"
-          className={styles.span6}
-          aside={
-            state.history.length > 0 ? (
-              <button
-                type="button"
-                className={styles.dismiss}
-                onClick={() => void actions.clearHistory()}
-              >
-                Purge
-              </button>
-            ) : null
-          }
-        >
-          {state.history.length === 0 ? (
-            <p className={styles.empty}>No questions on record.</p>
-          ) : (
-            <ol className={styles.history}>
-              {state.history.map((item) => (
-                <li key={`${item.optionId}-${item.at}`} className={styles.historyRow}>
-                  <span className={styles.historyTime}>{formatLogTime(item.at)}</span>
-                  <span className={styles.historyLabel} title={item.label}>
-                    {item.label}
-                  </span>
-                  <span className={styles.historyOdds}>
-                    {item.tally} / {item.total}
-                    {item.decidedByCasting ? ` · lot of ${item.tiedWith.length + 1}` : ''}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Panel>
+        </div>
 
         {/*
           Last, as on every page in the kit, so every index above it is a

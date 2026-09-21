@@ -7,7 +7,6 @@ import type { KitEntry } from '../lib/kit'
 import { AddressList } from './AddressList'
 import { OverlayComposer } from './OverlayComposer'
 import { OverlayDials } from './OverlayDials'
-import { OverlayIdentity } from './OverlayIdentity'
 import { OverlayVerbs } from './OverlayVerbs'
 import styles from './OverlayBench.module.scss'
 
@@ -21,10 +20,10 @@ export interface OverlayBenchProps {
   copier: Copier
   runner: DeckRunner
   /**
-   * `desk` draws the identity, the addresses and the way through to the
+   * `desk` draws the kind chip, the addresses and the way through to the
    * overlay's own page. `page` is the same controls without them — that page is
-   * already showing its identity in its masthead and its addresses in their own
-   * panel, and drawing either twice is how a surface stops being trusted.
+   * already naming itself in its masthead and listing its addresses in their
+   * own panel, and drawing either twice is how a surface stops being trusted.
    */
   variant?: 'desk' | 'page'
 }
@@ -68,34 +67,53 @@ export function OverlayBench({
   const desk = variant === 'desk'
   const reserved = !entry.implemented
 
-  /*
-   * A reserved overlay gets its commissioning scope where the steps would be.
-   *
-   * `how` is empty for it, and honestly so — nothing runs yet, so there is no
-   * procedure to describe. Its `scope` is what describes work that has been
-   * specified and not built, which is the same treatment `ReservedPage` gives
-   * a whole department.
-   */
-  const steps = reserved ? (entry.overlay?.scope ?? []) : entry.how
-
   return (
     <div className={styles.bench}>
+      {/*
+        The kind, and nothing else said about the overlay.
+
+        `OverlayIdentity` stood here and drew four things: this chip, the plain
+        sentence, three numbered steps and the epigraph. Each was defensible on
+        its own and together they put a paragraph of prose above every control
+        on the desk — the operator's reading was "too much text everywhere",
+        and they are right that a desk somebody has open mid-stream is not
+        where a procedure is read. The procedure belongs to CATECHISM, the
+        sentence survives as the board row's tooltip, and the epigraph is
+        already spoken by the page's own masthead.
+
+        What could not go is the kind: `OPEN CALL` and `PRIZE DRAW` are the one
+        thing that says what pressing the lead verb will do. It is now the
+        loudest gold on the bench and drawn as a ruled heading — a boxed chip
+        in the same column as the boxed verbs read as a button that summarises
+        the overlay, which is what `.kind` is about.
+
+        The way through to the overlay's own page rides the same rule, at the
+        far end. It used to sit in the verb row, a gap away from the button
+        that puts a poll on air — a navigation control among broadcast
+        controls, which is the arrangement that produces a misfire mid-segment.
+        Up here it is nowhere near them: the bench now reads identity at the
+        top, composition in the middle, and the act at the bottom.
+      */}
       {desk ? (
-        <OverlayIdentity
-          role={entry.role}
-          purpose={entry.purpose}
-          steps={steps}
-          stepsLabel={reserved ? 'What it will do' : 'How it runs'}
-          epigraph={entry.epigraph}
-        />
+        <div className={styles.head}>
+          <span className={styles.kind}>{entry.role}</span>
+          <span className={styles.headRule} aria-hidden="true" />
+          <Link to={entry.route} className={styles.enter}>
+            Open full console
+            <span className={styles.enterArrow} aria-hidden="true">
+              →
+            </span>
+          </Link>
+        </div>
       ) : null}
 
       {/*
         The live line, only when there is one. At rest an overlay gets nothing
         rather than the word "Idle" — see `statusFor`, which returns a null
-        detail for exactly this reason. On the desk the plain sentence above has
-        already said what the thing is, so a row saying nothing is happening
-        would be the third caption in a column of three.
+        detail for exactly this reason. It matters more here than it did: the
+        board no longer prints these figures beside its rows, so this is the
+        one place `04:12 · 12 filed` is drawn, and drawing `Idle` in it would
+        spend the bench's only reading on nothing happening.
       */}
       {status.detail ? <p className={styles.detail}>{status.detail}</p> : null}
 
@@ -106,18 +124,6 @@ export function OverlayBench({
         </p>
       ) : (
         <>
-          <OverlayVerbs
-            actions={actions}
-            runner={runner}
-            trailing={
-              desk ? (
-                <Link to={entry.route} className={styles.enter}>
-                  Open full console →
-                </Link>
-              ) : null
-            }
-          />
-
           {composer ? <OverlayComposer {...composer} runner={runner} /> : null}
 
           <OverlayDials dials={dials} label={dials.length > 0 ? 'Between segments' : undefined} />
@@ -141,6 +147,16 @@ export function OverlayBench({
             )
           ) : null}
 
+          {/*
+            The verbs, under everything they commit and above the addresses.
+
+            Composition first, then the act: a call's title and its length are
+            set before it is put, and an address is copied once at scene-build
+            time rather than mid-segment. The lead verb is the last thing
+            before the sources and runs the full width of the bench.
+          */}
+          <OverlayVerbs actions={actions} runner={runner} />
+
           {desk && entry.overlay ? (
             <div className={styles.addresses}>
               <span className={styles.addressesLabel}>Browser sources</span>
@@ -154,18 +170,6 @@ export function OverlayBench({
           ) : null}
         </>
       )}
-
-      {/*
-        A reserved overlay has no verb row, so its way through to its own page
-        needs drawing here. Everything else reaches it through the trailing slot
-        of `OverlayVerbs`, which renders for the link alone when an overlay has
-        no verbs — as THE CHORUS does.
-      */}
-      {desk && reserved ? (
-        <Link to={entry.route} className={styles.enter}>
-          Open full console →
-        </Link>
-      ) : null}
     </div>
   )
 }

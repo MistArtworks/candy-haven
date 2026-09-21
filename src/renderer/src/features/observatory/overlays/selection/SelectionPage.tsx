@@ -206,245 +206,250 @@ export function SelectionPage(): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/*
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            {/*
           01 — the ring is the single focal object on this page, per the brief.
           It holds no controls any more: the verbs live at `02` with the fields
           they are pressed against, which is the position they occupy on every
           other page in the kit and on the desk.
         */}
-        <Panel
-          label={state.config.title || 'Selection'}
-          index="01"
-          focal
-          className={styles.span6}
-          aside={
-            spinning ? (
-              <span className={styles.asideLive}>Selecting</span>
-            ) : state.winner ? (
-              <span className={styles.asideResult}>{state.winner.label}</span>
-            ) : (
-              <span className={styles.count}>{state.petitions.length} filed</span>
-            )
-          }
-        >
-          <div className={styles.ringBody}>
-            <RiteRing state={state} compact />
+            <Panel
+              label={state.config.title || 'Selection'}
+              index="01"
+              focal
 
-            {state.winner ? (
-              <p className={styles.verdict}>
-                <span className={styles.verdictLabel}>Sanctioned</span>
-                <span className={styles.verdictValue}>{state.winner.label}</span>
-                <span className={styles.verdictMeta}>
-                  drawn from {state.winner.poolSize} at {formatLogTime(state.winner.at)}
-                </span>
-              </p>
-            ) : null}
+              aside={
+                spinning ? (
+                  <span className={styles.asideLive}>Selecting</span>
+                ) : state.winner ? (
+                  <span className={styles.asideResult}>{state.winner.label}</span>
+                ) : (
+                  <span className={styles.count}>{state.petitions.length} filed</span>
+                )
+              }
+            >
+              <div className={styles.ringBody}>
+                <RiteRing state={state} compact />
+
+                {state.winner ? (
+                  <p className={styles.verdict}>
+                    <span className={styles.verdictLabel}>Sanctioned</span>
+                    <span className={styles.verdictValue}>{state.winner.label}</span>
+                    <span className={styles.verdictMeta}>
+                      drawn from {state.winner.poolSize} at {formatLogTime(state.winner.at)}
+                    </span>
+                  </p>
+                ) : null}
+              </div>
+            </Panel>
+
+            {/* 02 — the desk's own controls, on the overlay's page. */}
+            <Panel label="Run the draw" index="02">
+              <OverlayBench
+                entry={entry}
+                status={status}
+                actions={verbs}
+                composer={composerFor('selection', deck)}
+                dials={dialsFor('selection', deck)}
+                rows={[]}
+                copier={copier}
+                runner={runner}
+                variant="page"
+              />
+            </Panel>
+
+            <Panel
+              label="Broadcast"
+              index="05"
+
+              aside={
+                <StatusDot
+                  tone={server.running ? 'online' : 'error'}
+                  label={server.running ? 'Serving' : 'Offline'}
+                />
+              }
+            >
+              <div className={styles.broadcast}>
+                <AddressList
+                  rows={addressRowsFor(overlay, server.url)}
+                  copied={copier.copied}
+                  failed={copier.failed}
+                  onCopy={copier.copy}
+                  offline={server.error ?? 'The overlay server is not listening.'}
+                />
+
+                <FieldGrid columns={2}>
+                  <Field label="Port" value={server.port ?? '—'} mono />
+                  <Field label="Attached" value={server.clients} mono />
+                </FieldGrid>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  busy={actions.pending === 'server'}
+                  onClick={() => void actions.restartServer()}
+                >
+                  Restart server
+                </Button>
+              </div>
+            </Panel>
           </div>
-        </Panel>
-
-        {/* 02 — the desk's own controls, on the overlay's page. */}
-        <Panel label="Run the draw" index="02" className={styles.span3}>
-          <OverlayBench
-            entry={entry}
-            status={status}
-            actions={verbs}
-            composer={composerFor('selection', deck)}
-            dials={dialsFor('selection', deck)}
-            rows={[]}
-            copier={copier}
-            runner={runner}
-            variant="page"
-          />
-        </Panel>
-
-        {/*
+          <div className={styles.column}>
+            {/*
           03 — composition. Reordering, weighting and cutting an entry are the
           things deliberately *not* on the bench, because they need room and a
           list rather than one line.
         */}
-        <Panel label="Roster" index="03" className={styles.span3}>
-          <PetitionRoster state={state} actions={actions} />
-        </Panel>
+            <Panel label="Roster" index="03">
+              <PetitionRoster state={state} actions={actions} />
+            </Panel>
 
-        {/*
+            {/*
           04 — everything here changes how the overlay looks and nothing here
           changes how the draw behaves. All of it is a fixed choice within the
           locked palette rather than free-form styling — there is deliberately
           no colour picker.
         */}
-        <Panel label="Presentation" index="04" className={styles.span3}>
-          <div className={styles.config}>
-            <PresentationControls
-              values={state.config}
-              onChange={(patch) => void actions.configure(patch)}
-              onReset={() => void actions.configure({ scale: 1, typeScale: 1, opacity: 1 })}
-              adjusted={
-                state.config.scale !== 1 ||
-                state.config.typeScale !== 1 ||
-                state.config.opacity !== 1
-              }
-            />
-
-            <SelectInput
-              label="Preset"
-              value={state.config.theme}
-              options={OVERLAY_THEMES.map((theme) => ({
-                value: theme,
-                label: OVERLAY_THEME_LABEL[theme]
-              }))}
-              onChange={(theme) => void actions.configure({ theme })}
-              hint="Five materials, three arrangements. Crimson stays on the focal point in all of them."
-            />
-
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>What is drawn</span>
-              <div className={styles.toggles}>
-                <Checkbox
-                  label="Roster column"
-                  checked={state.config.showRoster}
-                  onChange={(showRoster) => void actions.configure({ showRoster })}
+            <Panel label="Presentation" index="04">
+              <div className={styles.config}>
+                <PresentationControls
+                  values={state.config}
+                  onChange={(patch) => void actions.configure(patch)}
+                  onReset={() => void actions.configure({ scale: 1, typeScale: 1, opacity: 1 })}
+                  adjusted={
+                    state.config.scale !== 1 ||
+                    state.config.typeScale !== 1 ||
+                    state.config.opacity !== 1
+                  }
                 />
-                <Checkbox
-                  label="Masthead"
-                  checked={state.config.showMasthead}
-                  onChange={(showMasthead) => void actions.configure({ showMasthead })}
-                />
-                <Checkbox
-                  label="Resonance field"
-                  checked={state.config.showField}
-                  onChange={(showField) => void actions.configure({ showField })}
-                />
-                <Checkbox
-                  label="Odds on the roster"
-                  checked={state.config.showOdds}
-                  onChange={(showOdds) => void actions.configure({ showOdds })}
-                />
-                <Checkbox
-                  label="Connection readout"
-                  checked={state.config.showStatus}
-                  onChange={(showStatus) => void actions.configure({ showStatus })}
-                />
-              </div>
-            </div>
 
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>Layout</span>
+                <SelectInput
+                  label="Preset"
+                  value={state.config.theme}
+                  options={OVERLAY_THEMES.map((theme) => ({
+                    value: theme,
+                    label: OVERLAY_THEME_LABEL[theme]
+                  }))}
+                  onChange={(theme) => void actions.configure({ theme })}
+                  hint="Five materials, three arrangements. Crimson stays on the focal point in all of them."
+                />
 
-              <SelectInput
-                label="Roster side"
-                value={state.config.rosterSide}
-                options={ROSTER_SIDES.map((side) => ({
-                  value: side,
-                  label: ROSTER_SIDE_LABEL[side]
-                }))}
-                onChange={(rosterSide) => void actions.configure({ rosterSide })}
-                disabled={!state.config.showRoster}
-              />
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>What is drawn</span>
+                  <div className={styles.toggles}>
+                    <Checkbox
+                      label="Roster column"
+                      checked={state.config.showRoster}
+                      onChange={(showRoster) => void actions.configure({ showRoster })}
+                    />
+                    <Checkbox
+                      label="Masthead"
+                      checked={state.config.showMasthead}
+                      onChange={(showMasthead) => void actions.configure({ showMasthead })}
+                    />
+                    <Checkbox
+                      label="Resonance field"
+                      checked={state.config.showField}
+                      onChange={(showField) => void actions.configure({ showField })}
+                    />
+                    <Checkbox
+                      label="Odds on the roster"
+                      checked={state.config.showOdds}
+                      onChange={(showOdds) => void actions.configure({ showOdds })}
+                    />
+                    <Checkbox
+                      label="Connection readout"
+                      checked={state.config.showStatus}
+                      onChange={(showStatus) => void actions.configure({ showStatus })}
+                    />
+                  </div>
+                </div>
 
-              <Checkbox
-                label="Composite over the scene"
-                checked={state.config.transparent}
-                onChange={(transparent) => void actions.configure({ transparent })}
-                hint="Drops the backdrop so the ring sits over your capture. Tick Transparent on the OBS source too."
-              />
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>Layout</span>
 
-              {/*
+                  <SelectInput
+                    label="Roster side"
+                    value={state.config.rosterSide}
+                    options={ROSTER_SIDES.map((side) => ({
+                      value: side,
+                      label: ROSTER_SIDE_LABEL[side]
+                    }))}
+                    onChange={(rosterSide) => void actions.configure({ rosterSide })}
+                    disabled={!state.config.showRoster}
+                  />
+
+                  <Checkbox
+                    label="Composite over the scene"
+                    checked={state.config.transparent}
+                    onChange={(transparent) => void actions.configure({ transparent })}
+                    hint="Drops the backdrop so the ring sits over your capture. Tick Transparent on the OBS source too."
+                  />
+
+                  {/*
                 Quoted in both units on purpose: the fraction is what is stored
                 and what survives a resize, but the artwork is cut in Photoshop
                 against a fixed canvas, so the pixel figure is the one that gets
                 typed into a marquee tool.
               */}
-              <Slider
-                label="Reserve right edge"
-                min={0}
-                max={Math.round(MAX_EDGE_RESERVE * 100)}
-                step={1}
-                value={Math.round(state.config.reserveRight * 100)}
-                readout={`${Math.round(state.config.reserveRight * 100)}% · ${Math.round(
-                  state.config.reserveRight * OVERLAY_REFERENCE_WIDTH
-                )}px`}
-                onChange={(percent) => void actions.configure({ reserveRight: percent / 100 })}
-                hint={
-                  <>
-                    Dead space for chat and camera — nothing is drawn there. Pixels quoted at{' '}
-                    {OVERLAY_REFERENCE_WIDTH}px wide. Add{' '}
-                    <code className={styles.inline}>?guides=1</code> to outline it while you cut the
-                    artwork.
-                  </>
-                }
-              />
-            </div>
-          </div>
-        </Panel>
+                  <Slider
+                    label="Reserve right edge"
+                    min={0}
+                    max={Math.round(MAX_EDGE_RESERVE * 100)}
+                    step={1}
+                    value={Math.round(state.config.reserveRight * 100)}
+                    readout={`${Math.round(state.config.reserveRight * 100)}% · ${Math.round(
+                      state.config.reserveRight * OVERLAY_REFERENCE_WIDTH
+                    )}px`}
+                    onChange={(percent) => void actions.configure({ reserveRight: percent / 100 })}
+                    hint={
+                      <>
+                        Dead space for chat and camera — nothing is drawn there. Pixels quoted at{' '}
+                        {OVERLAY_REFERENCE_WIDTH}px wide. Add{' '}
+                        <code className={styles.inline}>?guides=1</code> to outline it while you cut
+                        the artwork.
+                      </>
+                    }
+                  />
+                </div>
+              </div>
+            </Panel>
 
-        <Panel
-          label="Broadcast"
-          index="05"
-          className={styles.span3}
-          aside={
-            <StatusDot
-              tone={server.running ? 'online' : 'error'}
-              label={server.running ? 'Serving' : 'Offline'}
-            />
-          }
-        >
-          <div className={styles.broadcast}>
-            <AddressList
-              rows={addressRowsFor(overlay, server.url)}
-              copied={copier.copied}
-              failed={copier.failed}
-              onCopy={copier.copy}
-              offline={server.error ?? 'The overlay server is not listening.'}
-            />
+            <Panel
+              label="Record"
+              index="06"
 
-            <FieldGrid columns={2}>
-              <Field label="Port" value={server.port ?? '—'} mono />
-              <Field label="Attached" value={server.clients} mono />
-            </FieldGrid>
-
-            <Button
-              size="sm"
-              variant="ghost"
-              busy={actions.pending === 'server'}
-              onClick={() => void actions.restartServer()}
+              aside={
+                state.history.length > 0 ? (
+                  <button
+                    type="button"
+                    className={styles.dismiss}
+                    onClick={() => void actions.clearHistory()}
+                  >
+                    Purge
+                  </button>
+                ) : null
+              }
             >
-              Restart server
-            </Button>
+              {state.history.length === 0 ? (
+                <p className={styles.empty}>No selections on record.</p>
+              ) : (
+                <ol className={styles.history}>
+                  {state.history.map((item) => (
+                    <li key={`${item.petitionId}-${item.at}`} className={styles.historyRow}>
+                      <span className={styles.historyTime}>{formatLogTime(item.at)}</span>
+                      <span className={styles.historyLabel} title={item.label}>
+                        {item.label}
+                      </span>
+                      <span className={styles.historyOdds}>1 / {item.poolSize}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </Panel>
           </div>
-        </Panel>
-
-        <Panel
-          label="Record"
-          index="06"
-          className={styles.span6}
-          aside={
-            state.history.length > 0 ? (
-              <button
-                type="button"
-                className={styles.dismiss}
-                onClick={() => void actions.clearHistory()}
-              >
-                Purge
-              </button>
-            ) : null
-          }
-        >
-          {state.history.length === 0 ? (
-            <p className={styles.empty}>No selections on record.</p>
-          ) : (
-            <ol className={styles.history}>
-              {state.history.map((item) => (
-                <li key={`${item.petitionId}-${item.at}`} className={styles.historyRow}>
-                  <span className={styles.historyTime}>{formatLogTime(item.at)}</span>
-                  <span className={styles.historyLabel} title={item.label}>
-                    {item.label}
-                  </span>
-                  <span className={styles.historyOdds}>1 / {item.poolSize}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Panel>
+        </div>
 
         {/*
           Last, as on every page in the kit, so the indices above are literals.

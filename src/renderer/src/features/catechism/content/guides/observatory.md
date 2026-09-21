@@ -15,10 +15,10 @@ never the thing you are looking at.
 
 ## The board is a readout
 
-Each row is a number, a mark, a name and a state dot — and **it stays quiet
-until its overlay is doing something.** The moment a call opens or a clock
-starts, that row grows its live figure and one line: `The roll is open · 12
-filed · 02:40 left`.
+Each row is a number, a mark, a name and a state dot, and **that is the whole
+row.** The dot's colour and pulse say whether that overlay is running, and a
+running overlay's name is drawn brighter. The figures — `12 filed`, `02:40
+left` — are on the bench, at full size, for the one overlay you are holding.
 
 Nothing on the board is pressed. Click a row and it loads into the bench;
 hover one and it tells you what that overlay is for.
@@ -29,23 +29,28 @@ hover one and it tells you what that overlay is for.
 
 ## What each overlay actually does
 
-Every overlay leads with a **kind** — `OPEN CALL`, `CHAT VOTE`, `BREAK CLOCK` —
-and one plain sentence. Beneath that, three steps for how it runs, including
-the chat command, which is the whole interface for three of them.
+Every overlay leads with a **kind** — `OPEN CALL`, `CHAT VOTE`, `PRIZE DRAW` —
+set as a heading with a rule running out of it, and nothing else said about the
+overlay. The bench is a surface you have open mid-stream, so it carries the
+controls and not a description of them.
 
-The lore line is still there, faint, at the bottom. It used to come first.
+What each one is for, in a sentence, is one hover away on its board row. How
+each one runs, step by step and with its chat command, is in the reference
+beside this guide.
 
 ## Put it from here
 
 ![overlay-concord-console.png](overlay-concord-console.png)
 
-The bench carries the **lead verb** on its own line at full size: whichever one
-suits the phase the overlay is in. An open call leads with **Close the call**, a
-stopped clock with **Start**.
+The bench reads in the order you work it. A **Title** and a **Question**, one
+line for adding an option or an entry, then the few settings that change
+between segments — a call's length, how strictly a vote parses, a break's
+grace.
 
-Under it: the other verbs, a **Title** and a **Question**, one line for adding
-an option or an entry, and the few settings that change between segments — a
-call's length, how strictly a vote parses, a break's grace.
+At the foot of it, the **lead verb**: full width, whichever one suits the phase
+the overlay is in. An open call leads with **Close the call**, a stopped clock
+with **Start**. The helpers — restart, reset, hand a finished roll on, add a
+minute — sit under it as a smaller row.
 
 > **The bench carries what changes between segments. The overlay's own page
 > carries what is set once.** Reordering a ballot or weighting an entry needs a

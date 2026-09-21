@@ -7,49 +7,49 @@
 }
 
 /*
- * The lead verb's line.
+ * The whole width of the bench, and the only control on it at this size.
  *
- * On its own row so the control is unmissable — this is the one button an
- * operator reaches for mid-broadcast, and it used to be one of five in a
- * wrapping strip with the way out of the page among them.
- */
-.leadRow {
-  display: flex;
-  align-items: center;
-  gap: space(4);
-}
-
-/*
- * Wider than its label needs, which is the whole emphasis.
+ * It was 168px wide in a row with the way out of the page beside it, which
+ * made the one button an operator reaches for mid-broadcast the same shape as
+ * a navigation link. Deliberately still not a colour change: crimson is
+ * reserved for live state and destructive actions, so painting `Close the
+ * call` with it would misreport what the button does. Width, height and a
+ * larger label do the work instead, and they work in both accent themes.
  *
- * Deliberately not a colour change: crimson is reserved for live state and
- * destructive actions, so painting `Close the call` with it would misreport
- * what the button does. Size, isolation and a minimum width do the work
- * instead, and they work in both accent themes.
+ * The class is doubled so it outranks `Button`'s own single-class rules for
+ * height and size whichever order the two stylesheets land in. CSS modules
+ * hash both occurrences to the same name, so this is one class counted twice
+ * rather than a second class to keep in step.
  */
 .lead {
-  min-width: rem(168px);
-  justify-content: center;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: space(2);
-  flex-wrap: wrap;
+  &.lead {
+    display: flex;
+    width: 100%;
+    height: space(11);
+    font-size: 11px;
+    justify-content: center;
+  }
 }
 
 /*
- * Pushes the way out to the far end.
+ * The helper tier: one centred group under the lead.
  *
- * The lead button *does* something to the live broadcast; the trailing slot
- * navigates. Keeping it a full gap away means the control nearest a returning
- * cursor is never the one that leaves the page mid-segment.
+ * Each button takes an equal share of a bounded width rather than shrinking to
+ * its label, so `Reset` beside `Restart` is not half the size of it and a
+ * clock offering four helpers does not turn into a ragged strip. The cap stops
+ * two helpers from becoming two 500px slabs on a wide bench — at that width
+ * they stop reading as secondary at all.
  */
-.trailing {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
+.helpers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: space(2);
+}
+
+.helper {
+  flex: 1 1 rem(120px);
+  max-width: rem(200px);
 }
 
 .refusals {

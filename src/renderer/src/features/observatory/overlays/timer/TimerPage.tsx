@@ -216,221 +216,232 @@ export function TimerPage({ timerId }: TimerPageProps): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/* 01 — the face is the single focal object on this page. */}
-        <Panel
-          label="Face"
-          index="01"
-          focal
-          className={styles.span6}
-          aside={<span className={styles.clock}>{readout}</span>}
-        >
-          <div className={styles.faceBody}>
-            <TimerFacePreview state={state} />
-          </div>
-        </Panel>
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            {/* 01 — the face is the single focal object on this page. */}
+            <Panel
+              label="Face"
+              index="01"
+              focal
 
-        {/* 02 — the desk's own controls, on the overlay's page. */}
-        <Panel label="Run the clock" index="02" className={styles.span3}>
-          <OverlayBench
-            entry={entry}
-            status={status}
-            actions={actionsFor(timerId, deck)}
-            composer={composerFor(timerId, deck)}
-            dials={dialsFor(timerId, deck)}
-            rows={[]}
-            copier={copier}
-            runner={runner}
-            variant="page"
-          />
-        </Panel>
+              aside={<span className={styles.clock}>{readout}</span>}
+            >
+              <div className={styles.faceBody}>
+                <TimerFacePreview state={state} />
+              </div>
+            </Panel>
 
-        {/*
+            {/* 02 — the desk's own controls, on the overlay's page. */}
+            <Panel label="Run the clock" index="02">
+              <OverlayBench
+                entry={entry}
+                status={status}
+                actions={actionsFor(timerId, deck)}
+                composer={composerFor(timerId, deck)}
+                dials={dialsFor(timerId, deck)}
+                rows={[]}
+                copier={copier}
+                runner={runner}
+                variant="page"
+              />
+            </Panel>
+
+            {/*
           03 — the fuller way at the same two numbers the bench dials.
           Both write `config.durationMs` and `config.graceMs`, so they cannot
           disagree; what this adds is the named presets and a finer adjustment
           than ±1 minute. The bench keeps the coarse pair because that is the
           one reached for mid-break, from the desk, with an audience waiting.
         */}
-        <Panel label="Duration" index="03" className={styles.span3}>
-          <div className={styles.config}>
-            <div className={styles.quickGroup}>
-              <span className={styles.quickLabel}>Set to</span>
-              <div className={styles.quick}>
-                {TIMER_QUICK_SET.map((seconds) => (
-                  <Button
-                    key={seconds}
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void actions.configure(timerId, { durationMs: seconds * 1_000 })}
-                  >
-                    {formatDurationLabel(seconds * 1_000)}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <Panel label="Duration" index="03">
+              <div className={styles.config}>
+                <div className={styles.quickGroup}>
+                  <span className={styles.quickLabel}>Set to</span>
+                  <div className={styles.quick}>
+                    {TIMER_QUICK_SET.map((seconds) => (
+                      <Button
+                        key={seconds}
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          void actions.configure(timerId, { durationMs: seconds * 1_000 })
+                        }
+                      >
+                        {formatDurationLabel(seconds * 1_000)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
 
-            {/*
+                {/*
               Adjusting the duration rather than the clock, so this works
               mid-run — handing yourself another two minutes is the common case
               for a break that has overrun.
             */}
-            <div className={styles.quickGroup}>
-              <span className={styles.quickLabel}>Adjust</span>
-              <div className={styles.quick}>
-                {[-60_000, -30_000, 30_000, 60_000, 300_000].map((delta) => (
-                  <Button
-                    key={delta}
-                    size="sm"
-                    variant="ghost"
-                    busy={actions.pending === `extend:${delta}`}
-                    onClick={() => void actions.extend(timerId, delta)}
-                  >
-                    {delta > 0
-                      ? `+${delta / 60_000 >= 1 ? `${delta / 60_000}m` : `${delta / 1000}s`}`
-                      : `−${Math.abs(delta) / 60_000 >= 1 ? `${Math.abs(delta) / 60_000}m` : `${Math.abs(delta) / 1000}s`}`}
-                  </Button>
-                ))}
-              </div>
-            </div>
+                <div className={styles.quickGroup}>
+                  <span className={styles.quickLabel}>Adjust</span>
+                  <div className={styles.quick}>
+                    {[-60_000, -30_000, 30_000, 60_000, 300_000].map((delta) => (
+                      <Button
+                        key={delta}
+                        size="sm"
+                        variant="ghost"
+                        busy={actions.pending === `extend:${delta}`}
+                        onClick={() => void actions.extend(timerId, delta)}
+                      >
+                        {delta > 0
+                          ? `+${delta / 60_000 >= 1 ? `${delta / 60_000}m` : `${delta / 1000}s`}`
+                          : `−${Math.abs(delta) / 60_000 >= 1 ? `${Math.abs(delta) / 60_000}m` : `${Math.abs(delta) / 1000}s`}`}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
 
-            {/*
+                {/*
               Grace is a second budget beginning the instant the first is spent,
               and only an interval has one — see `createDefaultTimerConfig`: it
               is for work that runs over, and counting a room in does not. So
               CONVENING gets no grace presets here and no grace dial on `02`.
             */}
-            {kind === 'interval' ? (
-              <div className={styles.quickGroup}>
-                <span className={styles.quickLabel}>Grace past zero</span>
-                <div className={styles.quick}>
-                  {GRACE_QUICK_SET.map((seconds) => (
-                    <Button
-                      key={seconds}
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => void actions.configure(timerId, { graceMs: seconds * 1_000 })}
-                    >
-                      {formatDurationLabel(seconds * 1_000)}
-                    </Button>
-                  ))}
-                </div>
-                <p className={styles.hint}>
-                  Counted down in crimson past zero, so overrunning looks like overrunning rather
-                  than like a clock that stopped. None ends the timer at 00:00.
-                </p>
+                {kind === 'interval' ? (
+                  <div className={styles.quickGroup}>
+                    <span className={styles.quickLabel}>Grace past zero</span>
+                    <div className={styles.quick}>
+                      {GRACE_QUICK_SET.map((seconds) => (
+                        <Button
+                          key={seconds}
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            void actions.configure(timerId, { graceMs: seconds * 1_000 })
+                          }
+                        >
+                          {formatDurationLabel(seconds * 1_000)}
+                        </Button>
+                      ))}
+                    </div>
+                    <p className={styles.hint}>
+                      Counted down in crimson past zero, so overrunning looks like overrunning
+                      rather than like a clock that stopped. None ends the timer at 00:00.
+                    </p>
+                  </div>
+                ) : null}
+
+                <FieldGrid columns={2}>
+                  <Field label="Set" value={formatClock(state.config.durationMs)} mono />
+                  <Field label="Grace" value={formatDurationLabel(state.config.graceMs)} mono />
+                </FieldGrid>
               </div>
-            ) : null}
-
-            <FieldGrid columns={2}>
-              <Field label="Set" value={formatClock(state.config.durationMs)} mono />
-              <Field label="Grace" value={formatDurationLabel(state.config.graceMs)} mono />
-            </FieldGrid>
+            </Panel>
           </div>
-        </Panel>
-
-        <Panel label="Presentation" index="04" className={styles.span3}>
-          <div className={styles.config}>
-            <PresentationControls
-              values={state.config}
-              onChange={(patch) => void actions.configure(timerId, patch)}
-              onReset={() =>
-                void actions.configure(timerId, { scale: 1, typeScale: 1, opacity: 1 })
-              }
-              adjusted={
-                state.config.scale !== 1 ||
-                state.config.typeScale !== 1 ||
-                state.config.opacity !== 1
-              }
-            />
-
-            <SelectInput
-              label="Countdown face"
-              value={state.config.animation}
-              options={TIMER_ANIMATIONS.map((animation) => ({
-                value: animation,
-                label: TIMER_ANIMATION_LABEL[animation]
-              }))}
-              onChange={(animation) => void actions.configure(timerId, { animation })}
-              hint="Presentations of the same clock. The overlay is always transparent."
-            />
-
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>What is drawn</span>
-              <div className={styles.toggles}>
-                <Checkbox
-                  label="Show the label"
-                  checked={state.config.showLabel}
-                  onChange={(showLabel) => void actions.configure(timerId, { showLabel })}
-                />
-                <Checkbox
-                  label="Blink when spent"
-                  checked={state.config.blinkOnElapsed}
-                  onChange={(blinkOnElapsed) => void actions.configure(timerId, { blinkOnElapsed })}
-                  hint={
-                    kind === 'convene'
-                      ? 'A convening has arrived rather than run out, so this is usually off for it.'
-                      : undefined
+          <div className={styles.column}>
+            <Panel label="Presentation" index="04">
+              <div className={styles.config}>
+                <PresentationControls
+                  values={state.config}
+                  onChange={(patch) => void actions.configure(timerId, patch)}
+                  onReset={() =>
+                    void actions.configure(timerId, { scale: 1, typeScale: 1, opacity: 1 })
+                  }
+                  adjusted={
+                    state.config.scale !== 1 ||
+                    state.config.typeScale !== 1 ||
+                    state.config.opacity !== 1
                   }
                 />
-              </div>
-            </div>
 
-            {/*
+                <SelectInput
+                  label="Countdown face"
+                  value={state.config.animation}
+                  options={TIMER_ANIMATIONS.map((animation) => ({
+                    value: animation,
+                    label: TIMER_ANIMATION_LABEL[animation]
+                  }))}
+                  onChange={(animation) => void actions.configure(timerId, { animation })}
+                  hint="Presentations of the same clock. The overlay is always transparent."
+                />
+
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>What is drawn</span>
+                  <div className={styles.toggles}>
+                    <Checkbox
+                      label="Show the label"
+                      checked={state.config.showLabel}
+                      onChange={(showLabel) => void actions.configure(timerId, { showLabel })}
+                    />
+                    <Checkbox
+                      label="Blink when spent"
+                      checked={state.config.blinkOnElapsed}
+                      onChange={(blinkOnElapsed) =>
+                        void actions.configure(timerId, { blinkOnElapsed })
+                      }
+                      hint={
+                        kind === 'convene'
+                          ? 'A convening has arrived rather than run out, so this is usually off for it.'
+                          : undefined
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/*
               Two kinds of noise, and they are deliberately two settings: the
               cues are three chimes at moments that matter, the clock is a bed
               that plays for the whole duration. Turning the chimes off does not
               silence the clock, and it is not meant to.
             */}
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>Sound, in the console only</span>
-              <div className={styles.toggles}>
-                <Checkbox
-                  label="Audio cues"
-                  checked={state.config.sound}
-                  onChange={(sound) => void actions.configure(timerId, { sound })}
-                  hint={
-                    kind === 'convene'
-                      ? 'Off by default — nothing should warn an audience it is nearly time. The impact when this reaches zero needs it on.'
-                      : 'One minute out, final call at ten seconds, and once when spent. Never on the broadcast.'
-                  }
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>Sound, in the console only</span>
+                  <div className={styles.toggles}>
+                    <Checkbox
+                      label="Audio cues"
+                      checked={state.config.sound}
+                      onChange={(sound) => void actions.configure(timerId, { sound })}
+                      hint={
+                        kind === 'convene'
+                          ? 'Off by default — nothing should warn an audience it is nearly time. The impact when this reaches zero needs it on.'
+                          : 'One minute out, final call at ten seconds, and once when spent. Never on the broadcast.'
+                      }
+                    />
+                    <Checkbox
+                      label="Ticking clock"
+                      checked={state.config.tick}
+                      onChange={(tick) => void actions.configure(timerId, { tick })}
+                      hint="A clock under the countdown for as long as it runs."
+                    />
+                  </div>
+                </div>
+              </div>
+            </Panel>
+
+            <Panel
+              label="Broadcast"
+              index="05"
+
+              aside={
+                <StatusDot
+                  tone={server.running ? 'online' : 'error'}
+                  label={server.running ? 'Serving' : 'Offline'}
                 />
-                <Checkbox
-                  label="Ticking clock"
-                  checked={state.config.tick}
-                  onChange={(tick) => void actions.configure(timerId, { tick })}
-                  hint="A clock under the countdown for as long as it runs."
+              }
+            >
+              <div className={styles.broadcast}>
+                <p className={styles.hint}>
+                  Tick <strong>Transparent</strong> on the OBS source — this overlay never paints a
+                  background, so it drops onto any scene.
+                </p>
+
+                <AddressList
+                  rows={addressRowsFor(overlay, server.url)}
+                  copied={copier.copied}
+                  failed={copier.failed}
+                  onCopy={copier.copy}
+                  offline={server.error ?? 'The overlay server is not listening.'}
                 />
               </div>
-            </div>
+            </Panel>
           </div>
-        </Panel>
-
-        <Panel
-          label="Broadcast"
-          index="05"
-          className={styles.span6}
-          aside={
-            <StatusDot
-              tone={server.running ? 'online' : 'error'}
-              label={server.running ? 'Serving' : 'Offline'}
-            />
-          }
-        >
-          <div className={styles.broadcast}>
-            <p className={styles.hint}>
-              Tick <strong>Transparent</strong> on the OBS source — this overlay never paints a
-              background, so it drops onto any scene.
-            </p>
-
-            <AddressList
-              rows={addressRowsFor(overlay, server.url)}
-              copied={copier.copied}
-              failed={copier.failed}
-              onCopy={copier.copy}
-              offline={server.error ?? 'The overlay server is not listening.'}
-            />
-          </div>
-        </Panel>
+        </div>
       </motion.div>
     </div>
   )

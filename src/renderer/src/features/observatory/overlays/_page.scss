@@ -25,13 +25,93 @@
     padding: space(10) space(10) space(12);
     max-width: 1560px;
     margin: 0 auto;
+
+    /*
+     * How tall any preview on this page may be.
+     *
+     * Every console opens with the overlay drawn at the aspect of the real
+     * source, sized `width: 100%` of whatever panel holds it — which on a
+     * 1560px page meant THE CONCORD's portrait 64:90 tally rendered about two
+     * thousand pixels tall. The preview is the page's focal object; it is not
+     * the page, and an operator who has to scroll past it to reach the fields
+     * that change it is being shown the wrong thing first.
+     *
+     * Read by each stage as `calc(var(--stage-cap) * <its own ratio>)` applied
+     * to `max-width`, which is the one way to bound the height of an
+     * aspect-ratio box without distorting what it frames. Capped in px as well
+     * as vh so a tall monitor does not simply get a taller preview.
+     */
+    --stage-cap: #{'min(42vh, 460px)'};
   }
 
+  /*
+   * `start`, not `stretch`.
+   *
+   * Panels used to fill their grid row, so a short one beside a long one was
+   * drawn at the long one's height: BALLOT with one field in it stood as tall
+   * as the whole of RUN THE VOTE, and CHAT ran the depth of PRESENTATION's
+   * twelve switches. A frame around nothing reads as something missing — the
+   * ragged bottom this was avoiding is the lesser of the two.
+   */
   .grid {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: space(5);
-    align-items: stretch;
+    align-items: start;
+  }
+
+  /*
+   * `align-items: start` alone does not do it.
+   *
+   * A `Panel` declares `height: 100%` so that it fills a stretched row, and a
+   * percentage height on a grid item resolves against **the grid area** — which
+   * is still the height of the tallest panel in the row whether or not the item
+   * is stretched into it. So the first attempt at this changed nothing: BALLOT
+   * went on standing as tall as RUN THE VOTE, and the panel was right to, by
+   * the rules. The height has to be released as well as the alignment.
+   *
+   * Doubled selector so it outranks `.panel` from the other module regardless
+   * of which stylesheet lands first.
+   */
+  .grid.grid > * {
+    align-self: start;
+    height: auto;
+  }
+
+  /*
+   * Two stacks, for the half-width panels.
+   *
+   * A grid places by *row*, so a short panel beside a tall one leaves a hole
+   * the height of the difference and the next row starts below both of them.
+   * On THE MUSTER that meant HAND ON — four lines and two figures — held open
+   * a gap as deep as RUN THE CALL, and PRESENTATION began a row further down
+   * with nothing above it.
+   *
+   * These are columns rather than rows, so each panel starts where the one
+   * above it ended. Which column a panel lives in is written at the call site,
+   * not left to the browser: the operator reads the left stack as the run of
+   * the overlay and the right as what it is made of, and a balancing algorithm
+   * would reshuffle that on every window resize.
+   */
+  .columns {
+    grid-column: span 6;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: space(5);
+    align-items: start;
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: space(5);
+    min-width: 0;
+  }
+
+  @include below('lg') {
+    .columns {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   // Explicit spans, never positional nth-child rules: which panel is half-width
@@ -234,9 +314,12 @@
   // ------------------------------------------------------------------- stage
 
   // A preview at the aspect of the real source, so what is judged here is what
-  // goes out.
+  // goes out — bounded by `--stage-cap` and centred in whatever is left. See
+  // `.page` for why the cap is a max-width rather than a max-height.
   .stage {
     width: 100%;
+    max-width: calc(var(--stage-cap, 42vh) * 16 / 9);
+    margin-inline: auto;
     aspect-ratio: 16 / 9;
     background: var(--ch-obsidian-900);
     @include hairline(all, 0.14);

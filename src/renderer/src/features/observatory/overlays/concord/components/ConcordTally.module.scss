@@ -7,6 +7,11 @@
   // the way OBS will. Getting this wrong makes the console preview a reassuring
   // lie about how much of a scene the overlay occupies.
   aspect-ratio: 64 / 90;
+  // Bounded by the page's `--stage-cap` and centred. This is the ratio that
+  // made the cap necessary: portrait, at the full width of a six-column panel,
+  // it rendered taller than two screens.
+  max-width: calc(var(--stage-cap, 42vh) * 64 / 90);
+  margin-inline: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -19,6 +24,7 @@
   // The widget is landscape and much shallower — a corner plate, not a scene.
   &[data-layout='widget'] {
     aspect-ratio: 46 / 32;
+    max-width: calc(var(--stage-cap, 42vh) * 46 / 32);
   }
 }
 

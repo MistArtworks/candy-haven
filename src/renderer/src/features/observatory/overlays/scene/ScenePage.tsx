@@ -184,152 +184,155 @@ export function ScenePage({ overlayId }: ScenePageProps): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/* The scene is the single focal object on this page. */}
-        <Panel label="Scene" index="01" focal className={styles.scenePanel}>
-          <div
-            className={styles.stage}
-            style={
-              {
-                '--ch-scene-gap': String(gap),
-                '--ch-scene-grad-top': gradTop,
-                '--ch-scene-grad-bottom': gradBottom,
-                '--ch-scene-grad-alpha': String(gradAlpha),
-                '--ch-scene-scale': String(scale),
-                '--ch-scene-type': String(type),
-                opacity
-              } as React.CSSProperties
-            }
-          >
-            <Scene tone="nominal" className={styles.scene} />
-            <div className={styles.chat} />
-            <div className={styles.marque}>
-              <span className={styles.title}>
-                {(title.trim() || DEFAULTS.title).slice(0, TITLE_LIMIT).toUpperCase()}
-              </span>
-              <span className={styles.sub}>
-                {(sub.trim() || DEFAULTS.sub).slice(0, SUB_LIMIT).toUpperCase()}
-              </span>
-            </div>
-          </div>
-        </Panel>
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            {/* The scene is the single focal object on this page. */}
+            <Panel label="Scene" index="01" focal>
+              <div
+                className={styles.stage}
+                style={
+                  {
+                    '--ch-scene-gap': String(gap),
+                    '--ch-scene-grad-top': gradTop,
+                    '--ch-scene-grad-bottom': gradBottom,
+                    '--ch-scene-grad-alpha': String(gradAlpha),
+                    '--ch-scene-scale': String(scale),
+                    '--ch-scene-type': String(type),
+                    opacity
+                  } as React.CSSProperties
+                }
+              >
+                <Scene tone="nominal" className={styles.scene} />
+                <div className={styles.chat} />
+                <div className={styles.marque}>
+                  <span className={styles.title}>
+                    {(title.trim() || DEFAULTS.title).slice(0, TITLE_LIMIT).toUpperCase()}
+                  </span>
+                  <span className={styles.sub}>
+                    {(sub.trim() || DEFAULTS.sub).slice(0, SUB_LIMIT).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </Panel>
 
-        <Panel label="Marque" index="02" className={styles.span3}>
-          <div className={styles.fields}>
-            <TextInput
-              label="Title"
-              value={title}
-              maxLength={TITLE_LIMIT}
-              onChange={setTitle}
-              placeholder={DEFAULTS.title}
-              hint="Uppercased on the scene."
-            />
-            <TextInput
-              label="Second line"
-              value={sub}
-              maxLength={SUB_LIMIT}
-              onChange={setSub}
-              placeholder={DEFAULTS.sub}
-              hint="Set beneath the title, quieter."
-            />
-
-            <Slider
-              label="Scale"
-              value={scale}
-              min={PRESENTATION_LIMITS.scale.min}
-              max={PRESENTATION_LIMITS.scale.max}
-              step={PRESENTATION_LIMITS.scale.step}
-              onChange={setScale}
-              readout={`${scale.toFixed(2)}×`}
-              width="full"
-            />
-            <Slider
-              label="Type size"
-              value={type}
-              min={PRESENTATION_LIMITS.typeScale.min}
-              max={PRESENTATION_LIMITS.typeScale.max}
-              step={PRESENTATION_LIMITS.typeScale.step}
-              onChange={setType}
-              readout={`${type.toFixed(2)}×`}
-              width="full"
-            />
-            <Slider
-              label="Opacity"
-              value={opacity}
-              min={PRESENTATION_LIMITS.opacity.min}
-              max={PRESENTATION_LIMITS.opacity.max}
-              step={PRESENTATION_LIMITS.opacity.step}
-              onChange={setOpacity}
-              readout={`${Math.round(opacity * 100)}%`}
-              width="full"
-            />
-          </div>
-        </Panel>
-
-        <Panel label="Chat band" index="03" className={styles.span3}>
-          <div className={styles.fields}>
-            <Slider
-              label="Band width"
-              value={gap}
-              min={0}
-              max={0.5}
-              step={0.01}
-              onChange={setGap}
-              readout={gap === 0 ? 'None' : `${Math.round(gap * 100)}%`}
-              hint="The share of the frame held for a chat capture. Zero removes it."
-              width="full"
-            />
-
-            <div className={styles.swatches}>
-              <label className={styles.swatch}>
-                <span className={styles.swatchLabel}>Top colour</span>
-                <input
-                  type="color"
-                  aria-label="Gradient top colour"
-                  value={gradTop}
-                  onChange={(event) => setGradTop(event.target.value)}
+            <Panel label="Chat band" index="03">
+              <div className={styles.fields}>
+                <Slider
+                  label="Band width"
+                  value={gap}
+                  min={0}
+                  max={0.5}
+                  step={0.01}
+                  onChange={setGap}
+                  readout={gap === 0 ? 'None' : `${Math.round(gap * 100)}%`}
+                  hint="The share of the frame held for a chat capture. Zero removes it."
+                  width="full"
                 />
-              </label>
-              <label className={styles.swatch}>
-                <span className={styles.swatchLabel}>Lower colour</span>
-                <input
-                  type="color"
-                  aria-label="Gradient lower colour"
-                  value={gradBottom}
-                  onChange={(event) => setGradBottom(event.target.value)}
+
+                <div className={styles.swatches}>
+                  <label className={styles.swatch}>
+                    <span className={styles.swatchLabel}>Top colour</span>
+                    <input
+                      type="color"
+                      aria-label="Gradient top colour"
+                      value={gradTop}
+                      onChange={(event) => setGradTop(event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.swatch}>
+                    <span className={styles.swatchLabel}>Lower colour</span>
+                    <input
+                      type="color"
+                      aria-label="Gradient lower colour"
+                      value={gradBottom}
+                      onChange={(event) => setGradBottom(event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <Slider
+                  label="Band strength"
+                  value={gradAlpha}
+                  min={0}
+                  max={1}
+                  step={0.02}
+                  onChange={setGradAlpha}
+                  readout={`${Math.round(gradAlpha * 100)}%`}
+                  hint="The band always fades out by the bottom, whatever the colours."
+                  width="full"
                 />
-              </label>
-            </div>
 
-            <Slider
-              label="Band strength"
-              value={gradAlpha}
-              min={0}
-              max={1}
-              step={0.02}
-              onChange={setGradAlpha}
-              readout={`${Math.round(gradAlpha * 100)}%`}
-              hint="The band always fades out by the bottom, whatever the colours."
-              width="full"
-            />
-
-            <div className={styles.actions}>
-              <Button size="sm" variant="ghost" onClick={reset} disabled={!adjusted}>
-                Reset to defaults
-              </Button>
-            </div>
+                <div className={styles.actions}>
+                  <Button size="sm" variant="ghost" onClick={reset} disabled={!adjusted}>
+                    Reset to defaults
+                  </Button>
+                </div>
+              </div>
+            </Panel>
           </div>
-        </Panel>
+          <div className={styles.column}>
+            <Panel label="Marque" index="02">
+              <div className={styles.fields}>
+                <TextInput
+                  label="Title"
+                  value={title}
+                  maxLength={TITLE_LIMIT}
+                  onChange={setTitle}
+                  placeholder={DEFAULTS.title}
+                  hint="Uppercased on the scene."
+                />
+                <TextInput
+                  label="Second line"
+                  value={sub}
+                  maxLength={SUB_LIMIT}
+                  onChange={setSub}
+                  placeholder={DEFAULTS.sub}
+                  hint="Set beneath the title, quieter."
+                />
 
-        <Panel label="Broadcast" index="04" className={styles.span6}>
-          <div className={styles.broadcast}>
-            <p className={styles.hint}>
-              This one is a <strong>scene</strong> rather than furniture — it replaces the capture
-              rather than sitting over it, so it does not want Transparent ticked. Everything set
-              above travels in the address, so changing one means pasting the new URL rather than
-              reloading the source.
-            </p>
+                <Slider
+                  label="Scale"
+                  value={scale}
+                  min={PRESENTATION_LIMITS.scale.min}
+                  max={PRESENTATION_LIMITS.scale.max}
+                  step={PRESENTATION_LIMITS.scale.step}
+                  onChange={setScale}
+                  readout={`${scale.toFixed(2)}×`}
+                  width="full"
+                />
+                <Slider
+                  label="Type size"
+                  value={type}
+                  min={PRESENTATION_LIMITS.typeScale.min}
+                  max={PRESENTATION_LIMITS.typeScale.max}
+                  step={PRESENTATION_LIMITS.typeScale.step}
+                  onChange={setType}
+                  readout={`${type.toFixed(2)}×`}
+                  width="full"
+                />
+                <Slider
+                  label="Opacity"
+                  value={opacity}
+                  min={PRESENTATION_LIMITS.opacity.min}
+                  max={PRESENTATION_LIMITS.opacity.max}
+                  step={PRESENTATION_LIMITS.opacity.step}
+                  onChange={setOpacity}
+                  readout={`${Math.round(opacity * 100)}%`}
+                  width="full"
+                />
+              </div>
+            </Panel>
 
-            {/*
+            <Panel label="Broadcast" index="04">
+              <div className={styles.broadcast}>
+                <p className={styles.hint}>
+                  This one is a <strong>scene</strong> rather than furniture — it replaces the
+                  capture rather than sitting over it, so it does not want Transparent ticked.
+                  Everything set above travels in the address, so changing one means pasting the new
+                  URL rather than reloading the source.
+                </p>
+
+                {/*
               The shared list, given the *composed* address rather than the
               registry's bare one.
 
@@ -340,15 +343,17 @@ export function ScenePage({ overlayId }: ScenePageProps): ReactNode {
               fields say. The presentation, the copy and the preview are the
               kit's; only the address is this page's.
             */}
-            <AddressList
-              rows={rows}
-              copied={copier.copied}
-              failed={copier.failed}
-              onCopy={copier.copy}
-              offline="Overlay server offline — no address to serve."
-            />
+                <AddressList
+                  rows={rows}
+                  copied={copier.copied}
+                  failed={copier.failed}
+                  onCopy={copier.copy}
+                  offline="Overlay server offline — no address to serve."
+                />
+              </div>
+            </Panel>
           </div>
-        </Panel>
+        </div>
       </motion.div>
     </div>
   )

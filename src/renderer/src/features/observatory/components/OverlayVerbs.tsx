@@ -6,8 +6,6 @@ import styles from './OverlayVerbs.module.scss'
 export interface OverlayVerbsProps {
   actions: readonly DeckAction[]
   runner: DeckRunner
-  /** Trailing slot — the way through to the overlay's own page, on the desk. */
-  trailing?: ReactNode
   className?: string
 }
 
@@ -28,12 +26,7 @@ export interface OverlayVerbsProps {
  * mirrored from the service that enforces it — correctness lives in the main
  * process and these are only its explanation.
  */
-export function OverlayVerbs({
-  actions,
-  runner,
-  trailing,
-  className
-}: OverlayVerbsProps): ReactNode {
+export function OverlayVerbs({ actions, runner, className }: OverlayVerbsProps): ReactNode {
   /*
    * Distinct refusals, not just the first.
    *
@@ -48,21 +41,27 @@ export function OverlayVerbs({
     )
   ]
 
-  if (actions.length === 0 && !trailing) return null
+  if (actions.length === 0) return null
 
   /*
-   * The lead verb, given its own line and its full size.
+   * The lead verb, last on the bench and the full width of it.
    *
    * `actionsFor` already orders every case so that the first entry is the verb
    * for the phase the overlay is in — an open call leads with Close, a stopped
    * clock leads with Start — so taking the first is taking the obvious one
    * rather than an arbitrary one.
    *
-   * Emphasis is **size and position, not colour.** Forcing `primary` on the
+   * **Last, not first.** It stood at the top of the bench above the fields it
+   * commits, which is the wrong way round for the way the bench is actually
+   * worked: read the kind, set the title, add the options, *then* put it on
+   * air. Everything above it is composition; this is the act. The operator
+   * asked for it down here, and the form it now closes is the argument for it.
+   *
+   * **Emphasis is size and position, not colour.** Forcing `primary` on the
    * lead would paint `Close the call` crimson, and crimson in this console is
    * reserved for live state and destructive actions; closing a call is neither.
    * So the lead keeps whatever variant its action declares and earns its weight
-   * by standing alone at full height above the rest.
+   * by running the whole width at a size nothing else on the bench is set at.
    *
    * This is also where the board's per-row buttons went. Eleven of them down
    * the sidebar was the noise; one unmistakable control here is the same
@@ -73,32 +72,51 @@ export function OverlayVerbs({
   return (
     <div className={[styles.verbs, className ?? ''].filter(Boolean).join(' ')}>
       {lead ? (
-        <div className={styles.leadRow}>
-          <Button
-            className={styles.lead}
-            variant={lead.variant ?? 'ghost'}
-            busy={runner.pending === lead.key}
-            disabled={Boolean(lead.refusal)}
-            title={lead.refusal}
-            onClick={() => void runner.run(lead)}
-          >
-            {lead.label}
-          </Button>
-
-          {trailing ? <span className={styles.trailing}>{trailing}</span> : null}
-        </div>
-      ) : trailing ? (
-        <div className={styles.leadRow}>
-          <span className={styles.trailing}>{trailing}</span>
-        </div>
+        <Button
+          className={styles.lead}
+          variant={lead.variant ?? 'ghost'}
+          busy={runner.pending === lead.key}
+          disabled={Boolean(lead.refusal)}
+          title={lead.refusal}
+          onClick={() => void runner.run(lead)}
+        >
+          {lead.label}
+        </Button>
       ) : null}
 
+      {/*
+        Directly under the button it explains, and above the helpers rather
+        than after them: a disabled lead with its cause one row further down,
+        past three other controls, is the disabled-with-no-visible-reason
+        failure said quietly instead of loudly.
+      */}
+      {refusals.length > 0 ? (
+        <ul className={styles.refusals}>
+          {refusals.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {/*
+        The helpers, under the act rather than over it.
+
+        `Restart`, `Reset`, `+1 min`, `Clear the roll` — everything that is not
+        the verb for the phase the overlay is in. They sat above the lead as a
+        left-packed strip of small buttons, which put `Reset` in the path of a
+        cursor travelling to `Start` and made the row read as the primary
+        controls with a large button underneath rather than the reverse.
+
+        Laid out as one centred group of equal widths, so a bench with two of
+        them and a bench with four both read as a tier of the same object
+        instead of a row that happens to be that long.
+      */}
       {rest.length > 0 ? (
-        <div className={styles.row}>
+        <div className={styles.helpers}>
           {rest.map((action) => (
             <Button
               key={action.key}
-              size="sm"
+              className={styles.helper}
               variant={action.variant ?? 'ghost'}
               busy={runner.pending === action.key}
               disabled={Boolean(action.refusal)}
@@ -109,14 +127,6 @@ export function OverlayVerbs({
             </Button>
           ))}
         </div>
-      ) : null}
-
-      {refusals.length > 0 ? (
-        <ul className={styles.refusals}>
-          {refusals.map((reason) => (
-            <li key={reason}>{reason}</li>
-          ))}
-        </ul>
       ) : null}
     </div>
   )

@@ -135,85 +135,90 @@ export function EnclosurePage(): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/* The frame is the single focal object on this page. */}
-        <Panel
-          label="Frame"
-          index="01"
-          focal
-          className={styles.framePanel}
-          aside={
-            <span className={styles.canvasLabel}>
-              {overlay.canvas.width} × {overlay.canvas.height}
-            </span>
-          }
-        >
-          <div className={styles.stage} data-air={air || undefined}>
-            <span className={`${styles.bracket} ${styles.tl}`} />
-            <span className={`${styles.bracket} ${styles.tr}`} />
-            <span className={`${styles.bracket} ${styles.bl}`} />
-            <span className={`${styles.bracket} ${styles.br}`} />
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            {/* The frame is the single focal object on this page. */}
+            <Panel
+              label="Frame"
+              index="01"
+              focal
+              aside={
+                <span className={styles.canvasLabel}>
+                  {overlay.canvas.width} × {overlay.canvas.height}
+                </span>
+              }
+            >
+              <div className={styles.stage} data-air={air || undefined}>
+                <span className={`${styles.bracket} ${styles.tl}`} />
+                <span className={`${styles.bracket} ${styles.tr}`} />
+                <span className={`${styles.bracket} ${styles.bl}`} />
+                <span className={`${styles.bracket} ${styles.br}`} />
 
-            <div className={styles.plinth}>
-              <span className={styles.pip} />
-              <span className={styles.marque}>{shownMarque}</span>
-              <span className={styles.air}>ON AIR</span>
-              <span className={styles.section}>{shownSection}</span>
-            </div>
+                <div className={styles.plinth}>
+                  <span className={styles.pip} />
+                  <span className={styles.marque}>{shownMarque}</span>
+                  <span className={styles.air}>ON AIR</span>
+                  <span className={styles.section}>{shownSection}</span>
+                </div>
+              </div>
+
+              <p className={styles.hint}>
+                The centre is fully transparent. What shows through it is whatever the scene puts
+                behind this source.
+              </p>
+            </Panel>
+
+            <Panel label="Broadcast" index="03">
+              <div className={styles.broadcast}>
+                <p className={styles.hint}>
+                  Tick <strong>Transparent</strong> on the OBS source. The address carries the
+                  settings above, so changing one here means pasting the new address rather than
+                  reloading the source — which is also what lets two scenes carry two
+                  differently-marqued frames.
+                </p>
+
+                <AddressList
+                  rows={rows}
+                  copied={copier.copied}
+                  failed={copier.failed}
+                  onCopy={copier.copy}
+                  offline="Overlay server offline — no address to serve."
+                />
+              </div>
+            </Panel>
           </div>
+          <div className={styles.column}>
+            <Panel label="Marque" index="02">
+              <div className={styles.fields}>
+                <TextInput
+                  label="Marque"
+                  value={marque}
+                  onChange={setMarque}
+                  maxLength={MARQUE_LIMIT}
+                  placeholder="CANDY HEIST"
+                  hint={`Uppercased on the frame. ${MARQUE_LIMIT} characters.`}
+                />
 
-          <p className={styles.hint}>
-            The centre is fully transparent. What shows through it is whatever the scene puts behind
-            this source.
-          </p>
-        </Panel>
+                <TextInput
+                  label="Section"
+                  value={section}
+                  onChange={setSection}
+                  maxLength={SECTION_LIMIT}
+                  placeholder="§01"
+                  mono
+                  hint="The numeral at the right of the plinth."
+                />
 
-        <Panel label="Marque" index="02" className={styles.span3}>
-          <div className={styles.fields}>
-            <TextInput
-              label="Marque"
-              value={marque}
-              onChange={setMarque}
-              maxLength={MARQUE_LIMIT}
-              placeholder="CANDY HEIST"
-              hint={`Uppercased on the frame. ${MARQUE_LIMIT} characters.`}
-            />
-
-            <TextInput
-              label="Section"
-              value={section}
-              onChange={setSection}
-              maxLength={SECTION_LIMIT}
-              placeholder="§01"
-              mono
-              hint="The numeral at the right of the plinth."
-            />
-
-            <Checkbox
-              label="Declare the broadcast live"
-              checked={air}
-              onChange={setAir}
-              hint="Lights the crimson pip. It is the only colour on the frame."
-            />
+                <Checkbox
+                  label="Declare the broadcast live"
+                  checked={air}
+                  onChange={setAir}
+                  hint="Lights the crimson pip. It is the only colour on the frame."
+                />
+              </div>
+            </Panel>
           </div>
-        </Panel>
-
-        <Panel label="Broadcast" index="03" className={styles.span3}>
-          <div className={styles.broadcast}>
-            <p className={styles.hint}>
-              Tick <strong>Transparent</strong> on the OBS source. The address carries the settings
-              above, so changing one here means pasting the new address rather than reloading the
-              source — which is also what lets two scenes carry two differently-marqued frames.
-            </p>
-
-            <AddressList
-              rows={rows}
-              copied={copier.copied}
-              failed={copier.failed}
-              onCopy={copier.copy}
-              offline="Overlay server offline — no address to serve."
-            />
-          </div>
-        </Panel>
+        </div>
       </motion.div>
     </div>
   )

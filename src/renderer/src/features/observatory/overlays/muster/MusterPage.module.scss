@@ -22,7 +22,9 @@
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(rem(280px), 2fr);
   gap: space(5);
-  align-items: start;
+  // Stretch, so the column beside the preview has a height to centre an empty
+  // roll inside. A filled roll ignores it — the entries start at the top.
+  align-items: stretch;
 }
 
 @include below('lg') {
@@ -36,6 +38,22 @@
   flex-direction: column;
   gap: space(4);
   min-width: 0;
+}
+
+/*
+ * Nothing filed yet, centred rather than stranded.
+ *
+ * Before a call is put, this column holds one short sentence and the preview
+ * beside it is four hundred pixels tall — so the panel read as mostly void
+ * with a caption in the corner of it. Centred, the same two objects read as a
+ * plate with a legend. `:has` rather than a state class because the condition
+ * is exactly "this column holds nothing but the empty line", which the DOM
+ * already says.
+ */
+.roll:has(> .empty:only-child) {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 // Bounded and scrolled: a full roll is forty entries, and the panel must not

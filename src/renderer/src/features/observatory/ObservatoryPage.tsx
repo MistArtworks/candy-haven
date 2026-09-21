@@ -54,8 +54,15 @@ import styles from './ObservatoryPage.module.scss'
  * one line. Nothing on it is pressed.
  *
  * **The bench** is the page's single focal panel, and everything you press. One
- * overlay's identity, verbs, composer, dials and addresses, with the lead verb
+ * overlay's kind, verbs, composer, dials and addresses, with the lead verb
  * given its own line at full size. Selecting a board row fills it.
+ *
+ * Both halves were cut again after the operator read the finished page as
+ * "too much text everywhere". The board lost its live figures and its second
+ * line, and is now a mark and a name; the bench lost the sentence, the three
+ * steps and the epigraph that sat above its controls. What is left on each is
+ * the thing it is for: the board says what the kit *is*, the bench is what you
+ * press.
  *
  * The rail's own note was right that hiding eight overlays to show one is the
  * problem this page exists to remove, and it still holds: nothing about any

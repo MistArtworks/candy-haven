@@ -26,6 +26,19 @@
 }
 
 /*
+ * The bench takes its own height, not the board's.
+ *
+ * `align-items: start` is not enough on its own: a `Panel` declares
+ * `height: 100%` to fill a stretched row, and that percentage resolves against
+ * the grid area — which is eleven board rows tall whether or not the bench is
+ * stretched into it. An overlay with two dials was drawing six hundred pixels
+ * of empty panel under them. Doubled selector to outrank `.panel`.
+ */
+.shell.shell > * {
+  height: auto;
+}
+
+/*
  * Sticky against the page's own scroll container, which is the animated page
  * wrapper in ConsoleLayout — see its `overflow-y: auto`. The bench is the taller
  * of the two on a narrow window, and the board staying put is what keeps the

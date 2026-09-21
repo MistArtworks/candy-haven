@@ -98,182 +98,187 @@ export function ChorusPage(): ReactNode {
         initial="initial"
         animate="animate"
       >
-        {/* The preview is the single focal object on this page, per the brief. */}
-        <Panel
-          label="Broadcast preview"
-          index="01"
-          focal
-          className={styles.span4}
-          aside={
-            <Button size="sm" variant="ghost" onClick={() => setReplay((value) => value + 1)}>
-              Replay
-            </Button>
-          }
-        >
-          <div className={styles.stage}>
-            <iframe
-              key={`${replay}-${config.preset}-${config.accent}`}
-              className={styles.frame}
-              title="THE CHORUS preview"
-              sandbox=""
-              srcDoc={preview}
-            />
-            <span className={styles.stageLabel}>Simulated scene · 640 × 900 source</span>
-          </div>
-          <p className={styles.hint}>
-            Viewer colours here are deliberately hostile — Twitch blue, green, purple and pink, plus
-            two viewers with no colour set. Every name still resolves to one of the seven in-palette
-            tones. The fourth entry shows a deleted message.
-          </p>
-        </Panel>
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            {/* The preview is the single focal object on this page, per the brief. */}
+            <Panel
+              label="Broadcast preview"
+              index="01"
+              focal
 
-        <Panel label="Presentation" index="02" className={styles.span2}>
-          <div className={styles.controls}>
-            <SelectInput
-              label="Preset"
-              value={config.preset}
-              options={CHORUS_PRESETS.map((preset) => ({
-                value: preset,
-                label: CHORUS_PRESET_LABEL[preset]
-              }))}
-              onChange={(value) => update('preset', value)}
-              hint="The same three arrangements the served overlays offer."
-            />
-
-            <SelectInput
-              label="Live mark"
-              value={config.accent}
-              options={CHORUS_ACCENTS.map((accent) => ({
-                value: accent,
-                label: accent === 'crimson' ? 'Crimson glass' : 'Brushed gold'
-              }))}
-              onChange={(value) => update('accent', value)}
-              hint="Carried by the newest entry alone."
-            />
-
-            <Slider
-              label="Name column"
-              value={config.nameWidth}
-              min={18}
-              max={48}
-              onChange={(value) => update('nameWidth', value)}
-              readout={`${config.nameWidth}%`}
-            />
-
-            <Slider
-              label="Font size"
-              value={config.fontSize}
-              min={12}
-              max={40}
-              onChange={(value) => update('fontSize', value)}
-              readout={`${config.fontSize}px`}
-            />
-
-            <Slider
-              label="Hold"
-              value={config.hideDelay}
-              min={0}
-              max={300}
-              step={5}
-              onChange={(value) => update('hideDelay', value)}
-              readout={config.hideDelay === 0 ? 'Never fades' : `${config.hideDelay}s`}
-              hint="How long a message stays before it retires."
-            />
-
-            <TextInput
-              label="Backdrop"
-              value={config.background}
-              onChange={(value) => update('background', value)}
-              hint="transparent is correct for OBS — the scene shows through."
-              mono
-            />
-          </div>
-        </Panel>
-
-        <Panel label="Register" index="03" className={styles.span2}>
-          <div className={styles.controls}>
-            <Checkbox
-              label="Entry numbers"
-              checked={config.showIndex}
-              onChange={(value) => update('showIndex', value)}
-              hint="Numbered sections, applied to a live feed."
-            />
-            <Checkbox
-              label="Roll numbers into place"
-              checked={config.numeralRoll}
-              onChange={(value) => update('numeralRoll', value)}
-              hint="Settles like an odometer rather than appearing."
-            />
-            <Checkbox
-              label="Masthead"
-              checked={config.showMasthead}
-              onChange={(value) => update('showMasthead', value)}
-              hint="Turning sigil and the register's name, along the foot."
-            />
-            <Checkbox
-              label="Ambient motion"
-              checked={config.ambientMotion}
-              onChange={(value) => update('ambientMotion', value)}
-              hint="The sigil, the resonance line and the arrival scan. Off leaves only messages moving."
-            />
-            <Checkbox
-              label="Brass-plate badges"
-              checked={config.brassBadges}
-              onChange={(value) => update('brassBadges', value)}
-              hint="Brings Twitch badges into the palette. Emotes are never filtered."
-            />
-            <Checkbox
-              label="Stamp deletions EXPUNGED"
-              checked={config.expungeRecords}
-              onChange={(value) => update('expungeRecords', value)}
-              hint="Leaves the numeral and strikes the content. Off hides the row entirely."
-            />
-
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setConfig(CHORUS_DEFAULTS)}
-              disabled={JSON.stringify(config) === JSON.stringify(CHORUS_DEFAULTS)}
+              aside={
+                <Button size="sm" variant="ghost" onClick={() => setReplay((value) => value + 1)}>
+                  Replay
+                </Button>
+              }
             >
-              Restore defaults
-            </Button>
-          </div>
-        </Panel>
+              <div className={styles.stage}>
+                <iframe
+                  key={`${replay}-${config.preset}-${config.accent}`}
+                  className={styles.frame}
+                  title="THE CHORUS preview"
+                  sandbox=""
+                  srcDoc={preview}
+                />
+                <span className={styles.stageLabel}>Simulated scene · 640 × 900 source</span>
+              </div>
+              <p className={styles.hint}>
+                Viewer colours here are deliberately hostile — Twitch blue, green, purple and pink,
+                plus two viewers with no colour set. Every name still resolves to one of the seven
+                in-palette tones. The fourth entry shows a deleted message.
+              </p>
+            </Panel>
 
-        <Panel
-          label="Delivery"
-          index="04"
-          className={styles.span6}
-          aside={
-            <span className={styles.asideNote}>Streamlabs → Chat Box → Custom HTML/CSS/JS</span>
-          }
-        >
-          <p className={styles.hint}>
-            Paste each block into the matching tab, then save. The Fields block is optional — it
-            only adds Streamlabs-side controls for the same settings, which is useful if you would
-            rather change the preset there than come back here.
-          </p>
+            <Panel label="Register" index="03">
+              <div className={styles.controls}>
+                <Checkbox
+                  label="Entry numbers"
+                  checked={config.showIndex}
+                  onChange={(value) => update('showIndex', value)}
+                  hint="Numbered sections, applied to a live feed."
+                />
+                <Checkbox
+                  label="Roll numbers into place"
+                  checked={config.numeralRoll}
+                  onChange={(value) => update('numeralRoll', value)}
+                  hint="Settles like an odometer rather than appearing."
+                />
+                <Checkbox
+                  label="Masthead"
+                  checked={config.showMasthead}
+                  onChange={(value) => update('showMasthead', value)}
+                  hint="Turning sigil and the register's name, along the foot."
+                />
+                <Checkbox
+                  label="Ambient motion"
+                  checked={config.ambientMotion}
+                  onChange={(value) => update('ambientMotion', value)}
+                  hint="The sigil, the resonance line and the arrival scan. Off leaves only messages moving."
+                />
+                <Checkbox
+                  label="Brass-plate badges"
+                  checked={config.brassBadges}
+                  onChange={(value) => update('brassBadges', value)}
+                  hint="Brings Twitch badges into the palette. Emotes are never filtered."
+                />
+                <Checkbox
+                  label="Stamp deletions EXPUNGED"
+                  checked={config.expungeRecords}
+                  onChange={(value) => update('expungeRecords', value)}
+                  hint="Leaves the numeral and strikes the content. Off hides the row entirely."
+                />
 
-          <div className={styles.artefacts}>
-            {artefacts.map((artefact) => (
-              <section key={artefact.key} className={styles.artefact}>
-                <header className={styles.artefactHead}>
-                  <span className={styles.artefactLabel}>{artefact.label}</span>
-                  <span className={styles.artefactRule} aria-hidden="true" />
-                  <span className={styles.artefactHint}>{artefact.hint}</span>
-                  <Button size="sm" onClick={() => copier.copy(artefact.key, artefact.body)}>
-                    {copier.failed === artefact.key
-                      ? 'Blocked'
-                      : copier.copied === artefact.key
-                        ? 'Copied'
-                        : 'Copy'}
-                  </Button>
-                </header>
-                <pre className={styles.code}>{artefact.body}</pre>
-              </section>
-            ))}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConfig(CHORUS_DEFAULTS)}
+                  disabled={JSON.stringify(config) === JSON.stringify(CHORUS_DEFAULTS)}
+                >
+                  Restore defaults
+                </Button>
+              </div>
+            </Panel>
           </div>
-        </Panel>
+          <div className={styles.column}>
+            <Panel label="Presentation" index="02">
+              <div className={styles.controls}>
+                <SelectInput
+                  label="Preset"
+                  value={config.preset}
+                  options={CHORUS_PRESETS.map((preset) => ({
+                    value: preset,
+                    label: CHORUS_PRESET_LABEL[preset]
+                  }))}
+                  onChange={(value) => update('preset', value)}
+                  hint="The same three arrangements the served overlays offer."
+                />
+
+                <SelectInput
+                  label="Live mark"
+                  value={config.accent}
+                  options={CHORUS_ACCENTS.map((accent) => ({
+                    value: accent,
+                    label: accent === 'crimson' ? 'Crimson glass' : 'Brushed gold'
+                  }))}
+                  onChange={(value) => update('accent', value)}
+                  hint="Carried by the newest entry alone."
+                />
+
+                <Slider
+                  label="Name column"
+                  value={config.nameWidth}
+                  min={18}
+                  max={48}
+                  onChange={(value) => update('nameWidth', value)}
+                  readout={`${config.nameWidth}%`}
+                />
+
+                <Slider
+                  label="Font size"
+                  value={config.fontSize}
+                  min={12}
+                  max={40}
+                  onChange={(value) => update('fontSize', value)}
+                  readout={`${config.fontSize}px`}
+                />
+
+                <Slider
+                  label="Hold"
+                  value={config.hideDelay}
+                  min={0}
+                  max={300}
+                  step={5}
+                  onChange={(value) => update('hideDelay', value)}
+                  readout={config.hideDelay === 0 ? 'Never fades' : `${config.hideDelay}s`}
+                  hint="How long a message stays before it retires."
+                />
+
+                <TextInput
+                  label="Backdrop"
+                  value={config.background}
+                  onChange={(value) => update('background', value)}
+                  hint="transparent is correct for OBS — the scene shows through."
+                  mono
+                />
+              </div>
+            </Panel>
+
+            <Panel
+              label="Delivery"
+              index="04"
+
+              aside={
+                <span className={styles.asideNote}>Streamlabs → Chat Box → Custom HTML/CSS/JS</span>
+              }
+            >
+              <p className={styles.hint}>
+                Paste each block into the matching tab, then save. The Fields block is optional — it
+                only adds Streamlabs-side controls for the same settings, which is useful if you
+                would rather change the preset there than come back here.
+              </p>
+
+              <div className={styles.artefacts}>
+                {artefacts.map((artefact) => (
+                  <section key={artefact.key} className={styles.artefact}>
+                    <header className={styles.artefactHead}>
+                      <span className={styles.artefactLabel}>{artefact.label}</span>
+                      <span className={styles.artefactRule} aria-hidden="true" />
+                      <span className={styles.artefactHint}>{artefact.hint}</span>
+                      <Button size="sm" onClick={() => copier.copy(artefact.key, artefact.body)}>
+                        {copier.failed === artefact.key
+                          ? 'Blocked'
+                          : copier.copied === artefact.key
+                            ? 'Copied'
+                            : 'Copy'}
+                      </Button>
+                    </header>
+                    <pre className={styles.code}>{artefact.body}</pre>
+                  </section>
+                ))}
+              </div>
+            </Panel>
+          </div>
+        </div>
       </motion.div>
     </div>
   )

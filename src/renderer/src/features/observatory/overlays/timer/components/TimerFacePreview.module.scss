@@ -4,6 +4,9 @@
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
+  // Bounded by the page's `--stage-cap`; see `overlays/_page.scss`.
+  max-width: calc(var(--stage-cap, 42vh) * 16 / 9);
+  margin-inline: auto;
   min-height: 0;
   // The overlay is transparent, so the preview sits on a sunken plate to stand
   // in for whatever scene it will be composited onto.

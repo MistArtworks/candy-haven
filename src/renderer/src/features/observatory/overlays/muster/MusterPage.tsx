@@ -311,220 +311,229 @@ export function MusterPage(): ReactNode {
           </div>
         </Panel>
 
-        {/* 02 — the desk's own controls, on the overlay's page. */}
-        <Panel label="Run the call" index="02" className={styles.span3}>
-          <OverlayBench
-            entry={entry}
-            status={status}
-            actions={running}
-            composer={composerFor('muster', deck)}
-            dials={dialsFor('muster', deck)}
-            rows={[]}
-            copier={copier}
-            runner={runner}
-            variant="page"
-          />
-        </Panel>
+        <div className={styles.columns}>
+          <div className={styles.column}>
+            {/* 02 — the desk's own controls, on the overlay's page. */}
+            <Panel label="Run the call" index="02">
+              <OverlayBench
+                entry={entry}
+                status={status}
+                actions={running}
+                composer={composerFor('muster', deck)}
+                dials={dialsFor('muster', deck)}
+                rows={[]}
+                copier={copier}
+                runner={runner}
+                variant="page"
+              />
+            </Panel>
 
-        {/*
-          03 — the point of the whole department: entries arrive as people and
-          leave as options. A roll longer than the destination allows is
-          truncated rather than refused, and the count that went is reported
-          back through the runner's notice.
-        */}
-        <Panel label="Hand on" index="03" className={styles.span3}>
-          <div className={styles.handoff}>
-            <p className={styles.hint}>
-              Send the roll to the ring to be drawn from, to the chamber to be voted on, or both — a
-              roll can be voted down to a shortlist and the shortlist then drawn. The chamber takes
-              ten; the ring takes rather more.
-            </p>
+            {/*
+              04 — what is set once and then printed on the broadcast forever.
+              The call's *length* is not here: it changes per call, so it is a dial
+              on `02`. See `dialsFor` for that split.
+            */}
+            <Panel label="The call" index="04">
+              <div className={styles.config}>
+                <TextInput
+                  label="Command"
+                  value={command}
+                  onChange={setCommand}
+                  hint={`Chat files with !${config.command}. ${fileInstruction(config)}`}
+                />
 
-            <OverlayVerbs actions={handoff} runner={runner} />
+                <Slider
+                  label="Hold the closed roll"
+                  min={LINGER_MIN_MS}
+                  max={LINGER_MAX_MS}
+                  step={5_000}
+                  value={config.lingerMs}
+                  readout={`${Math.round(config.lingerMs / 1000)}s`}
+                  onChange={(lingerMs) => void window.candy.muster.configure({ lingerMs })}
+                  hint="How long a closed roll stays on the scene before the overlay returns to rest."
+                />
 
-            {handoff.length === 0 ? (
-              <p className={styles.empty}>Nothing on the roll to hand on yet.</p>
-            ) : null}
+                <Slider
+                  label="Entries per citizen"
+                  min={PER_CITIZEN_MIN}
+                  max={PER_CITIZEN_MAX}
+                  step={1}
+                  value={config.perCitizen}
+                  readout={`${config.perCitizen}`}
+                  onChange={(perCitizen) => void window.candy.muster.configure({ perCitizen })}
+                  hint="Duplicates are refused regardless, so one person cannot fill the roll with the same entry."
+                />
 
-            <FieldGrid columns={2}>
-              <Field label="On the roll" value={state.entries.length} mono />
-              <Field label="Filed by" value={`${state.citizens}`} mono />
-            </FieldGrid>
-          </div>
-        </Panel>
+                <Slider
+                  label="Roll holds at most"
+                  min={4}
+                  max={MAX_ENTRIES}
+                  step={1}
+                  value={config.maxEntries}
+                  readout={`${config.maxEntries}`}
+                  onChange={(maxEntries) => void window.candy.muster.configure({ maxEntries })}
+                  hint="A composition limit, not a performance one: more than this cannot be read on a broadcast."
+                />
+              </div>
+            </Panel>
 
-        {/*
-          04 — what is set once and then printed on the broadcast forever.
-          The call's *length* is not here: it changes per call, so it is a dial
-          on `02`. See `dialsFor` for that split.
-        */}
-        <Panel label="The call" index="04" className={styles.span3}>
-          <div className={styles.config}>
-            <TextInput
-              label="Command"
-              value={command}
-              onChange={setCommand}
-              hint={`Chat files with !${config.command}. ${fileInstruction(config)}`}
-            />
+            <Panel
+              label="Broadcast"
+              index="06"
 
-            <Slider
-              label="Hold the closed roll"
-              min={LINGER_MIN_MS}
-              max={LINGER_MAX_MS}
-              step={5_000}
-              value={config.lingerMs}
-              readout={`${Math.round(config.lingerMs / 1000)}s`}
-              onChange={(lingerMs) => void window.candy.muster.configure({ lingerMs })}
-              hint="How long a closed roll stays on the scene before the overlay returns to rest."
-            />
-
-            <Slider
-              label="Entries per citizen"
-              min={PER_CITIZEN_MIN}
-              max={PER_CITIZEN_MAX}
-              step={1}
-              value={config.perCitizen}
-              readout={`${config.perCitizen}`}
-              onChange={(perCitizen) => void window.candy.muster.configure({ perCitizen })}
-              hint="Duplicates are refused regardless, so one person cannot fill the roll with the same entry."
-            />
-
-            <Slider
-              label="Roll holds at most"
-              min={4}
-              max={MAX_ENTRIES}
-              step={1}
-              value={config.maxEntries}
-              readout={`${config.maxEntries}`}
-              onChange={(maxEntries) => void window.candy.muster.configure({ maxEntries })}
-              hint="A composition limit, not a performance one: more than this cannot be read on a broadcast."
-            />
-          </div>
-        </Panel>
-
-        <Panel label="Presentation" index="05" className={styles.span3}>
-          <div className={styles.config}>
-            <PresentationControls
-              values={config}
-              onChange={(patch) => void window.candy.muster.configure(patch)}
-              onReset={() =>
-                void window.candy.muster.configure({
-                  scale: 1,
-                  typeScale: 1,
-                  opacity: 1,
-                  instructionScale: 1
-                })
-              }
-              adjusted={
-                config.scale !== 1 ||
-                config.typeScale !== 1 ||
-                config.opacity !== 1 ||
-                config.instructionScale !== 1
+              aside={
+                <StatusDot
+                  tone={server.running ? 'online' : 'error'}
+                  label={server.running ? 'Serving' : 'Offline'}
+                />
               }
             >
-              <Slider
-                label="Instruction size"
-                value={config.instructionScale}
-                min={0.8}
-                max={2}
-                step={PRESENTATION_LIMITS.typeScale.step}
-                onChange={(instructionScale) =>
-                  void window.candy.muster.configure({ instructionScale })
-                }
-                readout={`${config.instructionScale.toFixed(2)}×`}
-                hint="The one line with an audience other than you. Worth oversizing."
-                width="full"
-              />
-            </PresentationControls>
+              <div className={styles.broadcast}>
+                <p className={styles.hint}>
+                  Two addresses off one call: the full scene, and a corner plate showing the
+                  question and the latest filings. Both can run at once.
+                </p>
 
-            {/*
-              Grouped rather than one flat column of five.
-              What is *drawn* and how it is *laid out* are two questions, and a
-              single stack of checkboxes made the operator read all five to
-              find either.
-            */}
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>What is drawn</span>
-              <div className={styles.toggles}>
-                <Checkbox
-                  label="Credit each entry"
-                  checked={config.showAuthors}
-                  onChange={(showAuthors) => void window.candy.muster.configure({ showAuthors })}
-                />
-                <Checkbox
-                  label="Show the count"
-                  checked={config.showCount}
-                  onChange={(showCount) => void window.candy.muster.configure({ showCount })}
-                />
-                <Checkbox
-                  label="Draw the resonance field"
-                  checked={config.showField}
-                  onChange={(showField) => void window.candy.muster.configure({ showField })}
-                  hint="A node per entry, joined where they are close. Each filing arrives as a flare."
+                {/*
+                  The shared list, rather than this page's own copy of it.
+                  Eight overlay pages had hand-rolled the same markup with the copy
+                  handler rewritten each time, and none of them noticed a clipboard
+                  write the OS refused — so a blocked copy read as a button that did
+                  nothing at all. `useCopy` reports that as `Blocked`.
+                */}
+                <AddressList
+                  rows={addressRowsFor(overlay, server.url)}
+                  copied={copier.copied}
+                  failed={copier.failed}
+                  onCopy={copier.copy}
+                  offline={server.error ?? 'The overlay server is offline.'}
                 />
               </div>
-            </div>
-
-            <div className={styles.switchGroup}>
-              <span className={styles.switchLabel}>Layout</span>
-              <div className={styles.toggles}>
-                <Checkbox
-                  label="Composite over the scene"
-                  checked={config.transparent}
-                  onChange={(transparent) => void window.candy.muster.configure({ transparent })}
-                  hint="Drops the backdrop. Tick Transparent on the OBS source too."
-                />
-              </div>
-
-              <Slider
-                label="Reserve at the right"
-                min={0}
-                max={60}
-                step={1}
-                value={Math.round(config.reserveRight * 100)}
-                readout={`${Math.round(config.reserveRight * 100)}%`}
-                onChange={(percent) =>
-                  void window.candy.muster.configure({ reserveRight: percent / 100 })
-                }
-                hint="Nothing is drawn into this band, so a camera or a chat panel can be composited there."
-              />
-            </div>
+            </Panel>
           </div>
-        </Panel>
-
-        <Panel
-          label="Broadcast"
-          index="06"
-          className={styles.span6}
-          aside={
-            <StatusDot
-              tone={server.running ? 'online' : 'error'}
-              label={server.running ? 'Serving' : 'Offline'}
-            />
-          }
-        >
-          <div className={styles.broadcast}>
-            <p className={styles.hint}>
-              Two addresses off one call: the full scene, and a corner plate showing the question
-              and the latest filings. Both can run at once.
-            </p>
-
+          <div className={styles.column}>
             {/*
-              The shared list, rather than this page's own copy of it.
-              Eight overlay pages had hand-rolled the same markup with the copy
-              handler rewritten each time, and none of them noticed a clipboard
-              write the OS refused — so a blocked copy read as a button that did
-              nothing at all. `useCopy` reports that as `Blocked`.
+              03 — the point of the whole department: entries arrive as people and
+              leave as options. A roll longer than the destination allows is
+              truncated rather than refused, and the count that went is reported
+              back through the runner's notice.
             */}
-            <AddressList
-              rows={addressRowsFor(overlay, server.url)}
-              copied={copier.copied}
-              failed={copier.failed}
-              onCopy={copier.copy}
-              offline={server.error ?? 'The overlay server is offline.'}
-            />
+            <Panel label="Hand on" index="03">
+              <div className={styles.handoff}>
+                <p className={styles.hint}>
+                  Send the roll to the ring to be drawn from, to the chamber to be voted on, or both
+                  — a roll can be voted down to a shortlist and the shortlist then drawn. The
+                  chamber takes ten; the ring takes rather more.
+                </p>
+
+                <OverlayVerbs actions={handoff} runner={runner} />
+
+                {handoff.length === 0 ? (
+                  <p className={styles.empty}>Nothing on the roll to hand on yet.</p>
+                ) : null}
+
+                <FieldGrid columns={2}>
+                  <Field label="On the roll" value={state.entries.length} mono />
+                  <Field label="Filed by" value={`${state.citizens}`} mono />
+                </FieldGrid>
+              </div>
+            </Panel>
+
+            <Panel label="Presentation" index="05">
+              <div className={styles.config}>
+                <PresentationControls
+                  values={config}
+                  onChange={(patch) => void window.candy.muster.configure(patch)}
+                  onReset={() =>
+                    void window.candy.muster.configure({
+                      scale: 1,
+                      typeScale: 1,
+                      opacity: 1,
+                      instructionScale: 1
+                    })
+                  }
+                  adjusted={
+                    config.scale !== 1 ||
+                    config.typeScale !== 1 ||
+                    config.opacity !== 1 ||
+                    config.instructionScale !== 1
+                  }
+                >
+                  <Slider
+                    label="Instruction size"
+                    value={config.instructionScale}
+                    min={0.8}
+                    max={2}
+                    step={PRESENTATION_LIMITS.typeScale.step}
+                    onChange={(instructionScale) =>
+                      void window.candy.muster.configure({ instructionScale })
+                    }
+                    readout={`${config.instructionScale.toFixed(2)}×`}
+                    hint="The one line with an audience other than you. Worth oversizing."
+                    width="full"
+                  />
+                </PresentationControls>
+
+                {/*
+                  Grouped rather than one flat column of five.
+                  What is *drawn* and how it is *laid out* are two questions, and a
+                  single stack of checkboxes made the operator read all five to
+                  find either.
+                */}
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>What is drawn</span>
+                  <div className={styles.toggles}>
+                    <Checkbox
+                      label="Credit each entry"
+                      checked={config.showAuthors}
+                      onChange={(showAuthors) =>
+                        void window.candy.muster.configure({ showAuthors })
+                      }
+                    />
+                    <Checkbox
+                      label="Show the count"
+                      checked={config.showCount}
+                      onChange={(showCount) => void window.candy.muster.configure({ showCount })}
+                    />
+                    <Checkbox
+                      label="Draw the resonance field"
+                      checked={config.showField}
+                      onChange={(showField) => void window.candy.muster.configure({ showField })}
+                      hint="A node per entry, joined where they are close. Each filing arrives as a flare."
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.switchGroup}>
+                  <span className={styles.switchLabel}>Layout</span>
+                  <div className={styles.toggles}>
+                    <Checkbox
+                      label="Composite over the scene"
+                      checked={config.transparent}
+                      onChange={(transparent) =>
+                        void window.candy.muster.configure({ transparent })
+                      }
+                      hint="Drops the backdrop. Tick Transparent on the OBS source too."
+                    />
+                  </div>
+
+                  <Slider
+                    label="Reserve at the right"
+                    min={0}
+                    max={60}
+                    step={1}
+                    value={Math.round(config.reserveRight * 100)}
+                    readout={`${Math.round(config.reserveRight * 100)}%`}
+                    onChange={(percent) =>
+                      void window.candy.muster.configure({ reserveRight: percent / 100 })
+                    }
+                    hint="Nothing is drawn into this band, so a camera or a chat panel can be composited there."
+                  />
+                </div>
+              </div>
+            </Panel>
           </div>
-        </Panel>
+        </div>
 
         {/*
           Last, and last on every page in the kit, so that the indices above it

@@ -102,18 +102,20 @@ function Row({
   const { status } = row
 
   /*
-   * A row is quiet until its overlay is doing something.
+   * A row is a number, a mark, a name and a dot. That is the whole row.
    *
-   * `statusFor` returns a null `detail` at rest, deliberately — its own note
-   * says a dashboard of rows each reporting that nothing is happening is harder
-   * to read than rows that stay quiet. The board takes that at its word: at
-   * rest a row is a number, a mark, a name and a dot, and the moment something
-   * runs it grows its figure and its line.
+   * It has been cut back twice. The first draft carried a second line on all
+   * eleven rows — the live line when there was one, the plain description
+   * otherwise — and the description moved to the tooltip and the bench. The
+   * second cut, on the operator's instruction, took the live line and the live
+   * figure too: `58:00`, `Held at 00:00`, `Silent` and a sentence underneath
+   * each, eleven deep, was still a wall of text in a 300px column.
    *
-   * The first draft drew a second line on all eleven rows unconditionally — the
-   * live line when there was one and the plain description otherwise — which
-   * made the board a wall of prose beside a bench that says the same thing
-   * better. The description moved to the tooltip and the bench.
+   * What is left carries state without words. `busy` brightens the name and
+   * the dot reports tone and pulse, so "something is running over there" still
+   * reads in peripheral vision; the figures themselves are on the bench, at
+   * full size, for whichever overlay is being held. Both readings stay in the
+   * DOM for a screen reader — see `.readout`.
    */
   const busy = status.detail !== null
 
@@ -135,23 +137,21 @@ function Row({
 
         <span className={styles.state}>
           {/*
-            Always rendered, and visually hidden while at rest.
+            Rendered, and never drawn.
 
-            At rest the readout is `At rest`, `Reserved`, `Set by its address` —
-            true, and eleven copies of it is the noise being removed. But
-            dropping it from the DOM would leave `StatusDot` conveying state by
-            colour alone, which it is explicitly not allowed to do: it renders
-            its own mark `aria-hidden` and draws nothing else without a label.
-            Hidden rather than absent keeps the words for a screen reader and
-            for the row's accessible name.
+            Dropping the words from the DOM would leave `StatusDot` conveying
+            state by colour alone, which it is explicitly not allowed to do: it
+            renders its own mark `aria-hidden` and draws nothing else without a
+            label. Hidden rather than absent keeps `At rest`, `04:12` and
+            `12 filed` in the row's accessible name while the sighted row stays
+            down to a mark and a name.
           */}
-          <span className={styles.readout} data-quiet={busy ? undefined : true}>
+          <span className={styles.readout}>
             {status.readout}
+            {status.detail ? ` — ${status.detail}` : ''}
           </span>
           <StatusDot tone={status.tone} pulse={status.pulse} />
         </span>
-
-        {busy ? <span className={styles.line}>{status.detail}</span> : null}
       </button>
     </li>
   )

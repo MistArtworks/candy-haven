@@ -7,6 +7,53 @@
 }
 
 /*
+ * The kind: `OPEN CALL`, `CHAT VOTE`, `PRIZE DRAW`.
+ *
+ * A ruled heading, and specifically **not a chip**. It was a boxed plate with
+ * a border, a fill and padding, sitting two rows above a boxed plate with a
+ * border, a fill and padding that puts a poll on air — so the first thing an
+ * operator did with it was read it as a button that summarises the overlay.
+ * On this console anything framed is pressable; that is the whole grammar of
+ * the surface, and a fact wearing a control's clothes breaks it.
+ *
+ * So it takes the one form on the page that is never a control: a label with
+ * a rule running out of it, which is how every `Panel` draws its own header
+ * and how the addresses below title themselves. It is the largest gold text on
+ * the bench and it still cannot be mistaken for something to press.
+ *
+ * Still not crimson. Crimson here means live state and the lead verb, and
+ * "this is a chat vote" is true whether or not anything is happening.
+ */
+.kind {
+  @include label(13px, 0.3em);
+  color: var(--ch-gold-200);
+  flex-shrink: 0;
+}
+
+/*
+ * The bench's own header row: kind, rule, way out.
+ *
+ * Element for element a `Panel` header one tier down, which is deliberate —
+ * the panel above says *which* overlay is being held and whether it is live,
+ * and this says what kind of thing it is and where the rest of it lives.
+ */
+.head {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+}
+
+// Fading rather than flat, matching the brass hairline a panel draws along its
+// own top edge. It joins the heading to the way out instead of dividing the
+// row, which is why it fades from the label rather than from both ends.
+.headRule {
+  flex: 1;
+  height: 1px;
+  min-width: space(4);
+  background: linear-gradient(to right, var(--ch-line-gold), transparent 88%);
+}
+
+/*
  * What the overlay is doing, in one line.
  *
  * Gold and ruled on the left, which is the console's mark for a live reading.
@@ -15,7 +62,7 @@
  * measurements of the same quantity.
  */
 .detail {
-  @include readout(11px);
+  @include readout(12px);
   color: var(--ch-gold-300);
   line-height: 1.6;
   margin: 0;
@@ -35,23 +82,64 @@
 /*
  * The way in to the overlay's own page.
  *
- * A link rather than a button, and set apart from the verbs beside it: every
- * button in that row does something to the live broadcast and this one
- * navigates. The distinction was on the old card and is worth keeping.
+ * Still a link and not a button — every control in that row does something to
+ * the live broadcast and this one navigates, which is a distinction worth
+ * keeping in the markup. What it is **not** any more is a link that looks like
+ * a caption: 8px, secondary grey, unframed, at the far right of a row whose
+ * other control is 168px wide and crimson. Everything a page composes lives
+ * behind it — the ballot, the roster, the twelve switches — and it was the
+ * least visible thing on the bench.
+ *
+ * It now takes the metrics of a `md` Button and a brass frame, and it has left
+ * the verb row entirely — it rides the end of the heading rule at the top of
+ * the bench, as far from the button that puts a poll on air as the panel is
+ * tall. That is the part that was bad UX rather than merely quiet: a control
+ * that leaves the page mid-segment should not be a gap away from the control
+ * that starts one. Crimson does something here; brass goes somewhere else.
+ *
+ * The arrow is its own element so it can travel on hover, which is the one bit
+ * of motion on this bench and says "through here" better than any wording.
  */
 .enter {
-  @include label(8px, 0.2em);
-  color: var(--ch-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: space(3);
+  height: space(8);
+  padding: 0 space(4);
+  border: $hairline solid var(--ch-line-gold);
+  border-radius: $radius-control;
+  @include label(10px, 0.18em);
+  color: var(--ch-gold-300);
   text-decoration: none;
-  transition: color $duration-fast $ease-out-expo;
+  white-space: nowrap;
+  transition:
+    color $duration-fast $ease-out-expo,
+    border-color $duration-fast $ease-out-expo,
+    background-color $duration-fast $ease-out-expo;
 
   &:hover,
   &:focus-visible {
-    color: var(--ch-gold-300);
+    color: var(--ch-gold-200);
+    border-color: var(--ch-gold-400);
+    background: rgba(210, 169, 97, 0.08);
   }
 
   &:focus-visible {
     @include focus-ring(2px);
+  }
+}
+
+// The arrow, travelling on hover. Transform only, so nothing around it moves.
+.enterArrow {
+  transition: transform $duration-fast $ease-out-expo;
+
+  .enter:hover &,
+  .enter:focus-visible & {
+    transform: translateX(3px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 }
 

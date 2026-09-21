@@ -325,7 +325,15 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'interval',
     slug: 'interval',
     label: 'INTERVAL',
-    role: 'BREAK CLOCK',
+    /*
+     * Named for what it is rather than for one thing it is used for.
+     *
+     * `BREAK CLOCK` was the kind, and the two clocks then read as "the break
+     * one" and "the start one" — which is wrong about this one. It counts down
+     * to anything: a break, a segment, a drop, a guest joining. CONVENING is
+     * the one with a single job. The operator renamed both.
+     */
+    role: 'MULTI-PURPOSE COUNTDOWN TIMER',
     family: 'clock',
     purpose: 'A countdown for breaks that keeps counting past zero.',
     how: [
@@ -351,7 +359,9 @@ export const OVERLAYS: readonly OverlayDefinition[] = [
     id: 'convene',
     slug: 'convene',
     label: 'CONVENING',
-    role: 'START CLOCK',
+    // The one clock with a single job, and the name says which. See INTERVAL
+    // above for why the pair was renamed.
+    role: 'STREAM STARTING COUNTDOWN',
     family: 'clock',
     purpose: 'A countdown before you go live that ends on one word.',
     how: [

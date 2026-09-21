@@ -10,19 +10,19 @@ local address, so OBS composites them and this console drives them.
 Every overlay carries a **kind** and one plain sentence — on the desk, and in
 its own masthead — so the kit can be read without already knowing the names.
 
-| Overlay             | Kind           | What it does                                                               |
-| ------------------- | -------------- | -------------------------------------------------------------------------- |
-| THE MUSTER          | OPEN CALL      | Chat types entries; they fill a numbered list on screen                    |
-| RESONANCE SELECTION | PRIZE DRAW     | One entry is picked at random; bigger weights win more often               |
-| THE CONCORD         | CHAT VOTE      | Chat votes by typing a number; the bars fill live                          |
-| INTERVAL            | BREAK CLOCK    | A countdown for breaks that keeps counting past zero                       |
-| CONVENING           | START CLOCK    | A countdown before you go live that ends on one word                       |
-| THE GATE            | STARTING SCENE | A full-screen "starting soon" scene with room for chat                     |
-| THE SURVEY          | BRB SCENE      | A full-screen "be right back" scene with room for chat                     |
-| NOW TRANSMITTING    | NOW PLAYING    | The track playing on your Spotify, with cover art and a timeline           |
-| THE ENCLOSURE       | STREAM FRAME   | Corner brackets and a name plate around the whole stream                   |
-| THE CHORUS          | CHAT FEED      | Chat messages as a numbered list. Pasted into Streamlabs, not served here  |
-| THE DOCKET          | REQUEST QUEUE  | A queue of chat requests showing what you are working on next _(reserved)_ |
+| Overlay             | Kind                          | What it does                                                               |
+| ------------------- | ----------------------------- | -------------------------------------------------------------------------- |
+| THE MUSTER          | OPEN CALL                     | Chat types entries; they fill a numbered list on screen                    |
+| RESONANCE SELECTION | PRIZE DRAW                    | One entry is picked at random; bigger weights win more often               |
+| THE CONCORD         | CHAT VOTE                     | Chat votes by typing a number; the bars fill live                          |
+| INTERVAL            | MULTI-PURPOSE COUNTDOWN TIMER | A countdown for breaks that keeps counting past zero                       |
+| CONVENING           | STREAM STARTING COUNTDOWN     | A countdown before you go live that ends on one word                       |
+| THE GATE            | STARTING SCENE                | A full-screen "starting soon" scene with room for chat                     |
+| THE SURVEY          | BRB SCENE                     | A full-screen "be right back" scene with room for chat                     |
+| NOW TRANSMITTING    | NOW PLAYING                   | The track playing on your Spotify, with cover art and a timeline           |
+| THE ENCLOSURE       | STREAM FRAME                  | Corner brackets and a name plate around the whole stream                   |
+| THE CHORUS          | CHAT FEED                     | Chat messages as a numbered list. Pasted into Streamlabs, not served here  |
+| THE DOCKET          | REQUEST QUEUE                 | A queue of chat requests showing what you are working on next _(reserved)_ |
 
 The lore line each overlay carries — _"Harmony decided for all, not by all."_ —
 is still there, set faint beneath the plain one. It used to be the **first**
@@ -52,14 +52,19 @@ instruments**, **clocks**, **standing scenes**, **furniture**, and whatever is
 still **reserved**. Knowing THE GATE is a standing scene and THE ENCLOSURE is
 furniture already tells you how each is placed in OBS.
 
-Each row is a number, a mark, a name and a state dot — and **a row is quiet
-until its overlay is doing something.** The moment a call opens or a clock
-starts, that row grows its live figure and one line of detail:
+Each row is a number, a mark, a name and a state dot — and that is the whole
+row:
 
 ```
-04  INTERVAL                                     04:12  ●
-    Running · 04:12 remaining · Breaks and segments · 5 min
+04  ▮▮  INTERVAL                                              ●
+05  ((  CONVENING                                             ●
 ```
+
+The dot carries the state: its colour and its pulse say whether that overlay is
+running, and a running overlay's name is drawn brighter than a resting one's.
+The figures themselves — `04:12`, `12 filed` — are on the bench, at full size,
+for whichever overlay you are holding. Eleven rows each printing a number and a
+sentence underneath was a wall of text in a 300px column.
 
 **Nothing on the board is pressed.** It is a readout; everything you do to an
 overlay is on the bench. Hovering a row says in one line what that overlay is
@@ -73,24 +78,31 @@ the problem this department exists to remove.
 
 One overlay, and everything you do to it.
 
-| On the bench         | What it gives you                                            |
-| -------------------- | ------------------------------------------------------------ |
-| **The kind chip**    | `OPEN CALL`, `CHAT VOTE`, `BREAK CLOCK` — what this is       |
-| **What it does**     | One plain sentence, then three steps for how it runs         |
-| **The live line**    | `The chamber sits · 240 votes from 63 citizens · 01:12 left` |
-| **The lead verb**    | On its own line, at full size — the thing to press           |
-| **The other verbs**  | Clear, restart, hand a finished roll on, add or drop a minute |
-| **The composer**     | Title, question, and one line to add an option or an entry   |
-| **Between segments** | The few settings that change per call, per poll, per break   |
-| **Browser sources**  | Every address this overlay answers on, with Copy and Preview |
+It reads top to bottom in the order you work: what this is, what it is doing,
+what to set, then the act.
 
-**Open full console →** goes to that overlay's own page.
+| On the bench         | What it gives you                                             |
+| -------------------- | ------------------------------------------------------------- |
+| **The kind**         | `OPEN CALL`, `CHAT VOTE`, `PRIZE DRAW` — what this is         |
+| **The live line**    | `The chamber sits · 240 votes from 63 citizens · 01:12 left`  |
+| **The composer**     | Title, question, and one line to add an option or an entry    |
+| **Between segments** | The few settings that change per call, per poll, per break    |
+| **The lead verb**    | Full width, at the foot of the controls — the thing to press  |
+| **The helpers**      | Clear, restart, hand a finished roll on, add or drop a minute |
+| **Browser sources**  | Every address this overlay answers on, with Copy and Preview  |
+
+**Open full console →** sits at the end of the kind's rule, at the top of the
+bench, and goes to that overlay's own page. It is kept well away from the verbs
+on purpose: it leaves the page, and the controls beside it do things to a live
+broadcast.
 
 The lead verb is set apart deliberately. It is whichever verb suits the phase
 the overlay is in — an open call leads with **Close the call**, a stopped clock
-with **Start** — and it is the one you reach for while talking. It is
-emphasised by size and position rather than by colour, because crimson in this
-console means live state or destruction, and closing a call is neither.
+with **Start** — and it is the one you reach for while talking. It runs the
+full width of the bench, under everything it commits, with the helpers beneath
+it. It is emphasised by size and position rather than by colour, because
+crimson in this console means live state or destruction, and closing a call is
+neither.
 
 ### What the bench carries, and what the page carries
 
