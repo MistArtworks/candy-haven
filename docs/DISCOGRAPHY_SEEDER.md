@@ -366,6 +366,20 @@ The catalogue on his machine is not empty and must not be trampled.
 - A remix of somebody else's song is billed to the original artist with Candy
   Heist credited as remixer: the store already bills it that way, so the
   harvest inherits it rather than deciding it.
+- **Artwork follows the product, not the recording.** A track has no sleeve
+  of its own and draws under its record's, so a track released with an
+  album shows the album art without anything having to arrange it. A
+  recording that was a single first keeps the single's own art, because
+  each product brings its own image from the store. Where a record has no
+  image, it borrows one from another product carrying the same recording —
+  which is the operator's "if it doesn't exist then we reference the album
+  art". Nothing in the present catalogue needs that: all eighteen store
+  records already carry one.
+- An exclusive takes **SoundCloud's artwork first**, and a YouTube thumbnail
+  only where there is none. SoundCloud is where the master goes up, so its
+  image is the one he chose for the track; a thumbnail is a frame of a
+  video, right often enough to beat an empty sleeve and wrong often enough
+  not to outrank the real thing.
 - Artwork is fetched only when the record has none, and a failure to fetch it
   never fails a write.
 

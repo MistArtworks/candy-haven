@@ -453,6 +453,16 @@ export function buildPlan(input: PlanInput): SeedPlan {
     let artwork = ''
     let date: string | null = null
 
+    /*
+     * SoundCloud's artwork first, YouTube's thumbnail only if there is none.
+     *
+     * SoundCloud is where the master goes up, so its image is the one he
+     * chose for the track. A YouTube thumbnail is a frame of a video — right
+     * often enough to be better than an empty sleeve, wrong often enough not
+     * to outrank the real thing.
+     */
+    let fallbackArtwork = ''
+
     for (const member of members) {
       links.add(member.source, member.url, 'title')
       if (member.source === 'soundcloud') {
@@ -462,8 +472,13 @@ export function buildPlan(input: PlanInput): SeedPlan {
         // Earliest upload, which is the closest thing to a release date an
         // unreleased recording has.
         if (video?.publishedAt && (!date || video.publishedAt < date)) date = video.publishedAt
+        if (video?.videoId && !fallbackArtwork) {
+          fallbackArtwork = `https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`
+        }
       }
     }
+
+    artwork ||= fallbackArtwork
 
     /*
      * The SoundCloud title wins, and the shortest otherwise.
@@ -576,6 +591,37 @@ export function buildPlan(input: PlanInput): SeedPlan {
       home.record.notes = [
         home.record.notes,
         `"${home.track.title}" also appears on ${other.record.title}.`
+      ]
+        .filter(Boolean)
+        .join(' ')
+    }
+  }
+
+  /*
+   * A record with no sleeve borrows one from the other product it is on.
+   *
+   * The operator's rule: a track that came out with an album shows the album
+   * art; a track that was a single first keeps the single's own art; and
+   * where the single has none, it falls back to the album's. The first two
+   * need no code — a track has no artwork of its own and draws under its
+   * record's, and each product brings its own image from the store. This is
+   * the third.
+   *
+   * It fires on nothing in the present catalogue, because all eighteen store
+   * records and every SoundCloud exclusive already carry an image. It is
+   * here for the record that does not: a store that returned no image, or a
+   * recording whose own single predates the artwork being uploaded.
+   */
+  for (const appearances of byRecording.values()) {
+    const withArt = appearances.find((entry) => entry.record.artworkUrl)
+    if (!withArt) continue
+
+    for (const entry of appearances) {
+      if (entry.record.artworkUrl) continue
+      entry.record.artworkUrl = withArt.record.artworkUrl
+      entry.record.note = [
+        entry.record.note,
+        `Sleeve borrowed from ${withArt.record.title}, which carries the same recording.`
       ]
         .filter(Boolean)
         .join(' ')
