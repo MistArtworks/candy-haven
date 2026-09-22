@@ -206,6 +206,14 @@ export const SeedTrackSchema = z.object({
   isrc: z.string().default(''),
   durationMs: z.number().int().min(0).default(0),
   artistNames: z.array(z.string()).default([]),
+  /**
+   * Written onto the track row.
+   *
+   * Carries the one relationship the catalogue's own rules will not let
+   * this express structurally: a recording that came out on two products.
+   * See the shared-recording pass in `plan.ts`.
+   */
+  notes: z.string().default(''),
   /** True when a record already in the catalogue holds this ISRC or title. */
   present: z.boolean().default(false)
 })

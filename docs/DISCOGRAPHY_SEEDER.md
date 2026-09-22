@@ -329,6 +329,26 @@ The catalogue on his machine is not empty and must not be trampled.
 - Artists met along the way are resolved against the roster by name and
   created only when missing; the service already returns an existing record on
   a name collision, which is the behaviour a seeder wants.
+- **A record is his only if he is on every track of it.** That is the test,
+  and it is about the credits rather than about how the store filed it. It
+  replaced `appears_on || more than ten tracks`, which got `Truths Collide`
+  wrong: that is G.Roy's three-track EP — he is on the title track and
+  G.Roy alone is on the other two — but Spotify files it under `single` and
+  co-bills him as an album artist, so both halves of the old test passed it
+  through as his own. Four of the eighteen records are external; the old
+  test found three.
+- **One recording, two products.** `Truths Collide` came out on that EP and
+  was then licensed onto a 25-track compilation: one ISRC, two UPCs, two
+  dates. The compilation's track row carries a note saying it is the same
+  recording, and the EP's record note says where else it went.
+
+  This *should* be `ReleaseTrackSchema.releaseId`, which exists for exactly
+  this and would render as a proper link. It cannot be, because
+  `assertOneRecording` refuses to point a row at anything that is not a
+  single or a remix, and the home here is a three-track EP. That rule was a
+  deliberate decision — "a running order collects singles and remixes" — and
+  relaxing it from inside a temporary feature is not the seeder's call. If
+  it is ever relaxed, this becomes a real link and the note comes out.
 - Somebody else's record seeds **his track only** — not the other
   twenty-four, and not their artists. It is filed as what it actually is
   (a six-track remix EP is an EP, not a compilation), **billed to whoever

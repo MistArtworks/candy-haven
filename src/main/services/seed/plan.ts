@@ -202,23 +202,39 @@ export function buildPlan(input: PlanInput): SeedPlan {
   const choiceOf = (verdict: Verdict): SeedChoice =>
     effective.get(verdict.key) ?? verdict.proposal
 
+  /** Tracks on a record that credit him. */
+  const hisTracksOn = (release: SpotifyRelease): SpotifyRelease['tracks'] =>
+    release.tracks.filter((track) =>
+      track.artists.some((artist) => artist.id === harvest.artist.id)
+    )
+
   /*
-   * A compilation is somebody else's record he is one track of.
+   * Somebody else's record, decided by the credits rather than by the filing.
    *
-   * Two signals, either of which is enough: Spotify filed it under
-   * `appears_on`, or it carries more tracks than any record of his does. The
-   * second catches a playlist-album that licensed one song and credited him
-   * as an album artist, which `appears_on` alone misses.
+   * **He is on every track, or it is not his record.** That is the whole
+   * rule, and it is the operator's: a release he contributes one track to is
+   * somebody else's release, however the store chooses to bill it.
+   *
+   * This replaced `appears_on || more than ten tracks`, which was a rule
+   * about Spotify's grouping rather than about the music, and which got
+   * `Truths Collide` wrong. That is G.Roy's three-track EP — he is on the
+   * title track and G.Roy alone is on the other two — but Spotify files it
+   * under `single` and co-bills him as an album artist, so both halves of
+   * the old test passed it through as his own. The credits never said that.
+   *
+   * `appears_on` is still honoured where the store does say so, because a
+   * record it files that way is somebody else's whatever the credits show.
    */
-  const isCompilation = (release: SpotifyRelease): boolean =>
-    release.groups.includes('appears_on') || release.tracks.length > 10
+  const isExternal = (release: SpotifyRelease): boolean =>
+    release.groups.includes('appears_on') ||
+    hisTracksOn(release).length < release.tracks.length
 
   const records: SeedRecord[] = []
   /** Spotify track id → the record proposing it, for merges to attach to. */
   const byTrackId = new Map<string, SeedRecord>()
 
   // ---------------------------------------------------------- his own records
-  for (const release of harvest.releases.filter((r) => !isCompilation(r))) {
+  for (const release of harvest.releases.filter((release) => !isExternal(release))) {
     const key = `spotify:${release.id}`
     const kind = kindFor(release)
     const date = isoDate(release.releaseDate, release.releaseDatePrecision)
@@ -291,6 +307,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
           isrc: track.isrc,
           durationMs: track.durationMs,
           artistNames: track.artists.map((artist) => artist.name),
+          notes: '',
           present: false
         })),
       match: { action: 'create', releaseId: '', title: '', matchedOn: 'none' },
@@ -303,14 +320,14 @@ export function buildPlan(input: PlanInput): SeedPlan {
     for (const track of release.tracks) byTrackId.set(track.id, record)
   }
 
-  // ------------------------------------------ compilations, his track only
-  for (const release of harvest.releases.filter(isCompilation)) {
+  // --------------------------------- somebody else's records, his track only
+  for (const release of harvest.releases.filter(isExternal)) {
     const key = `spotify:${release.id}`
-    const his = release.tracks.filter((track) =>
-      track.artists.some((artist) => artist.id === harvest.artist.id)
-    )
+    const his = hisTracksOn(release)
     if (his.length === 0) {
-      warnings.push(`"${release.title}" lists him as an album artist but credits him on no track.`)
+      warnings.push(
+        `"${release.title}" lists him as an album artist but credits him on none of its tracks, so it was skipped.`
+      )
       continue
     }
 
@@ -360,6 +377,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
         isrc: track.isrc,
         durationMs: track.durationMs,
         artistNames: track.artists.map((artist) => artist.name),
+        notes: '',
         present: false
       })),
       match: { action: 'create', releaseId: '', title: '', matchedOn: 'none' },
@@ -371,15 +389,29 @@ export function buildPlan(input: PlanInput): SeedPlan {
        * does not say *why* it is in his discography at all. This does,
        * and it survives the seeder being deleted.
        */
-      notes: `External release by ${
-        billing(release.artists.map((artist) => artist.name)).join(', ') || 'another artist'
-      }. Not his own — he appears on ${
-        his.length === 1 ? `"${his[0].title}"` : `${his.length} of its tracks`
-      }.`,
+      notes: (() => {
+        /*
+         * He is left out of the `by` list even where the store bills him.
+         *
+         * `Truths Collide` is credited to "G.Roy, Candy Heist" on the
+         * store, so "External release by G.Roy, Candy Heist. Not his own"
+         * would contradict itself in one sentence. Whose record it is and
+         * what he did on it are two statements, and they read better apart.
+         */
+        const others = billing(release.artists.map((artist) => artist.name)).filter(
+          (name) => name !== artistName
+        )
+        const whose = others.length > 0 ? `External release by ${others.join(', ')}.` : 'External release.'
+        const what =
+          his.length === 1
+            ? ` Not his own — he appears on "${his[0].title}".`
+            : ` Not his own — he appears on ${his.length} of its ${release.tracks.length} tracks.`
+        return whose + what
+      })(),
       include: !off.has(key),
-      note: `Somebody else's ${release.tracks.length}-track record. Only his ${
-        his.length === 1 ? 'track' : `${his.length} tracks`
-      } will be written.`
+      note: `Somebody else's ${release.tracks.length}-track record — he is on ${
+        his.length === 1 ? '1 track' : `${his.length} tracks`
+      }, and only ${his.length === 1 ? 'that' : 'those'} will be written.`
     }
 
     records.push(record)
@@ -466,6 +498,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
           isrc: '',
           durationMs: 0,
           artistNames: [artistName],
+          notes: '',
           present: false
         }
       ],
@@ -477,6 +510,76 @@ export function buildPlan(input: PlanInput): SeedPlan {
           ? `One recording on ${members.map((m) => m.source).join(' and ')}, folded into one record.`
           : members[0].reason
     })
+  }
+
+  /*
+   * One recording, two products.
+   *
+   * `Truths Collide` came out on his own EP and was then licensed onto a
+   * 25-track compilation. Same ISRC, two UPCs, two release dates: two real
+   * products that share one recording. Left alone they read as two
+   * unrelated songs that happen to share a title, which is not what they
+   * are.
+   *
+   * ## Why this is a note and not `ReleaseTrackSchema.releaseId`
+   *
+   * That field exists for exactly this and would render properly. But
+   * `assertOneRecording` refuses to point a row at anything that is not a
+   * single or a remix, and the recording's home here is a three-track EP —
+   * so the service would reject the link. That rule was a deliberate choice
+   * ("a running order collects singles and remixes"), and quietly relaxing
+   * it from inside a temporary feature is not this file's call to make.
+   *
+   * So the relationship is written where nothing forbids it: on the track
+   * row and on the record, in words. It is visible, it is true, and it
+   * survives the seeder being deleted. If the one-recording rule is ever
+   * relaxed, this becomes a real link and the note comes out.
+   */
+  const byRecording = new Map<string, { record: SeedRecord; track: SeedTrack }[]>()
+  for (const record of records) {
+    for (const track of record.tracks) {
+      if (!track.isrc) continue
+      const key = normaliseIsrc(track.isrc)
+      const bucket = byRecording.get(key)
+      if (bucket) bucket.push({ record, track })
+      else byRecording.set(key, [{ record, track }])
+    }
+  }
+
+  for (const appearances of byRecording.values()) {
+    if (appearances.length < 2) continue
+
+    /*
+     * Which product the recording belongs to.
+     *
+     * His own release beats one he guests on; then the earlier date, because
+     * a recording is licensed onward rather than backward; then the shorter
+     * record, because a 25-track compilation is never a recording's home.
+     */
+    const ranked = [...appearances].sort((a, b) => {
+      const own = Number(a.record.origin !== 'store') - Number(b.record.origin !== 'store')
+      if (own !== 0) return own
+      const dated = (a.record.releaseDate ?? '9999').localeCompare(b.record.releaseDate ?? '9999')
+      if (dated !== 0) return dated
+      return a.record.tracks.length - b.record.tracks.length
+    })
+
+    const [home, ...elsewhere] = ranked
+
+    for (const other of elsewhere) {
+      // A title track shares its record's name, so naming both reads as a
+      // stutter: "the same recording as Truths Collide on Truths Collide".
+      other.track.notes =
+        home.track.title === home.record.title
+          ? `The same recording as the one on ${home.record.title}.`
+          : `The same recording as "${home.track.title}" on ${home.record.title}.`
+      home.record.notes = [
+        home.record.notes,
+        `"${home.track.title}" also appears on ${other.record.title}.`
+      ]
+        .filter(Boolean)
+        .join(' ')
+    }
   }
 
   // ---------------------------------------- against the catalogue as it stands

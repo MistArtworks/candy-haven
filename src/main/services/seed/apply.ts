@@ -298,6 +298,7 @@ export async function applyPlan({
         title: first.title,
         isrc: first.isrc,
         durationMs: first.durationMs,
+        notes: first.notes,
         artistIds: await idsFor(first.artistNames)
       })
     }
@@ -314,10 +315,14 @@ export async function applyPlan({
 
       // Duration is not a field `addTrack` takes — it is carried from a
       // project or a collected release, and this recording has neither.
+      // Duration and the row's own note in one call: neither is a field
+      // `addTrack` takes, and two round trips to set two fields on a row
+      // that was just written is a round trip too many.
       const written = release.tracks[release.tracks.length - 1]
-      if (track.durationMs > 0 && written) {
+      if (written && (track.durationMs > 0 || track.notes)) {
         release = await discography.updateTrack(release.id, written.id, {
-          durationMs: track.durationMs
+          durationMs: track.durationMs,
+          notes: track.notes
         })
       }
     }
@@ -394,12 +399,19 @@ export async function applyPlan({
       )
 
       if (held) {
-        // Fill the identifiers a hand-typed row is most likely to be missing,
-        // and nothing else.
-        if ((!held.isrc && track.isrc) || (held.durationMs === 0 && track.durationMs > 0)) {
+        // Fill the identifiers a hand-typed row is most likely to be
+        // missing, and the note if it has none. Never overwrite either:
+        // what is there was the operator's.
+        const wants =
+          (!held.isrc && track.isrc) ||
+          (held.durationMs === 0 && track.durationMs > 0) ||
+          (!held.notes && track.notes)
+
+        if (wants) {
           release = await discography.updateTrack(release.id, held.id, {
             isrc: held.isrc || track.isrc,
-            durationMs: held.durationMs || track.durationMs
+            durationMs: held.durationMs || track.durationMs,
+            notes: held.notes || track.notes
           })
         }
         continue
@@ -416,9 +428,10 @@ export async function applyPlan({
 
       const written = release.tracks[release.tracks.length - 1]
       if (written) addedTrackIds.push(written.id)
-      if (track.durationMs > 0 && written) {
+      if (written && (track.durationMs > 0 || track.notes)) {
         release = await discography.updateTrack(release.id, written.id, {
-          durationMs: track.durationMs
+          durationMs: track.durationMs,
+          notes: track.notes
         })
       }
     }
