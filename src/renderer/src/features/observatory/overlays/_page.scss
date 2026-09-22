@@ -178,40 +178,18 @@
     }
   }
 
-  // ------------------------------------------------------------------ notice
+  // ----------------------------------------------------------------- dismiss
 
   /*
-   * What a control reported back. Held until dismissed rather than timed out:
-   * it arrives because the operator pressed something, so it is worth reading
-   * rather than catching.
+   * `.notice` and `.report` stood here, and what they encoded has moved rather
+   * than been dropped: a refusal is crimson and waits to be dismissed, a
+   * report is gold and leaves on its own, because a hand-off that dropped
+   * thirty entries is news and not a fault. All three rules are now the
+   * console's notice stack, which every department shares — see `notify.ts`.
    *
-   * Two tones, and the distinction is load-bearing. A refusal is crimson. A
-   * *report* — `Sent 12. 2 did not fit and stayed on the roll.` — is gold,
-   * because it is news the operator has to have and it is not a fault. One tone
-   * for both would teach them to read every notice here as a failure.
+   * `.dismiss` stays. It is not part of that: the ballot and the petition
+   * roster both use it to strike a row.
    */
-  .notice,
-  .report {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: space(4);
-    @include readout(10px);
-    padding: space(2) space(3);
-    margin-bottom: space(4);
-    line-height: 1.6;
-  }
-
-  .notice {
-    color: var(--ch-crimson-400);
-    border-left: 2px solid var(--ch-crimson-500);
-  }
-
-  .report {
-    color: var(--ch-gold-300);
-    border-left: 2px solid var(--ch-gold-500);
-  }
-
   .dismiss {
     @include label(9px, 0.16em);
     color: var(--ch-text-faint);

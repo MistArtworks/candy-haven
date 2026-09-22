@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { notify } from '@renderer/components/feedback/notify'
 import type { ChatConnectionState, ChatStatus } from '@shared/domain/chat'
 import type { ConcordState } from '@shared/domain/concord'
 import {
@@ -890,18 +891,25 @@ export function actionsFor(id: OverlayId, deck: OverlayDeck): DeckAction[] {
  */
 export interface DeckRunner {
   pending: string | null
-  error: string | null
-  /** What an accepted action reported back, when it had something to say. */
-  report: string | null
   /** Resolves true when the action was accepted, so a field can clear itself. */
   run(action: DeckAction): Promise<boolean>
-  dismiss(): void
 }
 
+/**
+ * Runs a deck action, reporting what is in flight.
+ *
+ * What came back goes to the console's notice stack. It used to be held here
+ * as two strings and drawn by each of the six pages as its own dismissible
+ * bar — the same twelve lines of markup six times, with the tone rules
+ * restated in two stylesheets. The distinction those bars drew is the one the
+ * notice stack is built on, so it survives the move intact: a report is gold
+ * and goes away, a refusal is crimson and waits to be dismissed.
+ *
+ * `report` and `error` are gone from the interface. A page that needs to know
+ * whether something worked takes the boolean `run` already resolves with.
+ */
 export function useDeckRunner(): DeckRunner {
   const [pending, setPending] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [report, setReport] = useState<string | null>(null)
 
   const run = useCallback(async (action: DeckAction): Promise<boolean> => {
     if (action.refusal) return false
@@ -909,30 +917,19 @@ export function useDeckRunner(): DeckRunner {
     setPending(action.key)
     try {
       const result = await action.run()
-      setError(null)
-      // Held separately from `error` so one can be crimson and the other not.
       // A hand-off that dropped thirty entries is news, and it is not a fault.
-      setReport(action.report?.(result) ?? null)
+      const said = action.report?.(result) ?? null
+      if (said) notify.report(action.label, { detail: said })
       return true
     } catch (cause) {
-      const failure = cause as Error & { hint?: string | null }
-      setReport(null)
-      setError(failure.hint ? `${failure.message} ${failure.hint}` : failure.message)
+      notify.refuse(cause, { label: action.label })
       return false
     } finally {
       setPending((current) => (current === action.key ? null : current))
     }
   }, [])
 
-  const dismiss = useCallback((): void => {
-    setError(null)
-    setReport(null)
-  }, [])
-
-  return useMemo(
-    () => ({ pending, error, report, run, dismiss }),
-    [pending, error, report, run, dismiss]
-  )
+  return useMemo(() => ({ pending, run }), [pending, run])
 }
 
 // ------------------------------------------------------------------ writing

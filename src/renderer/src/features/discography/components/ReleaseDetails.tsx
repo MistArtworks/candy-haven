@@ -28,6 +28,7 @@ import { Plate } from '@renderer/components/primitives/Plate'
 import { gridVariants } from '@renderer/motion/transitions'
 import { formatBytes, formatCountdown, formatIsoDate } from '@renderer/lib/format'
 import styles from '../DiscographyPage.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 export interface ReleaseDetailsProps {
   release: DiscographyRelease
@@ -160,9 +161,7 @@ export function ReleaseDetails({
           <div className={styles.heroIdentity}>
             <h3 className={styles.heroTitle}>{release.title}</h3>
 
-            {release.subtitle ? (
-              <p className={styles.heroSubtitle}>{release.subtitle}</p>
-            ) : null}
+            {release.subtitle ? <p className={styles.heroSubtitle}>{release.subtitle}</p> : null}
 
             {/*
               Billed as, then featuring — the distinction the schema draws
@@ -375,7 +374,7 @@ function Artefacts({ release }: { release: DiscographyRelease }): ReactNode {
             variant="ghost"
             className={styles.heroReveal}
             title={reveal}
-            onClick={() => void window.candy.shell.reveal(reveal)}
+            onClick={() => shell.reveal(reveal)}
           >
             Reveal
           </Button>
@@ -415,9 +414,11 @@ function Artefacts({ release }: { release: DiscographyRelease }): ReactNode {
  * nobody delivers a canvas in would be the wrong trade.
  */
 function CanvasFilm({ path }: { path: string }): ReactNode {
-  const [held, setHeld] = useState<{ path: string; url: string | null; reason: string | null } | null>(
-    null
-  )
+  const [held, setHeld] = useState<{
+    path: string
+    url: string | null
+    reason: string | null
+  } | null>(null)
 
   useEffect(() => {
     if (!canvasIsVideo(extensionOf(path))) return
@@ -580,7 +581,7 @@ function TrackRow({
             size="sm"
             variant="ghost"
             title={track.master.path}
-            onClick={() => void window.candy.shell.reveal(track.master!.path)}
+            onClick={() => shell.reveal(track.master!.path)}
           >
             Reveal
           </Button>
@@ -611,12 +612,7 @@ function AddressSlot({
     <span className={styles.detailsSlot}>
       <span className={styles.detailsSlotLabel}>{label}</span>
       {url ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          title={url}
-          onClick={() => void window.candy.shell.openExternal(url)}
-        >
+        <Button size="sm" variant="ghost" title={url} onClick={() => shell.openExternal(url)}>
           Open
         </Button>
       ) : (

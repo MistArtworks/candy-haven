@@ -158,8 +158,22 @@
 :root {
   --ch-titlebar-height: #{$titlebar-height};
   --ch-transport-height: 0px;
+  --ch-unsaved-clearance: 0px;
 }
 
 :root[data-transport] {
   --ch-transport-height: #{$transport-height};
+}
+
+/*
+ * The same arrangement for `UnsavedBar`, and for a narrower reason.
+ *
+ * The bar is centred in the content area at `bottom: space(6)` and is up to
+ * 680px wide, so on an ordinary window its trailing edge reaches well inside
+ * where a bottom-right toast sits. Only the toaster reads this — the centred
+ * `overlay-field()` overlays pass behind the bar rather than beside it, so
+ * they have nothing to clear.
+ */
+:root[data-unsaved] {
+  --ch-unsaved-clearance: #{$unsaved-clearance};
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { notify } from '@renderer/components/feedback/notify'
 import type {
   DispatchCommentDraft,
   DispatchDraft,
@@ -137,29 +138,43 @@ export interface DispatchActions {
   withdraw(id: string): Promise<void>
   pending: string | null
   error: string | null
-  dismissError(): void
 }
 
 export function useDispatchActions(): DispatchActions {
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const run = useCallback(async (key: string, action: () => Promise<unknown>): Promise<void> => {
-    setPending(key)
-    try {
-      await action()
-      setError(null)
-    } catch (cause) {
-      const failure = cause as Error & { hint?: string | null }
-      setError(failure.hint ? `${failure.message} ${failure.hint}` : failure.message)
-    } finally {
-      setPending((current) => (current === key ? null : current))
-    }
-  }, [])
+  /*
+   * `quiet` is for the one action whose refusal already has a home.
+   *
+   * Attaching the board is done from REGULATION → BOARD, which draws the
+   * failure under its own form — a config that will not parse is about what
+   * was pasted, and belongs beside it. Everything else here is done from the
+   * board itself, where there is no form to report against, so it takes the
+   * console's notice stack.
+   *
+   * The error state is kept either way, because `BoardPanel` reads it.
+   */
+  const run = useCallback(
+    async (key: string, action: () => Promise<unknown>, quiet = false): Promise<void> => {
+      setPending(key)
+      try {
+        await action()
+        setError(null)
+      } catch (cause) {
+        const failure = cause as Error & { hint?: string | null }
+        setError(failure.hint ? `${failure.message} ${failure.hint}` : failure.message)
+        if (!quiet) notify.refuse(cause)
+      } finally {
+        setPending((current) => (current === key ? null : current))
+      }
+    },
+    []
+  )
 
   return useMemo<DispatchActions>(
     () => ({
-      configure: (source) => run('configure', () => window.candy.dispatch.configure(source)),
+      configure: (source) => run('configure', () => window.candy.dispatch.configure(source), true),
       signIn: (email, password) =>
         run('sign-in', () => window.candy.dispatch.signIn(email, password)),
       signOut: () => run('sign-out', () => window.candy.dispatch.signOut()),
@@ -183,8 +198,7 @@ export function useDispatchActions(): DispatchActions {
       },
       withdraw: (id) => run('withdraw', () => window.candy.dispatch.withdraw(id)),
       pending,
-      error,
-      dismissError: () => setError(null)
+      error
     }),
     [run, pending, error]
   )

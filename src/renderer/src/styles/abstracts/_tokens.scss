@@ -16,6 +16,17 @@ $titlebar-height: 40px;
 // theme, which publishes it as `--ch-transport-height` for overlays to
 // centre inside. One number, two consumers, no chance of drift.
 $transport-height: 46px;
+// How far a bottom-anchored overlay must rise to clear `UnsavedBar`.
+//
+// A clearance, not a measurement, and the distinction is deliberate. The bar's
+// height is content-driven — its own padding plus one label line and one
+// readout line — so there is no token it is sized from the way the transport
+// is. Measuring it back out of the DOM would make the correct value depend on
+// when that effect ran relative to the bar mounting, which is exactly the trap
+// `--ch-transport-height` above is written to avoid. This is one number, stated
+// once, with room to spare; the bar is bounded by its own two lines of type and
+// cannot grow past it.
+$unsaved-clearance: 76px;
 $rail-width: 232px;
 $rail-width-collapsed: 72px;
 

@@ -227,32 +227,10 @@
 
 // -------------------------------------------------------------------- notice
 
-.notice {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: space(4);
-  padding: space(3) space(6);
-  flex-shrink: 0;
-  background: rgba(163, 43, 35, 0.1);
-  @include hairline(bottom, 0.12);
-  border-left: 2px solid var(--ch-crimson-500);
-}
-
 .noticeText {
   font-size: rem(12px);
   color: var(--ch-text-primary);
   line-height: 1.5;
-}
-
-.noticeClose {
-  @include label(8px, 0.14em);
-  color: var(--ch-text-muted);
-  flex-shrink: 0;
-
-  &:hover {
-    color: var(--ch-text-primary);
-  }
 }
 
 // ---------------------------------------------------------------------- tabs

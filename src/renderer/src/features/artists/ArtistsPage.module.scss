@@ -687,13 +687,6 @@
   flex-shrink: 0;
 }
 
-.sheetError {
-  @include readout(10px);
-  color: var(--ch-crimson-400);
-  border-left: 2px solid var(--ch-crimson-500);
-  padding: space(2) space(3);
-  margin: space(4) space(5) 0;
-}
 
 .sheetBody {
   display: flex;
@@ -799,32 +792,3 @@
 
 // ------------------------------------------------------------------- notice
 
-.notice {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: space(4);
-  @include readout(10px);
-  color: var(--ch-crimson-400);
-  border-left: 2px solid var(--ch-crimson-500);
-  padding: space(2) space(3);
-  margin-bottom: space(4);
-  line-height: 1.6;
-}
-
-.dismiss {
-  @include label(9px, 0.16em);
-  color: var(--ch-text-faint);
-  background: none;
-  border: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-
-  &:hover {
-    color: var(--ch-text-secondary);
-  }
-
-  &:focus-visible {
-    @include focus-ring(2px);
-  }
-}

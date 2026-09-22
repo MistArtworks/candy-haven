@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { anchor, parseInline, type Block } from '@renderer/lib/markdown'
 import { guideImage } from '@renderer/lib/guide-assets'
 import styles from './Markdown.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 export interface MarkdownProps {
   blocks: readonly Block[]
@@ -185,7 +186,7 @@ function inline(text: string): ReactNode {
           key={index}
           type="button"
           className={styles.link}
-          onClick={() => void window.candy.shell.openExternal(run.href)}
+          onClick={() => shell.openExternal(run.href)}
         >
           {run.text}
         </button>

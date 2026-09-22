@@ -108,10 +108,19 @@ export function useStacksMutations(): StacksMutations {
     }),
     create: useMutation({
       mutationFn: (draft: FolderDraft) => window.candy.stacks.create(draft),
+      /*
+       * Raised from the folder dialog, so a refusal about the name belongs
+       * beside the field it is about rather than in the notice stack. The
+       * call sites that reach these two from a drag or a menu instead pass
+       * their own handler — see `nestFolder` and `toggleFavourite`.
+       */
+      meta: { notify: false },
       onSuccess
     }),
     update: useMutation({
       mutationFn: ({ id, patch }) => window.candy.stacks.update(id, patch),
+      // See `create` above — the dialog owns the rename's refusal.
+      meta: { notify: false },
       onSuccess
     }),
     remove: useMutation({

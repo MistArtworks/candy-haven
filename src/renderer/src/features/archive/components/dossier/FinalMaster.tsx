@@ -8,6 +8,7 @@ import { isPlayableAudio, usePlayback } from '@renderer/app/providers/playback'
 import { ArchiveGlyph } from '../icons/ArchiveGlyph'
 import { ArchiveIcon } from '../icons/ArchiveIcon'
 import styles from './dossier.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 export interface FinalMasterProps {
   project: ProjectRecord
@@ -166,7 +167,7 @@ export function FinalMaster({ project, busy, onChoose }: FinalMasterProps): Reac
             type="button"
             className={styles.finalFile}
             title={`${chosen} — click to show in Explorer`}
-            onClick={() => void window.candy.shell.reveal(chosen)}
+            onClick={() => shell.reveal(chosen)}
           >
             ♪ {fileName}
           </button>

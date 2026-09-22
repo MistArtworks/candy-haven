@@ -11,6 +11,7 @@ import {
 import { MAX_LINK_LABEL, MAX_LINK_URL, checkLinkUrl } from '@shared/domain/artists.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import styles from '../DiscographyPage.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 export interface DistributionEditorProps {
   entries: readonly ReleaseDistribution[]
@@ -137,7 +138,7 @@ function DraftField({
  * survive the lock.
  */
 function OpenLink({ url }: { url: string }): ReactNode {
-  const open = (): void => void window.candy.shell.openExternal(url)
+  const open = (): void => shell.openExternal(url)
 
   return (
     <a
@@ -231,8 +232,7 @@ export function DistributionEditor({ entries, out, onChange }: DistributionEdito
 
       {out && missing > 0 ? (
         <p className={styles.distNudge}>
-          OUT, AND {missing} {missing === 1 ? 'PLATFORM HAS' : 'PLATFORMS HAVE'} NO STREAM LINK
-          YET.
+          OUT, AND {missing} {missing === 1 ? 'PLATFORM HAS' : 'PLATFORMS HAVE'} NO STREAM LINK YET.
         </p>
       ) : null}
 

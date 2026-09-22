@@ -67,6 +67,9 @@ import {
 import { childCountsOf, childrenOf, subtreeOf, trailTo } from './components/stacks/tree'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
+import { notify } from '@renderer/components/feedback/notify'
+import { formatDuration, plural } from '@renderer/lib/format'
+import * as shell from '@renderer/lib/shell'
 import { formatKey, formatStamp, formatTempo } from './lib/present'
 import styles from './ArchivePage.module.scss'
 
@@ -139,7 +142,6 @@ export function ArchivePage(): ReactNode {
    * does not. LIST is still one click away for when the figures are the point.
    */
   const [view, setView] = useState<ProjectViewMode>('grid')
-  const [notice, setNotice] = useState<string | null>(null)
   const [managingTags, setManagingTags] = useState(false)
   const [folderDialog, setFolderDialog] = useState<FolderDialogState | null>(null)
   const [projectDialog, setProjectDialog] = useState<ArchiveFolder | null>(null)
@@ -378,6 +380,54 @@ export function ArchivePage(): ReactNode {
   const stacks = stacksTree
   const scan = useScanState()
 
+  /*
+   * The full stop the scan panel never made.
+   *
+   * `ScanPanel` reports a scan superbly while it runs — a meter, five
+   * counters, the path it is on, a rolling log — and then simply stops moving.
+   * Nothing ever said what it had found.
+   *
+   * Kept here rather than in `useScanState` for two reasons. `useScanState` is
+   * mounted by this page and nowhere else, so this is exactly as wide as the
+   * subscription is; and the hook lives in the same module as
+   * `useProjectMutations`, which the vestibule imports — putting the notice
+   * stack in there pulled the whole of it into the one window whose entire
+   * argument is being on screen before the console's bundle is.
+   */
+  const lastScanPhase = useRef(scan.phase)
+  useEffect(() => {
+    const previous = lastScanPhase.current
+    lastScanPhase.current = scan.phase
+    if (previous === scan.phase) return
+
+    if (scan.phase === 'done') {
+      notify.done(`Indexed ${plural(scan.projectsFound, 'project')}`, {
+        detail: [
+          // Dropped when it is zero rather than printed as `0 sets read`. A
+          // scan that changed nothing is the ordinary case — the cache is
+          // doing its job — and leading with a zero reads as a fault.
+          scan.setsParsed > 0 ? `${plural(scan.setsParsed, 'set')} read` : null,
+          scan.setsReused > 0 ? `${scan.setsReused} served from store` : null,
+          scan.durationMs !== null ? formatDuration(scan.durationMs) : null
+        ]
+          .filter((part): part is string => part !== null)
+          .join(' · ')
+      })
+      return
+    }
+
+    if (scan.phase === 'error' && scan.error) {
+      notify.refuse(null, { label: 'The scan stopped', detail: scan.error })
+    }
+  }, [
+    scan.phase,
+    scan.projectsFound,
+    scan.setsParsed,
+    scan.setsReused,
+    scan.durationMs,
+    scan.error
+  ])
+
   const mutations = useProjectMutations()
   const tagMutations = useTagMutations()
   const stackMutations = useStacksMutations()
@@ -457,22 +507,28 @@ export function ArchivePage(): ReactNode {
 
   // ------------------------------------------------------------- reporting
 
-  /** Surfaces a refusal from main, which is where every rule lives. */
-  const report = useCallback((error: Error & { hint?: string | null }) => {
-    setNotice(error.hint ? `${error.message} ${error.hint}` : error.message)
-  }, [])
-
   const reportToDialog = useCallback((error: Error & { hint?: string | null }) => {
     setDialogError(error.hint ? `${error.message} ${error.hint}` : error.message)
   }, [])
 
-  const runScan = useCallback(
-    (force = false) => {
-      setNotice(null)
-      window.candy.projects.scan(force).catch(report)
-    },
-    [report]
-  )
+  /*
+   * The setup gate keeps a refusal of its own.
+   *
+   * It is the one form on this page that is submitted rather than committed as
+   * it changes, and until it succeeds there is no department behind it — a
+   * notice floating over a gate that fills the whole page would be reporting
+   * on the only thing on screen.
+   */
+  const [setupError, setSetupError] = useState<string | null>(null)
+  const reportToSetup = useCallback((error: Error & { hint?: string | null }) => {
+    setSetupError(error.hint ? `${error.message} ${error.hint}` : error.message)
+  }, [])
+
+  const runScan = useCallback((force = false) => {
+    window.candy.projects
+      .scan(force)
+      .catch((cause: unknown) => notify.refuse(cause, { label: 'Could not scan' }))
+  }, [])
 
   const cancelScan = useCallback(() => {
     void window.candy.projects.cancelScan()
@@ -480,10 +536,9 @@ export function ArchivePage(): ReactNode {
 
   const changeStage = useCallback(
     (id: string, stage: ProjectStage) => {
-      setNotice(null)
-      mutations.patch.mutate({ id, patch: { stage } }, { onError: report })
+      mutations.patch.mutate({ id, patch: { stage } })
     },
-    [mutations.patch, report]
+    [mutations.patch]
   )
 
   // ---------------------------------------------------------------- filing
@@ -505,7 +560,6 @@ export function ArchivePage(): ReactNode {
       folderIds: readonly string[],
       targetFolderId: string | null
     ) => {
-      setNotice(null)
       setMenu(null)
 
       void window.candy.projects
@@ -520,18 +574,26 @@ export function ArchivePage(): ReactNode {
           // NOT INDEXED, because its record now points into the archive.
           void queryClient.invalidateQueries({ queryKey: ['browse'] })
 
-          if (failures.length === 0 && renamed.length === 0) return
-
           /*
-           * Both outcomes are named rather than counted.
+           * A clean move says so, and a complicated one explains itself.
            *
-           * "Three could not be moved" sends the operator hunting; the names
-           * say which, and the reason says why. A rename is reported on the
-           * same principle and for a stronger reason — a directory on their
-           * disk is now called something else, and the only alternative to
-           * saying so here is them finding out weeks later.
+           * The clean case used to return here without a word, so filing
+           * twelve projects onto a shelf looked exactly like filing none.
+           * That is the whole reason this reports at all.
+           *
+           * Where something did happen, both outcomes are named rather than
+           * counted. "Three could not be moved" sends the operator hunting;
+           * the names say which, and the reason says why. A rename is named on
+           * the same principle and for a stronger reason — a directory on
+           * their disk is now called something else, and the alternative to
+           * saying so is them finding out weeks later.
            */
-          const parts: string[] = [`Moved ${moved}.`]
+          if (failures.length === 0 && renamed.length === 0) {
+            if (moved > 0) notify.done(`Filed ${plural(moved, 'project')}`)
+            return
+          }
+
+          const parts: string[] = []
 
           if (renamed.length > 0) {
             parts.push(
@@ -549,28 +611,29 @@ export function ArchivePage(): ReactNode {
             )
           }
 
-          setNotice(parts.join(' '))
+          notify.report(`Filed ${plural(moved, 'project')}`, { detail: parts.join(' ') })
         })
-        .catch(report)
+        .catch((cause: unknown) => notify.refuse(cause, { label: 'Could not file that' }))
     },
-    [clearMarked, queryClient, report]
+    [clearMarked, queryClient]
   )
 
   const fileProject = useCallback(
     (projectId: string, targetFolderId: string | null) => {
-      setNotice(null)
       setMenu(null)
-      stackMutations.file.mutate({ id: projectId, folderId: targetFolderId }, { onError: report })
+      stackMutations.file.mutate({ id: projectId, folderId: targetFolderId })
     },
-    [stackMutations.file, report]
+    [stackMutations.file]
   )
 
   const nestFolder = useCallback(
     (id: string, parentId: string) => {
-      setNotice(null)
-      stackMutations.update.mutate({ id, patch: { parentId } }, { onError: report })
+      stackMutations.update.mutate(
+        { id, patch: { parentId } },
+        { onError: (cause) => notify.refuse(cause, { label: 'Could not move that folder' }) }
+      )
     },
-    [stackMutations.update, report]
+    [stackMutations.update]
   )
 
   /**
@@ -583,25 +646,24 @@ export function ArchivePage(): ReactNode {
 
   const toggleFavourite = useCallback(
     (target: MenuTarget) => {
-      setNotice(null)
       setMenu(null)
 
       if (target.kind === 'folder') {
         stackMutations.update.mutate(
           { id: target.folder.id, patch: { favourite: !target.folder.favourite } },
-          { onError: report }
+          { onError: (cause) => notify.refuse(cause) }
         )
         return
       }
 
       if (target.kind === 'project') {
-        mutations.patch.mutate(
-          { id: target.project.id, patch: { favourite: !target.project.favourite } },
-          { onError: report }
-        )
+        mutations.patch.mutate({
+          id: target.project.id,
+          patch: { favourite: !target.project.favourite }
+        })
       }
     },
-    [stackMutations.update, mutations.patch, report]
+    [stackMutations.update, mutations.patch]
   )
 
   // --------------------------------------------------------------- dialogs
@@ -663,7 +725,6 @@ export function ArchivePage(): ReactNode {
    */
   const deleteFolder = useCallback(
     (folder: ArchiveFolder) => {
-      setNotice(null)
       setMenu(null)
       setConfirm({
         kind: 'folder',
@@ -676,11 +737,10 @@ export function ArchivePage(): ReactNode {
 
   const restoreFolder = useCallback(
     (folder: ArchiveFolder) => {
-      setNotice(null)
       setMenu(null)
-      stackMutations.restore.mutate(folder.id, { onError: report })
+      stackMutations.restore.mutate(folder.id)
     },
-    [stackMutations.restore, report]
+    [stackMutations.restore]
   )
 
   const runConfirmed = useCallback(() => {
@@ -688,12 +748,28 @@ export function ArchivePage(): ReactNode {
     const settle = (): void => setConfirm(null)
 
     if (confirm.kind === 'folder') {
-      stackMutations.remove.mutate(confirm.folder.id, {
-        onError: report,
+      const { folder } = confirm
+      stackMutations.remove.mutate(folder.id, {
         onSuccess: () => {
           // Standing inside a folder that has just gone to the bin would leave
           // the browser pointed at nothing.
-          if (folderId === confirm.folder.id) openFolder(confirm.folder.parentId)
+          if (folderId === folder.id) openFolder(folder.parentId)
+
+          /*
+           * Offered back immediately.
+           *
+           * `stacks:restore` already rebuilds the whole subtree from each
+           * folder's `trashedFrom`, and until now the only way to reach it was
+           * to know the BIN lens exists and go and find the shelf in it. The
+           * moment the operator wants it back is this one.
+           */
+          notify.done(`${folder.name} moved to the bin`, {
+            detail: 'The whole shelf went with it. Nothing has left the disk.',
+            action: {
+              label: 'Undo',
+              onClick: () => stackMutations.restore.mutate(folder.id)
+            }
+          })
         },
         onSettled: settle
       })
@@ -701,7 +777,16 @@ export function ArchivePage(): ReactNode {
     }
 
     if (confirm.kind === 'purgeFolder') {
-      stackMutations.purge.mutate(confirm.folder.id, { onError: report, onSettled: settle })
+      const name = confirm.folder.name
+      stackMutations.purge.mutate(confirm.folder.id, {
+        // No undo: this one is past the bin. Saying where it went is the most
+        // that can honestly be offered.
+        onSuccess: () =>
+          notify.done(`${name} deleted`, {
+            detail: "Sent to Windows' own recycle bin. This console cannot bring it back."
+          }),
+        onSettled: settle
+      })
       return
     }
 
@@ -709,10 +794,16 @@ export function ArchivePage(): ReactNode {
       if (selectedId === confirm.project.id) selectProject(null)
     }
 
+    const { name } = confirm.project
+
     if (confirm.kind === 'forget') {
       mutations.forget.mutate(confirm.project.id, {
-        onError: report,
-        onSuccess: closeIfOpen,
+        onSuccess: () => {
+          closeIfOpen()
+          notify.done(`${name} dropped from the register`, {
+            detail: 'The folder is untouched. The next scan will find it again.'
+          })
+        },
         onSettled: settle
       })
       return
@@ -720,26 +811,37 @@ export function ArchivePage(): ReactNode {
 
     if (confirm.kind === 'purge') {
       mutations.purge.mutate(confirm.project.id, {
-        onError: report,
-        onSuccess: closeIfOpen,
+        onSuccess: () => {
+          closeIfOpen()
+          notify.done(`${name} deleted`, {
+            detail: "Sent to Windows' own recycle bin. This console cannot bring it back."
+          })
+        },
         onSettled: settle
       })
       return
     }
 
-    mutations.trash.mutate(confirm.project.id, {
-      onError: report,
-      onSuccess: closeIfOpen,
+    const projectId = confirm.project.id
+    mutations.trash.mutate(projectId, {
+      onSuccess: () => {
+        closeIfOpen()
+        notify.done(`${name} moved to the bin`, {
+          detail: 'It remembers the shelf it came from.',
+          action: { label: 'Undo', onClick: () => mutations.restore.mutate(projectId) }
+        })
+      },
       onSettled: settle
     })
   }, [
     confirm,
     stackMutations.remove,
+    stackMutations.restore,
     stackMutations.purge,
+    mutations.restore,
     mutations.forget,
     mutations.trash,
     mutations.purge,
-    report,
     folderId,
     openFolder,
     selectedId,
@@ -772,11 +874,10 @@ export function ArchivePage(): ReactNode {
 
   const restoreProject = useCallback(
     (project: ProjectSummary) => {
-      setNotice(null)
       setMenu(null)
-      mutations.restore.mutate(project.id, { onError: report })
+      mutations.restore.mutate(project.id)
     },
-    [mutations.restore, report]
+    [mutations.restore]
   )
 
   /**
@@ -879,10 +980,14 @@ export function ArchivePage(): ReactNode {
         group,
         // Deliberately not `whileTyping`: Escape in a field should leave the
         // field, which the browser already does.
-        disabled: selectedId === null && menu === null && notice === null && marked.size === 0,
+        disabled: selectedId === null && menu === null && marked.size === 0,
         /*
          * One key, unwound in the order things were put on top of each other:
-         * menu, then marks, then the cursor, then the notice.
+         * menu, then marks, then the cursor.
+         *
+         * A notice used to be last in that chain. It is not here any more —
+         * the notice stack dismisses its own, and a refusal held there is not
+         * part of this page's state.
          *
          * Marks sit above the cursor because they are the more consequential
          * state — a stray Escape that dropped a twelve-project selection while
@@ -901,7 +1006,6 @@ export function ArchivePage(): ReactNode {
             selectProject(null)
             return
           }
-          setNotice(null)
         }
       },
       {
@@ -1008,7 +1112,6 @@ export function ArchivePage(): ReactNode {
     lens,
     locked,
     menu,
-    notice,
     openFolder,
     runScan,
     scanning,
@@ -1499,15 +1602,6 @@ export function ArchivePage(): ReactNode {
         }
       />
 
-      {notice ? (
-        <div className={styles.notice} role="alert">
-          <p className={styles.noticeText}>{notice}</p>
-          <button type="button" className={styles.noticeClose} onClick={() => setNotice(null)}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
-
       <RegisterControls
         filters={filters}
         onChange={setFilters}
@@ -1609,12 +1703,12 @@ export function ArchivePage(): ReactNode {
             <SetupGate
               state={setup ?? null}
               busy={stackMutations.setup.isPending}
-              error={notice}
+              error={setupError}
               onSubmit={(filingRoot, templatePath, sourceRoots) => {
-                setNotice(null)
+                setSetupError(null)
                 stackMutations.setup.mutate(
                   { filingRoot, templatePath, sourceRoots },
-                  { onError: report }
+                  { onError: reportToSetup }
                 )
               }}
             />
@@ -1655,8 +1749,11 @@ export function ArchivePage(): ReactNode {
           }}
           onOpenInLive={(id) => {
             setMenu(null)
-            setNotice(null)
-            window.candy.projects.open(id).catch(report)
+            window.candy.projects
+              .open(id)
+              .catch((cause: unknown) =>
+                notify.refuse(cause, { label: 'Could not open that in Ableton' })
+              )
           }}
           onForgetProject={(project) => {
             setMenu(null)
@@ -1674,7 +1771,7 @@ export function ArchivePage(): ReactNode {
           onToggleFavourite={toggleFavourite}
           onReveal={(path) => {
             setMenu(null)
-            void window.candy.shell.reveal(path)
+            shell.reveal(path)
           }}
         />
       ) : null}
@@ -1759,7 +1856,25 @@ export function ArchivePage(): ReactNode {
           error={(tagMutations.update.error ?? tagMutations.remove.error)?.message ?? null}
           onRename={(id, name) => tagMutations.update.mutate({ id, patch: { name } })}
           onRecolour={(id, colour) => tagMutations.update.mutate({ id, patch: { colour } })}
-          onDelete={(id) => tagMutations.remove.mutate(id)}
+          onDelete={(id) => {
+            const name = (registry?.tags ?? []).find((tag) => tag.id === id)?.name ?? 'That tag'
+            tagMutations.remove.mutate(id, {
+              /*
+               * The count the confirmation promised, as what happened.
+               *
+               * `tags:remove` has always resolved with how many projects it
+               * detached and the call site has always thrown it away — so the
+               * one number that says the rewrite actually ran was never shown.
+               */
+              onSuccess: ({ detached }) =>
+                notify.done(`${name} deleted`, {
+                  detail:
+                    detached === 0
+                      ? 'Nothing was carrying it.'
+                      : `Taken off ${plural(detached, 'project')}.`
+                })
+            })
+          }}
           onClose={() => setManagingTags(false)}
         />
       ) : null}

@@ -14,6 +14,7 @@ import { formatBytes } from '@renderer/lib/format'
 import { MasterPicker } from './MasterPicker'
 import { ReleasePicker } from './ReleasePicker'
 import styles from './TrackList.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 export interface TrackListProps {
   tracks: readonly ReleaseTrack[]
@@ -278,9 +279,7 @@ export function TrackList({
                           From {titles.get(track.releaseId)}
                         </button>
                       ) : (
-                        <span className={styles.collected}>
-                          From {titles.get(track.releaseId)}
-                        </span>
+                        <span className={styles.collected}>From {titles.get(track.releaseId)}</span>
                       )
                     ) : null}
 
@@ -319,11 +318,11 @@ export function TrackList({
                         role="button"
                         tabIndex={0}
                         title={`${track.master.path} — click to show in Explorer`}
-                        onClick={() => void window.candy.shell.reveal(track.master!.path)}
+                        onClick={() => shell.reveal(track.master!.path)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            void window.candy.shell.reveal(track.master!.path)
+                            shell.reveal(track.master!.path)
                           }
                         }}
                       >
@@ -333,9 +332,7 @@ export function TrackList({
                         </span>
                       </a>
                     ) : (
-                      <span className={styles.noMaster}>
-                        No master chosen
-                      </span>
+                      <span className={styles.noMaster}>No master chosen</span>
                     )}
                   </div>
 

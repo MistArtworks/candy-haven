@@ -4,6 +4,9 @@ import { getSection } from '@shared/domain/navigation'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
+import { notify } from '@renderer/components/feedback/notify'
+import { truncatePath } from '@renderer/lib/format'
+import * as shell from '@renderer/lib/shell'
 import { gridVariants } from '@renderer/motion/transitions'
 import { CurveEditor } from './components/CurveEditor'
 import { GradeControls } from './components/GradeControls'
@@ -39,7 +42,6 @@ export function DarkroomPage(): ReactNode {
   const [histogram, setHistogram] = useState<Float32Array | null>(null)
   const [comparing, setComparing] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
 
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -56,7 +58,6 @@ export function DarkroomPage(): ReactNode {
   useEffect(() => () => sourceRef.current?.close(), [])
 
   const load = useCallback(async (file: File): Promise<void> => {
-    setNotice(null)
     try {
       const bitmap = await createImageBitmap(file)
 
@@ -69,7 +70,10 @@ export function DarkroomPage(): ReactNode {
     } catch {
       // A file the decoder will not take — a renamed `.txt`, a format Chromium
       // does not ship. Naming the file matters more than naming the codec.
-      setNotice(`${file.name} could not be read as an image.`)
+      notify.refuse(null, {
+        label: 'Not an image',
+        detail: `${file.name} could not be read as an image.`
+      })
     }
   }, [])
 
@@ -82,7 +86,6 @@ export function DarkroomPage(): ReactNode {
   const save = async (): Promise<void> => {
     if (!source) return
     setBusy(true)
-    setNotice(null)
     try {
       const canvas = document.createElement('canvas')
       renderToCanvas(source, grade, canvas)
@@ -94,9 +97,15 @@ export function DarkroomPage(): ReactNode {
       const stem = (name ?? 'image').replace(/\.[^.]+$/, '')
       const written = await window.candy.darkroom.save(bytes, `${stem}-graded.png`)
 
-      if (written) setNotice(`Written to ${written}`)
+      // A cancelled save dialog is not an event worth reporting.
+      if (written) {
+        notify.done('Exported', {
+          detail: truncatePath(written),
+          action: { label: 'Show', onClick: () => shell.reveal(written) }
+        })
+      }
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : String(error))
+      notify.refuse(error, { label: 'Could not export' })
     } finally {
       setBusy(false)
     }
@@ -135,12 +144,6 @@ export function DarkroomPage(): ReactNode {
           </>
         }
       />
-
-      {notice ? (
-        <p className={styles.notice} role="status">
-          {notice}
-        </p>
-      ) : null}
 
       <div className={styles.layout}>
         {/*

@@ -180,6 +180,8 @@ export function useProjectMutations(): {
     }),
     create: useMutation({
       mutationFn: (draft: ProjectDraft) => window.candy.projects.create(draft),
+      // Raised from the new-project dialog, which reports its own refusals.
+      meta: { notify: false },
       onSuccess
     }),
     addNote: useMutation({

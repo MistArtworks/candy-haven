@@ -121,58 +121,8 @@
   margin-bottom: space(4);
 }
 
-// -------------------------------------------------------------------- notice
-
 /*
- * What a verb reported back.
- *
- * Held until dismissed rather than timed out, as REGULATION's transfer notice
- * is: a refusal arrives because the operator pressed something, and it is worth
- * reading rather than catching.
+ * The desk's notice rules stood here and were a second copy of the ones in
+ * `overlays/_page.scss` — the same two tones, stated twice, for one idea.
+ * Both are now the console's notice stack; see `notify.ts`.
  */
-.notice,
-.report {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: space(4);
-  @include readout(10px);
-  padding: space(2) space(3);
-  margin-bottom: space(4);
-  line-height: 1.6;
-}
-
-.notice {
-  color: var(--ch-crimson-400);
-  border-left: 2px solid var(--ch-crimson-500);
-}
-
-/*
- * What an accepted verb reported back — `Sent 12. 2 did not fit`.
- *
- * Gold rather than crimson, and that distinction is the point of it being a
- * separate rule: the hand-off truncating a roll is news the operator has to
- * have, and it is not a fault. Drawing it crimson would teach them to read
- * every notice on this page as something having gone wrong.
- */
-.report {
-  color: var(--ch-gold-300);
-  border-left: 2px solid var(--ch-gold-500);
-}
-
-.dismiss {
-  @include label(9px, 0.16em);
-  color: var(--ch-text-faint);
-  background: none;
-  border: 0;
-  flex-shrink: 0;
-  cursor: pointer;
-
-  &:hover {
-    color: var(--ch-text-secondary);
-  }
-
-  &:focus-visible {
-    @include focus-ring(2px);
-  }
-}

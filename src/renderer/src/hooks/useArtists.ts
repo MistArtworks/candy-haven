@@ -85,6 +85,16 @@ export function useArtistMutations(): ArtistMutations {
   return {
     create: useMutation({
       mutationFn: (draft: ArtistDraft) => window.candy.artists.create(draft),
+      /*
+       * Refused in the dialog, not as a notice.
+       *
+       * This is the only one of the four raised from a form being submitted,
+       * and a refusal about what was typed belongs beside the field it is
+       * about. The other three are edits inside an open sheet, where fields
+       * commit as they change and there is no submit to sit next to, so those
+       * take the console's notice stack like everything else.
+       */
+      meta: { notify: false },
       onSuccess
     }),
     update: useMutation({

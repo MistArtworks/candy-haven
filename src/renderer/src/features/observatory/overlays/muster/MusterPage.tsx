@@ -46,6 +46,26 @@ import {
   useDeckRunner
 } from '../../lib/deck'
 import styles from './MusterPage.module.scss'
+import { notify } from '@renderer/components/feedback/notify'
+
+/**
+ * A configuration write, which nothing waits on.
+ *
+ * Fifteen call sites on this page set one field of the muster's config and not
+ * one of them handled a refusal — so a write that failed left the control on
+ * screen showing a value that had never landed, which is worse than the write
+ * not being offered.
+ */
+function configure(patch: Parameters<typeof window.candy.muster.configure>[0]): void {
+  void window.candy.muster
+    .configure(patch)
+    .catch((cause: unknown) => notify.refuse(cause, { label: 'Could not apply that setting' }))
+}
+
+/** The same, for the chords that reach the muster without going through the bench. */
+function attempt(label: string, action: () => Promise<unknown>): void {
+  void action().catch((cause: unknown) => notify.refuse(cause, { label }))
+}
 
 /**
  * THE MUSTER — host surface.
@@ -134,9 +154,8 @@ export function MusterPage(): ReactNode {
   const handoff = actions.filter((action) => action.key.startsWith('muster:handoff'))
   const running = actions.filter((action) => !action.key.startsWith('muster:handoff'))
 
-  const [command, setCommand] = useEchoedText(
-    config.command,
-    (value) => void window.candy.muster.configure({ command: value })
+  const [command, setCommand] = useEchoedText(config.command, (value) =>
+    configure({ command: value })
   )
 
   const hotkeys = useMemo<Hotkey[]>(
@@ -166,7 +185,7 @@ export function MusterPage(): ReactNode {
          * That was the duplication: two questions, one broadcast. There is now
          * one field, in `02`, and it is the stored one.
          */
-        run: () => void window.candy.muster.open('')
+        run: () => attempt('Could not open the call', () => window.candy.muster.open(''))
       },
       {
         chord: 'ctrl+shift+enter',
@@ -174,7 +193,7 @@ export function MusterPage(): ReactNode {
         group: 'The Muster',
         whileTyping: true,
         disabled: !open,
-        run: () => void window.candy.muster.close()
+        run: () => attempt('Could not close the call', () => window.candy.muster.close())
       },
       /*
        * Clearing is off `Ctrl+Backspace`, and off the typing path entirely.
@@ -191,7 +210,7 @@ export function MusterPage(): ReactNode {
         label: 'Clear the roll',
         group: 'The Muster',
         disabled: state.phase === 'idle' && state.entries.length === 0,
-        run: () => void window.candy.muster.reset()
+        run: () => attempt('Could not clear the roll', () => window.candy.muster.reset())
       }
     ],
     [open, state.phase, state.entries.length]
@@ -220,18 +239,6 @@ export function MusterPage(): ReactNode {
           </div>
         }
       />
-
-      {runner.error || runner.report ? (
-        <div
-          className={runner.error ? styles.notice : styles.report}
-          role={runner.error ? 'alert' : 'status'}
-        >
-          <span>{runner.error ?? runner.report}</span>
-          <button type="button" className={styles.dismiss} onClick={runner.dismiss}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
 
       <motion.div
         className={styles.grid}
@@ -349,7 +356,7 @@ export function MusterPage(): ReactNode {
                   step={5_000}
                   value={config.lingerMs}
                   readout={`${Math.round(config.lingerMs / 1000)}s`}
-                  onChange={(lingerMs) => void window.candy.muster.configure({ lingerMs })}
+                  onChange={(lingerMs) => configure({ lingerMs })}
                   hint="How long a closed roll stays on the scene before the overlay returns to rest."
                 />
 
@@ -360,7 +367,7 @@ export function MusterPage(): ReactNode {
                   step={1}
                   value={config.perCitizen}
                   readout={`${config.perCitizen}`}
-                  onChange={(perCitizen) => void window.candy.muster.configure({ perCitizen })}
+                  onChange={(perCitizen) => configure({ perCitizen })}
                   hint="Duplicates are refused regardless, so one person cannot fill the roll with the same entry."
                 />
 
@@ -371,7 +378,7 @@ export function MusterPage(): ReactNode {
                   step={1}
                   value={config.maxEntries}
                   readout={`${config.maxEntries}`}
-                  onChange={(maxEntries) => void window.candy.muster.configure({ maxEntries })}
+                  onChange={(maxEntries) => configure({ maxEntries })}
                   hint="A composition limit, not a performance one: more than this cannot be read on a broadcast."
                 />
               </div>
@@ -443,9 +450,9 @@ export function MusterPage(): ReactNode {
               <div className={styles.config}>
                 <PresentationControls
                   values={config}
-                  onChange={(patch) => void window.candy.muster.configure(patch)}
+                  onChange={(patch) => configure(patch)}
                   onReset={() =>
-                    void window.candy.muster.configure({
+                    configure({
                       scale: 1,
                       typeScale: 1,
                       opacity: 1,
@@ -465,9 +472,7 @@ export function MusterPage(): ReactNode {
                     min={0.8}
                     max={2}
                     step={PRESENTATION_LIMITS.typeScale.step}
-                    onChange={(instructionScale) =>
-                      void window.candy.muster.configure({ instructionScale })
-                    }
+                    onChange={(instructionScale) => configure({ instructionScale })}
                     readout={`${config.instructionScale.toFixed(2)}×`}
                     hint="The one line with an audience other than you. Worth oversizing."
                     width="full"
@@ -486,19 +491,17 @@ export function MusterPage(): ReactNode {
                     <Checkbox
                       label="Credit each entry"
                       checked={config.showAuthors}
-                      onChange={(showAuthors) =>
-                        void window.candy.muster.configure({ showAuthors })
-                      }
+                      onChange={(showAuthors) => configure({ showAuthors })}
                     />
                     <Checkbox
                       label="Show the count"
                       checked={config.showCount}
-                      onChange={(showCount) => void window.candy.muster.configure({ showCount })}
+                      onChange={(showCount) => configure({ showCount })}
                     />
                     <Checkbox
                       label="Draw the resonance field"
                       checked={config.showField}
-                      onChange={(showField) => void window.candy.muster.configure({ showField })}
+                      onChange={(showField) => configure({ showField })}
                       hint="A node per entry, joined where they are close. Each filing arrives as a flare."
                     />
                   </div>
@@ -510,9 +513,7 @@ export function MusterPage(): ReactNode {
                     <Checkbox
                       label="Composite over the scene"
                       checked={config.transparent}
-                      onChange={(transparent) =>
-                        void window.candy.muster.configure({ transparent })
-                      }
+                      onChange={(transparent) => configure({ transparent })}
                       hint="Drops the backdrop. Tick Transparent on the OBS source too."
                     />
                   </div>
@@ -524,9 +525,7 @@ export function MusterPage(): ReactNode {
                     step={1}
                     value={Math.round(config.reserveRight * 100)}
                     readout={`${Math.round(config.reserveRight * 100)}%`}
-                    onChange={(percent) =>
-                      void window.candy.muster.configure({ reserveRight: percent / 100 })
-                    }
+                    onChange={(percent) => configure({ reserveRight: percent / 100 })}
                     hint="Nothing is drawn into this band, so a camera or a chat panel can be composited there."
                   />
                 </div>

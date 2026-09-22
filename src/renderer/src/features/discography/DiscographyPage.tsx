@@ -32,6 +32,9 @@ import { gridVariants } from '@renderer/motion/transitions'
 import { useDiscography, useDiscographyMutations, useRelease } from '@renderer/hooks/useDiscography'
 import { useProjectRegistry } from '@renderer/hooks/useProjects'
 import { useSystemStore, selectArchive } from '@renderer/app/store/system.store'
+import { notify } from '@renderer/components/feedback/notify'
+import { plural } from '@renderer/lib/format'
+import * as shell from '@renderer/lib/shell'
 import { ReleaseDialog } from './components/ReleaseDialog'
 import { SleeveMark } from './components/SleeveMark'
 import { ReleaseSheet } from './components/ReleaseSheet'
@@ -104,7 +107,17 @@ export function DiscographyPage(): ReactNode {
   )
   const [raising, setRaising] = useState(false)
   const [addingTrack, setAddingTrack] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
+
+  /*
+   * The two dialogs keep an error of their own; nothing else here does.
+   *
+   * RAISE A RELEASE and ADD A TRACK are forms being submitted, and a refusal
+   * about what was typed belongs beside the field it is about. Every other
+   * write on this page is an edit inside an open sheet that commits as it
+   * changes — there is no submit for a message to sit next to, so those report
+   * through the console's notice stack like everything else.
+   */
+  const [dialogError, setDialogError] = useState<string | null>(null)
 
   const releases = useMemo(() => data?.releases ?? [], [data])
   const roster = useMemo(() => registry.data?.artists ?? [], [registry.data])
@@ -151,13 +164,13 @@ export function DiscographyPage(): ReactNode {
     setLabelFilter('')
   }
 
-  const report = (cause: unknown): void => {
+  const reportToDialog = (cause: unknown): void => {
     const failure = cause as Error & { hint?: string | null }
-    setNotice(failure.hint ? `${failure.message} ${failure.hint}` : failure.message)
+    setDialogError(failure.hint ? `${failure.message} ${failure.hint}` : failure.message)
   }
 
   const raise = (draft: ReleaseDraft): void => {
-    setNotice(null)
+    setDialogError(null)
 
     mutations.create.mutate(draft, {
       onSuccess: (created) => {
@@ -167,14 +180,42 @@ export function DiscographyPage(): ReactNode {
         // hand-off ARCHIVE and ARTISTS both make.
         setOpenId(created.id)
       },
-      onError: report
+      onError: reportToDialog
     })
   }
 
   const patch = (value: ReleasePatch): void => {
     if (!openId) return
-    setNotice(null)
-    mutations.update.mutate({ id: openId, patch: value }, { onError: report })
+    const before = open.data
+
+    mutations.update.mutate(
+      { id: openId, patch: value },
+      {
+        onSuccess: (updated) => {
+          /*
+           * Crossing into RELEASED writes into another department.
+           *
+           * Every project behind a track moves to the RELEASED stage, and the
+           * reverse on the way back. The sheet already warns that it will
+           * happen; nothing said that it *had*, and the operator cannot see
+           * the ARCHIVE from here. The count is the fact worth carrying —
+           * it is the one number that says the propagation actually ran.
+           */
+          if (!before || before.status === updated.status) return
+          if (updated.status !== 'released' && before.status !== 'released') return
+
+          const linked = updated.tracks.filter((track) => track.projectId !== null).length
+          if (linked === 0) return
+
+          const released = updated.status === 'released'
+          notify.report(released ? 'Marked released' : 'Returned to scheduled', {
+            detail: `${plural(linked, 'linked project')} moved to ${
+              released ? 'RELEASED' : 'TRACK READY'
+            } in the ARCHIVE.`
+          })
+        }
+      }
+    )
   }
 
   /*
@@ -243,15 +284,6 @@ export function DiscographyPage(): ReactNode {
           </div>
         }
       />
-
-      {notice ? (
-        <div className={styles.notice} role="alert">
-          <span>{notice}</span>
-          <button type="button" className={styles.dismiss} onClick={() => setNotice(null)}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
 
       {!ready ? (
         <Panel label="Catalogue" index="01">
@@ -414,11 +446,11 @@ export function DiscographyPage(): ReactNode {
           releases={data?.releases ?? []}
           roster={roster}
           busy={mutations.create.isPending}
-          error={notice}
+          error={dialogError}
           onSubmit={raise}
           onCancel={() => {
             setRaising(false)
-            setNotice(null)
+            setDialogError(null)
           }}
         />
       ) : null}
@@ -435,17 +467,17 @@ export function DiscographyPage(): ReactNode {
           available={linkableProjects}
           roster={roster}
           busy={mutations.addTrack.isPending}
-          error={notice}
+          error={dialogError}
           onSubmit={(draft) => {
-            setNotice(null)
+            setDialogError(null)
             mutations.addTrack.mutate(
               { id: openId, draft },
-              { onSuccess: () => setAddingTrack(false), onError: report }
+              { onSuccess: () => setAddingTrack(false), onError: reportToDialog }
             )
           }}
           onCancel={() => {
             setAddingTrack(false)
-            setNotice(null)
+            setDialogError(null)
           }}
         />
       ) : null}
@@ -469,26 +501,41 @@ export function DiscographyPage(): ReactNode {
               mutations.setTrackMaster.isPending ||
               mutations.adopt.isPending
             }
-            error={notice}
             onOpenRelease={setOpenId}
             onPatch={patch}
             onPublish={() => {
-              setNotice(null)
-              mutations.publish.mutate(openId, { onError: report })
+              mutations.publish.mutate(openId, {
+                onSuccess: (written) => {
+                  /*
+                   * The receipt, as a notice rather than a line in the sheet.
+                   *
+                   * It used to be `mutations.publish.data` drawn beside the
+                   * button, which meant the one record of what a distributor
+                   * folder actually received died the moment the sheet was
+                   * closed. A notice carries the same two figures, keeps the
+                   * reveal, and outlives the sheet.
+                   */
+                  const skipped = written.skipped.length
+                  notify.report('Written to RELEASES', {
+                    detail:
+                      skipped === 0
+                        ? `${plural(written.files.length, 'file')} written.`
+                        : `${plural(written.files.length, 'file')} written · ${plural(skipped, 'track')} with no master, skipped.`,
+                    action: { label: 'Show', onClick: () => shell.reveal(written.folder) }
+                  })
+                }
+              })
             }}
-            published={mutations.publish.data ?? null}
             publishing={mutations.publish.isPending}
             onAdopt={() => {
-              setNotice(null)
-              mutations.adopt.mutate(openId, { onError: report })
+              mutations.adopt.mutate(openId)
             }}
             onSetAsset={(asset, sourcePath) => {
-              setNotice(null)
-              mutations.setAsset.mutate({ id: openId, asset, sourcePath }, { onError: report })
+              mutations.setAsset.mutate({ id: openId, asset, sourcePath })
             }}
             releases={data?.releases ?? []}
             onAddTrack={() => {
-              setNotice(null)
+              setDialogError(null)
               setAddingTrack(true)
             }}
             /*
@@ -497,33 +544,37 @@ export function DiscographyPage(): ReactNode {
               The service fills the row from it — see `addTrack`.
             */
             onCollectTrack={(releaseId) => {
-              setNotice(null)
-              mutations.addTrack.mutate({ id: openId, draft: { releaseId } }, { onError: report })
-            }}
-            onPatchTrack={(trackId, trackPatch: TrackPatch) => {
-              setNotice(null)
-              mutations.updateTrack.mutate(
-                { id: openId, trackId, patch: trackPatch },
-                { onError: report }
+              /*
+               * `addTrack` is opted out of the notice stack because the dialog
+               * above owns its refusals — but this is the same channel reached
+               * from the running order, where there is no dialog to catch it.
+               */
+              mutations.addTrack.mutate(
+                { id: openId, draft: { releaseId } },
+                { onError: (cause) => notify.refuse(cause, { label: 'Could not collect that' }) }
               )
             }}
+            onPatchTrack={(trackId, trackPatch: TrackPatch) => {
+              mutations.updateTrack.mutate({ id: openId, trackId, patch: trackPatch })
+            }}
             onRemoveTrack={(trackId) => {
-              setNotice(null)
-              mutations.removeTrack.mutate({ id: openId, trackId }, { onError: report })
+              mutations.removeTrack.mutate({ id: openId, trackId })
             }}
             onReorderTracks={(trackIds) => {
-              setNotice(null)
-              mutations.reorderTracks.mutate({ id: openId, trackIds }, { onError: report })
+              mutations.reorderTracks.mutate({ id: openId, trackIds })
             }}
             onSetTrackMaster={(trackId, path) => {
-              setNotice(null)
-              mutations.setTrackMaster.mutate({ id: openId, trackId, path }, { onError: report })
+              mutations.setTrackMaster.mutate({ id: openId, trackId, path })
             }}
             onRemove={() => {
-              setNotice(null)
+              const title = open.data?.title ?? 'That release'
               mutations.remove.mutate(openId, {
-                onSuccess: () => setOpenId(null),
-                onError: report
+                onSuccess: () => {
+                  setOpenId(null)
+                  notify.done(`${title} removed from the catalogue`, {
+                    detail: 'No project was touched. The work stays in the ARCHIVE.'
+                  })
+                }
               })
             }}
             onClose={() => setOpenId(null)}

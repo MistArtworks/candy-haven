@@ -1,126 +1,97 @@
-The catalogue can fill itself in from the platforms the music is already on.
+The console tells you what it just did.
 
-## THE SEEDER
+## NOTICES
 
-A **temporary** department, at DISCOGRAPHY → **SEED FROM THE PLATFORMS**. It
-reads your whole released catalogue off Spotify, Apple Music, Deezer, TIDAL,
-YouTube and SoundCloud, works out which of them are the same recording, and
-proposes a catalogue. It is meant to be run once and then removed from the
-application entirely.
+Every department used to report a refusal its own way — a bar under the
+masthead in the ARCHIVE, another in DISCOGRAPHY, another on the roster, one
+more on the desk. Seven of them, all saying the same kind of thing in slightly
+different words, and all of them only ever said what had gone **wrong**.
 
-Paste the keys — or press **LOAD FROM A FILE** and point it at the `.env.seed`
-you were given, which fills all of it including the SoundCloud links — and
-press **HARVEST**.
+They are gone. One notice stack now rises in the bottom right, in three tones:
 
-### It shows its working
+- **Gold, brief** — it happened. `Filed 12 projects`, `Every address copied`.
+- **Gold, longer** — it happened and there is something to read.
+  `Sent 10. 30 did not fit and stayed on the roll.`
+- **Crimson** — it did not happen. These **wait until you dismiss them**.
+  A refusal is the console telling you your instruction was not carried out,
+  so it does not remove itself while you are looking somewhere else.
 
-A window opens and narrates the run: every request it sends, what came back,
-and what each step concluded. Not decoration. A harvest is two minutes of
-somebody else's computers being asked questions, and you are not waiting for
-it — you are deciding whether to trust what comes out, which needs to be
-visible. It is also the only way to see why a run went wrong.
+They sit clear of the transport bar and the unsaved-changes bar, so nothing is
+ever covered. Drag one to the side to be rid of it.
 
-### Nothing is written until you say so, twice
+## THINGS THAT USED TO HAPPEN IN SILENCE
 
-When the reading finishes the window becomes **CONTINUE**, and only then does
-the proposal appear: every record it would raise, every platform link and how
-it was matched, every track with its ISRC, and every judgement call it was not
-sure about with the odds it gave. Untick anything you do not want. Overrule any
-call. Both rebuild the whole proposal, so what is on screen is always exactly
-what writing would do.
+About sixty actions did their work and said nothing at all. The ones worth
+knowing about:
 
-Then a second button, and a dialog that restates the totals before it moves.
+**Deleting now offers to undo it.** Moving a project or a whole shelf to the
+bin says so, with **UNDO** beside it. Until now the only way back was knowing
+the BIN lens existed and going to find it.
 
-### It can be taken back
+**Permanent deletion says where it went** — Windows' own recycle bin, and that
+this console cannot bring it back.
 
-Every run is recorded, and the page offers to reverse it — precisely. The
-records it raised are deleted, the links it added to records that already
-existed come off, the artists it introduced leave the roster, and **anything
-you have done since is untouched.** It survives closing the application, which
-is when you usually want it.
+**Editing or deleting a note** could fail without a word. So could renaming a
+tag, resetting every setting, and restarting the archive. All of them speak now.
 
-If you are happy with a run, **KEEP IT** stops it offering.
+**Deleting a tag or removing an artist reports what it actually detached.**
+Both have always known the number and both used to throw it away — so the one
+figure that proves the change went through was never shown.
 
-### What it is careful about
+**A finished scan says what it found.** `Indexed 25 projects · 28 served from
+store · 487ms`. The indexing panel was excellent while a scan ran and then
+simply stopped moving.
 
-- **A record is yours only if you are on every track of it.** A release you
-  have one track on is somebody else's, however the store bills it — it is
-  filed as what it is, credited to whoever put it out, and carries a note
-  saying so.
-- **SoundCloud decides what is real.** Everything there is also on YouTube and
-  not the reverse, so a recording found only on YouTube is a promo, not a
-  record. That alone stopped two Shorts becoming releases.
-- **An anime music video is the video for its track**, not a release of its own.
-- Your catalogue is never trampled. A record already there is added to, never
-  replaced, and nothing is ever deleted.
+**Filing a batch that goes perfectly says so.** It only spoke up when something
+needed renaming, so filing twelve projects cleanly looked exactly like filing
+none.
 
-## ARTISTS
+## THINGS HAPPENING IN ANOTHER DEPARTMENT
 
-The roster is a wall of faces now. The stage name leads at the size it deserves
-and the real name sits under it; whoever you are opens first and is marked.
+The console warned you *before* these and then went quiet. Now it says what it
+did:
 
-Opening somebody gives you a record to read rather than a form to fill in —
-their releases, the projects they are on — with **EDIT** when you actually want
-to change something.
+- Marking a release **RELEASED** reports how many linked projects moved to
+  RELEASED in the ARCHIVE — which you cannot see from the catalogue.
+- Naming a **final master** says a single has been raised in DISCOGRAPHY, and
+  that you adopt it there to edit it.
+- **Clearing** a final master says which entry was withdrawn. That was one
+  unconfirmed click that could remove a catalogue entry you never made.
 
-## Albums and the singles they are made of
+**READY TO PUBLISH** now reports into the notice stack with a **SHOW** button,
+so the record of what a distributor folder received outlives closing the sheet.
 
-Raising an album lets you pick the singles it collects, there and then, instead
-of raising it empty and coming back. A running order collects **recordings** —
-singles and remixes — so naming an album as a row is refused rather than
-quietly accepted.
+## RESET TO DEFAULTS ASKS FIRST
 
-Tracks on an EP now also exist as records of their own, and each row points at
-its own entry. Open `4x4` and every track has **OPEN …** beside it.
+It had no confirmation of any kind and discards every path, every integration,
+the accent and the interface scale in one press. It now relabels itself to
+**RESET — CERTAIN?** the way striking a calendar entry does.
 
-## Finding a song
+## THE SEEDER NO LONGER TRIPS SPOTIFY'S LIMIT
 
-Searching the catalogue now looks inside running orders. Typing `Menace` used
-to find nothing at all, because a track was not a record; it now returns the
-record holding it and says `holds "Menace"` so you can see why.
+A harvest fired about 140 requests as fast as the connection allowed, which put
+the whole run inside a single thirty-second window — exactly what Spotify
+measures. Three harvests in an afternoon earned a **nineteen and a half hour**
+lockout.
 
-## Naming a master without a project
+Reads are now paced to fifteen every thirty seconds, deliberately under the
+limit rather than up against it. **A harvest takes about four and a half
+minutes instead of seconds**, and the pace is stated in the log before you feel
+it. A refusal that arrives anyway halves the pace for the rest of the run.
 
-A track with no ARCHIVE project behind it could not say which file shipped —
-which is most of a back catalogue, since there is no project for a record from
-2018 and there never will be. **LINK A MASTER** now takes a file from anywhere.
-Nothing is copied or moved; it points at the file where it sits.
+The pacing is shared between runs, so a second harvest started straight after
+the first is still paced rather than starting with a fresh budget.
 
-## THE OBSERVATORY
+## THE DETAILS
 
-Cut down to what is actually pressed. The rail is icons and names, the
-descriptions are gone, and each overlay's console leads with its one main
-control at full width with the helpers underneath. The kind label stays, and
-is finally legible.
-
-## The details
-
-- **Increasing Windows text size no longer breaks the startup window.** It
-  scales to fit the screen instead of being clipped.
-- **Sidebar and rail clicks work again inside an overlay console.** A page's
-  shortcuts were re-registering on every render, which pinned the interface
-  under a re-render loop.
-- **CTRL+R or F5 reloads the page you are standing in** without restarting the
-  application.
-- Artists the seeder introduces arrive with their photographs. Anyone already
-  on your roster keeps the picture you chose.
-- A record with no sleeve borrows one from another release carrying the same
-  recording.
-
-## Under it
-
-Two pieces were built for the seeder and deliberately kept outside it, because
-neither is about music: a facility for asking typed questions and getting
-**probabilities** back rather than prose, which is what lets a few hundred
-judgement calls become a dozen worth your attention; and the plumbing for
-talking to rate-limited services.
-
-That plumbing learned something the hard way. Spotify answers a hard
-rate-limit by asking to be left alone for **nineteen hours**, and the first
-version obeyed it — which looks exactly like the application having frozen. It
-now refuses any wait over two minutes and tells you what happened instead, a
-single request gives up after thirty seconds, and **DISCARD** is never disabled,
-because the moment you want it is the moment something has gone wrong.
-
-Worth knowing while using the seeder: a full harvest is around 140 requests to
-Spotify, and three in an afternoon is enough to be locked out for a day.
+- **Opening a folder that has moved now says so.** Every _reveal in Explorer_
+  and _open link_ in the console used to fail in complete silence.
+- **A refused clipboard write explains itself** rather than looking like a
+  button that did nothing.
+- **Copy every address** says how many went across.
+- **A new project can always be saved.** If your template set is marked
+  read-only — which is a sensible way to protect a template — every project
+  made from it inherited that, and Live would have refused to save. The copy
+  is now always writable; your template is left exactly as it is.
+- Dragging a notice aside no longer stretches its coloured edge across the
+  window.

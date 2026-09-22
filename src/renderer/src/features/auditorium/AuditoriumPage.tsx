@@ -20,6 +20,7 @@ import { usePlayback } from '@renderer/app/providers/playback'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { formatClock } from './lib/format'
+import * as shell from '@renderer/lib/shell'
 import { DEFAULT_SPAN, clampSpan, fullSpan, isFullSpan, spanLabel, zoomBy } from './lib/zoom'
 import { Visualiser } from './components/Visualiser'
 import styles from './AuditoriumPage.module.scss'
@@ -396,11 +397,7 @@ export function AuditoriumPage(): ReactNode {
               </FieldGrid>
               <Field label="Filed at" value={truncatePath(source.path, 52)} mono selectable />
               <div className={styles.particularActions}>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void window.candy.shell.reveal(source.path)}
-                >
+                <Button size="sm" variant="ghost" onClick={() => shell.reveal(source.path)}>
                   Reveal on disk
                 </Button>
               </div>

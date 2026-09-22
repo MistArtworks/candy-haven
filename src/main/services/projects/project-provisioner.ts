@@ -1,4 +1,4 @@
-import { copyFile, rm } from 'node:fs/promises'
+import { chmod, copyFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
@@ -92,6 +92,24 @@ export async function provisionProject(request: ProvisionRequest): Promise<Provi
     // `copyFile` with no flags overwrites, but nothing can be there — the
     // directory was created empty a line ago and no other writer knows of it.
     await copyFile(templatePath, setPath)
+
+    /*
+     * Clear read-only on the copy, which Windows carries across from the
+     * template.
+     *
+     * Marking a template read-only is a sensible thing to do — it is how you
+     * stop yourself saving over your own template — and it is silently
+     * inherited by every project made from it. The operator would find out
+     * hours later, in Live, pressing Ctrl+S on real work, with nothing
+     * pointing back here.
+     *
+     * Inside this `try` on purpose: a set that cannot be saved is not a
+     * project, so it belongs with the rollback above rather than with the
+     * icon below. Only the write bit means anything on Windows, and this
+     * touches the one file that was created a line ago — never a project the
+     * archive already holds.
+     */
+    await chmod(setPath, 0o666)
   } catch (error) {
     // Roll the empty directory back so a failed create leaves no trace. It is
     // provably empty, so this cannot destroy anything the operator made.

@@ -1,0 +1,201 @@
+@use 'abstracts' as *;
+
+/*
+ * The notice stack.
+ *
+ * Drawn from `UnsavedBar`'s construction rather than invented beside it: the
+ * two are the same object at different lifespans — a slab on the surface
+ * colour, a gold hairline, a heavy shadow to lift it off the page, and a mark
+ * slab on the leading edge that reads before any of the words do.
+ *
+ * Sonner is mounted with `unstyled: true`, so every rule it gates on
+ * `[data-styled='true']` is skipped and nothing of its own theme is drawn.
+ * What it keeps is the *positioning*: toasts are `position: absolute` inside
+ * the container and stacked by transform, which is the part worth having and
+ * the part not to fight. Nothing here sets `position` on a toast.
+ *
+ * Two places deliberately carry an extra attribute selector to raise their
+ * specificity above sonner's own:
+ *
+ *   - the container, because sonner injects its stylesheet into `<head>` at
+ *     import time and CSS Modules are injected by Vite, so source order
+ *     between the two is not something either side guarantees;
+ *   - and specifically to beat sonner's `@media (max-width: 600px)` rule,
+ *     which pins the container full-width. That is reachable here — interface
+ *     scale goes to 2.0, and Electron's zoom factor shrinks the CSS viewport,
+ *     so a 1180px window at 2.0 is a 590px one as far as a media query is
+ *     concerned. Specificity beats a media query, so this holds either way.
+ */
+
+// Wide enough for a refusal from main — those run to a sentence and a hint —
+// and no wider, because it sits over the page it is reporting on.
+$toast-width: 380px;
+
+.toaster[data-sonner-toaster] {
+  position: fixed;
+  z-index: z('toast');
+  width: $toast-width;
+
+  /*
+   * Bottom right, which is where the verbs are.
+   *
+   * Every sheet, dialog and dossier in this console puts its committing button
+   * at the trailing edge of a footer, so a notice about what that button just
+   * did belongs in the corner nearest it. Top right was the alternative and is
+   * wrong: `PageHeader` draws its actions there, so a toast would cover the
+   * control that raised it.
+   *
+   * Both offsets are composed rather than guessed. The transport is `0px`
+   * until something is playing; the clearance is `0px` unless `UnsavedBar` is
+   * up, which is the one other object that claims this corner.
+   */
+  right: space(6);
+  bottom: calc(#{space(6)} + var(--ch-transport-height) + var(--ch-unsaved-clearance));
+  left: auto;
+  top: auto;
+
+  // Only a toast is interactive. The stack must not swallow a click aimed at
+  // the page behind it — `UnsavedBar` makes the same split, for the same
+  // reason.
+  pointer-events: none;
+
+  // The offset moves when the transport arrives or the unsaved bar rises.
+  // Sliding is the difference between a notice that moved and one that
+  // flickered somewhere else.
+  @include motion-safe {
+    transition: bottom $duration-base $ease-out-expo;
+  }
+}
+
+.toast {
+  pointer-events: auto;
+  // No `position` here: sonner owns it, and overriding it breaks the stack.
+  // The toast is `position: absolute`, which is containing block enough for
+  // the close control below.
+  display: flex;
+  align-items: flex-start;
+  gap: space(3);
+  width: 100%;
+  padding: space(3) space(4);
+
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line-gold);
+  // Square, as everything structural in this console is. `$radius-control` is
+  // for things you press; a notice is not one.
+  border-radius: $radius-none;
+
+  /*
+   * The tone mark: a 3px slab down the leading edge, as `UnsavedBar` draws its
+   * own. Position carries the meaning before colour does — the mark is in the
+   * same place on all three tones and only its material changes, so they stay
+   * distinguishable without relying on gold reading differently from crimson.
+   *
+   * **Drawn as an inset shadow rather than a pseudo-element, and that is not a
+   * preference.** Sonner owns both pseudo-elements on a toast: `::after` is the
+   * hover-gap bridge on an expanded stack, and `::before` is the same trick
+   * while a toast is being swiped —
+   *
+   *   [data-sonner-toast][data-swiping='true']::before {
+   *     left: -100%; right: -100%; height: 100%; transform: scaleY(3);
+   *   }
+   *
+   * so a mark drawn as `::before` kept its colour and took sonner's geometry
+   * the instant a drag began: three times as tall and a full toast-width off
+   * to the left. Only visible mid-swipe, which is why it survived review.
+   *
+   * A shadow cannot be claimed by anybody and travels with the element's own
+   * transform, so it stays put for the whole gesture.
+   */
+  --ch-toast-mark: var(--ch-concrete-500);
+
+  box-shadow:
+    inset 3px 0 0 0 var(--ch-toast-mark),
+    0 1px 0 rgba(182, 158, 124, 0.04),
+    0 20px 52px rgba(0, 0, 0, 0.72);
+}
+
+.done {
+  --ch-toast-mark: var(--ch-gold-300);
+}
+
+.report {
+  --ch-toast-mark: var(--ch-gold-500);
+}
+
+/*
+ * The only crimson in this file.
+ *
+ * A refusal is the palette's sanctioned case — something the operator asked
+ * for did not happen — and it is also the only tone that does not remove
+ * itself, so the colour is never on screen without a live reason to be.
+ */
+.refusal {
+  --ch-toast-mark: var(--ch-crimson-500);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  @include label(9px, 0.2em);
+  color: var(--ch-text-primary);
+}
+
+.detail {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  // Wraps rather than truncating: a refusal that has been cut off is a refusal
+  // the operator has to go and find somewhere else.
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.action {
+  @include label(9px, 0.16em);
+  flex-shrink: 0;
+  align-self: center;
+  padding: space(2) space(3);
+  color: var(--ch-text-primary);
+  background: transparent;
+  border: $hairline solid var(--ch-line-strong);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ch-line-gold);
+    color: var(--ch-gold-200);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// Only a refusal carries one, because only a refusal waits to be dismissed.
+.close {
+  @include label(11px, 0);
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: space(6);
+  height: space(6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ch-text-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}

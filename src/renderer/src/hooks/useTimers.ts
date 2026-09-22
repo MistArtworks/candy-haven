@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { notify } from '@renderer/components/feedback/notify'
 import type {
   TimerConfigPatch,
   TimerFrame,
@@ -108,7 +109,6 @@ export interface TimerActions {
   configure(id: TimerId, patch: TimerConfigPatch): Promise<void>
   pending: string | null
   error: string | null
-  dismissError(): void
 }
 
 /**
@@ -130,6 +130,10 @@ export function useTimerActions(): TimerActions {
       setError(null)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
+      // The overlay pages stopped drawing this when their notice bars went;
+      // the state is kept because the console reads it for a disabled reason,
+      // and the operator is told through the notice stack.
+      notify.refuse(cause)
     } finally {
       setPending((current) => (current === key ? null : current))
     }
@@ -146,8 +150,7 @@ export function useTimerActions(): TimerActions {
         run(`extend:${deltaMs}`, () => window.candy.timers.extend(id, deltaMs)),
       configure: (id, patch) => run('config', () => window.candy.timers.configure(id, patch)),
       pending,
-      error,
-      dismissError: () => setError(null)
+      error
     }),
     [run, pending, error]
   )

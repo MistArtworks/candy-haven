@@ -8,6 +8,7 @@ import {
 import { Button } from '@renderer/components/primitives/Button'
 import { SelectInput, TextInput } from '@renderer/components/primitives/Input'
 import styles from './TransmissionPage.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 export interface SourceListProps {
   sources: readonly NowPlayingSource[]
@@ -101,11 +102,7 @@ export function SourceList({
                         point of looking is to see what OBS will see, and the
                         console rendering it proves nothing.
                       */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void window.candy.shell.openExternal(url)}
-                      >
+                      <Button size="sm" variant="ghost" onClick={() => shell.openExternal(url)}>
                         Preview
                       </Button>
                     </>

@@ -45,6 +45,30 @@ export function UnsavedBar(): ReactNode {
 
   const dirty = unsaved?.dirty ?? false
 
+  /*
+   * Publish that the bar is up, so the notice stack can clear it.
+   *
+   * The same arrangement `MiniPlayer` uses for `data-transport`, and for its
+   * reason: the height itself is a Sass token, and JavaScript reports only the
+   * thing CSS cannot know — whether the bar is there. Measuring the bar back
+   * out of the DOM would make the right answer depend on when this effect ran
+   * relative to the bar mounting.
+   *
+   * On `<html>` rather than on the shell, because the toaster is fixed to the
+   * window and a variable set inside the shell would not reach it if it were
+   * ever portalled.
+   */
+  useEffect(() => {
+    const root = document.documentElement
+    if (!dirty) {
+      root.removeAttribute('data-unsaved')
+      return
+    }
+
+    root.setAttribute('data-unsaved', '')
+    return () => root.removeAttribute('data-unsaved')
+  }, [dirty])
+
   return (
     <AnimatePresence>
       {dirty && unsaved ? (

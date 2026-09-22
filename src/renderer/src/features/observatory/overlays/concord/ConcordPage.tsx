@@ -193,12 +193,6 @@ export function ConcordPage(): ReactNode {
 
   useHotkeys(hotkeys)
 
-  const failure = runner.error ?? actions.error
-  const dismiss = (): void => {
-    runner.dismiss()
-    actions.dismissError()
-  }
-
   return (
     <div className={styles.page}>
       <PageHeader
@@ -222,18 +216,6 @@ export function ConcordPage(): ReactNode {
           </div>
         }
       />
-
-      {failure || runner.report ? (
-        <div
-          className={failure ? styles.notice : styles.report}
-          role={failure ? 'alert' : 'status'}
-        >
-          <span>{failure ?? runner.report}</span>
-          <button type="button" className={styles.dismiss} onClick={dismiss}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
 
       {/*
         Two different messages, because they are two different situations.

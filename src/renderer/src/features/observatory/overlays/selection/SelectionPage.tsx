@@ -154,12 +154,6 @@ export function SelectionPage(): ReactNode {
   // One notice for the page. Two runners write state here — this page's own
   // roster actions and the bench's — and two notice lines saying the same kind
   // of thing in two places is the inconsistency being removed everywhere else.
-  const failure = runner.error ?? actions.error
-  const dismiss = (): void => {
-    runner.dismiss()
-    actions.dismissError()
-  }
-
   return (
     <div className={styles.page}>
       <PageHeader
@@ -187,18 +181,6 @@ export function SelectionPage(): ReactNode {
           </div>
         }
       />
-
-      {failure || runner.report ? (
-        <div
-          className={failure ? styles.notice : styles.report}
-          role={failure ? 'alert' : 'status'}
-        >
-          <span>{failure ?? runner.report}</span>
-          <button type="button" className={styles.dismiss} onClick={dismiss}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
 
       <motion.div
         className={styles.grid}

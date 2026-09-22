@@ -193,15 +193,6 @@ export function DispatchPage(): ReactNode {
         }
       />
 
-      {actions.error ? (
-        <div className={styles.notice} role="alert">
-          <span>{actions.error}</span>
-          <button type="button" className={styles.dismiss} onClick={actions.dismissError}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
-
       {/*
         Unconfigured is not something to fix here.
         The connection moved to REGULATION, because it is set once per machine
@@ -209,7 +200,7 @@ export function DispatchPage(): ReactNode {
         rather than growing a settings panel back.
       */}
       {state.link.state === 'unconfigured' ? (
-        <div className={styles.notice}>
+        <div className={styles.gate}>
           <span>
             The board is not attached to a database yet. Add the Firebase config in{' '}
             <Link to="/regulation?section=board" className={styles.inlineLink}>

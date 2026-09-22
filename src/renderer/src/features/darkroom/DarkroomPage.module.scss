@@ -307,17 +307,6 @@
   margin: 0;
 }
 
-.notice {
-  @include readout(11px);
-
-  margin: 0 0 space(4);
-  padding: space(2) space(3);
-  color: var(--ch-text-secondary);
-  background: var(--ch-surface-raised);
-
-  @include hairline(all);
-}
-
 .fileInput {
   @include visually-hidden;
 }

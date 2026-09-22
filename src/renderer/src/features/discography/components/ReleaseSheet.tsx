@@ -31,7 +31,6 @@ import { Button } from '@renderer/components/primitives/Button'
 import { DateInput, TextArea, TextInput } from '@renderer/components/primitives/Input'
 import { Plate } from '@renderer/components/primitives/Plate'
 import { useBackdropDismiss } from '@renderer/hooks/useBackdropDismiss'
-import type { PublishReport } from '@renderer/hooks/useDiscography'
 import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import {
@@ -89,14 +88,11 @@ export interface ReleaseSheetProps {
   linkable: readonly ProjectSummary[]
   labels: readonly string[]
   busy: boolean
-  error: string | null
   onPatch: (patch: ReleasePatch) => void
   /** Takes over an automatically raised entry, unlocking the sheet. */
   onAdopt: () => void
   /** Writes the distributor folder into `RELEASES`. */
   onPublish: () => void
-  /** What the last publish wrote, or null if none has run. */
-  published: PublishReport | null
   publishing: boolean
   onSetAsset: (asset: 'artwork' | 'canvas', sourcePath: string | null) => void
   /** Opens the add-a-track dialog, which the page owns. */
@@ -148,11 +144,9 @@ export function ReleaseSheet({
   linkable,
   labels,
   busy,
-  error,
   onPatch,
   onAdopt,
   onPublish,
-  published,
   publishing,
   onSetAsset,
   releases,
@@ -349,12 +343,6 @@ export function ReleaseSheet({
               </Button>
             </div>
           </motion.header>
-
-          {error ? (
-            <p className={styles.sheetError} role="alert">
-              {error}
-            </p>
-          ) : null}
 
           {/*
             The entry is a projection until it is adopted — see `locked`. The
@@ -933,27 +921,6 @@ export function ReleaseSheet({
                 </Button>
 
                 <span className={styles.footSpacer} />
-
-                {/*
-                  What the last publish wrote, beside the button that wrote
-                  it. Reported rather than announced: "published" on its own
-                  is a claim the operator cannot check, and the thing they
-                  actually want to know is which folder to go and look in.
-                */}
-                {published ? (
-                  <button
-                    type="button"
-                    className={styles.publishedAt}
-                    title={`${published.folder} — click to show in Explorer`}
-                    onClick={() => void window.candy.shell.reveal(published.folder)}
-                  >
-                    {published.files.length} file
-                    {published.files.length === 1 ? '' : 's'} written
-                    {published.skipped.length > 0
-                      ? `, ${published.skipped.length} track without a master`
-                      : ''}
-                  </button>
-                ) : null}
 
                 {/*
                   Offered even when the record is incomplete, and refused by

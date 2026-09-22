@@ -23,13 +23,59 @@
  *     application registered now. Only the singular endpoints are open, so
  *     the harvest reads one record at a time.
  */
-import { basicAuth, pool, request } from '@main/core/net'
+import { basicAuth, pool, request, slidingWindow } from '@main/core/net'
 import { spotifyArtistId } from '../normalise'
 import type { SeedReporter } from '../reporter'
 import type { SeedCredentials } from '@shared/domain/seed'
 
 const API = 'https://api.spotify.com/v1'
 const MARKET = 'CA'
+
+/**
+ * How many reads this application allows itself in any rolling 30 seconds.
+ *
+ * Spotify counts calls in a *trailing* window rather than as a flat rate, and
+ * does not publish the number for an application in development mode — so this
+ * is chosen to be obviously under it rather than tuned up to it. Fifteen is a
+ * sustained one call every two seconds.
+ *
+ * The arithmetic that matters: a cold harvest of this catalogue is about 140
+ * reads, so it takes roughly five minutes instead of the ten seconds it used
+ * to. That is the trade the operator asked for in as many words — slow is
+ * fine, locked out is not — and it is the right one for a tool that is run
+ * once, because the alternative cost 19h 36m of lockout on 21 Sep 2026.
+ *
+ * Module scope, not per-harvest, deliberately: the ceiling belongs to this
+ * application's relationship with Spotify, not to one run. Two harvests a
+ * minute apart therefore share one window, which is the case that earned the
+ * lockout in the first place.
+ */
+const READS_PER_WINDOW = 15
+
+const spotifyRate = slidingWindow(READS_PER_WINDOW)
+
+/**
+ * Every read of the Spotify API, through the ceiling.
+ *
+ * Nothing here calls `request` directly any more. The three `pool`s below are
+ * still pools — they keep several sockets open — but the limiter is what
+ * decides when each one is allowed to go, so the concurrency no longer sets
+ * the rate.
+ *
+ * A 429 that arrives anyway halves the ceiling for the rest of the run, which
+ * is the backoff strategy Spotify's own guidance asks for: treat the refusal
+ * as a cue to slow down rather than as something to retry at the same pace.
+ */
+function get<T>(url: string, bearer: string): Promise<T> {
+  return spotifyRate.run(() =>
+    request<T>(url, {
+      ...auth(bearer),
+      onRetry: ({ status }) => {
+        if (status === 429) spotifyRate.tighten('a 429 from Spotify')
+      }
+    })
+  )
+}
 
 export interface SpotifyPerson {
   id: string
@@ -118,6 +164,13 @@ async function token(credentials: SeedCredentials, reporter: SeedReporter): Prom
     throw new Error('Spotify needs a client id and secret.')
   }
 
+  /*
+   * The one read not behind the ceiling, and deliberately.
+   *
+   * `accounts.spotify.com` is a different host from `api.spotify.com` with its
+   * own limits, it is called once per run, and spending a slot out of the API's
+   * window on it would only delay the harvest it is the key to.
+   */
   reporter.request('spotify', 'POST https://accounts.spotify.com/api/token (client credentials)')
   const granted = await request<{ access_token: string }>(
     'https://accounts.spotify.com/api/token',
@@ -142,7 +195,7 @@ async function all<T>(url: string, bearer: string): Promise<T[]> {
   const items: T[] = []
   let next: string | null = url
   while (next) {
-    const page: { items: T[]; next: string | null } = await request(next, auth(bearer))
+    const page: { items: T[]; next: string | null } = await get(next, bearer)
     items.push(...page.items)
     next = page.next
   }
@@ -179,13 +232,27 @@ export async function harvestSpotify({
 
   const bearer = await token(credentials, reporter)
 
+  /*
+   * Said out loud, because the harvest is now deliberately slow.
+   *
+   * At fifteen reads per thirty seconds a full catalogue takes minutes rather
+   * than seconds, and a log that has gone quiet is the thing this whole
+   * feature treats as indistinguishable from a hang. So the pace is stated
+   * before it is felt, and the progress lines below keep moving throughout.
+   */
+  reporter.note(
+    'spotify',
+    `Paced to ${READS_PER_WINDOW} reads per ${Math.round(spotifyRate.windowMs / 1000)}s — ` +
+      'under Spotify’s rolling limit rather than up against it. This takes minutes.'
+  )
+
   reporter.progress('reading the artist', 0, 0)
   reporter.request('spotify', `${API}/artists/${artistId}`)
-  const artist = await request<{
+  const artist = await get<{
     id: string
     name: string
     external_urls?: { spotify?: string }
-  }>(`${API}/artists/${artistId}`, auth(bearer))
+  }>(`${API}/artists/${artistId}`, bearer)
   reporter.response('spotify', `"${artist.name}"`)
 
   /*
@@ -196,10 +263,16 @@ export async function harvestSpotify({
   const groups = ['album', 'single', 'compilation', 'appears_on']
   const seen = new Map<string, { id: string; groups: string[] }>()
 
-  reporter.step('spotify', 'Listing four album groups — limit is 10 per page, not the documented 50')
+  reporter.step(
+    'spotify',
+    'Listing four album groups — limit is 10 per page, not the documented 50'
+  )
   for (const group of groups) {
     reporter.progress(`listing ${group}`, 0, 0)
-    reporter.request('spotify', `${API}/artists/${artistId}/albums?include_groups=${group}&limit=10`)
+    reporter.request(
+      'spotify',
+      `${API}/artists/${artistId}/albums?include_groups=${group}&limit=10`
+    )
     const found = await all<{ id: string }>(
       `${API}/artists/${artistId}/albums?include_groups=${group}&limit=10&market=${MARKET}`,
       bearer
@@ -225,7 +298,7 @@ export async function harvestSpotify({
   let readRecords = 0
   const detailed = (
     await pool(ids, 5, async (id) => {
-      const full = await request<RawAlbum>(`${API}/albums/${id}?market=${MARKET}`, auth(bearer))
+      const full = await get<RawAlbum>(`${API}/albums/${id}?market=${MARKET}`, bearer)
       readRecords += 1
       if (readRecords <= 4 || readRecords === ids.length) {
         const count = full.tracks.items.length
@@ -255,7 +328,7 @@ export async function harvestSpotify({
   let readTracks = 0
   const tracks = new Map<string, RawTrack>()
   for (const track of await pool(trackIds, 5, async (id) => {
-    const full = await request<RawTrack>(`${API}/tracks/${id}?market=${MARKET}`, auth(bearer))
+    const full = await get<RawTrack>(`${API}/tracks/${id}?market=${MARKET}`, bearer)
     readTracks += 1
     if (readTracks <= 4) {
       reporter.response('spotify', `"${full.name}" — ISRC ${full.external_ids?.isrc || 'none'}`)
@@ -300,20 +373,24 @@ export async function harvestSpotify({
   const artistImages: Record<string, string> = {}
   let readPeople = 0
 
-  await pool(wanted.map(([id]) => id), 5, async (id) => {
-    try {
-      const full = await request<{ name: string; images?: { url: string }[] }>(
-        `${API}/artists/${id}`,
-        auth(bearer)
-      )
-      // Widest first, which is how Spotify orders them.
-      const image = full.images?.[0]?.url
-      if (image) artistImages[full.name] = image
-    } catch (error) {
-      reporter.warn('spotify', `no portrait for ${people.get(id)} — ${(error as Error).message}`)
+  await pool(
+    wanted.map(([id]) => id),
+    5,
+    async (id) => {
+      try {
+        const full = await get<{ name: string; images?: { url: string }[] }>(
+          `${API}/artists/${id}`,
+          bearer
+        )
+        // Widest first, which is how Spotify orders them.
+        const image = full.images?.[0]?.url
+        if (image) artistImages[full.name] = image
+      } catch (error) {
+        reporter.warn('spotify', `no portrait for ${people.get(id)} — ${(error as Error).message}`)
+      }
+      reporter.progress('reading artists', ++readPeople, wanted.length)
     }
-    reporter.progress('reading artists', ++readPeople, wanted.length)
-  })
+  )
   reporter.response(
     'spotify',
     `${Object.keys(artistImages).length} of ${wanted.length} have a portrait`

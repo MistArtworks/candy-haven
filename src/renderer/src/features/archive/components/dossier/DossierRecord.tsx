@@ -10,6 +10,7 @@ import { formatStamp } from '../../lib/present'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
 import styles from './dossier.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 /** Stage-history rows drawn before the rest are summarised. See `recentHistory`. */
 const HISTORY_SHOWN = 10
@@ -191,7 +192,7 @@ export function DossierRecord({ project, artists }: DossierTabProps): ReactNode 
               size="sm"
               disabled={project.missing}
               title={project.missing ? 'The folder is not on disk' : 'Show the folder in Explorer'}
-              onClick={() => void window.candy.shell.reveal(project.path)}
+              onClick={() => shell.reveal(project.path)}
             >
               Reveal in Explorer
             </Button>
@@ -277,7 +278,7 @@ export function DossierRecord({ project, artists }: DossierTabProps): ReactNode 
                       size="sm"
                       variant="ghost"
                       title={entry.master.path}
-                      onClick={() => void window.candy.shell.reveal(entry.master!.path)}
+                      onClick={() => shell.reveal(entry.master!.path)}
                     >
                       Reveal
                     </Button>

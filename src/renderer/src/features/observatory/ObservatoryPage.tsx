@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { notify } from '@renderer/components/feedback/notify'
+import { plural } from '@renderer/lib/format'
 import { motion } from 'motion/react'
 import { getSection } from '@shared/domain/navigation'
 import { CHAT_STATE_LABEL } from '@shared/domain/chat.constants'
@@ -212,18 +214,6 @@ export function ObservatoryPage(): ReactNode {
         Every verb on this page and on the bench goes through one runner, so
         there is one place for what it reported back.
       */}
-      {runner.error || runner.report ? (
-        <div
-          className={runner.error ? styles.notice : styles.report}
-          role={runner.error ? 'alert' : 'status'}
-        >
-          <span>{runner.error ?? runner.report}</span>
-          <button type="button" className={styles.dismiss} onClick={runner.dismiss}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
-
       {/*
         The kit's own controls, as a strip rather than a slab.
         They replaced a panel of seven readouts that spent the top of the page
@@ -236,7 +226,20 @@ export function ObservatoryPage(): ReactNode {
           size="sm"
           variant="ghost"
           disabled={!deck.server.running}
-          onClick={() => copier.copy('manifest', manifest)}
+          onClick={() => {
+            copier.copy('manifest', manifest)
+            /*
+             * The one copy worth counting.
+             *
+             * A row's button relabelling itself is the right acknowledgement
+             * for one address; for the whole kit it undersells what just
+             * happened, and the number is what tells the operator whether
+             * they got the lot.
+             */
+            notify.done('Every address copied', {
+              detail: `${plural(manifest.split('\n').filter(Boolean).length, 'line')} on the clipboard.`
+            })
+          }}
         >
           {copier.failed === 'manifest'
             ? 'Blocked'
@@ -262,10 +265,42 @@ export function ObservatoryPage(): ReactNode {
 
         <span className={styles.deckBarSpacer} />
 
-        <Button size="sm" variant="ghost" onClick={() => void window.candy.overlay.restart()}>
+        {/*
+          The two recovery buttons, which are pressed precisely when something
+          is already wrong — and which, until now, reported neither success nor
+          failure. Restarting the server makes every browser source in OBS
+          reconnect; there is no way to tell from this page whether it worked.
+        */}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            void window.candy.overlay
+              .restart()
+              .then(() =>
+                notify.done('Server restarted', {
+                  detail: 'Every browser source will reconnect on its own.'
+                })
+              )
+              .catch((cause: unknown) =>
+                notify.refuse(cause, { label: 'Could not restart the server' })
+              )
+          }}
+        >
           Restart server
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => void window.candy.chat.reconnect()}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            void window.candy.chat
+              .reconnect()
+              .then(() => notify.done('Reattaching to chat'))
+              .catch((cause: unknown) =>
+                notify.refuse(cause, { label: 'Could not reattach to chat' })
+              )
+          }}
+        >
           Reconnect chat
         </Button>
       </div>

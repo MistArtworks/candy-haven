@@ -13,6 +13,8 @@ import { Skeleton } from '@renderer/components/primitives/Skeleton'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useArtistMutations, useArtists } from '@renderer/hooks/useArtists'
 import { useSystemStore, selectArchive } from '@renderer/app/store/system.store'
+import { notify } from '@renderer/components/feedback/notify'
+import { plural } from '@renderer/lib/format'
 import { ArtistDialog } from './components/ArtistDialog'
 import { ArtistSheet } from './components/ArtistSheet'
 import styles from './ArtistsPage.module.scss'
@@ -47,7 +49,16 @@ export function ArtistsPage(): ReactNode {
   const [roleFilter, setRoleFilter] = useState<ArtistRole[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
+
+  /*
+   * Only the add dialog keeps an error of its own.
+   *
+   * It is a form being submitted, and a refusal about the name that was typed
+   * belongs beside the field it is about. Everything else here is an edit
+   * inside an open sheet — those commit as they change, so there is no submit
+   * to sit next to and they report through the notice stack.
+   */
+  const [dialogError, setDialogError] = useState<string | null>(null)
 
   const roster = useMemo(() => data ?? [], [data])
 
@@ -102,13 +113,13 @@ export function ArtistsPage(): ReactNode {
 
   const open = openId ? (roster.find((artist) => artist.id === openId) ?? null) : null
 
-  const report = (cause: unknown): void => {
+  const reportToDialog = (cause: unknown): void => {
     const failure = cause as Error & { hint?: string | null }
-    setNotice(failure.hint ? `${failure.message} ${failure.hint}` : failure.message)
+    setDialogError(failure.hint ? `${failure.message} ${failure.hint}` : failure.message)
   }
 
   const add = (draft: ArtistDraft): void => {
-    setNotice(null)
+    setDialogError(null)
 
     mutations.create.mutate(draft, {
       onSuccess: (created) => {
@@ -123,13 +134,12 @@ export function ArtistsPage(): ReactNode {
          */
         setOpenId(created.id)
       },
-      onError: report
+      onError: reportToDialog
     })
   }
 
   const patch = (id: string, value: ArtistPatch): void => {
-    setNotice(null)
-    mutations.update.mutate({ id, patch: value }, { onError: report })
+    mutations.update.mutate({ id, patch: value })
   }
 
   return (
@@ -149,15 +159,6 @@ export function ArtistsPage(): ReactNode {
           </div>
         }
       />
-
-      {notice ? (
-        <div className={styles.notice} role="alert">
-          <span>{notice}</span>
-          <button type="button" className={styles.dismiss} onClick={() => setNotice(null)}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
 
       {!ready ? (
         <Panel label="Roster" index="01">
@@ -299,11 +300,11 @@ export function ArtistsPage(): ReactNode {
       {adding ? (
         <ArtistDialog
           busy={mutations.create.isPending}
-          error={notice}
+          error={dialogError}
           onSubmit={add}
           onCancel={() => {
             setAdding(false)
-            setNotice(null)
+            setDialogError(null)
           }}
         />
       ) : null}
@@ -314,17 +315,29 @@ export function ArtistsPage(): ReactNode {
             key={open.id}
             artist={open}
             busy={mutations.update.isPending || mutations.setPicture.isPending}
-            error={notice}
             onPatch={(value) => patch(open.id, value)}
             onSetPicture={(sourcePath) => {
-              setNotice(null)
-              mutations.setPicture.mutate({ id: open.id, sourcePath }, { onError: report })
+              mutations.setPicture.mutate({ id: open.id, sourcePath })
             }}
             onRemove={() => {
-              setNotice(null)
+              const name = open.name
               mutations.remove.mutate(open.id, {
-                onSuccess: () => setOpenId(null),
-                onError: report
+                onSuccess: (detached) => {
+                  setOpenId(null)
+                  /*
+                   * The counts the confirmation promised, as what actually
+                   * happened. Removing somebody strips them out of the
+                   * register and the catalogue both, and neither is on screen
+                   * from here — so this is the only place those two numbers
+                   * are ever stated as fact rather than as a warning.
+                   */
+                  notify.report(`${name} removed from the roster`, {
+                    detail:
+                      detached.projects + detached.releases === 0
+                        ? 'They were not credited on anything.'
+                        : `Credits stripped from ${plural(detached.projects, 'project')} and ${plural(detached.releases, 'release')}.`
+                  })
+                }
               })
             }}
             onClose={() => setOpenId(null)}

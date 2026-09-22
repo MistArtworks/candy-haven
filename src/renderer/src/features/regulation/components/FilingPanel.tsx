@@ -4,6 +4,7 @@ import { Button } from '@renderer/components/primitives/Button'
 import { truncatePath } from '@renderer/lib/format'
 import { useApplySettings, useSettings } from '@renderer/hooks/useSettings'
 import styles from '../RegulationPage.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 /**
  * Where the ARCHIVE files, what it copies, and what else it reads.
@@ -99,7 +100,7 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
                   type="button"
                   className={styles.pathOpen}
                   title={`Open ${filingRoot}`}
-                  onClick={() => void window.candy.shell.reveal(filingRoot)}
+                  onClick={() => shell.reveal(filingRoot)}
                 >
                   {truncatePath(filingRoot, 48)}
                 </button>
@@ -129,7 +130,7 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
                   type="button"
                   className={styles.pathOpen}
                   title={`Open ${templatePath}`}
-                  onClick={() => void window.candy.shell.reveal(templatePath)}
+                  onClick={() => shell.reveal(templatePath)}
                 >
                   {truncatePath(templatePath, 48)}
                 </button>
@@ -163,7 +164,7 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
                     type="button"
                     className={styles.pathOpen}
                     title={`Open ${root}`}
-                    onClick={() => void window.candy.shell.reveal(root)}
+                    onClick={() => shell.reveal(root)}
                   >
                     {truncatePath(root, 48)}
                   </button>

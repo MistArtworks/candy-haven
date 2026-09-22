@@ -7,6 +7,7 @@ import { ArchiveGlyph } from '../icons/ArchiveGlyph'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
 import styles from './dossier.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 function FileRows({ files }: { files: readonly MediaFile[] }): ReactNode {
   return (
@@ -17,7 +18,7 @@ function FileRows({ files }: { files: readonly MediaFile[] }): ReactNode {
             type="button"
             className={styles.fileName}
             title={file.path}
-            onClick={() => void window.candy.shell.reveal(file.path)}
+            onClick={() => shell.reveal(file.path)}
           >
             {file.relativePath}
           </button>
@@ -62,7 +63,7 @@ export function DossierFiles(props: DossierTabProps): ReactNode {
                   type="button"
                   className={styles.fileName}
                   title={set.path}
-                  onClick={() => void window.candy.shell.reveal(set.path)}
+                  onClick={() => shell.reveal(set.path)}
                 >
                   {set.fileName}
                 </button>
@@ -118,7 +119,7 @@ export function DossierFiles(props: DossierTabProps): ReactNode {
                   type="button"
                   className={styles.fileName}
                   title={revision.path}
-                  onClick={() => void window.candy.shell.reveal(revision.path)}
+                  onClick={() => shell.reveal(revision.path)}
                 >
                   {revision.fileName}
                 </button>

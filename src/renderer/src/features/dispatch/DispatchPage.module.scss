@@ -121,9 +121,17 @@
   min-width: rem(420px);
 }
 
-// ------------------------------------------------------------------ notices
+// --------------------------------------------------------------------- gate
 
-.notice {
+/*
+ * The unattached board, which is a standing state rather than a refusal.
+ *
+ * It was `.notice`, shared with the transient error line that used to sit
+ * above it — one class drawn by two objects that behave nothing alike. The
+ * refusal is now a notice in the console's stack and this kept the slab,
+ * renamed for what it actually is: the department saying it cannot start.
+ */
+.gate {
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { notify } from '@renderer/components/feedback/notify'
 
 /** How long a control reads `Copied` before returning to its own label. */
 const RESET_MS = 1600
@@ -50,9 +51,19 @@ export function useCopy(): Copier {
         setFailed(null)
         setCopied(key)
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         setCopied(null)
         setFailed(key)
+        /*
+         * The keyed label says *which* control was refused and is the right
+         * acknowledgement for that. It does not say why, and it clears itself
+         * after 1600ms whether or not it was read — so the reason goes to the
+         * notice stack, which waits.
+         */
+        notify.refuse(cause, {
+          label: 'The clipboard refused that',
+          detail: 'Windows can block a clipboard write while another application holds it.'
+        })
       })
       .finally(() => {
         handle.current = setTimeout(() => {

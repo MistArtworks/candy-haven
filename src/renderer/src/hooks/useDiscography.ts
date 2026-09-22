@@ -105,6 +105,9 @@ export function useDiscographyMutations(): DiscographyMutations {
   return {
     create: useMutation({
       mutationFn: (draft: ReleaseDraft) => window.candy.discography.create(draft),
+      // Raised from a dialog, so a refusal about the title or the date belongs
+      // beside the field it is about rather than in the notice stack.
+      meta: { notify: false },
       onSuccess
     }),
     update: useMutation({
@@ -120,7 +123,7 @@ export function useDiscographyMutations(): DiscographyMutations {
       onSuccess
     }),
     publish: useMutation({
-      mutationFn: (id: string) => window.candy.discography.publish(id),
+      mutationFn: (id: string) => window.candy.discography.publish(id)
       /*
        * No invalidation. Publishing writes to disk and changes no record,
        * so there is nothing here for a query to have gone stale about —
@@ -135,6 +138,14 @@ export function useDiscographyMutations(): DiscographyMutations {
     }),
     addTrack: useMutation({
       mutationFn: ({ id, draft }) => window.candy.discography.addTrack(id, draft),
+      /*
+       * Same reason as `create` — ADD A TRACK is a dialog.
+       *
+       * It is also reachable from the running order, where a record is
+       * collected as a row and there is no dialog to catch anything, so that
+       * one call site passes its own `onError`. See `onCollectTrack`.
+       */
+      meta: { notify: false },
       onSuccess
     }),
     updateTrack: useMutation({

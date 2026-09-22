@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Button } from '@renderer/components/primitives/Button'
 import type { AddressRow } from '../lib/addresses'
 import styles from './AddressList.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 export interface AddressListProps {
   rows: readonly AddressRow[]
@@ -65,11 +66,7 @@ export function AddressList({
               <Button size="sm" variant="ghost" onClick={() => onCopy(row.key, row.url)}>
                 {failed === row.key ? 'Blocked' : copied === row.key ? 'Copied' : 'Copy'}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => void window.candy.shell.openExternal(row.url)}
-              >
+              <Button size="sm" variant="ghost" onClick={() => shell.openExternal(row.url)}>
                 Preview
               </Button>
             </div>

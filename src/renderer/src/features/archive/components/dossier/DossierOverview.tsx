@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { notify } from '@renderer/components/feedback/notify'
 import { evaluateReadiness, getStage, namesMaster } from '@shared/domain/projects.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { Panel } from '@renderer/components/primitives/Panel'
@@ -14,6 +15,12 @@ import { FinalMaster } from './FinalMaster'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
 import styles from './dossier.module.scss'
+
+/** The file's own name, for saying which bounce was chosen. */
+function basename(path: string): string {
+  const parts = path.split(/[\\/]/)
+  return parts[parts.length - 1] || path
+}
 
 /**
  * What the operator has said about this project — and nothing else.
@@ -215,7 +222,35 @@ export function DossierOverview({
         <FinalMaster
           project={project}
           busy={mutations.setFinalMaster.isPending}
-          onChoose={(path) => mutations.setFinalMaster.mutate({ id: project.id, path })}
+          onChoose={(path) =>
+            mutations.setFinalMaster.mutate(
+              { id: project.id, path },
+              {
+                /*
+                 * Naming a master raises a single in DISCOGRAPHY; clearing one
+                 * withdraws that single again, unless it has been adopted.
+                 *
+                 * Neither was said anywhere on this side. The entry simply
+                 * appeared in another department, to be discovered by going
+                 * there — and clearing the field is one unconfirmed click that
+                 * can delete a catalogue entry the operator never made.
+                 */
+                onSuccess: () => {
+                  if (path === null) {
+                    notify.report('Final master cleared', {
+                      detail:
+                        'Any single raised for this project, and not since edited, has been withdrawn from DISCOGRAPHY.'
+                    })
+                    return
+                  }
+
+                  notify.report('Final master named', {
+                    detail: `${basename(path)} is what ships. A single has been raised in DISCOGRAPHY — adopt it there to edit it.`
+                  })
+                }
+              }
+            )
+          }
         />
       ) : null}
 

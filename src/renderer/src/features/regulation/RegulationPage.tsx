@@ -20,7 +20,9 @@ import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Button } from '@renderer/components/primitives/Button'
 import { Meter } from '@renderer/components/primitives/Meter'
 import { gridVariants } from '@renderer/motion/transitions'
+import { notify } from '@renderer/components/feedback/notify'
 import { formatRate, truncatePath } from '@renderer/lib/format'
+import * as shell from '@renderer/lib/shell'
 import styles from './RegulationPage.module.scss'
 
 /**
@@ -100,9 +102,27 @@ export function RegulationPage(): ReactNode {
     return () => setUnsaved(null)
   }, [draft.dirty, draft.saving, draft.error, draft.save, draft.discard, setUnsaved])
 
+  /*
+   * Resetting asks first, by relabelling itself.
+   *
+   * It had no confirmation of any kind, and it discards every path, every
+   * integration, the accent and the scale in one press. The label swap is the
+   * console's own two-step — the calendar's strike, the release sheet's
+   * removal and the roster's both work this way — and it keeps the question
+   * on the control being answered rather than opening an overlay in front of
+   * the page it is about.
+   */
+  const [confirmingReset, setConfirmingReset] = useState(false)
+
   const resetSettings = useMutation({
     mutationFn: () => window.candy.settings.reset(),
-    onSuccess: setSettings
+    onSuccess: (restored) => {
+      setSettings(restored)
+      setConfirmingReset(false)
+      notify.done('Settings reset', {
+        detail: 'Every category is back to its default. Your projects are untouched.'
+      })
+    }
   })
 
   /*
@@ -118,6 +138,12 @@ export function RegulationPage(): ReactNode {
 
   const exportSettings = useMutation({
     mutationFn: () => window.candy.settings.export(),
+    /*
+     * Kept out of the notice stack, per the note above — this pair reports in
+     * a line that stays until it is read.
+     */
+    meta: { notify: false },
+
     onSuccess: (result) => {
       // A cancelled dialog is not an event worth reporting.
       if (!result.path) return
@@ -128,6 +154,8 @@ export function RegulationPage(): ReactNode {
 
   const importSettings = useMutation({
     mutationFn: () => window.candy.settings.import(),
+    // As above.
+    meta: { notify: false },
     onSuccess: (result) => {
       if (!result) return
       setSettings(result.settings)
@@ -152,17 +180,36 @@ export function RegulationPage(): ReactNode {
     onError: (error: Error) => setTransfer(error.message)
   })
 
+  /*
+   * Four writes that reported nothing at all, in either direction.
+   *
+   * Each is a button that goes quiet and comes back, and each is pressed
+   * because something is already wrong or about to change underneath the
+   * operator — so "it happened" is the whole of what they need to hear, and
+   * the notice stack carries the refusal if it did not.
+   */
   const restartArchive = useMutation({
-    mutationFn: () => window.candy.archive.restart()
+    mutationFn: () => window.candy.archive.restart(),
+    onSuccess: () =>
+      notify.done('Archive restarted', {
+        detail: 'The register is available again.'
+      })
   })
 
   const checkUpdates = useMutation({
     mutationFn: () => window.candy.updates.check(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['runtime'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['runtime'] })
+      // Deliberately not claiming what it found: the update panel beside this
+      // says that, and it is the thing that stays right as the state moves.
+      notify.done('Checked for updates')
+    }
   })
 
   const downloadUpdate = useMutation({
-    mutationFn: () => window.candy.updates.download()
+    mutationFn: () => window.candy.updates.download(),
+    onSuccess: () =>
+      notify.done('Update downloaded', { detail: 'It installs the next time you launch.' })
   })
 
   const installUpdate = useMutation({
@@ -205,9 +252,16 @@ export function RegulationPage(): ReactNode {
               size="sm"
               variant="danger"
               busy={resetSettings.isPending}
-              onClick={() => resetSettings.mutate()}
+              onClick={() => {
+                if (!confirmingReset) {
+                  setConfirmingReset(true)
+                  return
+                }
+                resetSettings.mutate()
+              }}
+              onBlur={() => setConfirmingReset(false)}
             >
-              Reset to defaults
+              {confirmingReset ? 'Reset — certain?' : 'Reset to defaults'}
             </Button>
           </div>
         }
@@ -609,9 +663,7 @@ export function RegulationPage(): ReactNode {
                     Restart archive
                   </Button>
                   {archive.dataPath ? (
-                    <Button
-                      onClick={() => void window.candy.shell.reveal(archive.dataPath as string)}
-                    >
+                    <Button onClick={() => shell.reveal(archive.dataPath as string)}>
                       Reveal data directory
                     </Button>
                   ) : null}
@@ -722,7 +774,7 @@ export function RegulationPage(): ReactNode {
 
                 <div className={styles.actions}>
                   {runtime ? (
-                    <Button onClick={() => void window.candy.shell.reveal(runtime.paths.userData)}>
+                    <Button onClick={() => shell.reveal(runtime.paths.userData)}>
                       Open user data
                     </Button>
                   ) : null}

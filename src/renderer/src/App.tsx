@@ -1,9 +1,10 @@
 import { useCallback, type ReactNode } from 'react'
 import { HashRouter } from 'react-router-dom'
 import { AnimatePresence } from 'motion/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SystemBridge } from '@renderer/app/providers/SystemBridge'
 import { ErrorBoundary } from '@renderer/components/feedback/ErrorBoundary'
+import { notify } from '@renderer/components/feedback/notify'
 import { BootScreen } from '@renderer/features/boot/BootScreen'
 import { AppRouter } from '@renderer/app/router'
 import {
@@ -35,8 +36,29 @@ const POPOUT = readPopoutIntent()
  * Query client tuned for a desktop app talking to a local main process:
  * requests are cheap and never fail from flaky networks, so aggressive
  * refetching would be pure noise.
+ *
+ * The mutation cache is the console's backstop for refusals.
+ *
+ * Every rule in this application lives in the main process, so a mutation
+ * rejecting is how the operator is told they cannot do something — and until
+ * this existed, whether they heard it depended on whether the call site had
+ * remembered to pass an `onError`. Most had not: editing or deleting a
+ * project note, renaming a tag, resetting every setting and restarting the
+ * archive all failed in complete silence.
+ *
+ * Opting out is per mutation, through `meta: { notify: false }`, and is for
+ * exactly one case: a refusal that is *already* surfaced somewhere it has to
+ * stay. A dialog's own error line, a field that holds an address it would not
+ * commit, the seeder's log. Those would otherwise say it twice, which is the
+ * duplication this whole change exists to remove.
  */
 const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      if (mutation.meta?.notify === false) return
+      notify.refuse(error)
+    }
+  }),
   defaultOptions: {
     queries: {
       retry: 1,

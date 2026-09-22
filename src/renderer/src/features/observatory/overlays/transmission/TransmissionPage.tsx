@@ -126,12 +126,6 @@ export function TransmissionPage(): ReactNode {
    */
   const [label, setLabel] = useEchoedText(config.label, (value) => set({ label: value }))
 
-  const failure = runner.error ?? actions.error
-  const dismiss = (): void => {
-    runner.dismiss()
-    actions.dismissError()
-  }
-
   return (
     <div className={styles.page}>
       <PageHeader
@@ -153,18 +147,6 @@ export function TransmissionPage(): ReactNode {
           </div>
         }
       />
-
-      {failure || runner.report ? (
-        <div
-          className={failure ? styles.notice : styles.report}
-          role={failure ? 'alert' : 'status'}
-        >
-          <span>{failure ?? runner.report}</span>
-          <button type="button" className={styles.dismiss} onClick={dismiss}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
 
       <motion.div
         className={styles.grid}

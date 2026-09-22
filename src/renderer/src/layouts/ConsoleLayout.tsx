@@ -6,6 +6,7 @@ import { TimerCues } from '@renderer/app/providers/TimerCues'
 import { ConcordCues } from '@renderer/app/providers/ConcordCues'
 import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
 import { ReleaseNotice } from '@renderer/components/feedback/ReleaseNotice'
+import { Toaster } from '@renderer/components/feedback/Toaster'
 import { OrientationGate } from '@renderer/components/guide/OrientationGate'
 import { GuideCarousel } from '@renderer/components/guide/GuideCarousel'
 import { getGuide } from '@renderer/features/catechism/content'
@@ -327,6 +328,15 @@ export function ConsoleLayout(): ReactNode {
         whichever department is on screen, so it belongs under the rail as well.
       */}
       <MiniPlayer />
+
+      {/*
+        The notice stack, a sibling for the same reason as the two above: it is
+        fixed to the window, and the page wrapper's transform would otherwise
+        anchor it to the page. It sits above the chrome so a notice is never
+        behind the transport it may be reporting on, and below the boot layer,
+        which is a full takeover.
+      */}
+      <Toaster />
 
       {/*
         The console's own pointer, last because it draws over everything.

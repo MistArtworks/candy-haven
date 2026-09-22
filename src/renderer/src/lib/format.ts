@@ -1,5 +1,17 @@
 /** Presentation helpers. Pure functions — no React, no IPC. */
 
+/**
+ * A count and the thing it counts, e.g. `3 projects`, `1 release`.
+ *
+ * Written once because the notice stack reaches for it from four departments,
+ * and a refusal reading `1 projects` undercuts the register it came from.
+ * Irregular plurals take the third argument; nothing in this console needs one
+ * yet, and `entries` would the moment something counts an entry.
+ */
+export function plural(count: number, singular: string, many = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : many}`
+}
+
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const
 
 /** Human-readable byte size, e.g. `805.7 MB`. */

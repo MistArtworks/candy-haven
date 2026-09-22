@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { notify } from '@renderer/components/feedback/notify'
 import type {
   NowPlayingConfigPatch,
   NowPlayingSourceDraft,
@@ -95,7 +96,6 @@ export interface NowPlayingActions {
   unlink(): Promise<void>
   pending: string | null
   error: string | null
-  dismissError(): void
 }
 
 export function useNowPlayingActions(): NowPlayingActions {
@@ -109,6 +109,10 @@ export function useNowPlayingActions(): NowPlayingActions {
       setError(null)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
+      // The overlay pages stopped drawing this when their notice bars went;
+      // the state is kept because the console reads it for a disabled reason,
+      // and the operator is told through the notice stack.
+      notify.refuse(cause)
     } finally {
       setPending((current) => (current === key ? null : current))
     }
@@ -127,8 +131,7 @@ export function useNowPlayingActions(): NowPlayingActions {
       link: () => run('link', () => window.candy.nowPlaying.link()),
       unlink: () => run('unlink', () => window.candy.nowPlaying.unlink()),
       pending,
-      error,
-      dismissError: () => setError(null)
+      error
     }),
     [run, pending, error]
   )

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { notify } from '@renderer/components/feedback/notify'
 import type { ConcordConfigPatch, ConcordState } from '@shared/domain/concord'
 import { createEmptyConcordState } from '@shared/domain/concord.constants'
 import type { ChatStatus } from '@shared/domain/chat'
@@ -107,7 +108,6 @@ export interface ConcordActions {
   pending: string | null
   /** Last failure, for the page's notice line. Cleared on the next success. */
   error: string | null
-  dismissError(): void
 }
 
 /**
@@ -130,6 +130,10 @@ export function useConcordActions(): ConcordActions {
       setError(null)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
+      // The overlay pages stopped drawing this when their notice bars went;
+      // the state is kept because the console reads it for a disabled reason,
+      // and the operator is told through the notice stack.
+      notify.refuse(cause)
     } finally {
       setPending((current) => (current === key ? null : current))
     }
@@ -150,8 +154,7 @@ export function useConcordActions(): ConcordActions {
       simulate: (count, changeVotes) =>
         run('simulate', () => window.candy.concord.simulate(count, changeVotes)),
       pending,
-      error,
-      dismissError: () => setError(null)
+      error
     }),
     [run, pending, error]
   )

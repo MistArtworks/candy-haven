@@ -9,6 +9,7 @@ import {
 import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
 import styles from './LinkEditor.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 export interface LinkEditorProps {
   links: readonly ArtistLink[]
@@ -109,7 +110,7 @@ export function LinkEditor({ links, onChange, max, disabled = false }: LinkEdito
                   size="sm"
                   variant="ghost"
                   disabled={disabled}
-                  onClick={() => void window.candy.shell.openExternal(link.url)}
+                  onClick={() => shell.openExternal(link.url)}
                 >
                   Open
                 </Button>

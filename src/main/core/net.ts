@@ -158,11 +158,87 @@ export async function pool<T, R>(
 }
 
 /**
+ * A ceiling measured the way a rolling-window service measures it.
+ *
+ * `paced` below divides a minute into even gaps, which is right for a service
+ * that publishes "twenty a minute" and wrong for one that counts calls in a
+ * *trailing* window: an evenly paced minute still permits its whole allowance
+ * inside any given thirty seconds, which is exactly what such a service
+ * refuses. Spotify is one of these — its limit is "calls in a rolling 30s
+ * window" — and the seeder was hitting it with `pool(…, 5)`, no pacing at all,
+ * so a 140-call harvest went out as one burst inside a single window.
+ *
+ * Admission is serialised so concurrent callers cannot all read the same stale
+ * count and go through together; the *work* is not, so a pool above this still
+ * overlaps its I/O. The limiter governs the rate, the pool governs how many
+ * sockets are open, and those are different questions.
+ */
+export interface Limiter {
+  /** Waits until a call may honestly be made, then makes it. */
+  run<T>(work: () => Promise<T>): Promise<T>
+  /** Halves the ceiling. For when the service has said no anyway. */
+  tighten(reason?: string): void
+  readonly ceiling: number
+  readonly windowMs: number
+}
+
+export function slidingWindow(ceiling: number, windowMs = 30_000): Limiter {
+  /** When each admitted call went out. Trimmed as it leaves the window. */
+  const taken: number[] = []
+  let allowed = Math.max(1, ceiling)
+  let queue: Promise<unknown> = Promise.resolve()
+
+  async function admit(): Promise<void> {
+    for (;;) {
+      const now = Date.now()
+      while (taken.length > 0 && now - taken[0] >= windowMs) taken.shift()
+
+      if (taken.length < allowed) {
+        taken.push(now)
+        return
+      }
+
+      // The oldest call in the window is the one whose expiry frees a slot,
+      // so that is exactly how long there is to wait. Re-checked afterwards
+      // rather than assumed, because the ceiling can narrow mid-wait.
+      await sleep(windowMs - (now - taken[0]) + 1)
+    }
+  }
+
+  return {
+    get ceiling() {
+      return allowed
+    },
+    windowMs,
+
+    tighten(reason = 'a refusal') {
+      const next = Math.max(1, Math.floor(allowed / 2))
+      if (next === allowed) return
+      logger.warn(
+        `Rate ceiling narrowed ${allowed} → ${next} per ${Math.round(windowMs / 1000)}s after ${reason}`
+      )
+      allowed = next
+    },
+
+    async run<T>(work: () => Promise<T>): Promise<T> {
+      const turn = queue.then(admit)
+      // One admission failing must not poison the queue for everyone behind it.
+      queue = turn.catch(() => undefined)
+      await turn
+      return work()
+    }
+  }
+}
+
+/**
  * Paces a sequence of calls to a stated ceiling, in calls per minute.
  *
  * Sequential by definition — a ceiling and a pool are different instruments,
  * and a service that publishes "twenty a minute" means twenty, not twenty at
  * once.
+ *
+ * For a service that counts a *rolling* window rather than a flat rate, reach
+ * for `slidingWindow` above instead.
  */
 export async function paced<T, R>(
   items: readonly T[],

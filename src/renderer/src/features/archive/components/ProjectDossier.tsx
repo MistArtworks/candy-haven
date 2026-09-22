@@ -13,6 +13,7 @@ import { DossierFiles } from './dossier/DossierFiles'
 import { formatKey, formatLength, formatTempo } from '../lib/present'
 import styles from './ProjectDossier.module.scss'
 import { Skeleton, SkeletonRegion, SkeletonText } from '@renderer/components/primitives/Skeleton'
+import * as shell from '@renderer/lib/shell'
 
 /**
  * Three tabs — and OVERVIEW is deliberately the thinnest of them.
@@ -100,7 +101,6 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
   )
 
   const [tab, setTab] = useState<DossierTab>('overview')
-  const [dismissed, setDismissed] = useState<string | null>(null)
 
   /*
    * Opening the project, two ways.
@@ -123,7 +123,7 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
   const open = useMemo(
     () => ({
       folder: () => {
-        if (project) void window.candy.shell.openPath(project.path)
+        if (project) shell.openPath(project.path)
       },
       ableton: () => void window.candy.projects.open(projectId),
       missing: project?.missing ?? true,
@@ -142,37 +142,18 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
   }, [onClose])
 
   /*
-   * A rejected edit is the interesting case here — the stage gates deliberately
-   * refuse incomplete releases — so the reason is surfaced rather than
-   * swallowed. Derived during render rather than copied into state by an
-   * effect: the mutations already hold the error, and duplicating it would mean
-   * a second render pass every time one failed.
+   * Refusals from this sheet go to the console's notice stack.
+   *
+   * This used to be a bar drawn here, fed by a list of six mutation errors
+   * derived during render, with dismissal remembered by message text so a
+   * repeat of the same refusal stayed hidden. Two of the dossier's own
+   * mutations were missing from that list — editing and deleting a note — and
+   * failed in complete silence as a result.
+   *
+   * Nothing derives it now: the mutation cache reports every one of them,
+   * including the two that were missing, and a refusal is held until it is
+   * dismissed rather than until the same words come round again.
    */
-  const failure = [
-    mutations.patch.error,
-    mutations.addNote.error,
-    // Naming the final master can be refused — a path that is not one of the
-    // project's bounces, or an attempt to clear it while the project is
-    // RELEASED — and the panel itself draws no error, so this is the only
-    // place either refusal could surface.
-    mutations.setFinalMaster.error,
-    // A tag name already taken is refused by the service, and this notice bar
-    // is the only place in the dossier that can say so.
-    tagMutations.create.error,
-    tagMutations.update.error,
-    tagMutations.remove.error
-  ].find((value): value is Error => value instanceof Error) as
-    (Error & { hint?: string | null }) | undefined
-
-  const failureText = failure
-    ? failure.hint
-      ? `${failure.message} ${failure.hint}`
-      : failure.message
-    : null
-
-  // Dismissal is remembered by message, so a repeat of the same refusal stays
-  // hidden while a different one still surfaces.
-  const notice = failureText && failureText !== dismissed ? failureText : null
 
   const readiness = project ? evaluateReadiness(project) : []
 
@@ -201,7 +182,8 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
   const analysis = primary?.analysis ?? null
 
   const setStage = (stage: ProjectStage): void => {
-    setDismissed(failureText)
+    // It used to clear the dismissal first, so a stage refused twice said so
+    // twice. The notice stack keys a repeat onto the notice already up.
     mutations.patch.mutate({ id: projectId, patch: { stage } })
   }
 
@@ -367,19 +349,6 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                   ) : null}
                 </div>
               </header>
-
-              {notice ? (
-                <div className={styles.notice} role="alert">
-                  <p className={styles.noticeText}>{notice}</p>
-                  <button
-                    type="button"
-                    className={styles.noticeClose}
-                    onClick={() => setDismissed(notice)}
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              ) : null}
 
               <nav className={styles.tabs} aria-label="Record sections">
                 {TABS.map((entry) => (

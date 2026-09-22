@@ -30,11 +30,11 @@ import { useArtistCredits } from '@renderer/hooks/useArtists'
 import { SwatchPicker } from '@renderer/features/archive/components/stacks/SwatchPicker'
 import { LinkEditor } from './LinkEditor'
 import styles from '../ArtistsPage.module.scss'
+import * as shell from '@renderer/lib/shell'
 
 export interface ArtistSheetProps {
   artist: ArtistSummary
   busy: boolean
-  error: string | null
   onPatch: (patch: ArtistPatch) => void
   onSetPicture: (sourcePath: string | null) => void
   onRemove: () => void
@@ -79,7 +79,6 @@ type Mode = 'read' | 'edit'
 export function ArtistSheet({
   artist,
   busy,
-  error,
   onPatch,
   onSetPicture,
   onRemove,
@@ -230,12 +229,6 @@ export function ArtistSheet({
                 </Button>
               </div>
             )
-          ) : null}
-
-          {error ? (
-            <p className={styles.sheetError} role="alert">
-              {error}
-            </p>
           ) : null}
 
           {mode === 'read' ? (
@@ -478,7 +471,7 @@ function ReadBody({ artist, credits, loading }: ReadBodyProps): ReactNode {
                 <button
                   type="button"
                   className={styles.linkRow}
-                  onClick={() => void window.candy.shell.openExternal(link.url)}
+                  onClick={() => shell.openExternal(link.url)}
                 >
                   <span className={styles.linkPlatform}>
                     {link.label || SOCIAL_PLATFORM_LABEL[link.platform]}
