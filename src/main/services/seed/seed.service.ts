@@ -33,6 +33,7 @@
 import type {
   SeedChoice,
   SeedCredentials,
+  SeedEnvImport,
   SeedJournal,
   SeedLogBatch,
   SeedLogEntry,
@@ -53,6 +54,7 @@ import type { DiscographyService } from '@main/services/discography/discography.
 import { adjudicate, type Verdict } from './adjudicate'
 import { applyPlan } from './apply'
 import { clearJournal, readJournal, undoJournal, writeJournal } from './journal'
+import { readEnvFile } from './env-file'
 import { buildPlan } from './plan'
 import { reporterFor, type SeedReporter } from './reporter'
 import { harvestSoundcloud, type SoundcloudHarvest } from './sources/soundcloud'
@@ -218,6 +220,18 @@ export class SeedService extends TypedEmitter<SeedEvents> {
         recoverable: true
       })
     }
+  }
+
+  /**
+   * Read an environment file into the credential form.
+   *
+   * The path is supplied by an OS dialog opened in the main process, never
+   * by the renderer — see `env-file.ts`. Nothing is retained here: the
+   * values go back to the form, and `run` receives them the same way it
+   * receives typed ones.
+   */
+  async loadEnv(path: string): Promise<SeedEnvImport> {
+    return readEnvFile(path)
   }
 
   // ---------------------------------------------------------------- harvest

@@ -285,6 +285,30 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
    * them one way. Nothing here returns one.
    */
   router.handle('seed:state', () => services.seed.getState())
+  router.handle('seed:load-env', async () => {
+    const window = windows.mainWindow
+    const options = {
+      title: 'Choose the seeder environment file',
+      properties: ['openFile'] as string[],
+      filters: [
+        { name: 'Environment files', extensions: ['seed', 'env', 'txt', 'local'] },
+        { name: 'All files', extensions: ['*'] }
+      ]
+    }
+
+    // `showOpenDialog` hides dotfiles behind the platform's own toggle, and
+    // `.env.seed` is a dotfile — so the dialog is told to show them rather
+    // than leaving the operator unable to find the file they came for.
+    options.properties.push('showHiddenFiles')
+
+    const result = window
+      ? await dialog.showOpenDialog(window, { ...options, properties: options.properties as never })
+      : await dialog.showOpenDialog({ ...options, properties: options.properties as never })
+
+    if (result.canceled) return null
+    const path = result.filePaths[0]
+    return path ? services.seed.loadEnv(path) : null
+  })
   router.handle('seed:run', (credentials) => services.seed.run(credentials))
   router.handle('seed:decide', ({ key, choice }) => services.seed.decide(key, choice))
   router.handle('seed:include', ({ key, include }) => services.seed.setIncluded(key, include))

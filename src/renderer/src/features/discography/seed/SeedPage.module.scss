@@ -58,6 +58,47 @@
 // ------------------------------------------------------------- credentials
 
 /*
+ * The env-file shortcut, above the fields rather than beside them.
+ *
+ * It is the first thing to do here and it replaces every field below, so it
+ * reads as a heading to the form rather than as one more control inside it.
+ */
+.importRow {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+  flex-wrap: wrap;
+  margin-bottom: space(6);
+  padding-bottom: space(5);
+  @include hairline(bottom, 0.08);
+}
+
+.importNote {
+  margin: 0;
+  flex: 1;
+  min-width: 260px;
+  font-size: rem(12);
+  line-height: 1.55;
+  color: var(--ch-text-muted);
+
+  strong {
+    font-family: var(--ch-font-mono);
+    font-size: rem(11);
+    color: var(--ch-gold-300);
+    font-weight: 400;
+  }
+}
+
+.importError {
+  margin: 0 0 space(5);
+  padding: space(2) space(3);
+  font-size: rem(12);
+  color: var(--ch-crimson-400);
+  background: var(--ch-crimson-900);
+  border-left: 2px solid var(--ch-crimson-500);
+}
+
+/*
  * Four groups, two across.
  *
  * Grouped by *service* rather than by required-ness, because the operator is

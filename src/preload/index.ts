@@ -196,6 +196,7 @@ const api: CandyHavenApi = {
   /* THE SEEDER · temporary. Delete this block with the feature. */
   seed: {
     state: () => invoke('seed:state'),
+    loadEnv: () => invoke('seed:load-env'),
     run: (credentials) => invoke('seed:run', credentials),
     decide: (key, choice) => invoke('seed:decide', { key, choice }),
     include: (key, include) => invoke('seed:include', { key, include }),

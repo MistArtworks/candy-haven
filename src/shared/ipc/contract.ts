@@ -93,6 +93,7 @@ import {
 import {
   SeedChoiceSchema,
   SeedCredentialsSchema,
+  SeedEnvImportSchema,
   SeedLogBatchSchema,
   SeedOutcomeSchema,
   SeedPlanSchema,
@@ -537,6 +538,15 @@ export const IPC_INVOKE = {
    * ------------------------------------------------------------------------
    */
   'seed:state': { input: z.void(), output: SeedStateSchema },
+  /**
+   * Fills the credential form from an env file the operator picks.
+   *
+   * **Takes no input.** The file dialog is opened in the main process and
+   * only the path it returns is read, because a channel accepting a path
+   * from the renderer would be a "read any file and parse it into key/value
+   * pairs" endpoint. Null when the dialog is cancelled.
+   */
+  'seed:load-env': { input: z.void(), output: SeedEnvImportSchema.nullable() },
   /** Harvests all six sources and proposes a plan. Writes nothing. */
   'seed:run': { input: SeedCredentialsSchema, output: SeedPlanSchema },
   /** Overrules one flagged call. Returns the whole plan, rebuilt. */

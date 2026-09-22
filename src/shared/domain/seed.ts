@@ -75,6 +75,28 @@ export const SeedCredentialsSchema = z.object({
 })
 export type SeedCredentials = z.infer<typeof SeedCredentialsSchema>
 
+/**
+ * What reading an environment file filled in.
+ *
+ * Reported rather than applied silently: a key spelled `SPOTIFY_SECRET`
+ * instead of `SPOTIFY_CLIENT_SECRET` is otherwise an empty field the
+ * operator does not notice until the harvest refuses, and a track list the
+ * file names but that is not there is otherwise a SoundCloud rung that
+ * quietly contributes nothing.
+ */
+export const SeedEnvImportSchema = z.object({
+  fileName: z.string().default(''),
+  credentials: SeedCredentialsSchema,
+  /** Variable names the file supplied and this recognised. */
+  filled: z.array(z.string()).default([]),
+  /** Variable names it carried that mean nothing here. Blanks are not listed. */
+  ignored: z.array(z.string()).default([]),
+  /** The track list it followed, or why it could not. */
+  soundcloudFrom: z.string().default(''),
+  soundcloudCount: z.number().int().min(0).default(0)
+})
+export type SeedEnvImport = z.infer<typeof SeedEnvImportSchema>
+
 // ---------------------------------------------------------------- progress
 
 export const SEED_PHASES = [

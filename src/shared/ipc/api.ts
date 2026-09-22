@@ -70,6 +70,7 @@ import type {
 import type {
   SeedChoice,
   SeedCredentials,
+  SeedEnvImport,
   SeedLogBatch,
   SeedOutcome,
   SeedPlan,
@@ -326,11 +327,21 @@ export interface CandyHavenApi {
    * nothing; `decide` and `include` rebuild the proposal from the cached
    * harvest so the confirm screen always shows what `apply` would do.
    *
-   * Credentials travel **inbound only** — no method here returns one, and
-   * `SeedState` has no field that could carry one.
+   * Credentials are **write-only across this bridge with one exception**:
+   * `SeedState` has no field that could carry one back, and no other method
+   * returns one. The exception is `loadEnv`, which returns what the
+   * operator's own file on their own disk contains so the form can show it
+   * — the same values they would otherwise have typed into it.
    */
   readonly seed: {
     state(): Promise<SeedState>
+    /**
+     * Fills the form from an env file, chosen in a dialog opened by main.
+     *
+     * Null when the operator cancels. Follows `SOUNDCLOUD_TRACK_LIST` and
+     * reads the links it names, which is the part that cannot be typed.
+     */
+    loadEnv(): Promise<SeedEnvImport | null>
     run(credentials: SeedCredentials): Promise<SeedPlan>
     decide(key: string, choice: SeedChoice): Promise<SeedPlan>
     include(key: string, include: boolean): Promise<SeedPlan>

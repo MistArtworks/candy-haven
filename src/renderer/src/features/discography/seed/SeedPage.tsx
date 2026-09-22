@@ -5,6 +5,7 @@ import type {
   SeedChoice,
   SeedCredentials,
   SeedDecision,
+  SeedEnvImport,
   SeedRecord
 } from '@shared/domain/seed'
 import { SEED_CHOICES, SEED_CHOICE_LABEL, SEED_PHASE_LABEL } from '@shared/domain/seed'
@@ -91,9 +92,36 @@ export function SeedPage(): ReactNode {
   const [form, setForm] = useState<SeedCredentials>(EMPTY)
   const [confirming, setConfirming] = useState(false)
   const [undoing, setUndoing] = useState(false)
+  /** What the last env file filled in, so the form can account for itself. */
+  const [imported, setImported] = useState<SeedEnvImport | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState('')
 
   const set = <K extends keyof SeedCredentials>(key: K, value: SeedCredentials[K]): void =>
     setForm((current) => ({ ...current, [key]: value }))
+
+  /*
+   * Load an env file into the form.
+   *
+   * Replaces the form wholesale rather than merging into it. A half-loaded
+   * form — three fields from the file and two left over from a previous
+   * paste — is the one state nobody could reason about, and the operator
+   * can still edit any field afterwards.
+   */
+  const loadEnv = async (): Promise<void> => {
+    setImportError('')
+    setImporting(true)
+    try {
+      const result = await window.candy.seed.loadEnv()
+      if (!result) return
+      setForm(result.credentials)
+      setImported(result)
+    } catch (caught) {
+      setImportError(caught instanceof Error ? caught.message : String(caught))
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const { plan, outcome, journal, undone, log, showLog, progress, working } = seed
 
@@ -214,6 +242,38 @@ export function SeedPage(): ReactNode {
             These are read once, kept in memory while the harvest runs, and forgotten when the
             window closes. They are never saved to settings and never written to disk.
           </p>
+
+          <div className={styles.importRow}>
+            <Button variant="ghost" onClick={() => void loadEnv()} busy={importing} disabled={running}>
+              Load from a file
+            </Button>
+            <p className={styles.importNote}>
+              {imported ? (
+                <>
+                  <strong>{imported.fileName}</strong> filled {imported.filled.length}{' '}
+                  {imported.filled.length === 1 ? 'field' : 'fields'}
+                  {imported.soundcloudCount > 0
+                    ? ` and ${imported.soundcloudCount} SoundCloud links from ${imported.soundcloudFrom}`
+                    : ''}
+                  .
+                  {imported.ignored.length > 0
+                    ? ` Ignored ${imported.ignored.length}: ${imported.ignored.join(', ')}.`
+                    : ''}
+                  {imported.soundcloudCount === 0 && imported.soundcloudFrom
+                    ? ` No SoundCloud links — ${imported.soundcloudFrom}.`
+                    : ''}
+                </>
+              ) : (
+                'Takes a .env file and fills everything below, including the SoundCloud links it points at.'
+              )}
+            </p>
+          </div>
+
+          {importError ? (
+            <p className={styles.importError} role="alert">
+              {importError}
+            </p>
+          ) : null}
 
           <div className={styles.formGrid}>
             <div className={styles.group}>

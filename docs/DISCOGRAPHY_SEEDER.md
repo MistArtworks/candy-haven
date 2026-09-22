@@ -222,6 +222,22 @@ The seeder runs **on his machine, inside Candy Haven**, at
 — and it is deliberately not on the command rail, because a department you
 delete next week should not look like one of the ten.
 
+0. **Or load them from a file.** `Load from a file` opens a dialog, reads a
+   `.env`, and fills the whole form — including the SoundCloud links, by
+   following `SOUNDCLOUD_TRACK_LIST` relative to the env file. It maps the
+   same variable names the terminal scripts used, so an existing
+   `.env.seed` works unchanged. It reports what it did — *"9 fields, 19
+   SoundCloud links, ignored JEV_MODEL, REMIX_BILLING"* — because a
+   mistyped variable name is otherwise an empty field nobody notices until
+   the harvest refuses.
+
+   **The path never comes from the renderer.** The dialog is opened in the
+   main process and only its result is read; a channel taking a path from
+   the renderer would be a "read any file and parse it into key/value
+   pairs" endpoint. The values *do* reach the form, which is the point —
+   they are the same ones the operator would have typed, the secret fields
+   are masked, and nothing is written to settings.
+
 1. **Paste the credentials.** Four groups, one per browser tab. Only Spotify
    is required; every other source degrades on its own and says so on the
    proposal. They are held in the main process for the run, never written to
