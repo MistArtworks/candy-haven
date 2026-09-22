@@ -457,7 +457,7 @@ That exposed a refusal in DISCOGRAPHY itself rather than in the seeder:
 so a projectless track could not name a master at all. Since `publish`
 skips a track with no master, the field was unreachable for exactly the
 records that most needed it. A track with no project can now name the file
-directly — `NAME THE FILE` beside `LINK A PROJECT` in the running order —
+directly — `LINK A MASTER` beside `LINK A PROJECT` in the running order —
 and the guards that remain are the ones that matter: it has to be an audio
 format and it has to be there. Nothing is copied or moved, exactly as a
 project's bounce is referenced where it sits.

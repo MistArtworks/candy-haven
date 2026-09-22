@@ -334,7 +334,7 @@ export function TrackList({
                       </a>
                     ) : (
                       <span className={styles.noMaster}>
-                        {project ? 'No master chosen' : 'No master chosen — name the file'}
+                        No master chosen
                       </span>
                     )}
                   </div>
@@ -418,7 +418,13 @@ export function TrackList({
                     mechanism and wrong about the catalogue: a record from
                     2018 has no project and never will, so the absence left
                     it permanently unable to say what shipped. The file is
-                    named directly instead.
+                    chosen from disk instead.
+
+                    Both read as `LINK A …`, deliberately. The operator
+                    asked for that, and they were right: a row points at two
+                    things, and which mechanism finds the second one is this
+                    component's problem rather than something the label
+                    should be teaching.
                   */}
                   {track.projectId ? (
                     <Button
@@ -427,7 +433,7 @@ export function TrackList({
                       disabled={busy}
                       onClick={() => setMastering(mastering === track.id ? null : track.id)}
                     >
-                      {track.master ? 'Change master' : 'Pick master'}
+                      {track.master ? 'Change master' : 'Link a master'}
                     </Button>
                   ) : (
                     <Button
@@ -436,7 +442,7 @@ export function TrackList({
                       disabled={busy}
                       onClick={() => void browseForMaster(track.id)}
                     >
-                      {track.master ? 'Change file' : 'Name the file'}
+                      {track.master ? 'Change master' : 'Link a master'}
                     </Button>
                   )}
 
