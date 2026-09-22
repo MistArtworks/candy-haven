@@ -1755,3 +1755,16 @@
     @include focus-ring;
   }
 }
+
+/*
+ * Why a card is in the results when its own title does not say so.
+ *
+ * Only drawn while searching, and only when the match came from the running
+ * order — a search for a song has to explain the record it returns.
+ */
+.matched {
+  @include label(9px, 0.12em);
+  color: var(--ch-gold-300);
+  text-transform: none;
+  @include truncate;
+}

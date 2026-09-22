@@ -1406,6 +1406,7 @@ export class DiscographyService {
       ...rest,
       trackCount: tracks.length,
       linkedCount: tracks.filter((track) => track.projectId !== null).length,
+      trackTitles: tracks.map((track) => track.title).filter(Boolean),
       artistNames: names,
       year: releaseYear(release.releaseDate),
       appearsOn: [...(collectedBy.get(release.id) ?? [])]

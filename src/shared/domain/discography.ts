@@ -337,6 +337,16 @@ export const DiscographySummarySchema = DiscographyReleaseSchema.omit({ tracks: 
   trackCount: z.number().int().min(0).default(0),
   /** Tracks with a project behind them. `trackCount` minus this is the gap. */
   linkedCount: z.number().int().min(0).default(0),
+  /**
+   * The running order's titles, in order, for the catalogue to search.
+   *
+   * The summary omits the tracklist so a hundred records do not drag a
+   * hundred tracklists across the boundary to draw a grid of covers — but
+   * omitting the *titles* meant a search for a song found nothing at all,
+   * and the operator's own question was "why can't I find these?". A
+   * title is a short string; the tracklist it came from is not.
+   */
+  trackTitles: z.array(z.string()).default([]),
   /** Resolved names, so the catalogue draws credits without a second fetch. */
   artistNames: z.array(z.string()).default([]),
   year: z.number().int().nullable().default(null),

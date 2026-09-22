@@ -121,10 +121,22 @@ export function DiscographyPage(): ReactNode {
       if (labelFilter && release.label !== labelFilter) return false
       if (!needle) return true
 
-      // The label and the credited names are searched alongside the title:
-      // "everything on Monstercat" and "everything with Nasko" are the two
-      // questions a discography gets asked that a title search cannot answer.
-      return [release.title, release.subtitle, release.label, ...release.artistNames]
+      /*
+       * Title, subtitle, label, credited names — and the running order.
+       *
+       * "everything on Monstercat" and "everything with Nasko" are the two
+       * questions a title search cannot answer. The third is "where is
+       * Menace", and it is the one that used to return nothing: a track on
+       * an EP is not a record and so was not searchable, which made four
+       * of his own recordings unreachable from this page by name.
+       */
+      return [
+        release.title,
+        release.subtitle,
+        release.label,
+        ...release.artistNames,
+        ...release.trackTitles
+      ]
         .join(' ')
         .toLowerCase()
         .includes(needle)
@@ -286,7 +298,7 @@ export function DiscographyPage(): ReactNode {
                   className={styles.search}
                   value={search}
                   aria-label="Search the catalogue"
-                  placeholder="Search by title, label or artist"
+                  placeholder="Search by title, track, label or artist"
                   onChange={(event) => setSearch(event.target.value)}
                 />
                 {search ? (
@@ -388,6 +400,7 @@ export function DiscographyPage(): ReactNode {
                   key={release.id}
                   release={release}
                   index={index}
+                  needle={search.trim().toLowerCase()}
                   onOpen={() => setOpenId(release.id)}
                 />
               ))
@@ -523,6 +536,8 @@ export function DiscographyPage(): ReactNode {
 interface ReleaseCardProps {
   release: DiscographySummary
   index: number
+  /** The active search, lowercased. Empty when nothing is being searched. */
+  needle: string
   onOpen: () => void
 }
 
@@ -542,8 +557,22 @@ interface ReleaseCardProps {
  * status on the right — and the object it describes gets to look like a
  * record sleeve.
  */
-function ReleaseCard({ release, index, onOpen }: ReleaseCardProps): ReactNode {
+function ReleaseCard({ release, index, needle, onOpen }: ReleaseCardProps): ReactNode {
   const gap = release.trackCount - release.linkedCount
+
+  /*
+   * Why this card is in the results, when the title does not say.
+   *
+   * A search for "Menace" returns the 4x4 EP, which is correct and looks
+   * like a mistake: nothing drawn on the card carries the word. Naming the
+   * track that matched puts the answer on the card rather than one click
+   * inside it. Only shown when the title itself did not match, because
+   * saying "on FLOAT" under a card titled FLOAT is noise.
+   */
+  const matched =
+    needle && !release.title.toLowerCase().includes(needle)
+      ? release.trackTitles.find((title) => title.toLowerCase().includes(needle))
+      : undefined
 
   /*
    * Kind, date and length on one line, in that order.
@@ -595,6 +624,8 @@ function ReleaseCard({ release, index, onOpen }: ReleaseCardProps): ReactNode {
 
         <span className={styles.caption}>
           <span className={styles.cardTitle}>{release.title}</span>
+
+          {matched ? <span className={styles.matched}>holds “{matched}”</span> : null}
 
           {release.subtitle ? <span className={styles.subtitle}>{release.subtitle}</span> : null}
 
