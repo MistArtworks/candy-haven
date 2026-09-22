@@ -279,6 +279,7 @@ export async function applyPlan({
       label: record.label,
       phonographicLine: record.phonographicLine,
       copyrightLine: record.copyrightLine,
+      notes: record.notes,
       distribution: rows
     })
     outcome.linksAdded += addedIds.length
@@ -363,6 +364,7 @@ export async function applyPlan({
     if (!release.label && record.label) filledFields.push('label')
     if (!release.phonographicLine && record.phonographicLine) filledFields.push('phonographicLine')
     if (!release.copyrightLine && record.copyrightLine) filledFields.push('copyrightLine')
+    if (!release.notes && record.notes) filledFields.push('notes')
     if (!release.releaseDate && record.releaseDate) filledFields.push('releaseDate')
 
     const { rows, addedIds, filledIds } = mergedDistribution(release.distribution, record)
@@ -371,6 +373,8 @@ export async function applyPlan({
       label: release.label || record.label,
       phonographicLine: release.phonographicLine || record.phonographicLine,
       copyrightLine: release.copyrightLine || record.copyrightLine,
+      // Never over-written: a note the operator typed outranks ours.
+      notes: release.notes || record.notes,
       releaseDate: release.releaseDate ?? record.releaseDate,
       // Promoted to released, never demoted: the harvest only ever sees
       // records that are actually out.

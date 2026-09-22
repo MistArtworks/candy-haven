@@ -254,6 +254,14 @@ export const SeedRecordSchema = z.object({
   distribution: z.array(SeedPlatformSchema).default([]),
   tracks: z.array(SeedTrackSchema).default([]),
   match: SeedMatchSchema.prefault({}),
+  /**
+   * Written onto the record itself, so the catalogue keeps saying it.
+   *
+   * Distinct from `note` below, which explains what the *plan* decided and
+   * is read once on the review screen. This is a fact about the release
+   * that outlives the seeder — chiefly that it belongs to somebody else.
+   */
+  notes: z.string().default(''),
   /** Cleared by the operator in review. An excluded record is never written. */
   include: z.boolean().default(true),
   /** Why the kind was proposed, when it was not simply read off the source. */

@@ -729,7 +729,7 @@ function RecordCard({
               <span className={`${styles.chip} ${styles.chipGold}`}>NOT ON THE STORES</span>
             ) : null}
             {record.origin === 'compilation' ? (
-              <span className={`${styles.chip} ${styles.chipGold}`}>APPEARS ON</span>
+              <span className={`${styles.chip} ${styles.chipGold}`}>EXTERNAL — NOT HIS</span>
             ) : null}
             {record.releaseDate ? <span>{formatIsoDate(record.releaseDate)}</span> : null}
             {record.upc ? <span className={styles.mono}>UPC {record.upc}</span> : null}

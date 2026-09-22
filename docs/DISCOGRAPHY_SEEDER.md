@@ -329,8 +329,20 @@ The catalogue on his machine is not empty and must not be trampled.
 - Artists met along the way are resolved against the roster by name and
   created only when missing; the service already returns an existing record on
   a name collision, which is the behaviour a seeder wants.
-- Compilations he is one track of seed **his track only** — not the other
-  twenty-four, and not their artists.
+- Somebody else's record seeds **his track only** — not the other
+  twenty-four, and not their artists. It is filed as what it actually is
+  (a six-track remix EP is an EP, not a compilation), **billed to whoever
+  released it** rather than to the people on his track, and carries a note
+  on the record saying it is external and which track is his. His own
+  credit is not lost by that billing: it sits on the track row, and
+  `creditsForArtist` reports a track credit as a track credit — the
+  truthful shape for a guest appearance.
+- `Various Artists` is dropped rather than added to the roster. It is not a
+  person, and the roster is who the practice actually works with.
+- **Tracks on a record do not become records.** `4x4` is one EP with four
+  track rows, not an EP plus four singles — those four recordings were
+  never released on their own, and minting them would invent four products
+  that do not exist. Decision confirmed by the operator, 21 Sep 2026.
 - A remix of somebody else's song is billed to the original artist with Candy
   Heist credited as remixer: the store already bills it that way, so the
   harvest inherits it rather than deciding it.

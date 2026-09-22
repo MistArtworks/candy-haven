@@ -80,10 +80,29 @@ function isoDate(date: string, precision: string): { value: string | null; widen
  * tracklist decides instead, and the operator can correct it in review.
  */
 function kindFor(release: SpotifyRelease): ReleaseKind {
+  // The one type worth taking at face value. Everything else Spotify
+  // calls a `single`, including records carrying six tracks.
+  if (release.albumType === 'compilation') return 'compilation'
+
   const count = release.tracks.length
   if (count === 1) return /\bremix\b/i.test(release.title) ? 'remix' : 'single'
   if (release.albumType === 'album') return 'album'
   return count <= 6 ? 'ep' : 'album'
+}
+
+/**
+ * Placeholders the stores bill a record to when nobody in particular made it.
+ *
+ * `Various Artists` is not a person and must not become one: the roster is
+ * who the practice actually works with, and a face called Various Artists
+ * sitting between two real collaborators is a worse record of that than an
+ * unbilled compilation. The track's own credits still carry whoever is on
+ * it, which is the part that is true.
+ */
+const NOT_A_PERSON = new Set(['various artists', 'va', 'unknown artist'])
+
+function billing(names: readonly string[]): string[] {
+  return names.filter((name) => !NOT_A_PERSON.has(name.trim().toLowerCase()))
 }
 
 function copyrightLines(release: SpotifyRelease): { phonographic: string; copyright: string } {
@@ -261,7 +280,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
       phonographicLine: lines.phonographic,
       copyrightLine: lines.copyright,
       artworkUrl: release.artwork,
-      artistNames: release.artists.map((artist) => artist.name),
+      artistNames: billing(release.artists.map((artist) => artist.name)),
       distribution: links.rows,
       tracks: release.tracks
         .slice()
@@ -275,6 +294,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
           present: false
         })),
       match: { action: 'create', releaseId: '', title: '', matchedOn: 'none' },
+      notes: '',
       include: !off.has(key),
       note: notes.join(' ')
     }
@@ -306,7 +326,16 @@ export function buildPlan(input: PlanInput): SeedPlan {
       key,
       origin: 'compilation',
       title: release.title,
-      kind: 'compilation',
+      /*
+       * Filed as what it actually is.
+       *
+       * This was hardcoded `compilation`, which was right for one of the
+       * three and wrong for the other two — a six-track remix EP and a
+       * four-track release are EPs he guests on, not compilations.
+       * Spotify types both as `single`, so the tracklist decides here
+       * exactly as it does for his own records.
+       */
+      kind: kindFor(release),
       status: 'released',
       releaseDate: date.value,
       upc: release.upc,
@@ -314,9 +343,16 @@ export function buildPlan(input: PlanInput): SeedPlan {
       phonographicLine: '',
       copyrightLine: '',
       artworkUrl: release.artwork,
-      // Billed to whoever is on *his* track rather than to the compilation's
-      // album artist, which is usually "Various Artists" and is not a person.
-      artistNames: his[0].artists.map((artist) => artist.name),
+      /*
+       * Billed to whoever released it, because that is whose record it is.
+       *
+       * It was billed to the artists on *his* track, which read as though
+       * the record were his own. His credit is not lost by the change: it
+       * sits on the track row, and `creditsForArtist` reports a track
+       * credit as a track credit — the truthful shape for a guest
+       * appearance, and what the operator asked for.
+       */
+      artistNames: release.artists.map((artist) => artist.name),
       distribution: links.rows,
       tracks: his.map((track, index) => ({
         position: index + 1,
@@ -327,8 +363,21 @@ export function buildPlan(input: PlanInput): SeedPlan {
         present: false
       })),
       match: { action: 'create', releaseId: '', title: '', matchedOn: 'none' },
+      /*
+       * Stated on the record, not just on the review screen.
+       *
+       * The billing already says whose release it is, but a year from now
+       * a line in the grid reading "Kaliyug Remix — Glitch Collective"
+       * does not say *why* it is in his discography at all. This does,
+       * and it survives the seeder being deleted.
+       */
+      notes: `External release by ${
+        billing(release.artists.map((artist) => artist.name)).join(', ') || 'another artist'
+      }. Not his own — he appears on ${
+        his.length === 1 ? `"${his[0].title}"` : `${his.length} of its tracks`
+      }.`,
       include: !off.has(key),
-      note: `A ${release.tracks.length}-track compilation. Only his ${
+      note: `Somebody else's ${release.tracks.length}-track record. Only his ${
         his.length === 1 ? 'track' : `${his.length} tracks`
       } will be written.`
     }
@@ -421,6 +470,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
         }
       ],
       match: { action: 'create', releaseId: '', title: '', matchedOn: 'none' },
+      notes: '',
       include: !off.has(key),
       note:
         members.length > 1
