@@ -539,6 +539,7 @@ export function SeedPage(): ReactNode {
             <Figure value={outcome.linksAdded} caption="links added" />
             <Figure value={outcome.artistsCreated} caption="artists added" />
             <Figure value={outcome.artworkStored} caption="sleeves stored" />
+            <Figure value={outcome.portraitsStored} caption="portraits stored" />
           </div>
 
           {outcome.failures.length > 0 ? (

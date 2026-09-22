@@ -1,7 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { ArtistRecord } from '@shared/domain/artists'
-import type { DiscographyRelease, ReleaseTrack } from '@shared/domain/discography'
+import type {
+  DiscographyRelease,
+  DiscographySummary,
+  ReleaseTrack
+} from '@shared/domain/discography'
 import {
   RELEASE_KIND_LABEL,
   RELEASE_STATUS_LABEL,
@@ -30,6 +34,17 @@ export interface ReleaseDetailsProps {
   roster: readonly ArtistRecord[]
   /** For naming the project behind a track, where there is one. */
   projects: readonly ProjectSummary[]
+  /** Every record, for naming the one a row points at. */
+  releases: readonly DiscographySummary[]
+  /**
+   * Open another record.
+   *
+   * A row that names a release is the one thing on this page that refers
+   * to something the catalogue can show, so it is the one thing worth
+   * being able to follow. Optional, so the record reads the same without
+   * a way to navigate.
+   */
+  onOpenRelease?: (releaseId: string) => void
 }
 
 /** Nothing recorded. One dash, everywhere, so a gap always looks the same. */
@@ -97,12 +112,20 @@ type Facet = 'cover' | 'canvas'
  * means no panel ever has to renumber itself the way `DossierRecord`'s
  * conditional one does.
  */
-export function ReleaseDetails({ release, roster, projects }: ReleaseDetailsProps): ReactNode {
+export function ReleaseDetails({
+  release,
+  roster,
+  projects,
+  releases,
+  onOpenRelease
+}: ReleaseDetailsProps): ReactNode {
   const names = new Map(roster.map((artist) => [artist.id, artist.name]))
   const nameOf = (ids: readonly string[]): string[] =>
     ids.map((id) => names.get(id)).filter((name): name is string => Boolean(name))
 
   const projectNames = new Map(projects.map((project) => [project.id, project.name]))
+  /** Titles for the rows that name a release, so one can be drawn as a link. */
+  const releaseTitles = new Map(releases.map((entry) => [entry.id, entry.title]))
 
   const out = release.status === 'released'
   const mastered = release.tracks.filter((track) => track.master !== null).length
@@ -236,6 +259,8 @@ export function ReleaseDetails({ release, roster, projects }: ReleaseDetailsProp
                 release={release}
                 nameOf={nameOf}
                 projectName={track.projectId ? projectNames.get(track.projectId) : undefined}
+                fromTitle={track.releaseId ? releaseTitles.get(track.releaseId) : undefined}
+                onOpenRelease={onOpenRelease}
               />
             ))}
           </ol>
@@ -464,6 +489,9 @@ interface TrackRowProps {
   release: DiscographyRelease
   nameOf: (ids: readonly string[]) => string[]
   projectName: string | undefined
+  /** The title of the record this row points at, when it resolves. */
+  fromTitle: string | undefined
+  onOpenRelease?: (releaseId: string) => void
 }
 
 /**
@@ -475,7 +503,14 @@ interface TrackRowProps {
  * the track, so the raw ids routinely include the artist the release is
  * already billed to.
  */
-function TrackRow({ track, release, nameOf, projectName }: TrackRowProps): ReactNode {
+function TrackRow({
+  track,
+  release,
+  nameOf,
+  projectName,
+  fromTitle,
+  onOpenRelease
+}: TrackRowProps): ReactNode {
   const also = nameOf(trackFeatureIds(track.artistIds, release.artistIds))
 
   return (
@@ -504,6 +539,31 @@ function TrackRow({ track, release, nameOf, projectName }: TrackRowProps): React
           field that had nothing.
         */}
         {track.notes ? <span className={styles.detailsTrackNote}>{track.notes}</span> : null}
+
+        {/*
+          The record this recording also exists as on its own.
+
+          A track promoted out of an EP has its own entry, and this is the
+          way to it — the running order is where anybody looking at an EP
+          would expect to reach its tracks, and before this there was
+          nothing here to follow. Drawn as a link only when there is
+          somewhere to go; a pointer whose record has been deleted
+          resolves to nothing and is quietly not drawn.
+        */}
+        {fromTitle && track.releaseId ? (
+          onOpenRelease ? (
+            <button
+              type="button"
+              className={styles.detailsTrackFrom}
+              onClick={() => onOpenRelease(track.releaseId as string)}
+              title={`Open ${fromTitle}`}
+            >
+              Open {fromTitle}
+            </button>
+          ) : (
+            <span className={styles.detailsTrackNote}>From {fromTitle}</span>
+          )
+        ) : null}
       </span>
 
       {/*

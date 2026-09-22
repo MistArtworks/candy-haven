@@ -470,6 +470,7 @@ export function DiscographyPage(): ReactNode {
               mutations.adopt.isPending
             }
             error={notice}
+            onOpenRelease={setOpenId}
             onPatch={patch}
             onPublish={() => {
               setNotice(null)

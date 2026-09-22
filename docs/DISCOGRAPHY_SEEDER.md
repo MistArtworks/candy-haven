@@ -359,10 +359,40 @@ The catalogue on his machine is not empty and must not be trampled.
   truthful shape for a guest appearance.
 - `Various Artists` is dropped rather than added to the roster. It is not a
   person, and the roster is who the practice actually works with.
-- **Tracks on a record do not become records.** `4x4` is one EP with four
-  track rows, not an EP plus four singles — those four recordings were
-  never released on their own, and minting them would invent four products
-  that do not exist. Decision confirmed by the operator, 21 Sep 2026.
+- **Every recording on a multi-track record also becomes a record**, and the
+  parent's row *points at* it through `ReleaseTrackSchema.releaseId` rather
+  than restating its title and ISRC. The reason is findability: a track was
+  not a record, so searching for `Menace` returned nothing and four of his
+  own recordings had no entry. Eight singles come out of the three
+  multi-track records. They carry no UPC — there is no second product —
+  say on their face which record they were released as part of, and take
+  that record's sleeve.
+
+  The parent is written **after** its children, because naming one requires
+  it to exist. And an ISRC now legitimately belongs to two records, so the
+  ISRC index holds a list and prefers the candidate whose title matches:
+  without that, a second run would decide the proposed `Menace` already
+  exists as `4x4` and pour the single's fields into the EP.
+- **Artists get their portraits.** Spotify's release and track artist
+  objects are the simplified form — an id and a name — so a portrait needs
+  its own call per artist, and the harvest makes one. Only somebody the run
+  actually adds to the roster gets a picture: an artist already there keeps
+  theirs, possibly chosen by hand, and a seeder is not entitled to replace
+  it. A failure is silent, because an entry with no picture is the ordinary
+  state of one typed in.
+- **A promoted single does not leave the running order.** `4x4` is still one
+  EP with four rows; each row now names the single it was promoted to
+  instead of restating it, so the recording is stored once and reachable
+  from both directions.
+
+  This reverses an earlier decision in this document, and the reasoning is
+  worth keeping. The first call was not to promote them, because the four
+  recordings were never released on their own and a record per track
+  invents products that do not exist. That is still true, and it is why a
+  promoted single carries no UPC and says on its face that it came out as
+  part of an EP. What outweighed it: the operator could not find his own
+  recordings. A catalogue that is accurate about barcodes and useless for
+  finding a song has optimised the wrong thing. Decided 21 Sep 2026.
 - A remix of somebody else's song is billed to the original artist with Candy
   Heist credited as remixer: the store already bills it that way, so the
   harvest inherits it rather than deciding it.

@@ -214,6 +214,16 @@ export const SeedTrackSchema = z.object({
    * See the shared-recording pass in `plan.ts`.
    */
   notes: z.string().default(''),
+  /**
+   * The record this recording also exists as on its own, by plan key.
+   *
+   * A track on an EP is promoted to a record of its own so it can be
+   * found by name in the grid, and the EP's row then *points at* it
+   * rather than restating it — `ReleaseTrackSchema.releaseId`, which is
+   * what that field is for. Empty for a recording that is only ever on
+   * the one product.
+   */
+  ownRecordKey: z.string().default(''),
   /** True when a record already in the catalogue holds this ISRC or title. */
   present: z.boolean().default(false)
 })
@@ -333,6 +343,14 @@ export const SeedPlanSchema = z.object({
     .prefault({}),
   records: z.array(SeedRecordSchema).default([]),
   decisions: z.array(SeedDecisionSchema).default([]),
+  /**
+   * A portrait URL per artist name, for the roster entries this creates.
+   *
+   * On the plan rather than on each record because an artist is on
+   * several of them and the roster holds one of each person. Only used
+   * for somebody the run actually adds — see `apply.ts`.
+   */
+  artistImages: z.record(z.string(), z.string()).default({}),
   summary: SeedSummarySchema.prefault({}),
   /** Sources that were skipped, and why. Drawn above the proposal. */
   warnings: z.array(z.string()).default([])
@@ -348,6 +366,8 @@ export const SeedOutcomeSchema = z.object({
   linksAdded: z.number().int().min(0).default(0),
   artistsCreated: z.number().int().min(0).default(0),
   artworkStored: z.number().int().min(0).default(0),
+  /** Portraits fetched for artists this run added to the roster. */
+  portraitsStored: z.number().int().min(0).default(0),
   skipped: z.number().int().min(0).default(0),
   /** Per-record failures. The run continues past one; nothing is rolled back. */
   failures: z.array(z.object({ title: z.string(), reason: z.string() })).default([])

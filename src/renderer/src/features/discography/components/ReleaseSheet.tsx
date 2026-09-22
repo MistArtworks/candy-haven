@@ -109,6 +109,8 @@ export interface ReleaseSheetProps {
   onAddTrack: () => void
   /** Adds an existing release to the running order. See `TrackList`. */
   onCollectTrack: (releaseId: string) => void
+  /** Open another record — passed down so a collected row can be followed. */
+  onOpenRelease?: (releaseId: string) => void
   onPatchTrack: (trackId: string, patch: TrackPatch) => void
   onRemoveTrack: (trackId: string) => void
   onReorderTracks: (trackIds: string[]) => void
@@ -156,6 +158,7 @@ export function ReleaseSheet({
   releases,
   onAddTrack,
   onCollectTrack,
+  onOpenRelease,
   onPatchTrack,
   onRemoveTrack,
   onReorderTracks,
@@ -398,7 +401,13 @@ export function ReleaseSheet({
               initial={animate ? 'initial' : false}
               animate={animate ? 'animate' : undefined}
             >
-              <ReleaseDetails release={release} roster={roster} projects={projects} />
+              <ReleaseDetails
+                release={release}
+                roster={roster}
+                projects={projects}
+                releases={releases}
+                onOpenRelease={onOpenRelease}
+              />
             </motion.div>
           ) : (
             <>
@@ -684,6 +693,7 @@ export function ReleaseSheet({
                         busy={busy}
                         onAdd={onAddTrack}
                         onCollect={onCollectTrack}
+                        onOpenRelease={onOpenRelease}
                         onPatch={onPatchTrack}
                         onRemove={onRemoveTrack}
                         onReorder={onReorderTracks}

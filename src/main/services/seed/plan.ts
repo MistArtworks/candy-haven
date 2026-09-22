@@ -308,6 +308,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
           durationMs: track.durationMs,
           artistNames: track.artists.map((artist) => artist.name),
           notes: '',
+          ownRecordKey: '',
           present: false
         })),
       match: { action: 'create', releaseId: '', title: '', matchedOn: 'none' },
@@ -318,6 +319,76 @@ export function buildPlan(input: PlanInput): SeedPlan {
 
     records.push(record)
     for (const track of release.tracks) byTrackId.set(track.id, record)
+
+    /*
+     * Every recording on a multi-track record also becomes a record.
+     *
+     * The operator's call, and the reason is findability: a track on an EP
+     * is not a record, so searching the catalogue for `Menace` used to
+     * return nothing and four of his own recordings had no tile of their
+     * own. Promoting them gives each one an entry, and the EP's row then
+     * *points at* that entry instead of restating its title and ISRC —
+     * which is exactly what `ReleaseTrackSchema.releaseId` is for.
+     *
+     * Only for his own records, and only where there is more than one
+     * track. A single already is its own record, and a track on somebody
+     * else's EP is represented by that EP, which is what he chose.
+     *
+     * These are honestly not separate *products*: there is no second UPC
+     * and there was no second release. So each carries no UPC of its own,
+     * says on its face which record it came from, and takes that record's
+     * sleeve — a track released with an album shows the album's art.
+     */
+    if (release.tracks.length > 1) {
+      for (const [index, track] of release.tracks.entries()) {
+        const childKey = `track:${track.id}`
+        record.tracks[index].ownRecordKey = childKey
+
+        const childLinks = distributor()
+        childLinks.add('spotify', track.url, 'source')
+        // Deezer and TIDAL matched this *recording* by ISRC, so on a
+        // one-recording record their links are exact rather than pointing
+        // at whichever track of the EP happened to be first.
+        const dz = stores.deezer[track.id]
+        const td = stores.tidal[track.id]
+        childLinks.add('deezer', dz?.found ? dz.url : '', 'isrc')
+        childLinks.add('tidal', td?.found ? td.url : '', 'isrc')
+
+        records.push({
+          key: childKey,
+          origin: 'store',
+          title: track.title,
+          kind: /\bremix\b/i.test(track.title) ? 'remix' : 'single',
+          status: 'released',
+          releaseDate: date.value,
+          // No second product, so no second barcode. Inventing one would
+          // be the only outright false thing this feature could write.
+          upc: '',
+          label: release.label,
+          phonographicLine: lines.phonographic,
+          copyrightLine: lines.copyright,
+          artworkUrl: release.artwork,
+          artistNames: track.artists.map((artist) => artist.name),
+          distribution: childLinks.rows,
+          tracks: [
+            {
+              position: 1,
+              title: track.title,
+              isrc: track.isrc,
+              durationMs: track.durationMs,
+              artistNames: track.artists.map((artist) => artist.name),
+              notes: '',
+              ownRecordKey: '',
+              present: false
+            }
+          ],
+          match: { action: 'create', releaseId: '', title: '', matchedOn: 'none' },
+          notes: `Released as track ${track.position} of ${release.title}.`,
+          include: !off.has(childKey),
+          note: `Track ${track.position} of ${release.title}, given its own entry.`
+        })
+      }
+    }
   }
 
   // --------------------------------- somebody else's records, his track only
@@ -378,6 +449,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
         durationMs: track.durationMs,
         artistNames: track.artists.map((artist) => artist.name),
         notes: '',
+        ownRecordKey: '',
         present: false
       })),
       match: { action: 'create', releaseId: '', title: '', matchedOn: 'none' },
@@ -514,6 +586,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
           durationMs: 0,
           artistNames: [artistName],
           notes: '',
+          ownRecordKey: '',
           present: false
         }
       ],
@@ -554,6 +627,13 @@ export function buildPlan(input: PlanInput): SeedPlan {
   for (const record of records) {
     for (const track of record.tracks) {
       if (!track.isrc) continue
+      /*
+       * A promoted track shares its ISRC with the record it came from,
+       * and that pair is already joined structurally by `releaseId`.
+       * Leaving the parent's row in here would have the plan announce
+       * "the same recording as…" about a link it just made itself.
+       */
+      if (track.ownRecordKey) continue
       const key = normaliseIsrc(track.isrc)
       const bucket = byRecording.get(key)
       if (bucket) bucket.push({ record, track })
@@ -630,14 +710,29 @@ export function buildPlan(input: PlanInput): SeedPlan {
 
   // ---------------------------------------- against the catalogue as it stands
   const byUpc = new Map<string, DiscographyRelease>()
-  const byIsrc = new Map<string, DiscographyRelease>()
+  /*
+   * A list per ISRC, not one record.
+   *
+   * Since a track on an EP is also written as a record of its own, one
+   * ISRC legitimately belongs to two records in the catalogue: `Menace`
+   * and the `4x4` that carries it. A single-valued index would hand back
+   * whichever was inserted last, so a second run could decide that the
+   * proposed `Menace` single "already exists" as `4x4` and pour the
+   * single's fields into the EP. Idempotence is the one property this
+   * whole file exists to keep.
+   */
+  const byIsrc = new Map<string, DiscographyRelease[]>()
   const byUrl = new Map<string, DiscographyRelease>()
   const byTitle = new Map<string, DiscographyRelease>()
 
   for (const release of existing) {
     if (release.upc) byUpc.set(normaliseUpc(release.upc), release)
     for (const track of release.tracks) {
-      if (track.isrc) byIsrc.set(normaliseIsrc(track.isrc), release)
+      if (!track.isrc) continue
+      const key = normaliseIsrc(track.isrc)
+      const bucket = byIsrc.get(key)
+      if (bucket) bucket.push(release)
+      else byIsrc.set(key, [release])
     }
     for (const row of release.distribution) {
       for (const url of [row.streamUrl, row.presaveUrl]) {
@@ -664,11 +759,29 @@ export function buildPlan(input: PlanInput): SeedPlan {
     if (!hit) {
       for (const track of record.tracks) {
         if (!track.isrc) continue
-        hit = byIsrc.get(normaliseIsrc(track.isrc))
-        if (hit) {
-          matchedOn = 'isrc'
-          break
-        }
+        const candidates = byIsrc.get(normaliseIsrc(track.isrc)) ?? []
+        if (candidates.length === 0) continue
+
+        /*
+         * The right one of the records holding this recording.
+         *
+         * Same title wins outright — that is the promoted single meeting
+         * itself on a second run. Failing that, the one with the same
+         * number of tracks, which keeps a one-recording record from
+         * matching the four-track EP it was promoted out of. Only then
+         * the first, because an ISRC match is still better than none.
+         */
+        hit =
+          candidates.find(
+            (candidate) => titleKey(candidate.title) === titleKey(record.title)
+          ) ??
+          candidates.find(
+            (candidate) => candidate.tracks.length === record.tracks.length
+          ) ??
+          candidates[0]
+
+        matchedOn = 'isrc'
+        break
       }
     }
     if (!hit) {
@@ -764,6 +877,7 @@ export function buildPlan(input: PlanInput): SeedPlan {
   return {
     harvestedAt: harvest.fetchedAt,
     artist: harvest.artist,
+    artistImages: harvest.artistImages,
     records,
     decisions,
     summary: {

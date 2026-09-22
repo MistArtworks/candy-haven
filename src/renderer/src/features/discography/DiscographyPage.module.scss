@@ -1768,3 +1768,30 @@
   text-transform: none;
   @include truncate;
 }
+
+/*
+ * The way from a track to the record it also exists as.
+ *
+ * A track promoted out of an EP has its own entry, and the running order is
+ * where anybody looking at the EP would expect to reach it. Quiet by
+ * default: it sits under a track title and must not outrank it.
+ */
+.detailsTrackFrom {
+  @include label(9px, 0.12em);
+  color: var(--ch-gold-300);
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 2px;
+  cursor: pointer;
+  text-align: left;
+  text-transform: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}

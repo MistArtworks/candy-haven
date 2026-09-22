@@ -66,6 +66,18 @@ export interface SpotifyHarvest {
   fetchedAt: string
   artist: { id: string; name: string; url: string }
   releases: SpotifyRelease[]
+  /**
+   * A portrait per artist met, keyed by their **name**.
+   *
+   * By name rather than by Spotify id because that is the only handle the
+   * writer has: the roster is joined on names, since a collaborator here
+   * may already be on it from a project that never touched Spotify.
+   *
+   * Fetched separately because the artist objects on a release and on a
+   * track are Spotify's *simplified* form — an id and a name and nothing
+   * else. Every image needs its own call to `/artists/{id}`.
+   */
+  artistImages: Record<string, string>
 }
 
 interface RawAlbum {
@@ -243,8 +255,45 @@ export async function harvestSpotify({
   const withIsrc = [...tracks.values()].filter((t) => t.external_ids?.isrc).length
   reporter.response('spotify', `${withIsrc} of ${trackIds.length} recordings carry an ISRC`)
 
+  /*
+   * A portrait for everybody met, which the roster has no other way to get.
+   *
+   * One call each: `/artists?ids=` answers 403 for applications registered
+   * now, the same wall the records ran into. Failures are swallowed per
+   * artist — a roster entry with no picture is the ordinary state of one
+   * typed by hand, and no portrait is worth failing a harvest over.
+   */
+  const people = new Map<string, string>()
+  for (const album of detailed) {
+    for (const person of album.artists) people.set(person.id, person.name)
+    for (const item of album.tracks.items) {
+      for (const person of item.artists) people.set(person.id, person.name)
+    }
+  }
+
+  reporter.step('spotify', `Reading ${people.size} artists for their portraits`)
+  const artistImages: Record<string, string> = {}
+  let readPeople = 0
+
+  await pool([...people.keys()], 5, async (id) => {
+    try {
+      const full = await request<{ name: string; images?: { url: string }[] }>(
+        `${API}/artists/${id}`,
+        auth(bearer)
+      )
+      // Widest first, which is how Spotify orders them.
+      const image = full.images?.[0]?.url
+      if (image) artistImages[full.name] = image
+    } catch (error) {
+      reporter.warn('spotify', `no portrait for ${people.get(id)} — ${(error as Error).message}`)
+    }
+    reporter.progress('reading artists', ++readPeople, people.size)
+  })
+  reporter.response('spotify', `${Object.keys(artistImages).length} of ${people.size} have a portrait`)
+
   return {
     fetchedAt: new Date().toISOString(),
+    artistImages,
     artist: {
       id: artist.id,
       name: artist.name,

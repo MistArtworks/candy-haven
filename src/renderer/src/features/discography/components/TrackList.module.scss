@@ -415,3 +415,29 @@
   @include readout(9px);
   color: var(--ch-text-faint);
 }
+
+/*
+ * The same line as `.collected`, but followable.
+ *
+ * A row naming a release is the one thing in this list that refers to
+ * something the catalogue can show, so it is the one thing worth a click.
+ * Underlined on hover rather than styled as a button: it sits in a row of
+ * quiet metadata and a button there would outrank the track title.
+ */
+.collectedLink {
+  @include readout(9px);
+  color: var(--ch-gold-300);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}

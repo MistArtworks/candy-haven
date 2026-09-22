@@ -62,6 +62,15 @@ export interface TrackListProps {
    * yet, the other names one that already does.
    */
   onCollect: (releaseId: string) => void
+  /**
+   * Open the record a row points at.
+   *
+   * A row naming a release is the only thing in this list that refers to
+   * something the catalogue can show, so it is the only thing worth being
+   * able to follow. The sheet passes the page's own opener, which means
+   * following a link lands in the URL exactly as opening a card does.
+   */
+  onOpenRelease?: (releaseId: string) => void
   onPatch: (trackId: string, patch: TrackPatch) => void
   onRemove: (trackId: string) => void
   onReorder: (trackIds: string[]) => void
@@ -121,6 +130,7 @@ export function TrackList({
   roster,
   releases,
   releaseId,
+  onOpenRelease,
   busy,
   onAdd,
   onCollect,
@@ -236,7 +246,20 @@ export function TrackList({
                       worse than a quiet one.
                     */}
                     {track.releaseId && titles.has(track.releaseId) ? (
-                      <span className={styles.collected}>From {titles.get(track.releaseId)}</span>
+                      onOpenRelease ? (
+                        <button
+                          type="button"
+                          className={styles.collectedLink}
+                          onClick={() => onOpenRelease(track.releaseId as string)}
+                          title={`Open ${titles.get(track.releaseId)}`}
+                        >
+                          From {titles.get(track.releaseId)}
+                        </button>
+                      ) : (
+                        <span className={styles.collected}>
+                          From {titles.get(track.releaseId)}
+                        </span>
+                      )
                     ) : null}
 
                     {track.isrc ? (

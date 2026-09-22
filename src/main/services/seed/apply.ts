@@ -76,7 +76,12 @@ const IMAGE_EXTENSION: Record<string, string> = {
 }
 
 /**
- * Fetch remote artwork to a temporary file so the catalogue can store it.
+ * Fetch a remote image to a temporary file so the archive can store it.
+ *
+ * Used for both a record's sleeve and an artist's portrait — the two
+ * services take a **path**, because every other route to either is the
+ * operator picking a file, and both copy what they are given into the
+ * managed media folder.
  *
  * `setAsset` takes a **path**, because every other route to artwork is the
  * operator picking a file — and it copies what it is given into the managed
@@ -86,7 +91,10 @@ const IMAGE_EXTENSION: Record<string, string> = {
  * worth nothing if it fails and costs nothing to add by hand later, so it
  * never fails a write.
  */
-async function fetchArtwork(url: string): Promise<{ path: string; cleanup: () => Promise<void> } | null> {
+async function fetchImage(
+  url: string,
+  name = 'artwork'
+): Promise<{ path: string; cleanup: () => Promise<void> } | null> {
   try {
     const response = await fetch(url)
     if (!response.ok) return null
@@ -95,12 +103,12 @@ async function fetchArtwork(url: string): Promise<{ path: string; cleanup: () =>
     if (!extension) return null
 
     const folder = await mkdtemp(join(tmpdir(), 'candy-seed-'))
-    const path = join(folder, `artwork.${extension}`)
+    const path = join(folder, `${name}.${extension}`)
     await writeFile(path, Buffer.from(await response.arrayBuffer()))
 
     return { path, cleanup: () => rm(folder, { recursive: true, force: true }) }
   } catch (error) {
-    logger.warn(`Could not fetch artwork: ${(error as Error).message}`)
+    logger.warn(`Could not fetch ${name}: ${(error as Error).message}`)
     return null
   }
 }
@@ -124,6 +132,7 @@ export async function applyPlan({
     linksAdded: 0,
     artistsCreated: 0,
     artworkStored: 0,
+    portraitsStored: 0,
     skipped: 0,
     failures: []
   }
@@ -152,6 +161,33 @@ export async function applyPlan({
       }
 
       const artist = await artists.create({ name })
+
+      /*
+       * A portrait, and only for somebody this run put on the roster.
+       *
+       * Never for an artist who was already there: their picture is theirs,
+       * possibly chosen by hand, and a seeder is not entitled to replace it.
+       * The guard is the pre-loaded roster, which is the same thing that
+       * decides whether they count as created at all.
+       *
+       * Failures are silent per artist. A roster entry with no picture is
+       * the ordinary state of one typed in, and no portrait is worth
+       * failing a write over.
+       */
+      const portrait = plan.artistImages[name]
+      if (portrait && !artist.picture.copiedPath) {
+        const fetched = await fetchImage(portrait, 'portrait')
+        if (fetched) {
+          try {
+            await artists.setPicture(artist.id, fetched.path)
+            outcome.portraitsStored += 1
+          } catch (error) {
+            logger.warn(`Could not store a portrait for ${name}: ${(error as Error).message}`)
+          } finally {
+            await fetched.cleanup()
+          }
+        }
+      }
       // Counted against the pre-loaded roster rather than against what
       // `create` returned, because it returns the existing record on a name
       // collision and says nothing about which of the two happened. A name
@@ -167,7 +203,28 @@ export async function applyPlan({
     return ids
   }
 
-  const included = plan.records.filter((record) => record.include)
+  /*
+   * A record that another record's row points at is written first.
+   *
+   * `4x4`'s rows name the four singles promoted out of it, and naming one
+   * requires it to exist — `addTrack({ releaseId })` reads the collected
+   * record to fill the row from it. Sorting by "is anybody pointing at me"
+   * is enough here because the graph is one level deep: a promoted single
+   * holds one recording and points at nothing.
+   */
+  const pointedAt = new Set(
+    plan.records.flatMap((record) =>
+      record.tracks.map((track) => track.ownRecordKey).filter(Boolean)
+    )
+  )
+
+  /** Plan key to the id it was written as, for the rows that point at it. */
+  const writtenAs = new Map<string, string>()
+
+  const included = plan.records
+    .filter((record) => record.include)
+    .sort((a, b) => Number(pointedAt.has(b.key)) - Number(pointedAt.has(a.key)))
+
   outcome.skipped = plan.records.length - included.length
 
   let done = 0
@@ -175,10 +232,11 @@ export async function applyPlan({
     report(record.title, done, included.length)
     try {
       if (record.match.action === 'update') {
+        writtenAs.set(record.key, record.match.releaseId)
         await updateExisting(record)
         outcome.updated += 1
       } else {
-        await createFresh(record)
+        writtenAs.set(record.key, await createFresh(record))
         outcome.created += 1
       }
     } catch (error) {
@@ -250,7 +308,7 @@ export async function applyPlan({
     // undo must not take it off.
     if (release.artwork.copiedPath) return false
 
-    const fetched = await fetchArtwork(record.artworkUrl)
+    const fetched = await fetchImage(record.artworkUrl, 'artwork')
     if (!fetched) return false
 
     try {
@@ -262,7 +320,7 @@ export async function applyPlan({
     }
   }
 
-  async function createFresh(record: SeedRecord): Promise<void> {
+  async function createFresh(record: SeedRecord): Promise<string> {
     const artistIds = await idsFor(record.artistNames)
 
     let release = await discography.create({
@@ -306,11 +364,40 @@ export async function applyPlan({
     const pending = seedsOneTrack(record.kind) ? rest : record.tracks
     for (const track of pending) {
       if (release.tracks.length >= ceiling) break
-      release = await discography.addTrack(release.id, {
-        title: track.title,
-        isrc: track.isrc,
-        artistIds: await idsFor(track.artistNames)
-      })
+
+      /*
+       * Where the recording has its own record, the row *names* it.
+       *
+       * `releaseId` is the field for exactly this, and going through it
+       * means the service fills the row from the record it points at — one
+       * title, one ISRC, one duration, stored once. Restating them here
+       * would be the same facts written twice and free to drift.
+       *
+       * It falls back to a plain row when the link is unavailable: the
+       * child may have been ticked off in review, or refused by
+       * `assertOneRecording` if its kind is ever something that cannot be
+       * collected. A row is better than a missing track either way.
+       */
+      const collected = track.ownRecordKey ? writtenAs.get(track.ownRecordKey) : undefined
+
+      try {
+        release = collected
+          ? await discography.addTrack(release.id, { releaseId: collected })
+          : await discography.addTrack(release.id, {
+              title: track.title,
+              isrc: track.isrc,
+              artistIds: await idsFor(track.artistNames)
+            })
+      } catch (error) {
+        if (!collected) throw error
+        logger.warn(`Could not name "${track.title}" as a record on "${release.title}": ${(error as Error).message}`)
+        release = await discography.addTrack(release.id, {
+          title: track.title,
+          isrc: track.isrc,
+          artistIds: await idsFor(track.artistNames)
+        })
+      }
+
       outcome.tracksAdded += 1
 
       // Duration is not a field `addTrack` takes — it is carried from a
@@ -344,6 +431,8 @@ export async function applyPlan({
       filledFields: [],
       artworkStored: false
     })
+
+    return release.id
   }
 
   async function updateExisting(record: SeedRecord): Promise<void> {
