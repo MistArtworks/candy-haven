@@ -445,6 +445,27 @@ end up written-but-unundoable without a loud error. `Keep it — stop offering`
 drops the journal for an operator happy with the result, because a permanent
 undo button is a standing invitation to an accident.
 
+## 6b · What the seeder cannot fill in
+
+Every track it writes has **no project and no master**, and that is not a
+gap it can close. A project is a folder of work in the ARCHIVE, and most of
+a back catalogue predates this application — there is no project for a
+record from 2018 and there never will be one.
+
+That exposed a refusal in DISCOGRAPHY itself rather than in the seeder:
+`setTrackMaster` insisted the file be one of the linked project's bounces,
+so a projectless track could not name a master at all. Since `publish`
+skips a track with no master, the field was unreachable for exactly the
+records that most needed it. A track with no project can now name the file
+directly — `NAME THE FILE` beside `LINK A PROJECT` in the running order —
+and the guards that remain are the ones that matter: it has to be an audio
+format and it has to be there. Nothing is copied or moved, exactly as a
+project's bounce is referenced where it sits.
+
+Where there *is* a project, its bounces are still the only candidates. That
+route keeps the shipped file beside the session that made it, which is the
+whole reason it exists.
+
 ## 7 · Removing it
 
 By design this is one folder, one route and one link:

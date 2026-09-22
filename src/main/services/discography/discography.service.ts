@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto'
+import { stat } from 'node:fs/promises'
+import { basename, extname } from 'node:path'
 import type {
   DiscographyRegistry,
   DiscographyRelease,
@@ -28,7 +30,7 @@ import {
 } from '@shared/domain/discography.constants'
 import type { CalendarRelease } from '@shared/domain/calendar'
 import type { MediaFile, ProjectRecord } from '@shared/domain/projects'
-import { getStage } from '@shared/domain/projects.constants'
+import { AUDIO_EXTENSIONS, getStage } from '@shared/domain/projects.constants'
 import type { ArtistReleaseCredit } from '@shared/domain/artists'
 import { checkLinkUrl } from '@shared/domain/artists.constants'
 import { isHexColour, normaliseHex } from '@shared/domain/stacks.constants'
@@ -981,12 +983,68 @@ export class DiscographyService {
       )
     }
 
+    /*
+     * No project, so the file is named directly rather than chosen from a
+     * project's bounces.
+     *
+     * This used to refuse outright, and the refusal was right about the
+     * mechanism and wrong about the catalogue. Most of a back catalogue
+     * predates this application: the ARCHIVE has no project for a record
+     * from 2018, and there never will be one. Insisting on the project
+     * route left every such track permanently unable to say which file
+     * shipped — and `publish` skips a track with no master, so the whole
+     * point of the field was unreachable for exactly the records that
+     * most needed it. The seeder made that vivid by filing two dozen
+     * projectless tracks at once.
+     *
+     * The guard that remains is the one that matters: it has to be an
+     * audio file, and it has to be there. A path that is neither is a
+     * mistake worth naming rather than storing.
+     */
     if (!track.projectId) {
-      throw new AppError('This track has no project, so there are no bounces to choose from.', {
-        code: ErrorCode.Validation,
-        hint: 'Link a project from the ARCHIVE first.',
-        recoverable: false
-      })
+      const extension = extname(path).toLowerCase()
+      if (!(AUDIO_EXTENSIONS as readonly string[]).includes(extension)) {
+        throw new AppError(
+          `${extension ? extension : 'That file'} is not an audio format.`,
+          {
+            code: ErrorCode.Validation,
+            hint: `Masters are ${AUDIO_EXTENSIONS.join(', ')}.`,
+            recoverable: false
+          }
+        )
+      }
+
+      const stats = await stat(path).catch(() => null)
+      if (!stats?.isFile()) {
+        throw new AppError('That file is not there.', {
+          code: ErrorCode.NotFound,
+          hint: 'It may have been moved or renamed since it was chosen.',
+          recoverable: false
+        })
+      }
+
+      /*
+       * Referenced where it sits, exactly as a project's bounce is — see
+       * `ReleaseTrackSchema.master`. Nothing is copied or moved.
+       *
+       * `relativePath` is the bare filename: it exists to make a listing
+       * readable against a project folder, and there is no folder to be
+       * relative to here.
+       */
+      const loose: MediaFile = {
+        path,
+        fileName: basename(path),
+        relativePath: basename(path),
+        sizeBytes: stats.size,
+        modifiedAt: stats.mtimeMs
+      }
+
+      logger.info(`Release master for "${release.title}" track ${track.position}: ${path} (no project)`)
+
+      return this.writeTracks(
+        release,
+        release.tracks.map((entry) => (entry.id === trackId ? { ...entry, master: loose } : entry))
+      )
     }
 
     const project = await this.projects.get(track.projectId)

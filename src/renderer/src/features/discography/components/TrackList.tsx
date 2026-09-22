@@ -8,6 +8,7 @@ import {
   seedsOneTrack
 } from '@shared/domain/discography.constants'
 import type { ProjectSummary } from '@shared/domain/projects'
+import { AUDIO_EXTENSIONS } from '@shared/domain/projects.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { formatBytes } from '@renderer/lib/format'
 import { MasterPicker } from './MasterPicker'
@@ -146,6 +147,27 @@ export function TrackList({
   const [collecting, setCollecting] = useState(false)
 
   const names = useMemo(() => new Map(roster.map((artist) => [artist.id, artist.name])), [roster])
+
+  /*
+   * Name the file directly, for a track with no project behind it.
+   *
+   * Most of a back catalogue predates this application, so the ARCHIVE has
+   * no project for it and never will. Those tracks could not say which file
+   * shipped at all, which made `publish` skip them — the field was
+   * unreachable for exactly the records that needed it most. A project's
+   * bounces are still the better route where there is a project, so this is
+   * offered only where there is not.
+   */
+  const browseForMaster = async (trackId: string): Promise<void> => {
+    const path = await window.candy.shell.selectFile({
+      title: 'Choose the file that shipped as this track',
+      filters: [
+        { name: 'Audio', extensions: AUDIO_EXTENSIONS.map((ext) => ext.replace('.', '')) },
+        { name: 'All files', extensions: ['*'] }
+      ]
+    })
+    if (path) onSetMaster(trackId, path)
+  }
 
   // Titles for the rows that carry a release, and the ids the picker must not
   // offer a second time.
@@ -310,9 +332,11 @@ export function TrackList({
                           {formatBytes(track.master.sizeBytes)}
                         </span>
                       </a>
-                    ) : project ? (
-                      <span className={styles.noMaster}>No master chosen</span>
-                    ) : null}
+                    ) : (
+                      <span className={styles.noMaster}>
+                        {project ? 'No master chosen' : 'No master chosen — name the file'}
+                      </span>
+                    )}
                   </div>
 
                   {linking === track.id ? (
@@ -382,11 +406,19 @@ export function TrackList({
                   </Button>
 
                   {/*
-                    Offered only once there is a project behind the track.
-                    The candidates are that project's own bounces, so without
-                    one there is nothing to choose between — and a live control
-                    that can only explain why it cannot work teaches less than
-                    its absence does.
+                    Two routes to the same field, and which one is offered
+                    depends on whether there is a project.
+
+                    With one, the candidates are its own bounces and the
+                    picker lists them — that is the better route, because it
+                    keeps the shipped file beside the session that made it.
+
+                    Without one, there is nothing to list, and this used to
+                    show no control at all. That was right about the
+                    mechanism and wrong about the catalogue: a record from
+                    2018 has no project and never will, so the absence left
+                    it permanently unable to say what shipped. The file is
+                    named directly instead.
                   */}
                   {track.projectId ? (
                     <Button
@@ -396,6 +428,27 @@ export function TrackList({
                       onClick={() => setMastering(mastering === track.id ? null : track.id)}
                     >
                       {track.master ? 'Change master' : 'Pick master'}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() => void browseForMaster(track.id)}
+                    >
+                      {track.master ? 'Change file' : 'Name the file'}
+                    </Button>
+                  )}
+
+                  {/* Clearing it needs no picker, and only exists to be undone. */}
+                  {track.master && !track.projectId ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() => onSetMaster(track.id, null)}
+                    >
+                      Clear
                     </Button>
                   ) : null}
                   <button
