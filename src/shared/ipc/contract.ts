@@ -564,6 +564,13 @@ export const IPC_INVOKE = {
   /** Forgets the credentials, the harvest and the plan. Keeps the journal. */
   'seed:reset': { input: z.void(), output: z.void() },
   /**
+   * Leaves a harvest that is still reading, and ignores what it returns.
+   *
+   * Distinct from `seed:reset`, which refuses while the service is busy —
+   * busy is precisely when this is needed.
+   */
+  'seed:abandon': { input: z.void(), output: z.void() },
+  /**
    * Takes back the last run, exactly — see `src/main/services/seed/journal.ts`.
    *
    * Reverses what the journal records and nothing else: created records go,

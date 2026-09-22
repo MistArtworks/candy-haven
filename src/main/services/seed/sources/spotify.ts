@@ -152,11 +152,24 @@ async function all<T>(url: string, bearer: string): Promise<T[]> {
 export interface SpotifyOptions {
   credentials: SeedCredentials
   reporter: SeedReporter
+  /**
+   * Artists already on the roster, lowercased.
+   *
+   * Their portraits are not fetched: the writer never replaces a picture on
+   * somebody who was already there, so the call could only be discarded.
+   * That matters because portraits are the largest single block of requests
+   * this makes, and Spotify's answer to too many is a `Retry-After` measured
+   * in hours — 19h 36m, earned on 21 Sep 2026 by three harvests in an
+   * afternoon. On a second run almost everybody is known and this rung
+   * costs nothing.
+   */
+  knownArtists?: ReadonlySet<string>
 }
 
 export async function harvestSpotify({
   credentials,
-  reporter
+  reporter,
+  knownArtists
 }: SpotifyOptions): Promise<SpotifyHarvest> {
   const artistId = spotifyArtistId(credentials.spotifyArtistUrl)
   if (!artistId) throw new Error('The Spotify artist link is empty.')
@@ -271,11 +284,23 @@ export async function harvestSpotify({
     }
   }
 
-  reporter.step('spotify', `Reading ${people.size} artists for their portraits`)
+  const wanted = [...people.entries()].filter(
+    ([, name]) => !knownArtists?.has(name.trim().toLowerCase())
+  )
+  const alreadyKnown = people.size - wanted.length
+
+  if (alreadyKnown > 0) {
+    reporter.note(
+      'spotify',
+      `${alreadyKnown} of ${people.size} artists are already on the roster, so their portraits are not fetched`
+    )
+  }
+
+  reporter.step('spotify', `Reading ${wanted.length} artists for their portraits`)
   const artistImages: Record<string, string> = {}
   let readPeople = 0
 
-  await pool([...people.keys()], 5, async (id) => {
+  await pool(wanted.map(([id]) => id), 5, async (id) => {
     try {
       const full = await request<{ name: string; images?: { url: string }[] }>(
         `${API}/artists/${id}`,
@@ -287,9 +312,12 @@ export async function harvestSpotify({
     } catch (error) {
       reporter.warn('spotify', `no portrait for ${people.get(id)} — ${(error as Error).message}`)
     }
-    reporter.progress('reading artists', ++readPeople, people.size)
+    reporter.progress('reading artists', ++readPeople, wanted.length)
   })
-  reporter.response('spotify', `${Object.keys(artistImages).length} of ${people.size} have a portrait`)
+  reporter.response(
+    'spotify',
+    `${Object.keys(artistImages).length} of ${wanted.length} have a portrait`
+  )
 
   return {
     fetchedAt: new Date().toISOString(),

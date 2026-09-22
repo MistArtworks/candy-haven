@@ -161,6 +161,25 @@ against. They are recorded here so the next person does not rediscover them.
   so there is no key. The public oEmbed endpoint covers title and artwork.
 - **TIDAL rate-limits aggressively** and answers 429 in bursts; the shared
   `request` helper backs off and the harvest completes.
+- **Spotify answers a hard rate-limit with a `Retry-After` measured in
+  hours.** 70571 seconds — 19h 36m — earned on 21 Sep 2026 by three full
+  harvests in one afternoon. The transport obeyed it, which is
+  indistinguishable from a hang: the log stops moving and nothing says why.
+  `net.ts` now refuses any wait over two minutes and reports it instead, so
+  the modal reads *"api.spotify.com is rate-limiting this application and
+  asked to be left alone for 19h 29m"* in under a second.
+
+  Three things follow from it. A single attempt has a 30-second deadline, so
+  a socket that accepts and says nothing can no longer hang the run.
+  `DISCARD` is never disabled — it was gated on "running", and a harvest
+  asleep on that `Retry-After` counted as running, which left killing the
+  application as the only way out of the modal. And portraits are skipped
+  for artists already on the roster: they are the largest block of requests
+  the harvest makes, their result would be discarded anyway, and on a second
+  run the rung costs nothing.
+
+  **Budget for it.** A cold harvest is about 140 Spotify calls. Three in an
+  afternoon is enough to be locked out for a day.
 
 ## 4 · Two traps worth keeping in mind
 

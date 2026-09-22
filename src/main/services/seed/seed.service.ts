@@ -114,6 +114,17 @@ export class SeedService extends TypedEmitter<SeedEvents> {
   private outcome: SeedOutcome | null = null
   private progress: SeedProgress = { phase: 'idle', note: '', done: 0, total: 0, error: '' }
   private busy = false
+  /*
+   * Which run the service is on.
+   *
+   * Incremented by `abandon`, and checked by `run` before it stores anything.
+   * A harvest cannot be interrupted mid-request — the sources are sequential
+   * awaits over somebody else's API — so abandoning it means agreeing to
+   * ignore whatever it eventually returns. Without the token a discarded run
+   * would finish in the background and quietly install its plan over the
+   * operator's fresh start.
+   */
+  private generation = 0
   /**
    * The last run on record, read from disk on first use.
    *
@@ -192,6 +203,11 @@ export class SeedService extends TypedEmitter<SeedEvents> {
   }
 
   /** A `report` for one step, which fills in the phase the step belongs to. */
+  /** True once `abandon` has moved on from the run that is asking. */
+  private stale(generation: number): boolean {
+    return generation !== this.generation
+  }
+
   private reporter(phase: SeedPhase): (note: string, done: number, total: number) => void {
     return (note, done, total) => {
       this.progress = { phase, note, done, total, error: '' }
@@ -245,6 +261,7 @@ export class SeedService extends TypedEmitter<SeedEvents> {
     this.busy = true
     this.credentials = credentials
     this.outcome = null
+    const generation = this.generation
 
     this.log = []
     this.pending = []
@@ -255,7 +272,13 @@ export class SeedService extends TypedEmitter<SeedEvents> {
       this.advance('spotify', 'authenticating')
       const spotify = await harvestSpotify({
         credentials,
-        reporter: this.reporterFor('spotify')
+        reporter: this.reporterFor('spotify'),
+        // Read once, here, because the harvest must not reach into the
+        // roster itself — it knows about six music services and nothing
+        // about this application's departments.
+        knownArtists: new Set(
+          (await this.artists.listPlain()).map((artist) => artist.name.trim().toLowerCase())
+        )
       })
       logger.info(
         `Spotify: ${spotify.releases.length} records, ${spotify.releases.reduce(
@@ -318,6 +341,20 @@ export class SeedService extends TypedEmitter<SeedEvents> {
        */
       this.overrides = {}
       this.excluded.clear()
+
+      /*
+       * Abandoned while it was reading, so nothing it found is installed.
+       *
+       * Thrown rather than returned: the renderer is no longer waiting on
+       * this call, and a silent resolve would have `run` report success for
+       * a harvest the operator walked away from.
+       */
+      if (this.stale(generation)) {
+        throw new AppError('That harvest was discarded.', {
+          code: ErrorCode.Validation,
+          recoverable: true
+        })
+      }
 
       this.advance('planning', 'comparing against the catalogue')
       this.say('step', 'plan', 'Grouping exclusives and matching against the catalogue as it stands')
@@ -535,6 +572,26 @@ export class SeedService extends TypedEmitter<SeedEvents> {
     } finally {
       this.busy = false
     }
+  }
+
+  /**
+   * Walk away from a harvest that is still reading.
+   *
+   * Deliberately not `guard`ed on `busy` — being busy is the entire reason
+   * this exists. It cannot stop an in-flight request, so it does the next
+   * honest thing: moves the generation on, frees the service, and leaves
+   * the old run to finish into a void.
+   *
+   * The case that produced it: Spotify answered a hard rate-limit with a
+   * `Retry-After` of nineteen hours, the transport obeyed it, and the only
+   * way out of a modal whose Discard was disabled while "running" was to
+   * kill the application. `net.ts` now refuses a wait that long, and this
+   * is the door for every other reason a run might need leaving.
+   */
+  abandon(): void {
+    this.generation += 1
+    this.busy = false
+    this.reset()
   }
 
   /** Forget the credentials, the harvest and the plan. Keeps the journal. */

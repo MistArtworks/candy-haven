@@ -314,6 +314,7 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('seed:include', ({ key, include }) => services.seed.setIncluded(key, include))
   router.handle('seed:apply', () => services.seed.apply())
   router.handle('seed:reset', () => services.seed.reset())
+  router.handle('seed:abandon', () => services.seed.abandon())
   router.handle('seed:undo', () => services.seed.undo())
   router.handle('seed:accept', () => services.seed.acceptRun())
 

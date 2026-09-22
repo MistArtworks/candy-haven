@@ -347,6 +347,8 @@ export interface CandyHavenApi {
     include(key: string, include: boolean): Promise<SeedPlan>
     apply(): Promise<SeedOutcome>
     reset(): Promise<void>
+    /** Leaves a harvest still in progress. Works while it is running. */
+    abandon(): Promise<void>
     /** Reverses the last run, exactly and only. */
     undo(): Promise<SeedUndoResult>
     /** Keeps the run and forgets how to undo it. */

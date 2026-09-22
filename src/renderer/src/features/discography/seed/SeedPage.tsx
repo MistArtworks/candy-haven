@@ -583,7 +583,9 @@ export function SeedPage(): ReactNode {
           onContinue={seed.dismissLog}
           onDiscard={() => {
             seed.dismissLog()
-            void seed.reset()
+            // `abandon` rather than `reset`: reset refuses while the
+            // service is busy, and busy is when this is pressed.
+            void seed.abandon()
           }}
         />
       ) : null}

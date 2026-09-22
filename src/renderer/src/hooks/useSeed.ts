@@ -68,6 +68,8 @@ export interface SeedController {
   include: (key: string, include: boolean) => Promise<void>
   apply: () => Promise<void>
   reset: () => Promise<void>
+  /** Leave a harvest that is still reading. Enabled while it runs. */
+  abandon: () => Promise<void>
   undo: () => Promise<void>
   accept: () => Promise<void>
 }
@@ -221,6 +223,20 @@ export function useSeed(): SeedController {
     [attempt]
   )
 
+  const abandon = useCallback(
+    () =>
+      attempt(async () => {
+        await window.candy.seed.abandon()
+        setPlan(null)
+        setOutcome(null)
+        setUndone(null)
+        setLog([])
+        setShowLog(false)
+        setProgress(IDLE)
+      }),
+    [attempt]
+  )
+
   const reset = useCallback(
     () =>
       attempt(async () => {
@@ -251,6 +267,7 @@ export function useSeed(): SeedController {
     include,
     apply,
     reset,
+    abandon,
     undo,
     accept
   }

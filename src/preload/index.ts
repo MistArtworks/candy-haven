@@ -202,6 +202,7 @@ const api: CandyHavenApi = {
     include: (key, include) => invoke('seed:include', { key, include }),
     apply: () => invoke('seed:apply'),
     reset: () => invoke('seed:reset'),
+    abandon: () => invoke('seed:abandon'),
     undo: () => invoke('seed:undo'),
     accept: () => invoke('seed:accept'),
     onProgress: (listener) => subscribe('seed:progress', listener),

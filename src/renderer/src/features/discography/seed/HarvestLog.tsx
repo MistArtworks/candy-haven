@@ -181,8 +181,15 @@ export function HarvestLog({
                   : 'Reading six public services. Nothing is written by this step.'}
             </p>
             <div className={styles.actions}>
-              <Button size="sm" onClick={onDiscard} disabled={running}>
-                Discard
+              {/*
+                Never disabled, because the reason to press it is usually
+                that the run has gone wrong. It was gated on `running`,
+                and a harvest asleep on a nineteen-hour `Retry-After`
+                counts as running — which left killing the application as
+                the only way out of this modal.
+              */}
+              <Button size="sm" onClick={onDiscard}>
+                {running ? 'Stop and discard' : 'Discard'}
               </Button>
               <Button variant="primary" size="sm" onClick={onContinue} disabled={!done} busy={running}>
                 {done
