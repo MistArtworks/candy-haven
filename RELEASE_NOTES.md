@@ -1,26 +1,32 @@
-Ctrl+Space opens a way to anywhere.
+The rail gets out of the way now, and every hint in the console finally looks like it belongs here.
 
-## GO ANYWHERE
+## THE RAIL
 
-Type a department name, a project name, a release or track title, or an
-artist's name, and the console answers directly — no more navigating to a
-department first and searching inside it. Enter opens whatever is
-highlighted: the department itself, a project's dossier in ARCHIVE, a
-release's sheet in DISCOGRAPHY, an artist's card in ARTISTS.
+Each division opens on its own — one at a time — and closing one no longer
+stutters: the whole division shrinks in a single motion instead of fading
+out and snapping shut a beat later.
 
-Three actions fire from anywhere too, because each only ever needed a name to
-start: **NEW RELEASE**, **NEW ARTIST**, and **COMPOSE** a DISPATCH entry.
-NEW PROJECT and NEW EVENT are not offered here — both need a shelf or a date
-the palette has no way to supply blind, and jumping straight to ARCHIVE or
-CALENDAR still gets you there in the same keystroke.
+The whole rail can be put away entirely. Its own masthead carries the switch
+now, where the department count used to sit; the title bar's copy is gone.
+Bringing the rail back is a small switch that floats at the corner it used to
+occupy, since nothing else on screen stands for it once the whole directory
+is out of sight — or **Ctrl+]** from anywhere, which works in both
+directions and needs no mouse at all.
 
-Nothing is listed until you type something. Arrow keys move the cursor,
-Enter commits, Escape or a click outside closes it.
+## HOVER HINTS
 
-## THE DETAILS
+Every hint in the console — on a button, a division heading, a status dot —
+now draws in the console's own dark, hairlined style instead of the plain
+system-yellow box Windows drew before. A few explanations that sat on
+disabled controls, saying why a button would not let you press it yet,
+turned out to never have shown at all: a disabled control does not answer a
+hover. Those now do.
 
-- ARTISTS can now be reached by a direct link (`?artist=<id>`), the same way
-  ARCHIVE and DISCOGRAPHY have always been reachable — which is what makes an
-  artist's card openable from the palette at all.
-- `Ctrl+Space` is registered like every other shortcut in the console, so it
-  appears in the `Ctrl+/` cheatsheet automatically.
+## UNDER THE HOOD
+
+Faster in the places that add up over time rather than the ones you'd
+notice in a screenshot: a BROADCAST overlay left running for a whole stream
+no longer does needless work every single frame, a full ARCHIVE rescan no
+longer stalls the rest of the console while it runs, and dragging a DARKROOM
+grading control redraws the preview only as often as the screen can actually
+show it.
