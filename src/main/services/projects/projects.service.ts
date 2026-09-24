@@ -281,6 +281,18 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
     return this.repository.listAll()
   }
 
+  /**
+   * Live projects carrying a given tag, without reading the register.
+   *
+   * For `TagsService.summariseOne`, which only ever needs one tag's count —
+   * unlike `list()`, which reads the whole register once and tallies every
+   * tag from that single pass, so it isn't paying for a `listRecords` it
+   * doesn't need.
+   */
+  async countActiveByTag(tagId: string): Promise<number> {
+    return this.repository.countActiveByTag(tagId)
+  }
+
   async get(id: string): Promise<ProjectRecord> {
     const record = await this.repository.findById(id)
     if (!record) {

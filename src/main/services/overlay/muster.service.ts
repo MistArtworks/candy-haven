@@ -39,6 +39,18 @@ const DOCUMENT_ID = 'overlay:muster'
 /** How often a running call republishes, so the clock on the overlay moves. */
 const TICK_MS = 500
 
+/**
+ * How long a filing may sit before the roll reaches the archive.
+ *
+ * THE CONCORD's `CONCORD_PERSIST_MS`, for the same reason and at the same
+ * interval. A call put to a busy chamber delivers filings as fast as people can
+ * type, and writing the whole roll to Mongo per message is the most expensive
+ * thing this feature does — in exchange for surviving a crash with a roll one
+ * entry fresher than the debounced one. Every operator action still writes on
+ * the spot, so the moments that matter are never merely debounced.
+ */
+const PERSIST_MS = 2_000
+
 interface MusterEvents {
   state: MusterState
 }
@@ -83,6 +95,8 @@ export class MusterService extends TypedEmitter<MusterEvents> {
   private detachChat: (() => void) | null = null
   private releaseChat: (() => void) | null = null
   private timer: NodeJS.Timeout | null = null
+  /** Pending debounced write; see `schedulePersist`. */
+  private persistTimer: NodeJS.Timeout | null = null
 
   constructor(
     private readonly archive: ArchiveService,
@@ -118,6 +132,10 @@ export class MusterService extends TypedEmitter<MusterEvents> {
 
   dispose(): void {
     this.stopTicking()
+    // A filing still inside the debounce window is written rather than dropped:
+    // the window is there to spare the archive the message rate, not to lose a
+    // roll because the app was closed a second after the last entry landed.
+    if (this.persistTimer) this.persistNow()
     this.detachChat?.()
     this.releaseChat?.()
   }
@@ -307,7 +325,7 @@ export class MusterService extends TypedEmitter<MusterEvents> {
     if (!text) return
 
     if (this.state.entries.length >= this.state.config.maxEntries) {
-      this.commit({ turnedAway: this.state.turnedAway + 1 })
+      this.commit({ turnedAway: this.state.turnedAway + 1 }, 'soon')
       return
     }
 
@@ -326,10 +344,13 @@ export class MusterService extends TypedEmitter<MusterEvents> {
 
     this.ledger.set(message.userId, used + 1)
 
-    this.commit({
-      entries: [...this.state.entries, this.makeEntry(text, message.display, message.userId)],
-      citizens: this.ledger.size
-    })
+    this.commit(
+      {
+        entries: [...this.state.entries, this.makeEntry(text, message.display, message.userId)],
+        citizens: this.ledger.size
+      },
+      'soon'
+    )
   }
 
   /**
@@ -435,16 +456,54 @@ export class MusterService extends TypedEmitter<MusterEvents> {
 
   // ---------------------------------------------------------------- plumbing
 
-  private commit(partial: Partial<MusterState>): MusterState {
+  /**
+   * Applies a change, fans it out, and files it.
+   *
+   * Two persistence cadences, the arrangement THE CONCORD already runs. The
+   * fan-out is immediate either way — the console and the broadcast see a
+   * filing the instant it is accepted, which is the only cadence anybody can
+   * observe. What `persist` chooses is when Mongo hears about it: `'now'` for
+   * an operator action, because opening, closing, resetting and moderating are
+   * the moments worth surviving a crash exactly; `'soon'` for a filing off the
+   * chat, which arrives at whatever rate the chamber can type.
+   */
+  private commit(partial: Partial<MusterState>, persist: 'now' | 'soon' = 'now'): MusterState {
     this.state = { ...this.state, ...partial, revision: this.state.revision + 1 }
     this.publish()
-    void this.save()
+
+    if (persist === 'soon') this.schedulePersist()
+    else this.persistNow()
+
     return this.state
   }
 
   private publish(): void {
     this.emit('state', this.state)
     this.server.broadcast('muster', this.state)
+  }
+
+  /** Writes at once, dropping any debounced write it has overtaken. */
+  private persistNow(): void {
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+      this.persistTimer = null
+    }
+    void this.save()
+  }
+
+  /**
+   * Queues a write for `PERSIST_MS` from now, if one is not already queued.
+   *
+   * A trailing debounce rather than a per-filing write: the whole roll is
+   * written each time, so the filings that land inside the window are not
+   * skipped by it — they are simply carried by the one write at the end of it.
+   */
+  private schedulePersist(): void {
+    if (this.persistTimer) return
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null
+      void this.save()
+    }, PERSIST_MS)
   }
 
   // ------------------------------------------------------------- persistence

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
-import { gunzipSync } from 'node:zlib'
+import { gunzip as gunzipCallback } from 'node:zlib'
+import { promisify } from 'node:util'
 import { isAbsolute, join, resolve, sep } from 'node:path'
 import type { AbletonAnalysis, MusicalKey, TimeSignature } from '@shared/domain/projects'
 import { ALS_MAX_DECOMPRESSED_BYTES, AUDIO_EXTENSIONS } from '@shared/domain/projects.constants'
@@ -88,6 +89,8 @@ const SCALE_NAMES = [
 
 const GZIP_MAGIC = [0x1f, 0x8b]
 
+const gunzip = promisify(gunzipCallback)
+
 /** Window used only where the value provably sits beside its element. */
 const NEARBY = 4000
 
@@ -115,6 +118,12 @@ export async function readAbletonSet(
     logger.warn(`Could not read ${filePath}: ${message}`)
     return { ...analysis, parseError: message }
   }
+
+  // The reads below are a handful of regex passes over the decoded XML — fast
+  // per set, but run back-to-back across a whole rescan with nothing else in
+  // between. One yield per set keeps a large rescan from stalling everything
+  // else the process is doing while it works through the library.
+  await new Promise<void>((resolve) => setImmediate(resolve))
 
   try {
     const rootAttributes = xml.slice(0, 1024)
@@ -218,7 +227,10 @@ async function decodeSet(filePath: string): Promise<string> {
   // Live always gzips, but a set recovered by hand may not be; falling back to
   // a plain read costs nothing and salvages those.
   const gzipped = raw.length > 2 && raw[0] === GZIP_MAGIC[0] && raw[1] === GZIP_MAGIC[1]
-  const buffer = gzipped ? gunzipSync(raw, { maxOutputLength: ALS_MAX_DECOMPRESSED_BYTES }) : raw
+  // Async rather than `gunzipSync`: inflate runs on libuv's threadpool this way
+  // instead of blocking the process that is also servicing IPC and any live
+  // overlay broadcast, which matters on a full rescan of a large library.
+  const buffer = gzipped ? await gunzip(raw, { maxOutputLength: ALS_MAX_DECOMPRESSED_BYTES }) : raw
 
   if (buffer.length > ALS_MAX_DECOMPRESSED_BYTES) {
     throw new Error('Set exceeds the maximum size this reader will decompress.')

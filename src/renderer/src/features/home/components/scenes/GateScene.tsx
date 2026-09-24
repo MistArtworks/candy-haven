@@ -374,6 +374,7 @@ export function GateScene({ tone, leanRef, className }: SceneProps): ReactNode {
     let towers: Tower[] = []
     let craft: Craft[] = []
     let debris: Debris[] = []
+    let standing: Standing[] = []
     const sigil = sampleSigil()
     let plexus: PlexusNode[] = []
 
@@ -459,6 +460,19 @@ export function GateScene({ tone, leanRef, className }: SceneProps): ReactNode {
         })
 
         /*
+         * The one list everything on the deck is drawn from, built here.
+         *
+         * Its membership only changes when the pools do, and both of those are
+         * rebuilt immediately above — so the frame re-sorts this in place and
+         * refreshes the walkers' depths rather than assembling eighty-odd
+         * entries from scratch sixty times a second. Each entry keeps its
+         * subject by reference, so the sort may shuffle them freely.
+         */
+        standing = []
+        for (const walker of pilgrims) standing.push({ z: walker.z, walker, piece: null })
+        for (const piece of debris) standing.push({ z: piece.z, walker: null, piece })
+
+        /*
          * The resonance plexus, in the air over the plain.
          *
          * Every scene in this set carries one — it is the lore's single visual
@@ -495,6 +509,10 @@ export function GateScene({ tone, leanRef, className }: SceneProps): ReactNode {
             shade: 0.3 - rank * 0.02
           }
         })
+
+        // Far to near, once. Nothing moves a tower after this, so re-deriving
+        // the order every frame re-derived an order that could not have changed.
+        towers.sort((left, right) => right.z - left.z)
 
         /*
          * Four lanes of traffic, alternating direction.
@@ -562,6 +580,10 @@ export function GateScene({ tone, leanRef, className }: SceneProps): ReactNode {
             shade: 0.6 - rank * 0.035
           }
         })
+
+        // Sorted here for the same reason the towers are: the skyline is placed
+        // once and then only looked at.
+        distants.sort((left, right) => right.z - left.z)
       },
 
       onFrame: ({ context, width, height, elapsed, delta, leanX, leanY, intensity }) => {
@@ -740,10 +762,14 @@ export function GateScene({ tone, leanRef, className }: SceneProps): ReactNode {
          * for exactly that reason: two sorted passes are still wrong across
          * each other, and a walker up the road would paint over a rock at the
          * viewer's feet.
+         *
+         * The list is built at resize and re-ordered here: only the walkers
+         * move, so only their depths are refreshed, and the sort runs over the
+         * array itself rather than over a fresh copy of it.
          */
-        const standing: Standing[] = []
-        for (const walker of pilgrims) standing.push({ z: walker.z, walker, piece: null })
-        for (const piece of debris) standing.push({ z: piece.z, walker: null, piece })
+        for (const entry of standing) {
+          if (entry.walker) entry.z = entry.walker.z
+        }
         standing.sort((left, right) => right.z - left.z)
 
         for (const entry of standing) {
@@ -886,6 +912,18 @@ function groundAt(z: number): number {
   return GROUND_Y - climbed * DAIS_RISE
 }
 
+/**
+ * The corners of whatever `face` is drawing, projected.
+ *
+ * One pool for the module rather than an array per call. `face` runs for every
+ * solid surface in the scene — the pylons, the lintel, the steps, the towers,
+ * the banners, every piece of debris — so an array a call is the better part of
+ * a hundred allocations a frame, against the rule this scene set. It does not
+ * nest, so the previous call is always finished with these before the next
+ * starts. Grown to the largest polygon seen and then reused.
+ */
+const corners: { x: number; y: number }[] = []
+
 /** Fills a world-space polygon. Every solid in the scene goes through this. */
 function face(
   context: CanvasRenderingContext2D,
@@ -898,24 +936,32 @@ function face(
   c: Projected,
   d: Projected
 ): void {
-  const slots = [a, b, c, d]
-  const screen: { x: number; y: number }[] = []
+  let count = 0
 
   for (let index = 0; index < points.length; index += 1) {
     const [x, y, z] = points[index]
-    const p = project(camera, x, y, z, slots[index % slots.length])
+    const turn = index % 4
+    const p = project(camera, x, y, z, turn === 0 ? a : turn === 1 ? b : turn === 2 ? c : d)
     if (!p) return
+
     // Copied out: the scratch objects are reused on the next call, so holding
     // the reference would give every corner the last point's coordinates.
-    screen.push({ x: p.x, y: p.y })
+    let corner = corners[count]
+    if (!corner) {
+      corner = { x: 0, y: 0 }
+      corners[count] = corner
+    }
+    corner.x = p.x
+    corner.y = p.y
+    count += 1
   }
 
   context.globalAlpha = alpha
   context.fillStyle = fill
   context.beginPath()
-  context.moveTo(screen[0].x, screen[0].y)
-  for (let index = 1; index < screen.length; index += 1) {
-    context.lineTo(screen[index].x, screen[index].y)
+  context.moveTo(corners[0].x, corners[0].y)
+  for (let index = 1; index < count; index += 1) {
+    context.lineTo(corners[index].x, corners[index].y)
   }
   context.closePath()
   context.fill()
@@ -1010,9 +1056,8 @@ function drawTowers(
   c: Projected,
   d: Projected
 ): void {
-  const ordered = [...towers].sort((left, right) => right.z - left.z)
-
-  for (const tower of ordered) {
+  // Already far to near: the pool is sorted where it is placed.
+  for (const tower of towers) {
     const half = tower.width / 2
     const fade = Math.max(0.08, tower.shade) * intensity
 
@@ -1324,10 +1369,9 @@ function drawSkyline(
   c: Projected,
   d: Projected
 ): void {
-  // Far to near, so a nearer slab overlaps the one behind it.
-  const ordered = [...distants].sort((left, right) => right.z - left.z)
-
-  for (const slab of ordered) {
+  // Far to near, so a nearer slab overlaps the one behind it — the order the
+  // pool is put in when it is placed.
+  for (const slab of distants) {
     const half = slab.width / 2
     face(
       context,

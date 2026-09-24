@@ -298,17 +298,30 @@ export class NowPlayingFace {
     align: 'left' | 'centre'
   ): void {
     const ctx = this.context
-    const characters = [...text]
-    const widths = characters.map((character) => ctx.measureText(character).width)
-    const total = widths.reduce((sum, w) => sum + w, 0) + spacing * (characters.length - 1)
 
-    let cursor = align === 'centre' ? x - total / 2 : x
+    /*
+     * A running cursor rather than an array of widths.
+     *
+     * Every visible label in all four styles comes through here every frame,
+     * and splitting the string and mapping it to widths allocated two arrays
+     * per label per frame — which is what a browser source left up for a whole
+     * broadcast pays for. The same shape THE MUSTER's `tracked` uses: iterate
+     * the string directly, so surrogate pairs still count as one glyph, and
+     * measure as we go.
+     */
+    let cursor = x
+    if (align === 'centre') {
+      let total = -spacing
+      for (const character of text) total += ctx.measureText(character).width + spacing
+      cursor = x - total / 2
+    }
+
     const previous = ctx.textAlign
     ctx.textAlign = 'left'
-    characters.forEach((character, index) => {
+    for (const character of text) {
       ctx.fillText(character, cursor, y)
-      cursor += widths[index] + spacing
-    })
+      cursor += ctx.measureText(character).width + spacing
+    }
     ctx.textAlign = previous
   }
 

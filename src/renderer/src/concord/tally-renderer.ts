@@ -136,6 +136,28 @@ interface Chase {
   shown: number
 }
 
+/**
+ * What every pass over the ballot needs to know about it.
+ *
+ * The three presentations each derived this for themselves — the total, the
+ * options in front, and a `Set` of their ids — which meant two or three
+ * identical passes plus a fresh `Set` per frame, for numbers that only move
+ * when a new tally lands eight times a second. Derived once and memoised on
+ * the ballot it was derived from; see `tallyOf`.
+ */
+interface TallySummary {
+  total: number
+  leading: ReturnType<typeof leadingOptions>
+  /**
+   * `leading.ids` as a set.
+   *
+   * Mutated in place rather than rebuilt, so a memo hit costs nothing.
+   * `leadingOptions` never reports an id on a zero tally, so membership here
+   * already implies `leading.tally > 0`.
+   */
+  readonly leadingSet: Set<string>
+}
+
 export class ConcordFace {
   private readonly canvas: HTMLCanvasElement
   private readonly context: CanvasRenderingContext2D
@@ -199,6 +221,22 @@ export class ConcordFace {
   private resolvedAt: number | null = null
 
   private readonly fitted = new Map<string, string>()
+
+  /**
+   * The memoised ballot summary, and the ballot it was taken from.
+   *
+   * Keyed on the options array's identity, which is exactly the grain the data
+   * changes at: a poll's state arrives over IPC as a fresh object each time the
+   * service flushes, and is never mutated in place here. So a frame that draws
+   * the same ballot as the last one recomputes nothing at all, and a frame that
+   * draws it through two passes computes it once.
+   */
+  private tallyBallot: readonly ConcordOption[] | null = null
+  private readonly tally: TallySummary = {
+    total: 0,
+    leading: { ids: [], tally: 0 },
+    leadingSet: new Set<string>()
+  }
 
   constructor(canvas: HTMLCanvasElement, options: ConcordFaceOptions = {}) {
     const context = canvas.getContext('2d')
@@ -590,9 +628,7 @@ export class ConcordFace {
     height: number
   ): void {
     const { context: ctx, palette } = this
-    const total = totalTally(state.options)
-    const leading = leadingOptions(state.options)
-    const leadingSet = new Set(leading.tally > 0 ? leading.ids : [])
+    const { total, leading, leadingSet } = this.tallyOf(state.options)
     const resolvedId = state.phase === 'resolved' ? state.result?.optionId : undefined
 
     const hidden = Math.max(state.options.length - WIDGET_MAX_ROWS, 0)
@@ -727,6 +763,29 @@ export class ConcordFace {
   }
 
   /**
+   * The ballot, summarised — once per ballot rather than once per pass.
+   *
+   * A frame can walk the options three times (the chase, then the presentation,
+   * then whatever the presentation itself derives), and each walk used to total
+   * the tally, find the leaders and build a `Set` of their ids from scratch. The
+   * inputs are identical across all three, and across every frame between one
+   * flush and the next, so the work is done on the first ask and handed back on
+   * the rest.
+   */
+  private tallyOf(options: readonly ConcordOption[]): TallySummary {
+    if (this.tallyBallot === options) return this.tally
+
+    this.tallyBallot = options
+    this.tally.total = totalTally(options)
+    this.tally.leading = leadingOptions(options)
+
+    this.tally.leadingSet.clear()
+    for (const id of this.tally.leading.ids) this.tally.leadingSet.add(id)
+
+    return this.tally
+  }
+
+  /**
    * Smooths every bar toward its true share.
    *
    * Frame-rate normalised, so the motion is identical at 30fps in an OBS source
@@ -738,7 +797,7 @@ export class ConcordFace {
    * turns the same data into continuous motion.
    */
   private smoothChase(state: ConcordState, delta: number): void {
-    const total = totalTally(state.options)
+    const { total } = this.tallyOf(state.options)
     const frames = Math.max((delta * 1000) / (1000 / 60), 0)
     const k = frames <= 0 ? 0 : 1 - Math.pow(1 - TALLY_SMOOTHING, frames)
 
@@ -883,9 +942,7 @@ export class ConcordFace {
     now: number
   ): void {
     const options = state.options
-    const total = totalTally(options)
-    const leading = leadingOptions(options)
-    const leadingSet = new Set(leading.ids)
+    const { total, leading, leadingSet } = this.tallyOf(options)
     const resolvedId = state.phase === 'resolved' ? state.result?.optionId : undefined
 
     const gap = Math.max(height * 0.02, 4)
@@ -1057,9 +1114,7 @@ export class ConcordFace {
   ): void {
     const { context: ctx, palette } = this
     const options = state.options
-    const total = totalTally(options)
-    const leading = leadingOptions(options)
-    const leadingSet = new Set(leading.ids)
+    const { total, leading, leadingSet } = this.tallyOf(options)
     const resolvedId = state.phase === 'resolved' ? state.result?.optionId : undefined
 
     const size = Math.min(width, height)

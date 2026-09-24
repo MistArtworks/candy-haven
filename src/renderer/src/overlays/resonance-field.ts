@@ -83,6 +83,34 @@ export interface ResonanceFieldStyle {
   node: string
 }
 
+/** One node, projected to the screen for this frame. */
+interface ProjectedNode {
+  sx: number
+  sy: number
+  ux: number
+  uy: number
+  uz: number
+  depth: number
+}
+
+const PROJECTED_NODE = (): ProjectedNode => ({ sx: 0, sy: 0, ux: 0, uy: 0, uz: 0, depth: 0 })
+
+/**
+ * The projection scratch, reused between frames.
+ *
+ * The same arrangement the rite's descent item pool uses, and for the same
+ * reason: every caller repaints this sixty times a second for hours, and
+ * mapping the field into a fresh array of seventy-odd objects each time is
+ * seventy-odd objects a frame handed straight to the collector.
+ *
+ * Module-scoped rather than per-caller because a paint runs to completion
+ * synchronously — no two of them are ever in flight at once. It grows to the
+ * largest field any caller has asked for and is never shrunk; each paint reads
+ * only the first `field.length` entries, so a smaller field afterwards simply
+ * ignores the tail.
+ */
+const projected: ProjectedNode[] = []
+
 /**
  * Paints one frame of the field.
  *
@@ -108,7 +136,10 @@ export function paintResonanceField(
   const tiltCos = Math.cos(tilt)
   const tiltSin = Math.sin(tilt)
 
-  const projected = field.map((node) => {
+  const count = field.length
+  for (let i = 0; i < count; i += 1) {
+    const node = field[i]
+    const point = projected[i] ?? (projected[i] = PROJECTED_NODE())
     const breath = 1 + Math.sin(now / 1400 + node.drift) * 0.05 * agitation
     const r = radius * node.jitter * breath
     const x1 = node.x * cos - node.z * sin
@@ -116,21 +147,19 @@ export function paintResonanceField(
     const y1 = node.y * tiltCos - z1 * tiltSin
     const z2 = node.y * tiltSin + z1 * tiltCos
     const perspective = 1.6 / (1.6 - z2 * 0.55)
-    return {
-      sx: centreX + x1 * r * perspective,
-      sy: centreY + y1 * r * perspective,
-      ux: x1,
-      uy: node.y,
-      uz: z1,
-      depth: (z2 + 1) / 2
-    }
-  })
+    point.sx = centreX + x1 * r * perspective
+    point.sy = centreY + y1 * r * perspective
+    point.ux = x1
+    point.uy = node.y
+    point.uz = z1
+    point.depth = (z2 + 1) / 2
+  }
 
   const intensity = (0.7 + energy * 0.4) * opacity
 
-  for (let i = 0; i < projected.length; i += 1) {
+  for (let i = 0; i < count; i += 1) {
     const a = projected[i]
-    for (let j = i + 1; j < projected.length; j += 1) {
+    for (let j = i + 1; j < count; j += 1) {
       const b = projected[j]
       const dx = a.ux - b.ux
       const dy = a.uy - b.uy
@@ -151,7 +180,8 @@ export function paintResonanceField(
     }
   }
 
-  for (const point of projected) {
+  for (let i = 0; i < count; i += 1) {
+    const point = projected[i]
     ctx.fillStyle = withAlpha(style.node, (0.1 + point.depth * 0.34) * intensity)
     ctx.beginPath()
     ctx.arc(point.sx, point.sy, 0.4 + point.depth * 1.2, 0, TAU)

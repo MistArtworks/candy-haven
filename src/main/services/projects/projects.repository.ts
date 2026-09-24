@@ -77,6 +77,11 @@ export class ProjectsRepository {
     return document ? toRecord(document) : null
   }
 
+  /** Live projects carrying a given tag — a single indexed count, not a scan. */
+  async countActiveByTag(tagId: string): Promise<number> {
+    return this.projects.countDocuments({ tagIds: tagId, trashedAt: null })
+  }
+
   async insert(record: ProjectRecord): Promise<void> {
     const { id, ...rest } = record
     await this.projects.insertOne({ _id: id, ...rest })

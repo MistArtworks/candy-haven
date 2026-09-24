@@ -161,6 +161,16 @@ const DESCENT_ITEM = (): DescentItem => ({
   mote: -1
 })
 
+/** One slab on the procession's rail, for the frame it is on screen. */
+interface ProcessionSlab {
+  index: number
+  x: number
+  alpha: number
+  lit: boolean
+}
+
+const PROCESSION_SLAB = (): ProcessionSlab => ({ index: 0, x: 0, alpha: 0, lit: false })
+
 /**
  * The named zones, for the gauge down the left edge.
  *
@@ -301,6 +311,15 @@ export class RiteWheel {
   private pDepth = 0
   private readonly descentItems: DescentItem[] = []
   private readonly descentOrder: number[] = []
+  /**
+   * THE PROCESSION's slab pool, on the same terms as the descent's above.
+   *
+   * The rail is rebuilt every frame from the strip's position, and a wide
+   * source carries a few dozen slabs across it — which is a few dozen objects
+   * a frame, for a mechanism an operator leaves up for the length of a spin.
+   * Only the first entries are live; how many is a local to the one frame.
+   */
+  private readonly processionSlabs: ProcessionSlab[] = []
   /**
    * This frame's absorption and approach, shared by the passes below.
    *
@@ -1281,16 +1300,17 @@ export class RiteWheel {
     const last = Math.ceil(plates + (width - centreX + half) / step)
     const reach = Math.max(centreX, width - centreX) + half
 
-    const slabs: { index: number; x: number; alpha: number; lit: boolean }[] = []
+    const slabs = this.processionSlabs
+    let filled = 0
     for (let reelIndex = first; reelIndex <= last; reelIndex += 1) {
       const centre = centreX + (reelIndex - plates) * step
       const fade = Math.min(Math.abs(centre - centreX) / reach, 1)
-      slabs.push({
-        index: reelPetitionIndex(reelIndex, count),
-        x: centre - half,
-        alpha: 1 - fade * fade * 0.72,
-        lit: held && reelIndex === markIndex
-      })
+      const slab = slabs[filled] ?? (slabs[filled] = PROCESSION_SLAB())
+      slab.index = reelPetitionIndex(reelIndex, count)
+      slab.x = centre - half
+      slab.alpha = 1 - fade * fade * 0.72
+      slab.lit = held && reelIndex === markIndex
+      filled += 1
     }
 
     /*
@@ -1300,7 +1320,8 @@ export class RiteWheel {
      * label with it set once again. Canvas state changes — font in particular —
      * are what this loop actually costs, not the fills.
      */
-    for (const slab of slabs) {
+    for (let i = 0; i < filled; i += 1) {
+      const slab = slabs[i]
       this.drawSlab(slab.x, railY, plateWidth, plateHeight, slab, crisp, now)
     }
 
@@ -1309,7 +1330,8 @@ export class RiteWheel {
       ctx.font = `${numberSize}px ${palette.mono}`
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
-      for (const slab of slabs) {
+      for (let i = 0; i < filled; i += 1) {
+        const slab = slabs[i]
         ctx.fillStyle = withAlpha(
           slab.lit ? palette.goldBright : palette.gold,
           slab.alpha * crisp * 0.8
@@ -1325,7 +1347,8 @@ export class RiteWheel {
       const labelMax = plateHeight * 0.72
       ctx.font = `${labelSize}px ${palette.display}`
       ctx.textBaseline = 'middle'
-      for (const slab of slabs) {
+      for (let i = 0; i < filled; i += 1) {
+        const slab = slabs[i]
         const petition = this.state.petitions[slab.index]
         if (!petition) continue
         const text = this.fitText(petition.label.toUpperCase(), labelMax)

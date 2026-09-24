@@ -15,6 +15,40 @@ export interface ViewerProps {
 /** The longest edge the preview will draw. Beyond this, fitting is invisible. */
 const PREVIEW_LIMIT = 1400
 
+/** Everything one redraw needs. Replaced wholesale rather than patched. */
+interface Request {
+  source: ImageBitmap
+  settings: GradeSettings
+  comparing: boolean
+}
+
+/** Fits the bitmap into the canvas and grades the pixels in place. */
+function draw(canvas: HTMLCanvasElement, request: Request): void {
+  const { source, settings, comparing } = request
+
+  const scale = Math.min(1, PREVIEW_LIMIT / Math.max(source.width, source.height))
+  const width = Math.max(1, Math.round(source.width * scale))
+  const height = Math.max(1, Math.round(source.height * scale))
+
+  canvas.width = width
+  canvas.height = height
+
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context) return
+
+  context.clearRect(0, 0, width, height)
+  context.drawImage(source, 0, 0, width, height)
+
+  // Comparing draws the bitmap and stops — the original is what it is, and
+  // running it through a grade with `amount` at zero would be the same
+  // picture arrived at more slowly.
+  if (comparing) return
+
+  const image = context.getImageData(0, 0, width, height)
+  applyGrade(image, settings)
+  context.putImageData(image, 0, 0)
+}
+
 /**
  * The plate: the image under the grade, and the only focal object on the page.
  *
@@ -41,32 +75,45 @@ export function Viewer({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [over, setOver] = useState(false)
 
+  /*
+   * One redraw a frame, on the freshest settings.
+   *
+   * Every grading control is a range input, and dragging one fires a change
+   * every few pixels of pointer movement — dozens a second, each arriving as a
+   * new settings object. The pass above walks up to 1400×1400 pixels out of the
+   * canvas and back into it, so running it per change spent most of a drag
+   * computing images that were overwritten before the compositor ever saw them.
+   *
+   * So a change records what it wants drawn and arms a frame only if one is not
+   * already armed; a change arriving before that frame runs *replaces* the
+   * pending values rather than queueing a second pass. This throttles the work,
+   * not the input: the slider still tracks the pointer exactly as it did, and
+   * what is drawn is always the latest value rather than a delayed one.
+   */
+  const pending = useRef<Request | null>(null)
+  const frame = useRef<number | null>(null)
+
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !source) return
+    if (!source) return
 
-    const scale = Math.min(1, PREVIEW_LIMIT / Math.max(source.width, source.height))
-    const width = Math.max(1, Math.round(source.width * scale))
-    const height = Math.max(1, Math.round(source.height * scale))
+    pending.current = { source, settings, comparing }
+    if (frame.current !== null) return
 
-    canvas.width = width
-    canvas.height = height
+    frame.current = requestAnimationFrame(() => {
+      frame.current = null
 
-    const context = canvas.getContext('2d', { willReadFrequently: true })
-    if (!context) return
-
-    context.clearRect(0, 0, width, height)
-    context.drawImage(source, 0, 0, width, height)
-
-    // Comparing draws the bitmap and stops — the original is what it is, and
-    // running it through a grade with `amount` at zero would be the same
-    // picture arrived at more slowly.
-    if (comparing) return
-
-    const image = context.getImageData(0, 0, width, height)
-    applyGrade(image, settings)
-    context.putImageData(image, 0, 0)
+      const canvas = canvasRef.current
+      const request = pending.current
+      if (canvas && request) draw(canvas, request)
+    })
   }, [source, settings, comparing])
+
+  // Nothing left armed against a canvas that has gone away.
+  useEffect(() => {
+    return () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current)
+    }
+  }, [])
 
   const accept = (event: DragEvent): void => {
     event.preventDefault()

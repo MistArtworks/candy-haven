@@ -310,17 +310,26 @@ export class TimerFace {
   /** Draws text with manual letter-spacing, centred on `x`. */
   private drawTracked(text: string, x: number, y: number, spacing: number): void {
     const ctx = this.context
-    const characters = [...text]
-    const widths = characters.map((character) => ctx.measureText(character).width)
-    const total = widths.reduce((sum, w) => sum + w, 0) + spacing * (characters.length - 1)
+
+    /*
+     * Measured with a running total, then drawn with a running cursor.
+     *
+     * The label and the badge are re-laid every frame for as long as the
+     * overlay is up, and splitting the string into an array and mapping it to
+     * widths allocated two arrays each time. Iterating the string directly
+     * still walks it by code point, so nothing is split mid-glyph — the shape
+     * THE MUSTER's `tracked` already uses.
+     */
+    let total = -spacing
+    for (const character of text) total += ctx.measureText(character).width + spacing
 
     let cursor = x - total / 2
     const previousAlign = ctx.textAlign
     ctx.textAlign = 'left'
-    characters.forEach((character, index) => {
+    for (const character of text) {
       ctx.fillText(character, cursor, y)
-      cursor += widths[index] + spacing
-    })
+      cursor += ctx.measureText(character).width + spacing
+    }
     ctx.textAlign = previousAlign
   }
 

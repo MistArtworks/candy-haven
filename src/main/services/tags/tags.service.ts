@@ -199,8 +199,10 @@ export class TagsService {
   }
 
   private async summariseOne(tag: ArchiveTag): Promise<TagSummary> {
-    const records = await this.projects.listRecords()
-    return summarise([tag], countUsage(records))[0]
+    // Unlike `list()`, this needs only one tag's count — a targeted count
+    // beats reading the whole register to tally a single number.
+    const usageCount = await this.projects.countActiveByTag(tag.id)
+    return { ...tag, usageCount }
   }
 }
 
