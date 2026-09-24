@@ -94,6 +94,10 @@ $z: (
   // Above the chrome, because the console is mounted behind it during the
   // handover. See the note above.
   'boot': 85,
+  // A hint about a control has to out-rank whatever that control is sitting
+  // in front of, toasts and the boot cinematic included, or hovering it
+  // there would show nothing.
+  'tooltip': 87,
   // Above everything, including toasts and the boot cinematic: the pointer is
   // the operator's own position in the interface and can never be behind
   // something they are pointing at.

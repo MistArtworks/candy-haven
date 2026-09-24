@@ -16,6 +16,7 @@ import {
 import { useThemePreferences } from '@renderer/hooks/useMotionPreference'
 import { HotkeyProvider } from '@renderer/hotkeys/HotkeyProvider'
 import { AuditoriumPopout } from '@renderer/features/auditorium/AuditoriumPopout'
+import { TooltipHost } from '@renderer/components/chrome/TooltipHost'
 import { readPopoutIntent } from '@renderer/app/popout'
 import { PlaybackProvider } from '@renderer/app/providers/PlaybackProvider'
 import { CommandPalette } from '@renderer/features/palette/CommandPalette'
@@ -130,6 +131,10 @@ function PopoutShell({ children }: { children: ReactNode }): ReactNode {
   return (
     <>
       {children}
+      {/* `TooltipHost` is otherwise only mounted by `ConsoleLayout`, which a
+          detached window never renders — without its own copy, a hint
+          anywhere in this window would have a trigger and nothing to show it. */}
+      <TooltipHost />
       <div className="ch-ambience" aria-hidden="true">
         <div className="ch-ambience__grain" />
         <div className="ch-ambience__vignette" />

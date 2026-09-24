@@ -6,6 +6,7 @@ import {
   type AudioPreset
 } from '@shared/domain/auditorium'
 import { Sigil } from '@renderer/components/sigil/Sigil'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { useAudioEngine } from './lib/useAudioEngine'
 import { Visualiser } from './components/Visualiser'
 import { formatClock } from './lib/format'
@@ -123,7 +124,7 @@ export function AuditoriumPopout({ file, at, playing: resume }: AuditoriumPopout
           <Sigil size={16} weight={2.4} />
         </span>
 
-        <span className={styles.title} title={source?.path ?? undefined}>
+        <span className={styles.title} {...tooltipTrigger(source?.path ?? '')}>
           {source?.name ?? 'AUDITORIUM'}
         </span>
 
@@ -134,7 +135,7 @@ export function AuditoriumPopout({ file, at, playing: resume }: AuditoriumPopout
               type="button"
               className={styles.preset}
               data-active={entry.id === preset || undefined}
-              title={entry.purpose}
+              {...tooltipTrigger(entry.purpose)}
               onClick={() => setPreset(entry.id)}
             >
               {entry.label}
@@ -150,7 +151,7 @@ export function AuditoriumPopout({ file, at, playing: resume }: AuditoriumPopout
             type="button"
             className={styles.barButton}
             data-on={pinned || undefined}
-            title={pinned ? 'Unpin from the front' : 'Pin in front of other windows'}
+            {...tooltipTrigger(pinned ? 'Unpin from the front' : 'Pin in front of other windows')}
             onClick={() => {
               // The settled state comes back from the window, not from the
               // click: a window manager that refuses the request should not
@@ -241,7 +242,7 @@ export function AuditoriumPopout({ file, at, playing: resume }: AuditoriumPopout
           className={styles.span}
           disabled={!scrollable || !seekable}
           onClick={() => setZoom(isFullSpan(span, duration) ? DEFAULT_SPAN : fullSpan(duration))}
-          title="Scroll over the render to zoom. Click to fit the whole file."
+          {...tooltipTrigger('Scroll over the render to zoom. Click to fit the whole file.')}
         >
           {spanLabel(span, duration)}
         </button>

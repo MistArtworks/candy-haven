@@ -13,6 +13,7 @@ import {
 import { Button } from '@renderer/components/primitives/Button'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { TextArea } from '@renderer/components/primitives/Input'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { formatStamp } from '../lib/present'
 import styles from '../DispatchPage.module.scss'
 
@@ -172,22 +173,28 @@ export function Thread({
             >
               Resolve
             </Button>
-            <Button
-              size="sm"
-              variant="danger"
-              // Mirrors the service, which refuses this too. Disabling here says
-              // so before the click rather than after it.
-              disabled={busy || item.status === 'denied' || reason.trim().length === 0}
-              title={
+            {/* Wrapped rather than spread onto the button: a disabled control
+                fires no mouse or focus events, so a hint on *why* it's
+                disabled needs a host that stays live regardless. */}
+            <span
+              {...tooltipTrigger(
                 reason.trim().length === 0 ? 'Give a reason first' : 'Deny, with the reason above'
-              }
-              onClick={() => {
-                onRule('denied', reason)
-                setReason('')
-              }}
+              )}
             >
-              Deny
-            </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                // Mirrors the service, which refuses this too. Disabling here says
+                // so before the click rather than after it.
+                disabled={busy || item.status === 'denied' || reason.trim().length === 0}
+                onClick={() => {
+                  onRule('denied', reason)
+                  setReason('')
+                }}
+              >
+                Deny
+              </Button>
+            </span>
             <Button
               size="sm"
               disabled={busy || item.status === 'pending'}

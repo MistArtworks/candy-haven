@@ -1,6 +1,7 @@
 import { useState, type DragEvent, type ReactNode } from 'react'
 import type { ProjectStage, ProjectSummary } from '@shared/domain/projects'
 import { PROJECT_STAGES } from '@shared/domain/projects.constants'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import type { RegisterViewProps } from './ProjectListView'
 import { formatRelativeDay, formatTempo } from '../lib/present'
 import styles from './ProjectBoardView.module.scss'
@@ -88,7 +89,7 @@ export function ProjectBoardView({
             }}
             onDrop={(event) => onDrop(event, stage.id)}
           >
-            <header className={styles.columnHead} title={stage.purpose}>
+            <header className={styles.columnHead} {...tooltipTrigger(stage.purpose)}>
               <span className={styles.columnLabel}>{stage.label}</span>
               <span className={styles.columnCount}>{stageCounts[stage.id] ?? 0}</span>
             </header>
@@ -127,7 +128,7 @@ export function ProjectBoardView({
                       data-on={project.favourite || undefined}
                       aria-pressed={project.favourite}
                       aria-label={project.favourite ? 'Remove favourite' : 'Favourite'}
-                      title={project.favourite ? 'Remove favourite' : 'Favourite'}
+                      {...tooltipTrigger(project.favourite ? 'Remove favourite' : 'Favourite')}
                       onClick={(event) => {
                         // The card opens the dossier; the mark must not.
                         event.stopPropagation()

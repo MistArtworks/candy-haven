@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { ArtistRecord } from '@shared/domain/artists'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from '../DiscographyPage.module.scss'
 
 export interface CreditPickerProps {
@@ -68,7 +69,9 @@ export function CreditPicker({
               data-on={billed.includes(artist.id) || undefined}
               aria-pressed={billed.includes(artist.id)}
               disabled={featured.includes(artist.id)}
-              title={featured.includes(artist.id) ? 'Already credited as featured' : undefined}
+              {...tooltipTrigger(
+                featured.includes(artist.id) ? 'Already credited as featured' : ''
+              )}
               onClick={() => toggle(billed, artist.id, onBilled)}
             >
               {artist.name}
@@ -88,7 +91,7 @@ export function CreditPicker({
               data-on={featured.includes(artist.id) || undefined}
               aria-pressed={featured.includes(artist.id)}
               disabled={billed.includes(artist.id)}
-              title={billed.includes(artist.id) ? 'Already billed as the artist' : undefined}
+              {...tooltipTrigger(billed.includes(artist.id) ? 'Already billed as the artist' : '')}
               onClick={() => toggle(featured, artist.id, onFeatured)}
             >
               {artist.name}

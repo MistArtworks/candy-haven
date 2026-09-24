@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { ProjectStage } from '@shared/domain/projects'
 import { getStage } from '@shared/domain/projects.constants'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './StageBadge.module.scss'
 
 /**
@@ -51,7 +52,7 @@ export function StageBadge({ stage, size = 'sm', describe = false }: StageBadgeP
   return (
     <span
       className={`${styles.badge} ${styles[STAGE_TONE[stage]]} ${styles[size]}`}
-      title={describe ? definition.purpose : undefined}
+      {...tooltipTrigger(describe ? definition.purpose : '')}
     >
       {definition.label}
     </span>

@@ -10,6 +10,7 @@ import {
   weekdayIndex
 } from '@shared/domain/calendar.constants'
 import { todayIso } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { EntryChip } from './EntryChip'
 import styles from '../CalendarPage.module.scss'
 
@@ -162,7 +163,7 @@ export function TimeGrid({
               data-today={date === today || undefined}
               data-weekend={weekdayIndex(date) >= 5 || undefined}
               onClick={() => onInspectDate(date)}
-              title="Open this day"
+              {...tooltipTrigger('Open this day')}
             >
               <span className={styles.timeHeadDay}>{WEEKDAY_LABELS[weekdayIndex(date)]}</span>
               <span className={styles.timeHeadDate}>{String(day).padStart(2, '0')}</span>
@@ -251,7 +252,7 @@ export function TimeGrid({
                       width: `${100 / lanes}%`
                     }}
                     onClick={() => onOpenEntry(entry)}
-                    title={`${kind.label} — ${entry.title}`}
+                    {...tooltipTrigger(`${kind.label} — ${entry.title}`)}
                   >
                     <span className={styles.timeEntryBar} aria-hidden="true" />
                     <span className={styles.timeEntryBody}>

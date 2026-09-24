@@ -20,6 +20,7 @@ import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { Checkbox, SelectInput } from '@renderer/components/primitives/Input'
 import { Slider } from '@renderer/components/primitives/Slider'
 import { formatLogTime } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useCopy } from '@renderer/hooks/useCopy'
 import { useOverlayInfo, useRiteActions, useRiteState } from '@renderer/hooks/useRite'
@@ -421,7 +422,7 @@ export function SelectionPage(): ReactNode {
                   {state.history.map((item) => (
                     <li key={`${item.petitionId}-${item.at}`} className={styles.historyRow}>
                       <span className={styles.historyTime}>{formatLogTime(item.at)}</span>
-                      <span className={styles.historyLabel} title={item.label}>
+                      <span className={styles.historyLabel} {...tooltipTrigger(item.label)}>
                         {item.label}
                       </span>
                       <span className={styles.historyOdds}>1 / {item.poolSize}</span>

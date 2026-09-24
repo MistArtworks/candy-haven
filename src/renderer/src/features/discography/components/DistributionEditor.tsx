@@ -10,6 +10,7 @@ import {
 } from '@shared/domain/discography.constants'
 import { MAX_LINK_LABEL, MAX_LINK_URL, checkLinkUrl } from '@shared/domain/artists.constants'
 import { Button } from '@renderer/components/primitives/Button'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from '../DiscographyPage.module.scss'
 import * as shell from '@renderer/lib/shell'
 
@@ -139,19 +140,21 @@ function DraftField({
  */
 function OpenLink({ url }: { url: string }): ReactNode {
   const open = (): void => shell.openExternal(url)
+  const tip = tooltipTrigger(url)
 
   return (
     <a
       className={styles.distOpen}
       role="button"
       tabIndex={0}
-      title={url}
       onClick={open}
+      {...tip}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
           open()
         }
+        tip.onKeyDown(event)
       }}
     >
       Open

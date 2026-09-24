@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { CalendarEntry } from '@shared/domain/calendar'
 import { CALENDAR_KIND, formatMinute } from '@shared/domain/calendar.constants'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from '../CalendarPage.module.scss'
 
 export interface EntryChipProps {
@@ -34,7 +35,7 @@ export function EntryChip({ entry, onOpen, compact = false }: EntryChipProps): R
         event.stopPropagation()
         onOpen(entry)
       }}
-      title={`${kind.label} — ${entry.title}`}
+      {...tooltipTrigger(`${kind.label} — ${entry.title}`)}
     >
       <span className={styles.chipBar} aria-hidden="true" />
       {!compact && entry.startMinute !== null ? (

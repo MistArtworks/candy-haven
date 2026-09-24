@@ -16,6 +16,7 @@ import { Slider } from '@renderer/components/primitives/Slider'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { gridVariants } from '@renderer/motion/transitions'
 import { formatBytes, truncatePath } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { usePlayback } from '@renderer/app/providers/playback'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
@@ -321,18 +322,27 @@ export function AuditoriumPage(): ReactNode {
               axis to zoom: a control that vanishes when you change preset reads
               as a bug, one that greys out reads as a rule.
             */}
-            <button
-              type="button"
-              className={styles.span}
-              disabled={!scrollable || !seekable}
-              onClick={() =>
-                setZoom(isFullSpan(span, duration) ? DEFAULT_SPAN : fullSpan(duration))
-              }
-              title="Scroll over the render to zoom, or Ctrl and the up and down arrows. Click to fit the whole file."
+            {/* Wrapped rather than spread onto the button: greyed out on a
+                live render (see above), and a disabled control fires no
+                mouse or focus events — the hint needs a host that stays
+                live regardless of whether the button itself is. */}
+            <span
+              {...tooltipTrigger(
+                'Scroll over the render to zoom, or Ctrl and the up and down arrows. Click to fit the whole file.'
+              )}
             >
-              <span className={styles.spanLabel}>SPAN</span>
-              <span className={styles.spanValue}>{spanLabel(span, duration)}</span>
-            </button>
+              <button
+                type="button"
+                className={styles.span}
+                disabled={!scrollable || !seekable}
+                onClick={() =>
+                  setZoom(isFullSpan(span, duration) ? DEFAULT_SPAN : fullSpan(duration))
+                }
+              >
+                <span className={styles.spanLabel}>SPAN</span>
+                <span className={styles.spanValue}>{spanLabel(span, duration)}</span>
+              </button>
+            </span>
 
             {/*
               `full`, inside a fixed-width wrapper, rather than `inline`.
@@ -382,7 +392,7 @@ export function AuditoriumPage(): ReactNode {
         <Panel label="Admitted" index="03" className={styles.particulars}>
           {hasFile && source ? (
             <>
-              <p className={styles.fileName} title={source.path}>
+              <p className={styles.fileName} {...tooltipTrigger(source.path)}>
                 {source.name}
               </p>
               <FieldGrid columns={2}>

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Button } from '@renderer/components/primitives/Button'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import type { DeckAction, DeckRunner } from '../lib/deck'
 import styles from './OverlayVerbs.module.scss'
 
@@ -77,7 +78,7 @@ export function OverlayVerbs({ actions, runner, className }: OverlayVerbsProps):
           variant={lead.variant ?? 'ghost'}
           busy={runner.pending === lead.key}
           disabled={Boolean(lead.refusal)}
-          title={lead.refusal}
+          {...tooltipTrigger(lead.refusal ?? '')}
           onClick={() => void runner.run(lead)}
         >
           {lead.label}
@@ -120,7 +121,7 @@ export function OverlayVerbs({ actions, runner, className }: OverlayVerbsProps):
               variant={action.variant ?? 'ghost'}
               busy={runner.pending === action.key}
               disabled={Boolean(action.refusal)}
-              title={action.refusal}
+              {...tooltipTrigger(action.refusal ?? '')}
               onClick={() => void runner.run(action)}
             >
               {action.label}

@@ -6,6 +6,7 @@ import { Button } from '@renderer/components/primitives/Button'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { formatBytes, formatIsoDate } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { formatStamp } from '../../lib/present'
 import type { DossierTabProps } from './types'
 import { DossierGrid } from './DossierGrid'
@@ -191,7 +192,9 @@ export function DossierRecord({ project, artists }: DossierTabProps): ReactNode 
             <Button
               size="sm"
               disabled={project.missing}
-              title={project.missing ? 'The folder is not on disk' : 'Show the folder in Explorer'}
+              {...tooltipTrigger(
+                project.missing ? 'The folder is not on disk' : 'Show the folder in Explorer'
+              )}
               onClick={() => shell.reveal(project.path)}
             >
               Reveal in Explorer
@@ -250,7 +253,7 @@ export function DossierRecord({ project, artists }: DossierTabProps): ReactNode 
                     size="sm"
                     variant="ghost"
                     className={styles.appearanceOpen}
-                    title="Open this release in DISCOGRAPHY"
+                    {...tooltipTrigger('Open this release in DISCOGRAPHY')}
                     onClick={() => navigate(`/discography?release=${entry.releaseId}`)}
                   >
                     Open in DISCOGRAPHY
@@ -268,7 +271,7 @@ export function DossierRecord({ project, artists }: DossierTabProps): ReactNode 
                 */}
                 {entry.master ? (
                   <span className={styles.appearanceMaster}>
-                    <span className={styles.appearanceFile} title={entry.master.path}>
+                    <span className={styles.appearanceFile} {...tooltipTrigger(entry.master.path)}>
                       {entry.master.fileName}
                     </span>
                     <span className={styles.appearanceSize}>
@@ -277,7 +280,7 @@ export function DossierRecord({ project, artists }: DossierTabProps): ReactNode 
                     <Button
                       size="sm"
                       variant="ghost"
-                      title={entry.master.path}
+                      {...tooltipTrigger(entry.master.path)}
                       onClick={() => shell.reveal(entry.master!.path)}
                     >
                       Reveal

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import type { DeckStatus } from '../lib/deck'
 import type { KitId } from '../lib/kit'
 import { OverlayMark, type OverlayMarkName } from './icons/OverlayMark'
@@ -125,7 +126,7 @@ function Row({
         type="button"
         className={styles.select}
         aria-current={active ? 'true' : undefined}
-        title={row.purpose}
+        {...tooltipTrigger(row.purpose)}
         onClick={() => onSelect(row.id)}
       >
         <span className={styles.index}>{row.index}</span>

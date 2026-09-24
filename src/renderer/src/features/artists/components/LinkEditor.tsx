@@ -8,6 +8,7 @@ import {
 } from '@shared/domain/artists.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './LinkEditor.module.scss'
 import * as shell from '@renderer/lib/shell'
 
@@ -101,7 +102,7 @@ export function LinkEditor({ links, onChange, max, disabled = false }: LinkEdito
                 />
               ) : null}
 
-              <code className={styles.url} title={link.url}>
+              <code className={styles.url} {...tooltipTrigger(link.url)}>
                 {link.url}
               </code>
 

@@ -9,6 +9,7 @@ import {
   weekdayIndex
 } from '@shared/domain/calendar.constants'
 import { formatIsoDate, formatCountdown, todayIso } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { TimeGrid } from './TimeGrid'
 import styles from '../CalendarPage.module.scss'
 
@@ -114,7 +115,9 @@ export function DayView({
                     role="checkbox"
                     aria-checked={entry.done}
                     onClick={() => onToggleDone(entry)}
-                    title={entry.done ? 'Reopen this entry' : 'Mark this entry discharged'}
+                    {...tooltipTrigger(
+                      entry.done ? 'Reopen this entry' : 'Mark this entry discharged'
+                    )}
                   />
 
                   <button

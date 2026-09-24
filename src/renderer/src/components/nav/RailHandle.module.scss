@@ -1,0 +1,40 @@
+@use 'abstracts' as *;
+
+// Floating switch that brings the rail back once it has been put away — see
+// `RailHandle.tsx`. Fixed to the corner the rail itself used to occupy, so
+// reaching for it is reaching for where the directory was, not hunting for a
+// control folded in among the window's own buttons.
+
+.handle {
+  position: fixed;
+  top: calc(var(--ch-titlebar-height, 0px) + #{space(4)});
+  left: space(4);
+  z-index: z('chrome');
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--ch-obsidian-700);
+  border: $hairline solid var(--ch-line);
+  color: var(--ch-text-faint);
+  cursor: pointer;
+  transition:
+    background-color $duration-fast linear,
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(210, 169, 97, 0.09);
+    border-color: var(--ch-line-gold);
+    color: var(--ch-gold-300);
+  }
+
+  &:active {
+    background: rgba(210, 169, 97, 0.14);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}

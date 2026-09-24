@@ -2,6 +2,7 @@ import { useCallback, useState, type ReactNode } from 'react'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
 import { truncatePath } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { useApplySettings, useSettings } from '@renderer/hooks/useSettings'
 import styles from '../RegulationPage.module.scss'
 import * as shell from '@renderer/lib/shell'
@@ -99,7 +100,7 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
                 <button
                   type="button"
                   className={styles.pathOpen}
-                  title={`Open ${filingRoot}`}
+                  {...tooltipTrigger(`Open ${filingRoot}`)}
                   onClick={() => shell.reveal(filingRoot)}
                 >
                   {truncatePath(filingRoot, 48)}
@@ -129,7 +130,7 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
                 <button
                   type="button"
                   className={styles.pathOpen}
-                  title={`Open ${templatePath}`}
+                  {...tooltipTrigger(`Open ${templatePath}`)}
                   onClick={() => shell.reveal(templatePath)}
                 >
                   {truncatePath(templatePath, 48)}
@@ -163,7 +164,7 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
                   <button
                     type="button"
                     className={styles.pathOpen}
-                    title={`Open ${root}`}
+                    {...tooltipTrigger(`Open ${root}`)}
                     onClick={() => shell.reveal(root)}
                   >
                     {truncatePath(root, 48)}

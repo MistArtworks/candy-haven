@@ -4,6 +4,7 @@ import { getStage } from '@shared/domain/projects.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { formatBytes } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { isPlayableAudio, usePlayback } from '@renderer/app/providers/playback'
 import { ArchiveGlyph } from '../icons/ArchiveGlyph'
 import { ArchiveIcon } from '../icons/ArchiveIcon'
@@ -166,7 +167,7 @@ export function FinalMaster({ project, busy, onChoose }: FinalMasterProps): Reac
           <button
             type="button"
             className={styles.finalFile}
-            title={`${chosen} — click to show in Explorer`}
+            {...tooltipTrigger(`${chosen} — click to show in Explorer`)}
             onClick={() => shell.reveal(chosen)}
           >
             ♪ {fileName}
@@ -244,7 +245,7 @@ export function FinalMaster({ project, busy, onChoose }: FinalMasterProps): Reac
                     data-on={on || undefined}
                     data-sounding={sounding || undefined}
                     disabled={busy}
-                    title={file.path}
+                    {...tooltipTrigger(file.path)}
                     onClick={() => setStaged(file.path)}
                     // Committing on a double click too, because a grid of
                     // objects has taught the operator that two clicks means
@@ -274,9 +275,9 @@ export function FinalMaster({ project, busy, onChoose }: FinalMasterProps): Reac
                       data-on={sounding || undefined}
                       disabled={busy}
                       aria-label={sounding ? `Hold ${file.fileName}` : `Sound ${file.fileName}`}
-                      title={
+                      {...tooltipTrigger(
                         sounding ? 'Hold' : 'Sound this bounce — controls sit in the transport'
-                      }
+                      )}
                       // Kept off the tile's own click, so listening to a file
                       // does not choose it.
                       //

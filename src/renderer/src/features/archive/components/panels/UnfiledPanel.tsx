@@ -3,6 +3,7 @@ import type { ProjectQuery, ProjectSummary } from '@shared/domain/projects'
 import { PROJECT_CATEGORY_LABEL } from '@shared/domain/projects.constants'
 import { useProjectRegistry } from '@renderer/hooks/useProjects'
 import { formatBytes } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { formatRelativeDay } from '../../lib/present'
 import { resolveRange } from '../../lib/marking'
 import styles from './UnfiledPanel.module.scss'
@@ -132,7 +133,7 @@ export function UnfiledPanel({
             draggable={!disabled}
             data-missing={project.missing || undefined}
             data-marked={marked?.has(project.id) || undefined}
-            title={project.path}
+            {...tooltipTrigger(project.path)}
             onDragStart={(event) => onProjectDragStart(event, project)}
             onContextMenu={(event) => onProjectMenu(event, project)}
             // Ctrl or Shift anywhere on the row marks it, so the chords work

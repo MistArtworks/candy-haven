@@ -5,6 +5,7 @@ import { Button } from '@renderer/components/primitives/Button'
 import { Meter } from '@renderer/components/primitives/Meter'
 import { StatusDot, type StatusTone } from '@renderer/components/primitives/StatusDot'
 import { formatDuration, formatLogTime, truncatePath } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { useSettings } from '@renderer/hooks/useSettings'
 import styles from './ScanPanel.module.scss'
 
@@ -136,7 +137,7 @@ export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): Rea
       </dl>
 
       {scan.currentPath ? (
-        <p className={styles.current} title={scan.currentPath}>
+        <p className={styles.current} {...tooltipTrigger(scan.currentPath)}>
           {truncatePath(scan.currentPath, 52)}
         </p>
       ) : null}
@@ -177,7 +178,7 @@ export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): Rea
             size="sm"
             onClick={() => onScan(true)}
             disabled={!loaded || !scannable}
-            title="Re-read every set, ignoring stored analyses"
+            {...tooltipTrigger('Re-read every set, ignoring stored analyses')}
           >
             Full re-read
           </Button>
@@ -187,7 +188,7 @@ export function ScanPanel({ scan, onScan, onCancel, busy }: ScanPanelProps): Rea
           onClick={() => void conform()}
           busy={conforming}
           disabled={!loaded || running}
-          title="Stamp Ableton's project icon onto any project folder missing it"
+          {...tooltipTrigger("Stamp Ableton's project icon onto any project folder missing it")}
         >
           Conform
         </Button>

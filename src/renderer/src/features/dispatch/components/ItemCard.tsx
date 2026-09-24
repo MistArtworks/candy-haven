@@ -8,6 +8,7 @@ import {
   DISPATCH_STATUS_LABEL,
   type DispatchAuthor
 } from '@shared/domain/dispatch.constants'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { formatRelative } from '../lib/present'
 import styles from '../DispatchPage.module.scss'
 
@@ -49,7 +50,7 @@ export function ItemCard({ item, selected, unread, unseen, onOpen }: ItemCardPro
       <span className={styles.cardMarks}>
         {unseen ? <span className={styles.markNew}>NEW</span> : null}
         {unread > 0 ? (
-          <span className={styles.markUnread} title={`${unread} unread`}>
+          <span className={styles.markUnread} {...tooltipTrigger(`${unread} unread`)}>
             {unread}
           </span>
         ) : null}

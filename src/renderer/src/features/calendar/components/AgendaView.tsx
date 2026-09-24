@@ -11,6 +11,7 @@ import {
   weekdayIndex
 } from '@shared/domain/calendar.constants'
 import { MONTHS, formatCountdown, todayIso } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from '../CalendarPage.module.scss'
 
 import type { CalendarRelease } from '@shared/domain/calendar'
@@ -144,7 +145,7 @@ export function AgendaView({
               className={styles.agendaStamp}
               data-today={date === today || undefined}
               onClick={() => onInspectDate(date)}
-              title="Open this day"
+              {...tooltipTrigger('Open this day')}
             >
               <span className={styles.agendaStampDay}>{String(day).padStart(2, '0')}</span>
               <span className={styles.agendaStampMonth}>{MONTHS[month - 1]}</span>
@@ -191,7 +192,9 @@ export function AgendaView({
                       role="checkbox"
                       aria-checked={entry.done}
                       onClick={() => onToggleDone(entry)}
-                      title={entry.done ? 'Reopen this entry' : 'Mark this entry discharged'}
+                      {...tooltipTrigger(
+                        entry.done ? 'Reopen this entry' : 'Mark this entry discharged'
+                      )}
                     />
 
                     <span className={styles.agendaClock}>

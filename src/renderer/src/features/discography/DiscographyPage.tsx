@@ -26,6 +26,7 @@ import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
 import { Plate } from '@renderer/components/primitives/Plate'
 import { formatIsoDate } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { Skeleton } from '@renderer/components/primitives/Skeleton'
 import { gridVariants } from '@renderer/motion/transitions'
@@ -332,7 +333,7 @@ export function DiscographyPage(): ReactNode {
                     className={styles.lens}
                     data-on={lens === entry || undefined}
                     aria-pressed={lens === entry}
-                    title={DISCOGRAPHY_LENS_PURPOSE[entry]}
+                    {...tooltipTrigger(DISCOGRAPHY_LENS_PURPOSE[entry])}
                     onClick={() => setLens(entry)}
                   >
                     {DISCOGRAPHY_LENS_LABEL[entry]}

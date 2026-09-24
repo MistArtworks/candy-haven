@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { TagSummary } from '@shared/domain/tags'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './tags.module.scss'
 
 export interface TagChipProps {
@@ -75,7 +76,7 @@ export function TagChip({
           type="button"
           className={styles.chipRemove}
           aria-label={`Remove ${tag.name}`}
-          title={`Remove ${tag.name}`}
+          {...tooltipTrigger(`Remove ${tag.name}`)}
           disabled={disabled}
           onClick={onRemove}
         >

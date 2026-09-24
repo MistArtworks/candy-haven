@@ -13,7 +13,9 @@ import { getGuide } from '@renderer/features/catechism/content'
 import { TitleBar } from '@renderer/components/chrome/TitleBar'
 import { MiniPlayer } from '@renderer/components/chrome/MiniPlayer'
 import { Reticle } from '@renderer/components/chrome/Reticle'
+import { TooltipHost } from '@renderer/components/chrome/TooltipHost'
 import { CommandRail } from '@renderer/components/nav/CommandRail'
+import { RailHandle } from '@renderer/components/nav/RailHandle'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { consoleEnterVariants, pageVariants, sweepVariants } from '@renderer/motion/transitions'
@@ -73,6 +75,7 @@ export function ConsoleLayout(): ReactNode {
    * back to walk the directory — not a preference to carry between launches.
    */
   const [railOpen, setRailOpen] = useState(true)
+  const toggleRail = (): void => setRailOpen((open) => !open)
 
   /*
    * Ctrl+1..n walks the rail, in the order the rail is drawn.
@@ -188,12 +191,26 @@ export function ConsoleLayout(): ReactNode {
         label: 'Refresh this department',
         group: 'Global',
         run: refresh
+      },
+      {
+        /*
+         * `]` points the way the rail sits — closing toward the edge it's
+         * already against. Reaching for the mouse to bring it back defeats
+         * half the point of a keyboard toggle, so this is the one binding
+         * both switches share, rather than the masthead's alone.
+         */
+        chord: 'ctrl+]',
+        label: 'Toggle the department rail',
+        group: 'Global',
+        whileTyping: true,
+        run: () => setRailOpen((open) => !open)
       }
     ],
-    // `setGuideOpen` is listed although a setState function is stable:
-    // the compiler infers dependencies from the body, and a manual array
-    // narrower than what it infers makes it drop the memo entirely.
-    [navigate, setGuideOpen, refresh]
+    // `setGuideOpen` and `setRailOpen` are listed although a setState
+    // function is stable: the compiler infers dependencies from the body,
+    // and a manual array narrower than what it infers makes it drop the
+    // memo entirely.
+    [navigate, setGuideOpen, setRailOpen, refresh]
   )
 
   useHotkeys(navigation)
@@ -273,10 +290,10 @@ export function ConsoleLayout(): ReactNode {
         ) : null}
       </AnimatePresence>
 
-      <TitleBar railOpen={railOpen} onToggleRail={() => setRailOpen((open) => !open)} />
+      <TitleBar />
 
       <div className={styles.body}>
-        <CommandRail hidden={!railOpen} />
+        <CommandRail hidden={!railOpen} onToggleRail={toggleRail} />
 
         <main className={styles.main}>
           {/*
@@ -336,6 +353,10 @@ export function ConsoleLayout(): ReactNode {
         — and what is playing is a property of the console rather than of
         whichever department is on screen, so it belongs under the rail as well.
       */}
+      <RailHandle railOpen={railOpen} onToggleRail={toggleRail} />
+
+      <TooltipHost />
+
       <MiniPlayer />
 
       {/*

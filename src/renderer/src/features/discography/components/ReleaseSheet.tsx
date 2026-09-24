@@ -33,6 +33,7 @@ import { Plate } from '@renderer/components/primitives/Plate'
 import { useBackdropDismiss } from '@renderer/hooks/useBackdropDismiss'
 import { useEchoedText } from '@renderer/hooks/useEchoedText'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import {
   sheetResizeTransition,
   sheetTabItemVariants,
@@ -330,9 +331,9 @@ export function ReleaseSheet({
                   size="sm"
                   variant={editing ? 'primary' : 'ghost'}
                   onClick={() => setEditing((on) => !on)}
-                  title={
+                  {...tooltipTrigger(
                     editing ? 'Stop editing — everything is already saved' : 'Edit this release'
-                  }
+                  )}
                 >
                   {editing ? 'Done' : 'Edit'}
                 </Button>
@@ -554,7 +555,7 @@ export function ReleaseSheet({
                                 className={styles.chip}
                                 data-on={release.status === status || undefined}
                                 aria-pressed={release.status === status}
-                                title={RELEASE_STATUS_PURPOSE[status]}
+                                {...tooltipTrigger(RELEASE_STATUS_PURPOSE[status])}
                                 onClick={() => onPatch({ status })}
                               >
                                 {RELEASE_STATUS_LABEL[status]}
@@ -934,11 +935,11 @@ export function ReleaseSheet({
                   variant="primary"
                   busy={publishing}
                   disabled={locked}
-                  title={
+                  {...tooltipTrigger(
                     locked
                       ? 'Adopt this release first'
                       : 'Write the folder into Candy Haven\\RELEASES'
-                  }
+                  )}
                   onClick={onPublish}
                 >
                   Ready to publish

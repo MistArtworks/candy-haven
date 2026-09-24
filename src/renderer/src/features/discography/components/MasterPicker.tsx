@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useProject } from '@renderer/hooks/useProjects'
 import { Button } from '@renderer/components/primitives/Button'
 import { formatBytes } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './TrackList.module.scss'
 
 export interface MasterPickerProps {
@@ -80,7 +81,7 @@ export function MasterPicker({
                 data-on={on || undefined}
                 aria-pressed={on}
                 disabled={busy}
-                title={file.path}
+                {...tooltipTrigger(file.path)}
                 onClick={() => onChoose(on ? null : file.path)}
               >
                 <span className={styles.masterName}>{file.fileName}</span>

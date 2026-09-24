@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { MediaFile } from '@shared/domain/projects'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { formatBytes } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { formatStamp } from '../../lib/present'
 import { ArchiveGlyph } from '../icons/ArchiveGlyph'
 import type { DossierTabProps } from './types'
@@ -17,7 +18,7 @@ function FileRows({ files }: { files: readonly MediaFile[] }): ReactNode {
           <button
             type="button"
             className={styles.fileName}
-            title={file.path}
+            {...tooltipTrigger(file.path)}
             onClick={() => shell.reveal(file.path)}
           >
             {file.relativePath}
@@ -62,7 +63,7 @@ export function DossierFiles(props: DossierTabProps): ReactNode {
                 <button
                   type="button"
                   className={styles.fileName}
-                  title={set.path}
+                  {...tooltipTrigger(set.path)}
                   onClick={() => shell.reveal(set.path)}
                 >
                   {set.fileName}
@@ -118,7 +119,7 @@ export function DossierFiles(props: DossierTabProps): ReactNode {
                 <button
                   type="button"
                   className={styles.fileName}
-                  title={revision.path}
+                  {...tooltipTrigger(revision.path)}
                   onClick={() => shell.reveal(revision.path)}
                 >
                   {revision.fileName}
@@ -194,7 +195,7 @@ export function DossierFiles(props: DossierTabProps): ReactNode {
           <div className={styles.fileList}>
             {project.missingSamples.map((path) => (
               <div key={path} className={styles.file}>
-                <span className={styles.fileName} title={path}>
+                <span className={styles.fileName} {...tooltipTrigger(path)}>
                   {path}
                 </span>
               </div>

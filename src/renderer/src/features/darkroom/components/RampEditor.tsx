@@ -2,6 +2,7 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNod
 import type { RampStop } from '@shared/domain/darkroom'
 import { buildRampTable, toHex } from '@shared/domain/darkroom'
 import { Button } from '@renderer/components/primitives/Button'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from '../DarkroomPage.module.scss'
 
 export interface RampEditorProps {
@@ -169,7 +170,7 @@ export function RampEditor({ stops, onChange }: RampEditorProps): ReactNode {
             type="button"
             className={styles.swatch}
             style={{ background: entry.hex }}
-            title={`${entry.name} · ${entry.hex}`}
+            {...tooltipTrigger(`${entry.name} · ${entry.hex}`)}
             aria-label={entry.name}
             data-on={sorted[active]?.colour === entry.hex || undefined}
             onClick={() => recolour(entry.hex)}

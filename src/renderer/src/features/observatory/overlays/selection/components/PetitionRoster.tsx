@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { Petition, RiteState } from '@shared/domain/rite'
 import { MAX_PETITIONS, petitionOdds } from '@shared/domain/rite.constants'
 import { Button } from '@renderer/components/primitives/Button'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import type { RiteActions } from '@renderer/hooks/useRite'
 import styles from './PetitionRoster.module.scss'
 
@@ -137,7 +138,7 @@ function RosterRow({
           and the announced result, so it leads the row. */}
       <span className={styles.index}>{String(index + 1).padStart(2, '0')}</span>
 
-      <span className={styles.label} title={petition.label}>
+      <span className={styles.label} {...tooltipTrigger(petition.label)}>
         {petition.label}
       </span>
 

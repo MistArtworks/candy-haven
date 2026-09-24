@@ -27,6 +27,7 @@ import { Panel } from '@renderer/components/primitives/Panel'
 import { Plate } from '@renderer/components/primitives/Plate'
 import { gridVariants } from '@renderer/motion/transitions'
 import { formatBytes, formatCountdown, formatIsoDate } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from '../DiscographyPage.module.scss'
 import * as shell from '@renderer/lib/shell'
 
@@ -182,13 +183,13 @@ export function ReleaseDetails({
               draws a project's figures.
             */}
             <div className={styles.heroFigures}>
-              <span className={styles.heroFigureKind} title="Kind">
+              <span className={styles.heroFigureKind} {...tooltipTrigger('Kind')}>
                 {RELEASE_KIND_LABEL[release.kind]}
               </span>
-              <span className={styles.heroFigure} title="Status">
+              <span className={styles.heroFigure} {...tooltipTrigger('Status')}>
                 {RELEASE_STATUS_LABEL[release.status]}
               </span>
-              <span className={styles.heroFigure} title="Release date">
+              <span className={styles.heroFigure} {...tooltipTrigger('Release date')}>
                 {formatIsoDate(release.releaseDate)}
               </span>
               {/*
@@ -196,11 +197,14 @@ export function ReleaseDetails({
                 out the countdown is history and the date above says it.
               */}
               {out ? null : (
-                <span className={`${styles.heroFigure} ${styles.detailsLive}`} title="Countdown">
+                <span
+                  className={`${styles.heroFigure} ${styles.detailsLive}`}
+                  {...tooltipTrigger('Countdown')}
+                >
                   {formatCountdown(release.releaseDate)}
                 </span>
               )}
-              <span className={styles.heroFigure} title="Running order">
+              <span className={styles.heroFigure} {...tooltipTrigger('Running order')}>
                 {order.length} track{order.length === 1 ? '' : 's'}
               </span>
             </div>
@@ -362,7 +366,7 @@ function Artefacts({ release }: { release: DiscographyRelease }): ReactNode {
           data-on={showing === 'canvas' || undefined}
           aria-pressed={showing === 'canvas'}
           disabled={!canvasPath}
-          title={canvasPath ?? 'No canvas attached'}
+          {...tooltipTrigger(canvasPath ?? 'No canvas attached')}
           onClick={() => setFacet('canvas')}
         >
           Canvas
@@ -373,7 +377,7 @@ function Artefacts({ release }: { release: DiscographyRelease }): ReactNode {
             size="sm"
             variant="ghost"
             className={styles.heroReveal}
-            title={reveal}
+            {...tooltipTrigger(reveal)}
             onClick={() => shell.reveal(reveal)}
           >
             Reveal
@@ -557,7 +561,7 @@ function TrackRow({
               type="button"
               className={styles.detailsTrackFrom}
               onClick={() => onOpenRelease(track.releaseId as string)}
-              title={`Open ${fromTitle}`}
+              {...tooltipTrigger(`Open ${fromTitle}`)}
             >
               Open {fromTitle}
             </button>
@@ -573,14 +577,14 @@ function TrackRow({
       */}
       {track.master ? (
         <span className={styles.detailsTrackMaster}>
-          <span className={styles.detailsTrackFile} title={track.master.path}>
+          <span className={styles.detailsTrackFile} {...tooltipTrigger(track.master.path)}>
             ♪ {track.master.fileName}
           </span>
           <span className={styles.detailsTrackBytes}>{formatBytes(track.master.sizeBytes)}</span>
           <Button
             size="sm"
             variant="ghost"
-            title={track.master.path}
+            {...tooltipTrigger(track.master.path)}
             onClick={() => shell.reveal(track.master!.path)}
           >
             Reveal
@@ -612,7 +616,12 @@ function AddressSlot({
     <span className={styles.detailsSlot}>
       <span className={styles.detailsSlotLabel}>{label}</span>
       {url ? (
-        <Button size="sm" variant="ghost" title={url} onClick={() => shell.openExternal(url)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          {...tooltipTrigger(url)}
+          onClick={() => shell.openExternal(url)}
+        >
           Open
         </Button>
       ) : (

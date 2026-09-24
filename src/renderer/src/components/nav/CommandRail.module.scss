@@ -58,10 +58,36 @@
   min-width: space(2);
 }
 
-.mastheadCount {
-  @include readout(9px);
-  color: var(--ch-text-faint);
+// The rail's own copy of the title bar's rail switch — see `.control` in
+// TitleBar.module.scss, whose hover lamp this borrows so the two read as one
+// switch with two reaches, not two different controls that happen to agree.
+.mastheadToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: none;
+  color: var(--ch-text-faint);
+  cursor: pointer;
+  transition:
+    background-color $duration-fast linear,
+    color $duration-fast linear;
+
+  &:hover {
+    background: rgba(210, 169, 97, 0.09);
+    color: var(--ch-gold-300);
+  }
+
+  &:active {
+    background: rgba(210, 169, 97, 0.14);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
 }
 
 // -------------------------------------------------------------------- groups
@@ -86,21 +112,56 @@
 
 // The heading row, as a button — same layout the old, inert heading drew, now
 // pressable. One division open at a time; see `toggleGroup`.
+//
+// Reads as furniture rather than as a control until it has to: at rest it is
+// still a rule with a word on it, matching the masthead above it exactly.
+// What changes is the hover — the lamp borrowed from the title bar's own
+// switches, filling in from the centre — so the row only announces itself as
+// pressable when a hand is actually over it, rather than standing out from
+// the rest of the directory all the time.
 .groupToggle {
+  position: relative;
   display: flex;
   align-items: center;
   width: 100%;
   gap: space(3);
-  padding: 0 space(5) space(2);
+  padding: space(2) space(5);
   background: none;
   border: none;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background-color $duration-fast linear;
 
-  &:hover .groupLabel {
-    color: var(--ch-text-secondary);
+  &::before {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 1px;
+    background: var(--ch-gold-300);
+    transform: scaleX(0);
+    transition: transform $duration-fast $ease-out-expo;
+  }
+
+  &:hover {
+    background: rgba(210, 169, 97, 0.05);
+  }
+
+  &:hover .groupLabel,
+  &:focus-visible .groupLabel,
+  &:hover .groupChevron,
+  &:focus-visible .groupChevron {
+    color: var(--ch-gold-300);
+  }
+
+  &:hover::before,
+  &:focus-visible::before {
+    transform: scaleX(1);
+  }
+
+  &:active {
+    background: rgba(210, 169, 97, 0.09);
   }
 
   &:focus-visible {
@@ -113,9 +174,11 @@
 // this desktop.
 .groupChevron {
   flex-shrink: 0;
-  color: var(--ch-text-faint);
+  color: var(--ch-text-muted);
   transform: rotate(-90deg);
-  transition: transform $duration-base $ease-out-expo;
+  transition:
+    transform $duration-base $ease-out-expo,
+    color $duration-fast linear;
 
   &[data-open] {
     transform: rotate(0deg);

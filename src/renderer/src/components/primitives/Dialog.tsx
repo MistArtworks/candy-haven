@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import { Portal } from './Portal'
 import { Button } from './Button'
 import { useDialogKeys } from '@renderer/hooks/useDialogKeys'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './Dialog.module.scss'
 
 export interface DialogProps {
@@ -83,7 +84,7 @@ export function Dialog({
           <header className={styles.head}>
             <span className={styles.title}>{title}</span>
             {subtitle ? (
-              <span className={styles.subtitle} title={subtitle}>
+              <span className={styles.subtitle} {...tooltipTrigger(subtitle)}>
                 {subtitle}
               </span>
             ) : null}
@@ -170,7 +171,7 @@ export function DialogChip({ on, label, title, disabled, onClick }: DialogChipPr
       className={styles.chip}
       data-on={on || undefined}
       aria-pressed={on}
-      title={title}
+      {...tooltipTrigger(title ?? '')}
       disabled={disabled}
       onClick={onClick}
     >

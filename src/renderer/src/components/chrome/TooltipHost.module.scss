@@ -1,0 +1,21 @@
+@use 'abstracts' as *;
+
+// The hint, drawn as the same small dark chip as everywhere else this
+// interface floats something over the page. See Select.module.scss's
+// `.list` for the sibling this is styled after.
+
+.tip {
+  position: fixed;
+  z-index: z('tooltip');
+  max-width: 240px;
+  padding: space(2) space(3);
+  background: var(--ch-obsidian-800);
+  color: var(--ch-text-secondary);
+  font-size: rem(11px);
+  line-height: 1.35;
+  @include hairline(all, 0.2);
+  box-shadow: var(--ch-shadow-panel);
+  // A hint is read, never clicked — including by the pointer that is
+  // currently hovering the trigger underneath it.
+  pointer-events: none;
+}

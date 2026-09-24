@@ -5,6 +5,7 @@ import type { ArchiveState } from '@shared/domain/archive'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import { useRuntimeInfo } from '@renderer/hooks/useRuntimeInfo'
 import { formatDuration } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { GenesisField, type PointerLean } from './GenesisField'
 import { MandalaRings } from './MandalaRings'
 import { GalaxyScene } from './scenes/GalaxyScene'
@@ -416,7 +417,7 @@ export function NexusLanding({
                   key={material.name}
                   className={styles.swatch}
                   style={{ background: material.token }}
-                  title={material.name}
+                  {...tooltipTrigger(material.name)}
                 />
               ))}
             </div>
@@ -466,7 +467,7 @@ export function NexusLanding({
           <button
             type="button"
             className={styles.scenePickerItem}
-            title="Back to a different field on every launch"
+            {...tooltipTrigger('Back to a different field on every launch')}
             onClick={() => pinScene(null)}
           >
             unpin

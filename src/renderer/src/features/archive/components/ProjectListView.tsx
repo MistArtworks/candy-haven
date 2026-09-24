@@ -2,6 +2,7 @@ import type { DragEvent, MouseEvent, ReactNode } from 'react'
 import type { ProjectSummary } from '@shared/domain/projects'
 import { PROJECT_CATEGORY_LABEL } from '@shared/domain/projects.constants'
 import { formatBytes } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { StageBadge } from './StageBadge'
 import { formatKey, formatRelativeDay, formatTempo } from '../lib/present'
 import styles from './ProjectListView.module.scss'
@@ -148,7 +149,7 @@ export function ProjectListView({
                     data-on={project.favourite || undefined}
                     aria-pressed={project.favourite}
                     aria-label={project.favourite ? 'Remove favourite' : 'Favourite'}
-                    title={project.favourite ? 'Remove favourite' : 'Favourite'}
+                    {...tooltipTrigger(project.favourite ? 'Remove favourite' : 'Favourite')}
                     onClick={(event) => {
                       // The whole row opens the dossier. Without this, marking
                       // a favourite would also open it.

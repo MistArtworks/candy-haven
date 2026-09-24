@@ -16,6 +16,7 @@ import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { formatIsoDate, todayIso } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { CALENDAR_VIEW, CALENDAR_VIEWS, isCalendarView, type CalendarView } from './views'
@@ -282,7 +283,7 @@ export function CalendarPage(): ReactNode {
               className={styles.viewItem}
               data-active={id === view || undefined}
               aria-current={id === view ? 'page' : undefined}
-              title={CALENDAR_VIEW[id].purpose}
+              {...tooltipTrigger(CALENDAR_VIEW[id].purpose)}
               onClick={() => selectView(id)}
             >
               <span className={styles.viewIndex}>{String(index + 1).padStart(2, '0')}</span>

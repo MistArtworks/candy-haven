@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { FOLDER_SWATCHES, isHexColour, normaliseHex } from '@shared/domain/stacks.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './stacks.module.scss'
 
 export interface SwatchPickerProps {
@@ -63,7 +64,7 @@ export function SwatchPicker({
             style={{ '--swatch': swatch.hex } as CSSProperties}
             data-selected={selected === swatch.hex.toLowerCase() || undefined}
             aria-pressed={selected === swatch.hex.toLowerCase()}
-            title={swatch.label}
+            {...tooltipTrigger(swatch.label)}
             aria-label={swatch.label}
             onClick={() => apply(swatch.hex)}
           />

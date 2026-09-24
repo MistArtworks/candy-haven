@@ -2,17 +2,13 @@ import { useState, type ReactNode } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import {
-  SECTIONS,
-  getSectionByPath,
-  getSectionGroups,
-  type SectionGroupId
-} from '@shared/domain/navigation'
+import { getSectionByPath, getSectionGroups, type SectionGroupId } from '@shared/domain/navigation'
 import { APP_SUBTITLE } from '@shared/constants'
 import { formatIndex } from '@renderer/lib/format'
 import { useSystemStore, selectArchive, selectUpdate } from '@renderer/app/store/system.store'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import { sheetResizeTransition } from '@renderer/motion/transitions'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './CommandRail.module.scss'
 
 /**
@@ -35,9 +31,15 @@ import styles from './CommandRail.module.scss'
 export interface CommandRailProps {
   /** Collapsed to zero width when the operator has hidden it. See `TitleBar`. */
   hidden?: boolean
+  /**
+   * Puts the rail away. The masthead's own switch, beside the switch in the
+   * title bar that is the only way to bring it back — the two share one
+   * handler because they share one piece of state.
+   */
+  onToggleRail: () => void
 }
 
-export function CommandRail({ hidden = false }: CommandRailProps): ReactNode {
+export function CommandRail({ hidden = false, onToggleRail }: CommandRailProps): ReactNode {
   const location = useLocation()
   const animating = useAnimationsEnabled()
   const update = useSystemStore(selectUpdate)
@@ -61,7 +63,6 @@ export function CommandRail({ hidden = false }: CommandRailProps): ReactNode {
   }
   const archive = useSystemStore(selectArchive)
   const updateReady = update?.state === 'downloaded' || update?.state === 'available'
-  const commissioned = SECTIONS.filter((section) => section.implemented).length
   const groups = getSectionGroups()
   const activeSection = getSectionByPath(location.pathname)
 
@@ -112,25 +113,39 @@ export function CommandRail({ hidden = false }: CommandRailProps): ReactNode {
     >
       <div className={styles.top}>
         {/* Directory masthead — gives the list a header rule to sit under,
-            matching how every panel in the console is titled. */}
+            matching how every panel in the console is titled. Where the
+            department count used to sit is now the rail's own put-away
+            switch — the only one, since putting it away is a gesture this
+            masthead is right there for. Bringing it back is `RailHandle`'s
+            job, once there is no rail left to reach into. */}
         <header className={styles.masthead}>
           <span className={styles.mastheadLabel}>Directory</span>
           <span className={styles.mastheadRule} aria-hidden="true" />
-          <span className={styles.mastheadCount}>
-            {formatIndex(commissioned)}/{formatIndex(SECTIONS.length)}
-          </span>
+          <button
+            type="button"
+            className={styles.mastheadToggle}
+            onClick={onToggleRail}
+            aria-label="Hide the department rail"
+            {...tooltipTrigger('Hide the rail (Ctrl+])')}
+          >
+            {/* The rail's trailing edge, folding away to the left. */}
+            <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" fill="none">
+              <line x1="9.4" y1="2.2" x2="9.4" y2="9.8" stroke="currentColor" strokeWidth="1" />
+              <path
+                d="M7.2 3.7 4.6 6 7.2 8.3"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="square"
+              />
+            </svg>
+          </button>
         </header>
 
         {groups.map((group) => {
           const open = openGroupId === group.definition.id
 
           return (
-            <motion.section
-              key={group.definition.id}
-              className={styles.group}
-              layout={animating ? true : undefined}
-              transition={animating ? sheetResizeTransition : { duration: 0 }}
-            >
+            <section key={group.definition.id} className={styles.group}>
               {/* The division heading is a rule with a word on it — the same
                   furniture as the masthead above, one order quieter — and now
                   the disclosure for its own list. */}
@@ -140,7 +155,7 @@ export function CommandRail({ hidden = false }: CommandRailProps): ReactNode {
                   className={styles.groupToggle}
                   onClick={() => toggleGroup(group.definition.id)}
                   aria-expanded={open}
-                  title={group.definition.purpose}
+                  {...tooltipTrigger(group.definition.purpose)}
                 >
                   <span className={styles.groupLabel}>{group.definition.label}</span>
                   <span className={styles.groupRule} aria-hidden="true" />
@@ -148,15 +163,15 @@ export function CommandRail({ hidden = false }: CommandRailProps): ReactNode {
                     className={styles.groupChevron}
                     data-open={open || undefined}
                     viewBox="0 0 12 12"
-                    width="8"
-                    height="8"
+                    width="10"
+                    height="10"
                     aria-hidden="true"
                     fill="none"
                   >
                     <path
                       d="M3.6 4.1 6 6.5 8.4 4.1"
                       stroke="currentColor"
-                      strokeWidth="1"
+                      strokeWidth="1.3"
                       strokeLinecap="square"
                     />
                   </svg>
@@ -168,10 +183,10 @@ export function CommandRail({ hidden = false }: CommandRailProps): ReactNode {
                   <motion.ul
                     key="list"
                     className={styles.list}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.14 }}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={animating ? sheetResizeTransition : { duration: 0 }}
                   >
                     {group.sections.map((section) => (
                       <li key={section.id}>
@@ -206,12 +221,12 @@ export function CommandRail({ hidden = false }: CommandRailProps): ReactNode {
                               <span
                                 className={styles.state}
                                 data-reserved={!section.implemented || undefined}
-                                title={
+                                aria-label={section.implemented ? 'In service' : 'Reserved'}
+                                {...tooltipTrigger(
                                   section.implemented
                                     ? 'In service'
                                     : 'Reserved — not yet in service'
-                                }
-                                aria-label={section.implemented ? 'In service' : 'Reserved'}
+                                )}
                               />
                             </>
                           )}
@@ -221,7 +236,7 @@ export function CommandRail({ hidden = false }: CommandRailProps): ReactNode {
                   </motion.ul>
                 ) : null}
               </AnimatePresence>
-            </motion.section>
+            </section>
           )
         })}
       </div>

@@ -11,6 +11,7 @@ import { DEFAULT_FOLDER_COLOUR, validateFolderName } from '@shared/domain/stacks
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { SwatchPicker } from '../stacks/SwatchPicker'
 import styles from '../stacks/stacks.module.scss'
 
@@ -81,7 +82,7 @@ export function ProjectDialog({
         >
           <header className={styles.dialogHead}>
             <span className={styles.dialogTitle}>New project</span>
-            <span className={styles.dialogWhere} title={where}>
+            <span className={styles.dialogWhere} {...tooltipTrigger(where)}>
               {where}
             </span>
           </header>
@@ -112,7 +113,7 @@ export function ProjectDialog({
                     className={styles.chip}
                     data-selected={category === entry || undefined}
                     aria-pressed={category === entry}
-                    title={PROJECT_CATEGORY_PURPOSE[entry]}
+                    {...tooltipTrigger(PROJECT_CATEGORY_PURPOSE[entry])}
                     onClick={() => setCategory(entry)}
                   >
                     {PROJECT_CATEGORY_LABEL[entry]}

@@ -11,6 +11,7 @@ import type { ProjectSummary } from '@shared/domain/projects'
 import { AUDIO_EXTENSIONS } from '@shared/domain/projects.constants'
 import { Button } from '@renderer/components/primitives/Button'
 import { formatBytes } from '@renderer/lib/format'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { MasterPicker } from './MasterPicker'
 import { ReleasePicker } from './ReleasePicker'
 import styles from './TrackList.module.scss'
@@ -223,6 +224,11 @@ export function TrackList({
             const credits = track.artistIds
               .map((id) => names.get(id))
               .filter((name): name is string => Boolean(name))
+            // Held rather than spread: the master row has an `onKeyDown` of
+            // its own, and the hint's has to be called from inside it.
+            const masterTip = tooltipTrigger(
+              track.master ? `${track.master.path} — click to show in Explorer` : ''
+            )
 
             return (
               <li key={track.id} className={styles.track}>
@@ -244,7 +250,7 @@ export function TrackList({
                       than showing an empty slot that reads as a fault.
                     */}
                     {project ? (
-                      <span className={styles.linked} title={project.path}>
+                      <span className={styles.linked} {...tooltipTrigger(project.path)}>
                         ◆ {project.name}
                       </span>
                     ) : track.projectId ? (
@@ -274,7 +280,7 @@ export function TrackList({
                           type="button"
                           className={styles.collectedLink}
                           onClick={() => onOpenRelease(track.releaseId as string)}
-                          title={`Open ${titles.get(track.releaseId)}`}
+                          {...tooltipTrigger(`Open ${titles.get(track.releaseId)}`)}
                         >
                           From {titles.get(track.releaseId)}
                         </button>
@@ -287,7 +293,7 @@ export function TrackList({
                       <span
                         className={styles.isrc}
                         data-bad={!isValidIsrc(track.isrc) || undefined}
-                        title={isValidIsrc(track.isrc) ? undefined : 'Not a valid ISRC'}
+                        {...tooltipTrigger(isValidIsrc(track.isrc) ? '' : 'Not a valid ISRC')}
                       >
                         {formatIsrc(track.isrc)}
                       </span>
@@ -317,13 +323,14 @@ export function TrackList({
                         className={styles.master}
                         role="button"
                         tabIndex={0}
-                        title={`${track.master.path} — click to show in Explorer`}
                         onClick={() => shell.reveal(track.master!.path)}
+                        {...masterTip}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
                             shell.reveal(track.master!.path)
                           }
+                          masterTip.onKeyDown(event)
                         }}
                       >
                         ♪ {track.master.fileName}

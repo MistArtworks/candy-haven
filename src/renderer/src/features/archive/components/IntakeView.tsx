@@ -4,6 +4,7 @@ import type { ArchiveFolder } from '@shared/domain/stacks'
 import type { ProjectSummary } from '@shared/domain/projects'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { getStage } from '@shared/domain/projects.constants'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { TileGrid, type Tile } from './tiles/TileGrid'
 import { describeFolder } from './tiles/describe'
 import { FolderTrail } from './stacks/FolderTrail'
@@ -404,7 +405,7 @@ export function IntakeView({
                   type="button"
                   className={styles.root}
                   data-selected={isUnder(source, root) || undefined}
-                  title={root}
+                  {...tooltipTrigger(root)}
                   onClick={() => setChosen(root)}
                 >
                   {labelRoots(roots)[root]}
@@ -426,7 +427,7 @@ export function IntakeView({
                     type="button"
                     className={shelf.crumb}
                     data-current={index === crumbs.length - 1 || undefined}
-                    title={crumb.path}
+                    {...tooltipTrigger(crumb.path)}
                     onClick={() => setChosen(crumb.path)}
                   >
                     {crumb.name}
@@ -480,11 +481,11 @@ export function IntakeView({
                     type="button"
                     className={styles.selectionFile}
                     disabled={disabled || destination === null}
-                    title={
+                    {...tooltipTrigger(
                       destination === null
                         ? 'Open a shelf in the right-hand pane first'
                         : `File ${marked.size} into ${trail.at(-1)?.name ?? 'this shelf'}`
-                    }
+                    )}
                     onClick={() => fileHere([...marked], destination)}
                   >
                     File {marked.size} into {trail.at(-1)?.name?.toUpperCase() ?? 'SHELF'}

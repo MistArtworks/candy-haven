@@ -16,6 +16,7 @@ import {
 } from '@shared/domain/stacks.constants'
 import type { TagSummary } from '@shared/domain/tags'
 import { SearchInput } from '@renderer/components/primitives/Input'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { TagChip } from './tags/TagChip'
 import styles from './RegisterControls.module.scss'
 
@@ -156,7 +157,7 @@ export function RegisterControls({
             className={styles.segment}
             data-selected={lens === mode || undefined}
             aria-pressed={lens === mode}
-            title={ARCHIVE_LENS_PURPOSE[mode]}
+            {...tooltipTrigger(ARCHIVE_LENS_PURPOSE[mode])}
             onClick={() => onLensChange(mode)}
           >
             {ARCHIVE_LENS_LABEL[mode]}
@@ -234,7 +235,7 @@ export function RegisterControls({
                     data-selected={filters.categories.includes(category) || undefined}
                     data-empty={(categoryCounts[category] ?? 0) === 0 || undefined}
                     aria-pressed={filters.categories.includes(category)}
-                    title={PROJECT_CATEGORY_PURPOSE[category]}
+                    {...tooltipTrigger(PROJECT_CATEGORY_PURPOSE[category])}
                     onClick={() =>
                       onChange({ ...filters, categories: toggle(filters.categories, category) })
                     }
@@ -256,7 +257,7 @@ export function RegisterControls({
                     data-selected={filters.stages.includes(stage.id) || undefined}
                     data-empty={(stageCounts[stage.id] ?? 0) === 0 || undefined}
                     aria-pressed={filters.stages.includes(stage.id)}
-                    title={stage.purpose}
+                    {...tooltipTrigger(stage.purpose)}
                     onClick={() =>
                       onChange({ ...filters, stages: toggle(filters.stages, stage.id) })
                     }
@@ -285,7 +286,7 @@ export function RegisterControls({
                   className={styles.filterChip}
                   data-selected={filters.includeMissing || undefined}
                   aria-pressed={filters.includeMissing}
-                  title="Show projects whose folder was not found in the last scan"
+                  {...tooltipTrigger('Show projects whose folder was not found in the last scan')}
                   onClick={() => onChange({ ...filters, includeMissing: !filters.includeMissing })}
                 >
                   Missing

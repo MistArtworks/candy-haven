@@ -8,6 +8,7 @@ import {
   totalTally
 } from '@shared/domain/concord.constants'
 import { Button } from '@renderer/components/primitives/Button'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import type { ConcordActions } from '@renderer/hooks/useConcord'
 import styles from './OptionRoster.module.scss'
 
@@ -166,7 +167,7 @@ function RosterRow({
       */}
       <span className={styles.token}>{option.token}</span>
 
-      <span className={styles.label} title={option.label}>
+      <span className={styles.label} {...tooltipTrigger(option.label)}>
         {option.label}
       </span>
 

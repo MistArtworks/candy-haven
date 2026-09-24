@@ -8,6 +8,7 @@ import {
   WRAPPER_DIRECTORY_NAME
 } from '@shared/domain/stacks.constants'
 import { Button } from '@renderer/components/primitives/Button'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './SetupGate.module.scss'
 
 /** Case-insensitive path compare — Windows treats two spellings as one folder. */
@@ -195,7 +196,7 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
             are now.
           </p>
           <div className={styles.stepAction}>
-            <span className={styles.value} title={root ?? undefined}>
+            <span className={styles.value} {...tooltipTrigger(root ?? '')}>
               {root ?? 'Not chosen'}
             </span>
             {/*
@@ -234,7 +235,7 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
             rebuild each time.
           </p>
           <div className={styles.stepAction}>
-            <span className={styles.value} title={template ?? undefined}>
+            <span className={styles.value} {...tooltipTrigger(template ?? '')}>
               {template ?? 'Not chosen'}
             </span>
             <Button size="sm" onClick={chooseTemplate} busy={choosing === 'template'}>
@@ -259,7 +260,7 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
             <ul className={styles.sourceList}>
               {savedSources.map((source) => (
                 <li key={`saved:${source}`} className={styles.source}>
-                  <span className={styles.value} title={source}>
+                  <span className={styles.value} {...tooltipTrigger(source)}>
                     {source}
                   </span>
                   <span className={styles.provenance}>Already set</span>
@@ -267,7 +268,7 @@ export function SetupGate({ state, busy, error, onSubmit }: SetupGateProps): Rea
               ))}
               {pendingSources.map((source) => (
                 <li key={source} className={styles.source}>
-                  <span className={styles.value} title={source}>
+                  <span className={styles.value} {...tooltipTrigger(source)}>
                     {source}
                   </span>
                   <button

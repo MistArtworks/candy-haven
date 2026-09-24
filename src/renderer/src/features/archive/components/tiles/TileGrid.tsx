@@ -8,6 +8,7 @@ import {
 import { motion } from 'motion/react'
 import { gridVariants, panelVariants } from '@renderer/motion/transitions'
 import { useArtwork } from '@renderer/hooks/useProjects'
+import { tooltipTrigger, type TooltipTrigger } from '@renderer/lib/tooltip'
 import { ArchiveIcon, type ArchiveMark } from '../icons/ArchiveIcon'
 import { resolveRange } from '../../lib/marking'
 import {
@@ -64,7 +65,7 @@ export interface Tile {
   facets?: readonly TileFacet[]
   colour?: string
   favourite?: boolean
-  /** Full path or other identifier, shown as the native tooltip. */
+  /** Full path or other identifier, shown as the tile's hover hint. */
   title?: string
   /** Marks the shelf the browser is standing in; opens the folder lid. */
   open?: boolean
@@ -158,6 +159,18 @@ export interface TileGridProps {
   /** Omitted leaves the corner mark passive rather than clickable. */
   onToggleFavourite?: (id: string) => void
   disabled?: boolean
+}
+
+/**
+ * The hint a tile carries — its own `title` when it has one, else its name.
+ *
+ * Named rather than written inline because the tile both spreads it and has a
+ * keydown handler of its own, so the two cannot be one expression. Calling it
+ * twice costs nothing: the handlers close over the label and nothing else, and
+ * the state behind them is module-level. See `tooltipTrigger`.
+ */
+function tileTip(tile: Tile): TooltipTrigger {
+  return tooltipTrigger(tile.title ?? tile.name)
 }
 
 /**
@@ -275,7 +288,7 @@ export function TileGrid({
           data-dragging={dragging === tile.id || undefined}
           data-selected={selectedId === tile.id || undefined}
           data-marked={marked?.has(tile.id) || undefined}
-          title={tile.title ?? tile.name}
+          {...tileTip(tile)}
           onClick={(event) => {
             /*
              * Shift marks a run, Ctrl/Cmd marks one, a plain click navigates.
@@ -341,6 +354,9 @@ export function TileGrid({
               event.preventDefault()
               onOpen(tile.id)
             }
+            // Handed on rather than overwritten: the spread above carries a
+            // keydown of its own, and Escape has to keep putting the hint away.
+            tileTip(tile).onKeyDown(event)
           }}
           /*
             Capture-phase handlers throughout, because this is a motion
@@ -406,7 +422,7 @@ export function TileGrid({
               data-on={tile.favourite || undefined}
               aria-pressed={tile.favourite ?? false}
               aria-label={tile.favourite ? 'Remove favourite' : 'Favourite'}
-              title={tile.favourite ? 'Remove favourite' : 'Favourite'}
+              {...tooltipTrigger(tile.favourite ? 'Remove favourite' : 'Favourite')}
               onClick={(event) => {
                 event.stopPropagation()
                 onToggleFavourite(tile.id)
@@ -440,7 +456,7 @@ export function TileGrid({
               role="checkbox"
               aria-checked={marked?.has(tile.id) ?? false}
               aria-label={`Mark ${tile.name}`}
-              title={`Mark ${tile.name}`}
+              {...tooltipTrigger(`Mark ${tile.name}`)}
               onClick={(event) => {
                 event.stopPropagation()
                 // Shift extends from the anchor even when the gesture began on

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RELEASE_KIND_LABEL, type ReleaseKind } from '@shared/domain/discography.constants'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { anniversaryLabel, type CalendarAnniversary } from '../anniversaries'
 import styles from '../CalendarPage.module.scss'
 
@@ -41,9 +42,11 @@ export function AnniversaryMark({ anniversary, terse = false }: AnniversaryMarkP
       type="button"
       className={styles.releaseMark}
       data-anniversary=""
-      title={`${anniversary.title} — ${kind}, out ${anniversary.years} ${
-        anniversary.years === 1 ? 'year' : 'years'
-      } ago today. Open in DISCOGRAPHY`}
+      {...tooltipTrigger(
+        `${anniversary.title} — ${kind}, out ${anniversary.years} ${
+          anniversary.years === 1 ? 'year' : 'years'
+        } ago today. Open in DISCOGRAPHY`
+      )}
       onClick={() => navigate(`/discography?release=${anniversary.releaseId}`)}
     >
       {/* Hollow, against the release mark's filled seal. The record went out

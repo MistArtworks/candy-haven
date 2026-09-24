@@ -4,6 +4,7 @@ import type { ProjectStage } from '@shared/domain/projects'
 import { evaluateReadiness, getStage } from '@shared/domain/projects.constants'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { ArchiveGlyph } from './icons/ArchiveGlyph'
 import { useProject, useProjectMutations, useProjectRegistry } from '@renderer/hooks/useProjects'
 import { useTagMutations, useTags } from '@renderer/hooks/useTags'
@@ -257,7 +258,9 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                       data-on={project.favourite || undefined}
                       aria-pressed={project.favourite}
                       aria-label="Favourite"
-                      title={project.favourite ? 'Remove from favourites' : 'Mark as a favourite'}
+                      {...tooltipTrigger(
+                        project.favourite ? 'Remove from favourites' : 'Mark as a favourite'
+                      )}
                       onClick={() =>
                         mutations.patch.mutate({
                           id: projectId,
@@ -310,19 +313,22 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                     Four attempts at siting a dropdown up here failed for
                     exactly that reason; see `StageStrip`.
                   */}
-                  <span className={styles.figure} title={getStage(project.stage).purpose}>
+                  <span
+                    className={styles.figure}
+                    {...tooltipTrigger(getStage(project.stage).purpose)}
+                  >
                     <span className={styles.figureStage}>{getStage(project.stage).label}</span>
                   </span>
 
                   {analysis?.tempo != null ? (
-                    <span className={styles.figure} title="Tempo">
+                    <span className={styles.figure} {...tooltipTrigger('Tempo')}>
                       <span className={styles.figureValue}>{formatTempo(analysis.tempo)}</span>
                       <span className={styles.figureUnit}>BPM</span>
                     </span>
                   ) : null}
 
                   {analysis?.key ? (
-                    <span className={styles.figure} title="Song key">
+                    <span className={styles.figure} {...tooltipTrigger('Song key')}>
                       <span className={styles.figureValue}>{formatKey(analysis.key)}</span>
                     </span>
                   ) : null}
@@ -339,7 +345,7 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                   {analysis?.arrangementSeconds ? (
                     <span
                       className={styles.figure}
-                      title="Length, estimated from the furthest clip"
+                      {...tooltipTrigger('Length, estimated from the furthest clip')}
                     >
                       <ArchiveGlyph name="duration" className={styles.figureGlyph} />
                       <span className={styles.figureValue}>
@@ -406,7 +412,9 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                     size="sm"
                     icon={<ArchiveGlyph name="shelf" />}
                     disabled={open.missing}
-                    title={open.missing ? 'The folder is not on disk' : 'Open the project folder'}
+                    {...tooltipTrigger(
+                      open.missing ? 'The folder is not on disk' : 'Open the project folder'
+                    )}
                     onClick={open.folder}
                   >
                     Open folder
@@ -416,11 +424,11 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                     variant="primary"
                     icon={<ArchiveGlyph name="set" />}
                     disabled={open.missing || open.setless}
-                    title={
+                    {...tooltipTrigger(
                       open.setless
                         ? 'No Ableton set in this project'
                         : 'Open the set in Ableton Live'
-                    }
+                    )}
                     onClick={open.ableton}
                   >
                     Open in Ableton

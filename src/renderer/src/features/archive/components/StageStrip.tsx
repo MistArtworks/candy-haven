@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { ProjectStage } from '@shared/domain/projects'
 import { PIPELINE_STAGES, getStage } from '@shared/domain/projects.constants'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './StageStrip.module.scss'
 
 export interface StageStripProps {
@@ -58,7 +59,7 @@ export function StageStrip({ stage, busy = false, onChange }: StageStripProps): 
           aria-pressed={stage === entry.id}
           data-current={stage === entry.id || undefined}
           data-passed={!current.offPipeline && entry.order < current.order ? true : undefined}
-          title={entry.purpose}
+          {...tooltipTrigger(entry.purpose)}
           disabled={busy}
           onClick={() => onChange(entry.id)}
         >
@@ -77,7 +78,7 @@ export function StageStrip({ stage, busy = false, onChange }: StageStripProps): 
         className={`${styles.step} ${styles.shelve}`}
         aria-pressed={stage === 'shelved'}
         data-current={stage === 'shelved' || undefined}
-        title={getStage('shelved').purpose}
+        {...tooltipTrigger(getStage('shelved').purpose)}
         disabled={busy}
         onClick={() => onChange('shelved')}
       >

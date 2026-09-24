@@ -11,6 +11,7 @@ import type { FolderKind } from '@shared/domain/stacks.constants'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
 import { TextInput } from '@renderer/components/primitives/Input'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { SwatchPicker } from './SwatchPicker'
 import styles from './stacks.module.scss'
 
@@ -100,7 +101,7 @@ export function FolderDialog({
             <span className={styles.dialogTitle}>
               {mode === 'create' ? `Add ${FOLDER_KIND_LABEL[kind].toLowerCase()}` : 'Rename folder'}
             </span>
-            <span className={styles.dialogWhere} title={where}>
+            <span className={styles.dialogWhere} {...tooltipTrigger(where)}>
               {where}
             </span>
           </header>

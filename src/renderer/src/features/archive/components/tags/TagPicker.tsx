@@ -7,6 +7,7 @@ import {
   TAG_SWATCHES
 } from '@shared/domain/tags.constants'
 import { Button } from '@renderer/components/primitives/Button'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { ArchiveGlyph } from '../icons/ArchiveGlyph'
 import { TagChip } from './TagChip'
 import styles from './tags.module.scss'
@@ -226,7 +227,7 @@ export function TagPicker({
                   className={styles.swatchAny}
                   data-selected={colour === null || undefined}
                   aria-pressed={colour === null}
-                  title="Pick a colour at random"
+                  {...tooltipTrigger('Pick a colour at random')}
                   onClick={() => setColour(null)}
                 >
                   ANY
@@ -240,7 +241,7 @@ export function TagPicker({
                     data-selected={colour === hex || undefined}
                     aria-pressed={colour === hex}
                     aria-label={`Colour ${hex}`}
-                    title={hex}
+                    {...tooltipTrigger(hex)}
                     onClick={() => setColour(hex)}
                   />
                 ))}

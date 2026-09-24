@@ -29,6 +29,7 @@ import { Button } from '@renderer/components/primitives/Button'
 import { StatusDot, type StatusTone } from '@renderer/components/primitives/StatusDot'
 import { SelectInput, TextArea, TextInput } from '@renderer/components/primitives/Input'
 import { gridVariants } from '@renderer/motion/transitions'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import {
@@ -305,21 +306,28 @@ export function DispatchPage(): ReactNode {
             finishes the row above.
           */}
           <div className={styles.boardActions}>
-            <Button
-              size="sm"
-              variant="primary"
-              disabled={identity === null || state.link.state !== 'online'}
-              title={
+            {/* Wrapped rather than spread onto the (sometimes disabled) button
+                itself: a disabled control fires no mouse or focus events at
+                all, so a hint explaining *why* it's disabled would never
+                show where it is needed most. The wrapper always fires. */}
+            <span
+              {...tooltipTrigger(
                 identity === null
                   ? 'Choose who you are first'
                   : state.link.state !== 'online'
                     ? 'The board is not attached'
                     : 'File a new item'
-              }
-              onClick={() => setComposing(true)}
+              )}
             >
-              New item
-            </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={identity === null || state.link.state !== 'online'}
+                onClick={() => setComposing(true)}
+              >
+                New item
+              </Button>
+            </span>
           </div>
 
           {showCompose ? (

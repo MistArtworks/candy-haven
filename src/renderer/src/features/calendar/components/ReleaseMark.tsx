@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { CalendarRelease } from '@shared/domain/calendar'
 import { RELEASE_KIND_LABEL, type ReleaseKind } from '@shared/domain/discography.constants'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from '../CalendarPage.module.scss'
 
 export interface ReleaseMarkProps {
@@ -43,7 +44,7 @@ export function ReleaseMark({ release, terse = false }: ReleaseMarkProps): React
       type="button"
       className={styles.releaseMark}
       data-out={release.status === 'released' || undefined}
-      title={`${release.title} — ${kind}, open in DISCOGRAPHY`}
+      {...tooltipTrigger(`${release.title} — ${kind}, open in DISCOGRAPHY`)}
       onClick={() => navigate(`/discography?release=${release.releaseId}`)}
     >
       {/*
