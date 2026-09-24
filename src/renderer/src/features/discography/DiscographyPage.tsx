@@ -109,6 +109,28 @@ export function DiscographyPage(): ReactNode {
   const [addingTrack, setAddingTrack] = useState(false)
 
   /*
+   * The command palette's NEW RELEASE fires blind — it can only navigate here
+   * with an intent, not call `setRaising` on a component it never mounted, so
+   * the dialog's visibility is derived from the intent directly rather than
+   * synchronised into local state. The intent is stripped only when the
+   * dialog is actually dismissed (below), so a refresh while it is still
+   * open behaves exactly like a refresh of anything else being edited.
+   */
+  const newIntent = searchParams.get('new')
+  const showRaiseDialog = raising || newIntent === 'release'
+
+  const clearNewIntent = useCallback(() => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        next.delete('new')
+        return next
+      },
+      { replace: true }
+    )
+  }, [setSearchParams])
+
+  /*
    * The two dialogs keep an error of their own; nothing else here does.
    *
    * RAISE A RELEASE and ADD A TRACK are forms being submitted, and a refusal
@@ -175,6 +197,7 @@ export function DiscographyPage(): ReactNode {
     mutations.create.mutate(draft, {
       onSuccess: (created) => {
         setRaising(false)
+        if (newIntent) clearNewIntent()
         // Straight into the sheet: the dialog takes what exists when an entry
         // is worth making, and the tracks and artwork follow. The same
         // hand-off ARCHIVE and ARTISTS both make.
@@ -441,7 +464,7 @@ export function DiscographyPage(): ReactNode {
         </>
       )}
 
-      {raising ? (
+      {showRaiseDialog ? (
         <ReleaseDialog
           releases={data?.releases ?? []}
           roster={roster}
@@ -451,6 +474,7 @@ export function DiscographyPage(): ReactNode {
           onCancel={() => {
             setRaising(false)
             setDialogError(null)
+            if (newIntent) clearNewIntent()
           }}
         />
       ) : null}

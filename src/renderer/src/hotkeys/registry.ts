@@ -77,7 +77,14 @@ export function chordOf(event: KeyboardEvent): string {
   if (event.shiftKey) parts.push('shift')
   if (event.metaKey) parts.push('meta')
 
-  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key.toLowerCase()
+  /*
+   * The spacebar is the one key whose `event.key` is itself whitespace (`' '`),
+   * which `normaliseChord`'s `.trim()` — there to strip incidental spacing
+   * around a chord written as `Ctrl + K` — reduces to nothing. Named here
+   * instead, the same way every other special key already arrives named
+   * (`Enter`, `Escape`, `ArrowLeft`), so it survives the same pipeline.
+   */
+  const key = event.key === ' ' ? 'space' : event.key.toLowerCase()
   parts.push(key)
 
   return parts.join('+')
@@ -149,7 +156,7 @@ const KEY_LABEL: Record<string, string> = {
   enter: 'Enter',
   delete: 'Del',
   backspace: 'Backspace',
-  ' ': 'Space',
+  space: 'Space',
   '/': '/'
 }
 

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import type { DispatchItem } from '@shared/domain/dispatch'
 import {
@@ -78,6 +78,29 @@ export function DispatchPage(): ReactNode {
   const [sort, setSort] = useState<DispatchSort>('active')
   const [composing, setComposing] = useState(false)
 
+  /*
+   * The command palette's COMPOSE fires blind — it can only navigate here
+   * with an intent, not call `setComposing` on a component it never mounted,
+   * so the dialog's visibility is derived from the intent directly rather
+   * than synchronised into local state. The intent is stripped only when the
+   * dialog is actually dismissed (below), so a refresh while it is still
+   * open behaves exactly like a refresh of anything else being edited.
+   */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const newIntent = searchParams.get('new')
+  const showCompose = composing || newIntent === 'compose'
+
+  const clearNewIntent = useCallback(() => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        next.delete('new')
+        return next
+      },
+      { replace: true }
+    )
+  }, [setSearchParams])
+
   const adjudicator = canAdjudicate(identity)
 
   const items = useMemo(() => {
@@ -137,14 +160,18 @@ export function DispatchPage(): ReactNode {
         chord: 'escape',
         label: 'Close the thread',
         group: 'Dispatch',
-        disabled: !composing && selectedId === null,
+        disabled: !showCompose && selectedId === null,
         run: () => {
-          if (composing) setComposing(false)
-          else setSelectedId(null)
+          if (showCompose) {
+            setComposing(false)
+            if (newIntent) clearNewIntent()
+          } else {
+            setSelectedId(null)
+          }
         }
       }
     ],
-    [composing, identity, selectedId, state.link.state]
+    [showCompose, newIntent, clearNewIntent, identity, selectedId, state.link.state]
   )
 
   useHotkeys(hotkeys)
@@ -295,13 +322,19 @@ export function DispatchPage(): ReactNode {
             </Button>
           </div>
 
-          {composing ? (
+          {showCompose ? (
             <Compose
               busy={actions.pending === 'file'}
-              onCancel={() => setComposing(false)}
+              onCancel={() => {
+                setComposing(false)
+                if (newIntent) clearNewIntent()
+              }}
               onSubmit={(draft) => {
                 if (!identity) return
-                void actions.file({ ...draft, author: identity }).then(() => setComposing(false))
+                void actions.file({ ...draft, author: identity }).then(() => {
+                  setComposing(false)
+                  if (newIntent) clearNewIntent()
+                })
               }}
             />
           ) : null}

@@ -18,6 +18,7 @@ import { HotkeyProvider } from '@renderer/hotkeys/HotkeyProvider'
 import { AuditoriumPopout } from '@renderer/features/auditorium/AuditoriumPopout'
 import { readPopoutIntent } from '@renderer/app/popout'
 import { PlaybackProvider } from '@renderer/app/providers/PlaybackProvider'
+import { CommandPalette } from '@renderer/features/palette/CommandPalette'
 
 /**
  * Whether this window is a detached view rather than the console.
@@ -181,6 +182,7 @@ export default function App(): ReactNode {
             <PlaybackProvider>
               <HotkeyProvider>
                 <Shell />
+                <CommandPalette />
               </HotkeyProvider>
             </PlaybackProvider>
           </HashRouter>

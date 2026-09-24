@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { getSection } from '@shared/domain/navigation'
 import type { ArtistDraft, ArtistPatch, ArtistRole, ArtistSummary } from '@shared/domain/artists'
@@ -47,8 +48,54 @@ export function ArtistsPage(): ReactNode {
   const [search, setSearch] = useState('')
   const [favouritesOnly, setFavouritesOnly] = useState(false)
   const [roleFilter, setRoleFilter] = useState<ArtistRole[]>([])
-  const [openId, setOpenId] = useState<string | null>(null)
+
+  /*
+   * The open sheet lives in the URL, the same convention ARCHIVE and
+   * DISCOGRAPHY already use for their own record sheets (`?project=`,
+   * `?release=`) — so a card can be arrived at from outside this page
+   * (the command palette), not only opened from a click on this one.
+   */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const openId = searchParams.get('artist')
+
+  const setOpenId = useCallback(
+    (id: string | null) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current)
+          if (id) next.set('artist', id)
+          else next.delete('artist')
+          return next
+        },
+        { replace: true }
+      )
+    },
+    [setSearchParams]
+  )
+
   const [adding, setAdding] = useState(false)
+
+  /*
+   * The command palette's NEW ARTIST fires blind — it can only navigate here
+   * with an intent, not call `setAdding` on a component it never mounted, so
+   * the dialog's visibility is derived from the intent directly rather than
+   * synchronised into local state. The intent is stripped only when the
+   * dialog is actually dismissed (below), so a refresh while it is still
+   * open behaves exactly like a refresh of anything else being edited.
+   */
+  const newIntent = searchParams.get('new')
+  const showAddDialog = adding || newIntent === 'artist'
+
+  const clearNewIntent = useCallback(() => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        next.delete('new')
+        return next
+      },
+      { replace: true }
+    )
+  }, [setSearchParams])
 
   /*
    * Only the add dialog keeps an error of its own.
@@ -124,6 +171,7 @@ export function ArtistsPage(): ReactNode {
     mutations.create.mutate(draft, {
       onSuccess: (created) => {
         setAdding(false)
+        if (newIntent) clearNewIntent()
         /*
          * Straight into the sheet.
          *
@@ -297,7 +345,7 @@ export function ArtistsPage(): ReactNode {
         </>
       )}
 
-      {adding ? (
+      {showAddDialog ? (
         <ArtistDialog
           busy={mutations.create.isPending}
           error={dialogError}
@@ -305,6 +353,7 @@ export function ArtistsPage(): ReactNode {
           onCancel={() => {
             setAdding(false)
             setDialogError(null)
+            if (newIntent) clearNewIntent()
           }}
         />
       ) : null}

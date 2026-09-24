@@ -1,0 +1,223 @@
+@use 'abstracts' as *;
+
+// The console-wide palette. Same overlay family as the shortcuts cheatsheet
+// (`HotkeySheet.module.scss`) — a scrim plus a sheet — but built as
+// **crimson glass** rather than flat obsidian, because this is the one
+// overlay that is also the console's single focal object while it is open.
+//
+// Perched near the top of the window rather than centred, and the blur lives
+// only on the sheet's own glass — the console behind stays sharp, dimmed
+// only a little, so it reads as *present* rather than sealed off the way
+// every other modal in this console does.
+//
+// Everything else — the numeral in place of an app icon, the square corners
+// — is this console's own vocabulary, not a copy of Spotlight's.
+
+.layer {
+  @include overlay-field(6);
+  align-items: flex-start;
+  padding-top: calc(#{space(6)} + var(--ch-titlebar-height, 0px) + 8vh);
+  background: rgba(10, 9, 11, 0.1);
+}
+
+.sheet {
+  width: min(rem(640px), 100%);
+  max-height: min(rem(560px), 76vh);
+  position: relative;
+  background: color-mix(in srgb, var(--ch-obsidian-700) 38%, transparent);
+  backdrop-filter: blur(48px) saturate(165%);
+  @include hairline(all, 0.22);
+  box-shadow:
+    var(--ch-shadow-panel),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(4) space(5);
+  @include hairline(bottom, 0.12);
+
+  > :first-child {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// The live answer to "what happens if I press Enter right now" — the same
+// question Spotlight answers inline next to the typed text, asked here in
+// the house's own institutional voice rather than borrowed copy.
+.preview {
+  @include readout(10px);
+  display: flex;
+  align-items: center;
+  gap: space(1);
+  color: var(--ch-gold-300);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 38%;
+  flex-shrink: 1;
+}
+
+.previewArrow {
+  color: var(--ch-text-faint);
+}
+
+.dismiss {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+
+  @include motion-safe {
+    animation: dismiss-breathe 3.6s $ease-in-out infinite;
+  }
+}
+
+@keyframes dismiss-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+// ------------------------------------------------------------------ groups
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding: space(3);
+  overflow-y: auto;
+  // The search row above is the thinnest pane of the glass on purpose — this
+  // is where the rows are actually read, so it carries a touch more of its
+  // own tint, the way Spotlight's expanded results sit on slightly more
+  // substance than the bar alone.
+  background: color-mix(in srgb, var(--ch-obsidian-900) 20%, transparent);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  min-width: 0;
+}
+
+.groupTitle {
+  @include label(8px, 0.18em);
+  color: var(--ch-gold-400);
+  margin: 0;
+  padding: 0 space(2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rowSlot {
+  position: relative;
+}
+
+// The keyboard cursor, as a shared element rather than a per-row on-state —
+// it glides between rows the way `CommandRail`'s own `rail-marker` glides
+// between departments, instead of snapping from box to box.
+.marker {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--ch-accent) 28%, transparent);
+  box-shadow: inset 2px 0 0 0 var(--ch-accent);
+}
+
+.row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  width: 100%;
+  padding: space(2) space(3);
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+// The numeral in place of an app icon — every leading mark in this console
+// is a number, never a glyph (`CommandRail`, `PageHeader`, the corner labels
+// on NEXUS), and a search result is no different: this is the row's position
+// among what the arrow keys are walking.
+.mark {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  width: rem(20px);
+  flex-shrink: 0;
+  transition: color $duration-fast linear;
+
+  .row[data-active] & {
+    color: var(--ch-accent-bright);
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+
+  .row[data-active] & {
+    color: var(--ch-text-primary);
+  }
+}
+
+.subtitle {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-secondary);
+  @include truncate;
+}
+
+.verb {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition:
+    opacity $duration-fast linear,
+    color $duration-fast linear;
+
+  .row[data-active] &,
+  .row:hover & {
+    opacity: 1;
+    color: var(--ch-gold-300);
+  }
+}
+
+.empty {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  margin: 0;
+  padding: space(4) space(3);
+  text-align: center;
+}
