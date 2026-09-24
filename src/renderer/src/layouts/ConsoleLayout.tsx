@@ -66,6 +66,15 @@ export function ConsoleLayout(): ReactNode {
   const guide = section ? getGuide(section.id) : null
 
   /*
+   * The rail's own visibility, toggled from the title bar.
+   *
+   * Local to the shell rather than a persisted setting: it is a working
+   * posture for the current session — put away to read a wide table, brought
+   * back to walk the directory — not a preference to carry between launches.
+   */
+  const [railOpen, setRailOpen] = useState(true)
+
+  /*
    * Ctrl+1..n walks the rail, in the order the rail is drawn.
    *
    * Numbered from the registry rather than hard-coded, so a department added or
@@ -264,10 +273,10 @@ export function ConsoleLayout(): ReactNode {
         ) : null}
       </AnimatePresence>
 
-      <TitleBar />
+      <TitleBar railOpen={railOpen} onToggleRail={() => setRailOpen((open) => !open)} />
 
       <div className={styles.body}>
-        <CommandRail />
+        <CommandRail hidden={!railOpen} />
 
         <main className={styles.main}>
           {/*

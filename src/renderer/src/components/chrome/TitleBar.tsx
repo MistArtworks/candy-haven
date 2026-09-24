@@ -33,7 +33,14 @@ function describeArchive(state: ArchiveState): { tone: StatusTone; label: string
  * section name and live archive state, so system health is visible from every
  * screen without occupying content space.
  */
-export function TitleBar(): ReactNode {
+export interface TitleBarProps {
+  /** Whether the department rail is currently shown. */
+  railOpen: boolean
+  /** Shows or hides the rail, animated. See `CommandRail`. */
+  onToggleRail: () => void
+}
+
+export function TitleBar({ railOpen, onToggleRail }: TitleBarProps): ReactNode {
   const location = useLocation()
   const archive = useSystemStore(selectArchive)
   const windowState = useSystemStore(selectWindow)
@@ -84,6 +91,29 @@ export function TitleBar(): ReactNode {
         "Minimise" should not have to know this world's vocabulary for it.
       */}
       <div className={styles.controls}>
+        {/*
+          The rail's own visibility. Drawn as a plate standing for the
+          directory — ruled, with a filled column while it is on screen and a
+          hollow one once it is put away — rather than a hamburger, which
+          belongs to a menu and this opens a register instead.
+        */}
+        <button
+          type="button"
+          className={styles.control}
+          onClick={onToggleRail}
+          aria-pressed={railOpen}
+          aria-label={railOpen ? 'Hide the department rail' : 'Show the department rail'}
+          title={railOpen ? 'Hide the rail' : 'Show the rail'}
+        >
+          <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" fill="none">
+            <rect x="1.5" y="2.2" width="9" height="7.6" stroke="currentColor" strokeWidth="1" />
+            <line x1="4.4" y1="2.2" x2="4.4" y2="9.8" stroke="currentColor" strokeWidth="1" />
+            {railOpen ? (
+              <rect x="1.5" y="2.2" width="2.9" height="7.6" fill="currentColor" opacity="0.85" />
+            ) : null}
+          </svg>
+        </button>
+
         {/*
           Re-read the department, from anywhere.
 

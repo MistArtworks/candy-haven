@@ -15,6 +15,25 @@
   // The active marker's wash is a full-width absolutely positioned pseudo
   // element, which would otherwise push a horizontal scrollbar into the rail.
   overflow-x: hidden;
+  opacity: 1;
+  // Opacity fades in only once the width is mostly open, so the directory
+  // never renders wrapped and squeezed mid-reveal. The hidden state below
+  // reverses the order, fading out immediately while the width keeps closing.
+  transition:
+    width $duration-slow $ease-out-expo,
+    opacity $duration-fast $ease-out-expo $duration-fast;
+
+  // The operator's own toggle, pressed from the title bar. Width rather than a
+  // transform or an unmount, so the console reflows around it exactly as it
+  // would around a resize, and the accordion state above survives being hidden.
+  &[data-hidden] {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      width $duration-slow $ease-out-expo,
+      opacity $duration-fast $ease-out-expo;
+  }
 }
 
 // ------------------------------------------------------------------ masthead
@@ -52,6 +71,9 @@
 // an organisation chart rather than a menu with separators in it.
 .group {
   display: block;
+  // Clips the list's own reveal/collapse while `.group`'s `layout` transition
+  // resizes the box around it.
+  overflow: hidden;
 
   & + & {
     margin-top: space(4);
@@ -59,10 +81,45 @@
 }
 
 .groupHeading {
+  margin: 0;
+}
+
+// The heading row, as a button — same layout the old, inert heading drew, now
+// pressable. One division open at a time; see `toggleGroup`.
+.groupToggle {
   display: flex;
   align-items: center;
+  width: 100%;
   gap: space(3);
   padding: 0 space(5) space(2);
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover .groupLabel {
+    color: var(--ch-text-secondary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+// Closed points at the list it would reveal; open points at what is already
+// open beneath it — the same disclosure convention as everywhere else on
+// this desktop.
+.groupChevron {
+  flex-shrink: 0;
+  color: var(--ch-text-faint);
+  transform: rotate(-90deg);
+  transition: transform $duration-base $ease-out-expo;
+
+  &[data-open] {
+    transform: rotate(0deg);
+  }
 }
 
 .groupLabel {
@@ -286,6 +343,10 @@
 @include below('md') {
   .rail {
     width: $rail-width-collapsed;
+
+    &[data-hidden] {
+      width: 0;
+    }
   }
 
   .masthead {
