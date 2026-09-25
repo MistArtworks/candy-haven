@@ -5,11 +5,12 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-09-16. Twelve of thirteen departments delivered;
-> INTERFACE is the only one still reserved. The department table in §10 is
-> current as of that date — **it was stale for several releases before it**, so
-> `src/shared/domain/navigation.ts` remains the source of truth and this file
-> is what needs correcting when the two disagree.
+> Last updated: 2026-09-23 (v1.18.0). Twelve of thirteen departments delivered;
+> INTERFACE is the only one still reserved — that count hasn't changed since
+> DISCOGRAPHY and ARTISTS shipped on 2026-09-16. The department table in §10
+> is current, but `src/shared/domain/navigation.ts` remains the source of
+> truth and this file is what needs correcting when the two disagree — it has
+> gone stale before, more than once.
 >
 > TRANSMISSIONS was removed in the ARCHIVE rework. Release scheduling is now
 > DISCOGRAPHY — see `docs/DISCOGRAPHY.md`.
@@ -407,6 +408,57 @@ applySettings({ appearance: { grain: 0.4 } }, { debounceMs: 200, key: 'grain' })
 constructed once and **passed explicitly** — nothing reaches for a global.
 `disposeServiceContainer` tears down in reverse order with each step isolated,
 because it runs on the quit path.
+
+### 6.6 The notice stack — 2026-09-22
+
+Seven departments used to hand-roll their own notice bar, and between them
+about sixty actions — editing a note, renaming a tag, resetting every
+setting, restarting the archive, every reveal-in-Explorer — reported nothing
+at all.
+
+One stack now covers the console:
+[`components/feedback/Toaster.tsx`](src/renderer/src/components/feedback/Toaster.tsx)
++ [`notify.ts`](src/renderer/src/components/feedback/notify.ts). `notify.done()`
+and `notify.report()` are gold and clear themselves (4s / 10s); `notify.refuse()`
+is crimson and **never times out** — several call sites had already written
+down that a refusal must wait to be dismissed, so that became the rule rather
+than an exception.
+
+**A TanStack Query mutation cache is the backstop**, not a convention every
+call site has to remember. A failed mutation is reported by default;
+`meta: { notify: false }` opts a call out. That inverts the old arrangement —
+being heard used to depend on the call site remembering its own `onError` —
+and is what fixed the silent sixty in one edit instead of sixty.
+
+`refuse()` takes the `Refusal` shape itself (`message` + `hint`) rather than a
+pre-formatted string, so the unwrapping six separate hand-rolled bars each
+wrote out happens in exactly one place.
+
+### 6.7 The command palette — 2026-09-23
+
+`Ctrl`+`Space` opens
+[`features/palette/CommandPalette.tsx`](src/renderer/src/features/palette/CommandPalette.tsx),
+a console-wide way in that answers as soon as you start typing, from wherever
+the console is currently standing. It merges four sources — departments,
+ARCHIVE projects, DISCOGRAPHY releases and tracks, the ARTISTS roster — plus
+three actions that fire blind because each only ever needed a name to start:
+**NEW RELEASE**, **NEW ARTIST**, **COMPOSE** a DISPATCH entry. **NEW PROJECT**
+and **NEW EVENT** are deliberately not offered — both need a shelf or a date
+the palette has no way to supply blind.
+
+**`buildResults.ts` is kept free of React and IPC.** The four sources are
+merged, filtered and capped there, so `CommandPalette.tsx` itself stays about
+wiring a hotkey, a debounced query field and a keyboard cursor to a list, not
+about how each source is matched. Projects and releases are matched
+server-side, the same way ARCHIVE's and DISCOGRAPHY's own search boxes match
+them — the palette is not a second, disagreeing search implementation.
+
+**ARTISTS gained a `?artist=` deep link it did not have before** — mirroring
+the `?project=` / `?release=` convention ARCHIVE and DISCOGRAPHY already used
+— because that is what makes an artist's card openable from the palette at
+all. `Ctrl`+`Space` is registered in
+[`hotkeys/registry.ts`](src/renderer/src/hotkeys/registry.ts) like every other
+shortcut, so it appears in the `Ctrl`+`/` cheatsheet with no separate edit.
 
 ---
 
@@ -1543,11 +1595,18 @@ as chosen, including a green. The brief still governs the chrome; this licence
 covers operator-assigned tile colours only. See `isHexColour` in
 `stacks.constants.ts`. **Do not reinstate the clamp.**
 
-**Six lenses:** STACKS, UNFILED, VOLUMES, RELEASES, ALL, BIN. `unfiled` replaced
-a `loose` lens that selected projects belonging to no _volume_ — redundant,
+**Four lenses:** STACKS, INTAKE (id `unfiled`), ALL, BIN. `unfiled` replaced a
+`loose` lens that selected projects belonging to no _volume_ — redundant,
 because the category chips already express "everything that is not an album
 track", whereas "not on a shelf" cannot be expressed any other way and is the
 question actually asked.
+
+`VOLUMES` and `RELEASES` lived here from this rework, stood down rather than
+removed while what happens after a track is finished was being respecified —
+then, on 2026-09-16, **removed outright**: DISCOGRAPHY is its own department
+now and absorbed both. `HIDDEN_ARCHIVE_LENSES` is empty, unlike last time,
+because nothing is left behind to un-hide — the records moved. See
+`docs/DISCOGRAPHY.md`, decision D2.
 
 **The layout is a source and a destination, side by side.** Panel 01 is the
 browser (`.browserCell`, four columns wide and two rows tall); panels 02

@@ -126,9 +126,13 @@ and it resumes.
 Firebase console shows, including the surrounding code. It is parsed; you do not
 need to extract the JSON.
 
-**"That password does not match either account."** — there are two accounts and
-one password each. The password is what identifies you, so a typo reads as
-neither account rather than as a wrong password for a named one.
+**"That address and password do not match an account."** — the two accounts are
+real Firebase logins, address and password both, so a typo in either produces
+this one message rather than naming which half was wrong.
+
+**"That account is not on the board."** — Firebase accepted the sign-in, but the
+account is neither of the two the database rules admit. Sign out and use the
+right one.
 
 ## A GPU reading says UNAVAILABLE
 

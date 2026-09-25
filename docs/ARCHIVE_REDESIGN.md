@@ -590,6 +590,11 @@ happens to the old file when the final is changed or cleared.
 > (§3.7, D28, Q17) has moved to the DISCOGRAPHY track, and `requiresMaster` is
 > off every stage. Everything below is the record of what was decided in
 > September 2026, not of how the pipeline works now.
+>
+> **`requiresMaster` is back on, same day — see `docs/DISCOGRAPHY.md` D10
+> (§17).** Not on `ready`: on `released`. The deadlock this paragraph
+> describes is why it could not go there either; D10 re-arms the stage's own
+> requirement once the picker had somewhere to live that did not create it.
 
 > "We can remove the stages/phases after the mix and master stage. We have a
 > final stage called **TRACK READY** — we will decide in future for the system
@@ -663,6 +668,15 @@ values — presumably onto `ready` — **before** the enum shrinks. See Q22.
 > The main-process mechanism, the two IPC channels and every stored `masters`
 > value are kept as the seam — the operator has said a better workflow is
 > coming. Everything below stays as the record of the one it replaces.
+>
+> **The workflow arrived the same day — see `docs/DISCOGRAPHY.md` D10 (§17),
+> which partly reverses this.** The picker is back in the ARCHIVE, as
+> `FinalMaster` on the dossier's OVERVIEW tab, live from TRACK READY rather
+> than MIX and MASTER, and against every audio file rather than a marked
+> subset — nothing on disk still moves. The seam named above is gone rather
+> than kept: `projects:set-final` / `projects:clear-final` and their service
+> methods are deleted, and one channel, `projects:final-master { id, path |
+> null }`, replaces both.
 
 > "Once we are on mix or master stage, we get a button or section in OVERVIEW
 > where it is represented as icons of all the audios in the project folder. We
@@ -989,6 +1003,14 @@ Answered by the operator on 2026-09-11.
   archive stamping whatever is missing — which is what brings projects created
   before this change (e.g. `Test project Project`) up to standard. Idempotent, so
   both paths are safe to re-run.
+
+> **D26–D29 superseded — see §3.6, §3.7 above and `docs/DISCOGRAPHY.md` D5,
+> D10.** `MixAndMaster`, `FinalMasterDialog` and `FinalMasterMenu` — the
+> three-bucket marking and the TRACK READY move these four decisions describe
+> — are deleted. The final master is chosen through `FinalMaster` on the
+> dossier's OVERVIEW tab, live from TRACK READY rather than MIX, against
+> every audio file rather than a marked subset, and nothing on disk moves.
+> Kept below for the reasoning that produced them, not as current behaviour.
 
 - **D26 (Q24) — Three buckets: WIPS, MIXES, MASTERS.** A rough bounce and a
   considered mix stay distinguishable. MIXES is marked at the MIX stage and

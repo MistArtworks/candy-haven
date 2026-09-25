@@ -13,9 +13,11 @@ involves is filed here rather than spread across applications that cannot see on
 another. See [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) §1 for who uses
 it and why.
 
-Ten departments, grouped into four divisions. Nine are in service — the project
-registry and filing tree, the dated register, the listening room, the broadcast
-overlay kit, host telemetry, a shared feedback board, operator settings and the
+Thirteen departments, grouped into four divisions. Twelve are in service — the
+operational overview, the project registry and filing tree, everything
+released and where it went, the artist roster, the dated register, the
+listening room, photo grading onto the console palette, the broadcast overlay
+kit, host telemetry, a shared feedback board, operator settings and the
 built-in manual. **INTERFACE**, the natural-language command console, is routed
 and specified but not yet commissioned; its page lists what it will do.
 
@@ -111,6 +113,24 @@ Two mechanisms, split by direction of data flow:
   state) flows into a Zustand store via a single subscriber, `SystemBridge`.
 - **Request/response data** uses TanStack Query, which also drives the in-flight
   state of action buttons.
+
+### Two console-wide mechanisms
+
+`Ctrl`+`Space` opens a **command palette**
+([`features/palette/`](src/renderer/src/features/palette)) that answers as
+soon as you start typing — departments, ARCHIVE projects, DISCOGRAPHY releases
+and tracks, the ARTISTS roster, and a few blind actions (NEW RELEASE, NEW
+ARTIST, COMPOSE) that need nothing but a name to start. It reaches from
+wherever the console is currently standing rather than requiring a department
+switch first.
+
+A single **notice stack**
+([`components/feedback/Toaster.tsx`](src/renderer/src/components/feedback/Toaster.tsx))
+replaced seven departments' individually hand-rolled notice bars. `notify.done()`
+and `notify.report()` are gold and clear themselves; `notify.refuse()` is
+crimson and waits to be dismissed. A TanStack Query mutation cache backstops
+it, so a failed write is reported by default — `meta: { notify: false }` opts a
+call out, rather than every call site having to opt in.
 
 ---
 

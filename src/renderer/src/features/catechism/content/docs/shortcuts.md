@@ -20,12 +20,29 @@ Available from any department.
 | `Ctrl`+`,`              | Open REGULATION                                         | Yes          |
 | `Ctrl`+`Shift`+`O`      | Open OBSERVATORY                                        | Yes          |
 | `Ctrl`+`Shift`+`K`      | Open CATECHISM                                          | Yes          |
+| `Ctrl`+`Space`          | The command palette                                     | Yes          |
+| `Ctrl`+`]`              | Show or hide the department rail                        | Yes          |
 | `F1`                    | Quick guide for the department you are on               | Yes          |
+| `Ctrl`+`R`, `F5`        | Refresh this department                                 | No           |
 | `Ctrl`+`/`              | The live cheatsheet — every chord currently bound       | Yes          |
 
 `Ctrl`+`/` is worth knowing above all the rest. It lists exactly what is bound
 _right now_, generated from the same registry the console actually dispatches
 from — so it cannot drift from the truth the way a written page can.
+
+`Ctrl`+`Space` opens the command palette over whatever department you are on.
+One field searches departments, ARCHIVE projects, DISCOGRAPHY releases and
+tracks, and the ARTISTS roster at once, and answers nothing until you type —
+opening it shows the field alone rather than a standing menu of everywhere the
+console goes. It also carries three blind actions that need no shelf or date to
+start: **New Release**, **New Artist**, and **Compose** (files a DISPATCH item).
+`↑`/`↓` walks the results, `Enter` goes there, `Escape` closes it.
+
+`Ctrl`+`]` puts the department rail away, or brings it back. The rail's own
+masthead carries a switch that hides it, and a floating handle appears in its
+corner to bring it back once it is gone — the chord does either, from wherever
+you are. This is a working posture for the session, not a setting: it does not
+survive a restart.
 
 The numbers come from the registry rather than being hard-coded, so a department
 added or removed renumbers the rest with it. Reserved departments are bound too

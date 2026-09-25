@@ -1,9 +1,9 @@
 # Candy Haven — What the Application Does
 
-**Version 1.12.0 · Windows desktop application · Built for one working musician**
+**Version 1.18.0 · Windows desktop application · Built for one working musician**
 
 > A non-technical capability overview, written to be shown to someone outside the
-> project. Compiled 2026-09-14 from the live department and overlay registries
+> project. Compiled 2026-09-25 from the live department and overlay registries
 > rather than from prose docs, which lag behind the code in places.
 
 ---
@@ -12,13 +12,13 @@
 
 Candy Haven is a single desktop application that runs the entire working life of one
 music artist — DJ, producer and sound engineer **Candy Heist**. It files and tracks
-every music project from first idea to finished master, keeps the calendar of sessions
-and deadlines, plays and visually analyses audio, grades photographs into the brand's
-look, powers every graphic that appears on his live streams, monitors the health of the
-computer it runs on, and carries a shared request board between the artist and the
-developer who builds it. Its stated purpose is to **replace the pile of separate apps**
-a music practice normally needs, so that everything is in one place and every record can
-reference every other.
+every music project from first idea to finished master, catalogues everything that has
+actually been released and who it credits, keeps the calendar of sessions and deadlines,
+plays and visually analyses audio, grades photographs into the brand's look, powers every
+graphic that appears on his live streams, monitors the health of the computer it runs on,
+and carries a shared request board between the artist and the developer who builds it.
+Its stated purpose is to **replace the pile of separate apps** a music practice normally
+needs, so that everything is in one place and every record can reference every other.
 
 It is styled deliberately as an institutional terminal from a fictional universe —
 sections are called "departments", the database is called "the Archive", the user is
@@ -40,9 +40,9 @@ throughout.
 
 |                          | Count                              | Notes                                    |
 | ------------------------ | ---------------------------------- | ---------------------------------------- |
-| Departments (sections)   | **11 total — 10 live, 1 reserved** | Only INTERFACE is unbuilt                |
+| Departments (sections)   | **13 total — 12 live, 1 reserved** | Only INTERFACE is unbuilt                |
 | Live-stream graphics     | **9 shipped**, plus a chat widget  | 1 more (THE DOCKET) specified, unbuilt   |
-| Built-in manual chapters | 14                                 | Written as prose, shipped inside the app |
+| Built-in manual chapters | 16                                 | Written as prose, shipped inside the app |
 | Platform                 | Windows only                       | Installer-based, auto-updating           |
 
 A department marked **RESERVED** is not an empty page — it lists exactly what it will do
@@ -56,7 +56,7 @@ each one answers:
 | Division       | Purpose                                                        | Departments                                |
 | -------------- | -------------------------------------------------------------- | ------------------------------------------ |
 | **COMMAND**    | Seeing the system whole, and instructing it                    | NEXUS, INTERFACE _(reserved)_              |
-| **PRODUCTION** | The work itself — what is filed, when it is due, how it sounds | ARCHIVE, CALENDAR, AUDITORIUM, DARKROOM    |
+| **PRODUCTION** | The work itself — what is filed, when it is due, how it sounds | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
 | **BROADCAST**  | What an audience sees while a stream is live                   | OBSERVATORY                                |
 | **OVERSIGHT**  | The condition of the installation and the rules it runs under  | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
 
@@ -93,27 +93,37 @@ projects**, and it enforces the rules (a project cannot be dumped at the top lev
 needs a shelf). These are genuine folders on disk, so his existing library works as-is
 and nothing is locked inside a proprietary store.
 
-**Five ways to look at the register (lenses):**
+**Four ways to look at the register (lenses):**
 
-| Lens    | Shows                                                               |
-| ------- | ------------------------------------------------------------------- |
-| STACKS  | The filing tree, browsed folder by folder                           |
-| INTAKE  | Work found elsewhere on the disk that the register doesn't know yet |
-| VOLUMES | Albums, EPs and compilations, and the tracks bound into each        |
-| ALL     | The whole register as one flat list                                 |
-| BIN     | Deleted projects, recoverable until the bin is emptied              |
+| Lens   | Shows                                                               |
+| ------ | -------------------------------------------------------------------- |
+| STACKS | The filing tree, browsed folder by folder                           |
+| INTAKE | Work found elsewhere on the disk that the register doesn't know yet |
+| ALL    | The whole register as one flat list                                 |
+| BIN    | Deleted projects, recoverable until the bin is emptied              |
+
+Albums, EPs and release packaging moved out of this list entirely when
+DISCOGRAPHY became its own department (see below) — a project is filed here by
+what it *is*, not by what it will ship as.
 
 **Three ways to draw whatever is in scope:** a grid of tiles, a detailed table, or a
 **pipeline board** with drag-and-drop columns.
 
-**The production pipeline** — six stages in a line plus one parking state:
+**The production pipeline** — seven stages in a line plus one parking state:
 
-`IDEA → SKETCH → ARRANGEMENT → MIX → MASTER → TRACK READY`, with `SHELVED` off to the
-side.
+`IDEA → SKETCH → ARRANGEMENT → MIX → MASTER → TRACK READY → RELEASED`, with
+`SHELVED` off to the side.
 
-Reaching **TRACK READY** is _enforced_: the app refuses it until a specific final mix and
-final master file have been named. The stage is a claim about a real file, not a mood.
-Every stage change is timestamped and kept, optionally with a note, as a project history.
+Reaching **TRACK READY** is a statement the artist makes about the work, not
+something the app audits — it is also the gate that makes a project linkable
+from DISCOGRAPHY. **RELEASED** is the one stage the app _does_ enforce: it
+refuses until a final master file has been named, because the catalogue's
+whole purpose is being able to answer "which file was that." A project
+usually reaches RELEASED automatically, moved there the moment its linked
+DISCOGRAPHY release is marked released — and moved back if that release is
+un-released — though it can still be set by hand for older work that predates
+the catalogue. Every stage change is timestamped and kept, optionally with a
+note, as a project history.
 
 **Automatic reading of Ableton Live projects.** The app opens each Ableton set file and
 extracts real information rather than guessing: tempo, musical key, time signature,
@@ -133,24 +143,56 @@ length, stage, tags, notes), the full record (analysis, register fields, stage h
 and the files in the folder. Two buttons lead the page: _open folder_ and _open in
 Ableton_, both refused if the folder has gone missing.
 
-**Marking a final master.** From the MIX stage onward, bounces can be marked as
-work-in-progress, mixdown or master. When a project is declared finished, the chosen file
-is **moved** into a single "Release Mastered Tracks" folder under a name the artist types
-— so that folder is an accurate, complete list of finished tracks. Demoting reverses it
-cleanly.
-
-**Volumes and releases.** A _volume_ is an album/EP/compilation with tracks bound into a
-running order. A _release_ is what actually ships: it gets its own folder outside the
-genre tree, carrying **copies** of three deliverables — the final master audio, cover
-art, and a vertical looping canvas video — plus a release date, notes, and a snapshot of
-what category it went out as. Copies rather than moves, so shipping never leaves holes in
-the library.
+**Naming a final master.** From TRACK READY on, the project dossier asks which of the
+project's own audio files is the finished bounce. Picking one is just a pointer — "the
+finished bounce, wherever it sits" — and moves nothing on disk; clearing it withdraws
+the pointer just as simply. Naming one for a project already linked to a DISCOGRAPHY
+release raises that release as a single in the catalogue automatically; clearing it
+withdraws that single in turn.
 
 **Also:** freeform tags with colours the artist picks, per-project and per-folder colour
 coding, favourites, search, filtering by stage/category/tag, five sort orders,
 multi-select with tick / ctrl-click / shift-click, bulk drag-and-drop, a recoverable bin
 that remembers where each project came from, and incremental re-scanning (unchanged
 projects are served from stored analysis, so a rescan is cheap).
+
+### DISCOGRAPHY — everything released _(live)_
+
+The catalogue: every single, EP, album, compilation and remix that has gone out, and
+where. A release owns its own running order of tracks directly — a track need not have a
+project behind it at all, which is what lets a back catalogue, a label master or somebody
+else's remix sit in the catalogue alongside the artist's own linked work.
+
+A track becomes linkable once its project reaches **TRACK READY**, through a picker
+rather than free text, so a catalogue entry can never point at a project that does not
+exist. Marking a release **RELEASED** carries every linked project's own stage forward to
+match, and back again if the release is un-released — the two records cannot quietly
+disagree about whether something has shipped.
+
+Each release carries identifiers a distributor actually asks for — **ISRC, UPC, label,
+copyright line** — and a **distribution list**: one row per platform (Spotify, Apple
+Music, Beatport and others), each with a pre-save link and a live stream link, so the
+emphasis can shift from one to the other the moment the release date passes. Nothing
+fetches those links automatically yet; they are typed in once they exist.
+
+**READY TO PUBLISH** assembles a distributor-ready folder in one press — the final
+master(s), cover art, a vertical looping canvas video, and a details file — named and
+numbered correctly for however many tracks and whoever is featured. It refuses if
+anything required is missing, naming the gap, and a second publish overwrites the same
+folder rather than leaving duplicates behind.
+
+Release dates appear on the CALENDAR automatically as read-only gold markers, and every
+released record's anniversary is marked there too, one year on and every year after —
+neither is ever typed twice.
+
+### ARTISTS — the roster _(live)_
+
+Who the practice works with, and what they are credited on. Every artist carries a name,
+a portrait, a set of roles (producer, vocalist, featured, remixer and others), and social
+links; DISCOGRAPHY credits reference this roster directly rather than free-text names, so
+renaming an artist once corrects every release and track that credits them. A label is
+typed directly on a release rather than drawn from this roster — a label is a fact about
+where something came out, not a person or act the practice works with.
 
 ### CALENDAR — the dated register _(live)_
 
@@ -246,8 +288,11 @@ ideas, suggestions, requests and fault reports against a department, with a prio
 developer discusses them in a thread and then either resolves them (recording what was
 actually built) or denies them with a reason. Both endings stay visible permanently, so
 the same question doesn't get asked twice. Items changed since the last visit are marked.
-Both installations see the same board within moments. Identity is a single name field —
-with exactly two people and one shared board, a password system would protect nothing.
+Both installations see the same board within moments. Each person signs in with a real
+password, through Firebase Authentication — the two accounts are the only two the shared
+database will talk to at all, enforced by the database's own rules rather than by
+anything the application checks, which is what actually matters once a record leaves the
+local machine.
 
 ### REGULATION — settings _(live)_
 
@@ -267,7 +312,7 @@ decorative choices, and the interface can be scaled from 80% to 200%.
 
 ### CATECHISM — the built-in manual _(live)_
 
-A full operator's manual shipped inside the application: 14 chapters covering every
+A full operator's manual shipped inside the application: 16 chapters covering every
 department, a glossary, a complete shortcut reference, and troubleshooting. Each
 department also has a **quick-guide carousel** reachable with one key from the page it
 describes, plus a live cheat-sheet that lists every keyboard shortcut currently active —
@@ -289,6 +334,13 @@ reversible command history. **There is currently no AI in the product at all.**
 - **Keyboard-first operation.** Every department has a numbered shortcut; ARCHIVE,
   CALENDAR, AUDITORIUM and each broadcast graphic have their own chords. The shortcut
   list is generated from the app's real behaviour.
+- **Reach anything without navigating to it.** `Ctrl+Space` opens a console-wide search
+  that answers as soon as you start typing — a department, an ARCHIVE project, a
+  DISCOGRAPHY release or track, an ARTISTS card — plus a few actions that need nothing
+  but a name to start (new release, new artist, a DISPATCH entry).
+- **One place every action reports to.** A single notice stack in the bottom corner
+  replaced seven departments' own hand-rolled versions. Success is brief and clears
+  itself; a refusal stays on screen, in plain language, until dismissed.
 - **Runs in the background.** Closing the window sends it to the system tray by default,
   because the stream graphics must keep being served even when the window is tidied away.
   It can also launch with Windows, minimised.
@@ -300,6 +352,13 @@ reversible command history. **There is currently no AI in the product at all.**
 - **Honest startup.** The loading screen mirrors nine real startup stages doing real
   work, with a weighted progress meter; failures stop with a plain-English cause, a hint,
   and a retry.
+- **A launch window ahead of the console.** Most launches are to start a new project, not
+  to operate the console at all, so the application opens on a small window with four
+  choices — start a new project, or land straight in the console, ARCHIVE or OBSERVATORY
+  — rather than opening the whole console just to be told which department to go to.
+  Starting a project here names it, picks its shelf, copies the Ableton template, hands it
+  to Live, and retires the application to the tray without the console ever loading. It
+  can be turned off in REGULATION.
 - **Automatic updates**, with the channel and the automatic-download behaviour under the
   user's control, and a short "what changed" note the first time a new version runs.
 - **Clean uninstall with choices.** The uninstaller asks whether to keep settings and
@@ -328,8 +387,8 @@ These are settled decisions, worth knowing so they aren't raised as gaps:
 | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | **INTERFACE** — natural-language command console                        | Specified and routed, not built. This is the "assistant" half of the product.                      |
 | **THE DOCKET** — live request queue overlay                             | Specified, not built.                                                                              |
-| **Release scheduling / promotion planning**                             | Previously existed, removed during the archive redesign; to be re-specified.                       |
-| **Distribution metadata** (ISRC, UPC, label, copyright, platform links) | Not modelled yet; waiting on the scheduling work above.                                            |
+| **Release scheduling and a catalogue** (DISCOGRAPHY, ARTISTS)            | Built 2026-09-16, since this overview was last written down to say otherwise.                      |
+| **Distribution metadata** (ISRC, UPC, label, copyright, platform links) | Modelled and editable per release. Only automatic fetching of stream links is still unbuilt.        |
 | Manual screenshots                                                      | An outstanding shot list exists; missing images show a captioned placeholder rather than breaking. |
 
 ## 9. Dependencies and risks a delivery plan should account for

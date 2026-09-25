@@ -19,17 +19,18 @@ because the record lives in a database they share rather than on either machine.
 
 ![dispatch-02-door.png](dispatch-02-door.png)
 
-There is no login and there will not be one.
+Signing in is real. Two accounts exist, one per operator, each with its own
+address and password. Candy Haven never checks the password itself — it is
+exchanged with Firebase for a token, and the shared database is what refuses
+everyone who does not carry one. That is the actual security; the door is only
+how the token is obtained.
 
-You are asked for one field, because **the password is the name**: there are two
-accounts and one password each, so asking who you are before asking for proof
-would be asking a question the answer already contains. Your identity is
-remembered per machine.
+Identity is not chosen, it is resolved: whichever of the two accounts the
+credential belongs to. Sign in once per machine and it stays signed in —
+through a restart — until you sign out.
 
-Identity **labels** an item rather than authorising anything. The one rule that
-is enforced is that only the builder rules on an item, and that is a division of
-labour rather than a permission — a password on a board two people share
-protects nothing and would be one more thing to lose.
+The one rule that is enforced beyond that is that only the builder rules on an
+item, and that is a division of labour rather than a permission.
 
 > The door is drawn as a band across the page rather than as a modal. A modal
 > would imply the board is behind it and merely hidden. It is not — it has not

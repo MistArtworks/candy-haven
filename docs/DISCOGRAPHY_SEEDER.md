@@ -504,6 +504,10 @@ By design this is one folder, one route and one link:
 6. Delete `scripts/seed/`, `.seed-cache/`, `.env.seed` and
    `info/soundcloud-tracks.txt`.
 7. Delete `userData/seed-journal.json` if one is left behind.
+8. Drop the `!.seed-cache/*` line from `electron-builder.yml`'s `files` block,
+   and the `scripts/seed/` clause from the comment above `!scripts/*` — both
+   were added naming this feature. `!scripts/*` itself stays: it also covers
+   `scripts/release.mjs`.
 
 **Keep** `src/main/core/oracle/` and `src/main/core/net.ts`. Nothing about
 them is specific to this, and the next feature that needs a probability or a

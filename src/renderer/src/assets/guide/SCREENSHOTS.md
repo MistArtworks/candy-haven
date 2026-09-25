@@ -325,45 +325,45 @@ landed. Otherwise it shows a page full of `CAPTURE PENDING` plates.
 
 | Done | Filename                         | Tier                                   |
 | ---- | -------------------------------- | -------------------------------------- |
-| ☐    | `nexus-01-landing.png`           | 1                                      |
-| ☐    | `nexus-02-overview.png`          | 1                                      |
-| ☐    | `archive-01-lenses.png`          | 1                                      |
-| ☐    | `archive-02-board.png`           | 1                                      |
-| ☐    | `archive-03-intake.png`          | 1                                      |
-| ☐    | `archive-04-dossier.png`         | 1                                      |
-| ☐    | `calendar-01-month.png`          | 1                                      |
-| ☐    | `calendar-02-agenda.png`         | 1                                      |
-| ☐    | `auditorium-01-stage.png`        | 1                                      |
-| ☐    | `auditorium-02-presets.png`      | 1                                      |
-| ☐    | `observatory-01-catalogue.png`   | 1                                      |
-| ☐    | `observatory-02-card.png`        | 1                                      |
-| ☐    | `telemetry-01-vitals.png`        | 1                                      |
-| ☐    | `dispatch-01-board.png`          | 1                                      |
-| ☐    | `regulation-01-categories.png`   | 1                                      |
-| ☐    | `welcome-02-nexus.png`           | 1 · copy of `nexus-01-landing`         |
-| ☐    | `welcome-03-rail.png`            | 1 · copy of `nexus-01-landing`         |
-| ☐    | `welcome-04-archive.png`         | 1 · copy of `archive-01-lenses`        |
-| ☐    | `welcome-05-observatory.png`     | 1 · copy of `observatory-01-catalogue` |
-| ☐    | `welcome-06-auditorium.png`      | 1 · copy of `auditorium-01-stage`      |
-| ☐    | `welcome-07-regulation.png`      | 1 · copy of `regulation-01-categories` |
-| ☐    | `welcome-08-documentation.png`   | 1 · take last                          |
-| ☐    | `archive-05-setup.png`           | 2                                      |
-| ☐    | `archive-07-stage.png`           | 2                                      |
-| ☐    | `archive-11-tags.png`            | 2                                      |
-| ☐    | `auditorium-03-zoom.png`         | 2                                      |
-| ☐    | `auditorium-04-popout.png`       | 2                                      |
-| ☐    | `calendar-04-entry.png`          | 2                                      |
-| ☐    | `dispatch-02-door.png`           | 2                                      |
-| ☐    | `dispatch-03-thread.png`         | 2                                      |
-| ☐    | `telemetry-02-cores.png`         | 2                                      |
-| ☐    | `regulation-02-archive.png`      | 2                                      |
-| ☐    | `regulation-03-integrations.png` | 2 · scrub secrets                      |
-| ☐    | `regulation-04-board.png`        | 2 · scrub secrets                      |
-| ☐    | `regulation-05-diagnostics.png`  | 2                                      |
-| ☐    | `overlay-muster-console.png`     | 2                                      |
-| ☐    | `overlay-concord-console.png`    | 2                                      |
-| ☐    | `overlay-selection-scene.png`    | 2                                      |
-| ☐    | `overlay-chorus-console.png`     | 2                                      |
+| ☑    | `nexus-01-landing.png`           | 1                                      |
+| ☑    | `nexus-02-overview.png`          | 1                                      |
+| ☑    | `archive-01-lenses.png`          | 1                                      |
+| ☑    | `archive-02-board.png`           | 1                                      |
+| ☑    | `archive-03-intake.png`          | 1                                      |
+| ☑    | `archive-04-dossier.png`         | 1                                      |
+| ☑    | `calendar-01-month.png`          | 1                                      |
+| ☑    | `calendar-02-agenda.png`         | 1                                      |
+| ☑    | `auditorium-01-stage.png`        | 1                                      |
+| ☑    | `auditorium-02-presets.png`      | 1                                      |
+| ☑    | `observatory-01-catalogue.png`   | 1                                      |
+| ☑    | `observatory-02-card.png`        | 1                                      |
+| ☑    | `telemetry-01-vitals.png`        | 1                                      |
+| ☑    | `dispatch-01-board.png`          | 1                                      |
+| ☑    | `regulation-01-categories.png`   | 1                                      |
+| ☑    | `welcome-02-nexus.png`           | 1 · copy of `nexus-01-landing`         |
+| ☑    | `welcome-03-rail.png`            | 1 · copy of `nexus-01-landing`         |
+| ☑    | `welcome-04-archive.png`         | 1 · copy of `archive-01-lenses`        |
+| ☑    | `welcome-05-observatory.png`     | 1 · copy of `observatory-01-catalogue` |
+| ☑    | `welcome-06-auditorium.png`      | 1 · copy of `auditorium-01-stage`      |
+| ☑    | `welcome-07-regulation.png`      | 1 · copy of `regulation-01-categories` |
+| ☑    | `welcome-08-documentation.png`   | 1 · take last                          |
+| ☑    | `archive-05-setup.png`           | 2                                      |
+| ☑    | `archive-07-stage.png`           | 2                                      |
+| ☑    | `archive-11-tags.png`            | 2                                      |
+| ☑    | `auditorium-03-zoom.png`         | 2                                      |
+| ☑    | `auditorium-04-popout.png`       | 2                                      |
+| ☑    | `calendar-04-entry.png`          | 2                                      |
+| ☑    | `dispatch-02-door.png`           | 2                                      |
+| ☑    | `dispatch-03-thread.png`         | 2                                      |
+| ☑    | `telemetry-02-cores.png`         | 2                                      |
+| ☑    | `regulation-02-archive.png`      | 2                                      |
+| ☑    | `regulation-03-integrations.png` | 2 · scrub secrets                      |
+| ☑    | `regulation-04-board.png`        | 2 · scrub secrets                      |
+| ☑    | `regulation-05-diagnostics.png`  | 2                                      |
+| ☑    | `overlay-muster-console.png`     | 2                                      |
+| ☑    | `overlay-concord-console.png`    | 2                                      |
+| ☑    | `overlay-selection-scene.png`    | 2                                      |
+| ☑    | `overlay-chorus-console.png`     | 2                                      |
 
 ---
 
