@@ -7,18 +7,23 @@ what this installation is, and the numbers underneath it.
 
 ![nexus-01-landing.png](nexus-01-landing.png)
 
-The suspended orb carries the live state of the archive — the database every
-other department reads through. It is not a spinner.
+One of four fields, chosen when the application opens and held for the whole
+session — THE SINGULARITY, THE GALACTIC SURVEY, THE VIGIL, THE GATE. Four
+views of one world rather than four skins: same palette, same camera, same
+resonance plexus threaded through all of them, so which one comes up on a
+given launch changes the mood of it without changing what the console is.
+Leaving NEXUS and coming back does not reroll it.
 
-| Orb reads | Archive state                                 |
-| --------- | --------------------------------------------- |
-| Steady    | `online` — the register is available          |
-| Pulsing   | `starting` or `connecting` — work in progress |
-| Warm      | `degraded` — up, but something is wrong       |
-| Dark      | `offline` or `error` — nothing will load      |
+The field carries the live state of the archive — the database every other
+department reads through — rather than merely animating. It is not a
+spinner: a line of prose beneath the wordmark names the state plainly, from
+`All systems resonant.` down to `Collapse. The core has failed.`, and the
+whole field cools from its resting tint the moment the archive is anything
+but starting, connecting or online.
 
-The version and the last boot's duration are set beneath it. One gesture
-downward reaches the numbers.
+The version, the last boot's duration and how many departments are
+commissioned are set beneath it. One gesture downward — **Descend** — reaches
+the rest of the numbers.
 
 ## The overview
 

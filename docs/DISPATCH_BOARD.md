@@ -91,7 +91,7 @@ renderer.
 ## Setting up a second machine
 
 1. Install Candy Haven.
-2. Open **DISPATCH** (Ctrl+7). The Connection panel will say it is not
+2. Open **DISPATCH** (Ctrl+Shift+D). The Connection panel will say it is not
    configured.
 3. Paste the `firebaseConfig` snippet from the Firebase console and press
    **Attach**. It is saved to `userData/firebase.json`; this happens once. The

@@ -144,8 +144,9 @@ REGULATION and CATECHISM already had:
 | REGULATION | `Ctrl`+`,`                 |
 | CATECHISM  | `Ctrl`+`Shift`+`K`         |
 
-`docs/shortcuts.md` is corrected at the same time; it has been claiming
-`Ctrl`+`0` opens CATECHISM since DARKROOM shipped.
+CATECHISM's own SHORTCUTS chapter (`.../catechism/content/docs/shortcuts.md`) is
+corrected at the same time; it has been claiming `Ctrl`+`0` opens CATECHISM
+since DARKROOM shipped.
 
 ## 7. What changes in ARCHIVE
 

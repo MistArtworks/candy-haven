@@ -16,8 +16,9 @@ Three ways in:
 2. Drag a file onto the stage.
 3. From a project's dossier in the ARCHIVE — its files open here.
 
-Supported formats are whatever Chromium decodes: `wav`, `aiff`, `flac`, `mp3`,
-`m4a`, `ogg`, `opus` and friends.
+Supported formats are a fixed list, checked on both sides of the wire — the
+dialog offers only these and the service refuses anything else: `wav`, `mp3`,
+`flac`, `ogg`, `opus`, `m4a`, `aac`, `webm`.
 
 The status in the masthead reads `NO FILE`, `HELD` when something is loaded but
 paused, and `SOUNDING` while it plays.
@@ -109,7 +110,7 @@ transient rather than an interpolation of one.
 Drawn plain around the stage, because the stage is the single focal object this
 view is allowed:
 
-`FORMAT` · `LENGTH` · `SIZE` · `ADMITTED` · `FILED AT` · `POSITION`
+`FORMAT` · `SIZE` · `LENGTH` · `POSITION` · `FILED AT`
 
 ## The popout
 

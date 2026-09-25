@@ -5,10 +5,14 @@
 Who the practice works with. One record each: a name, a face, what they do,
 and where to find them.
 
-Add somebody by typing their name and pressing Enter — the record opens
-straight away, because adding them is the start of filling it in.
+Press **Add an artist** to open a dialog. Only the name is required — the
+roles, the real name, the colour and the notes can wait — and it hands
+straight over to the record's own sheet, where the picture is the first thing
+you set.
 
-Everything saves as you stop typing. There is no save button.
+The sheet opens as a dossier, not a form: what they're on, how to reach them,
+what you wrote down. **Edit** is the door to the fields, and everything there
+saves as you stop typing. There is no save button.
 
 ## Not the same as an ARTIST folder
 

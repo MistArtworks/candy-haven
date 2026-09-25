@@ -21,6 +21,7 @@ Motion, interface scale and the accent this console draws with.
 | **Grain**           | `0` to `1`. The film grain over the whole console                                                                                    |
 | **Page transition** | `sweep`, `fade` or `off`. How a department arrives. **Off by default**                                                               |
 | **Pointer**         | `reticle` or `native`. Which pointer the console draws. **`reticle` by default**                                                     |
+| **Fast boot**       | Skips the hold at a finished boot screen and enters the console on its own, rather than waiting for a key or a click                 |
 
 > The accent setting does not touch the boot orb, which stays crimson. It is the
 > focal object, and the palette reserves that colour for focal points.
@@ -81,32 +82,42 @@ Whether this console starts with the machine, and what closing it means.
   off and launching goes straight to the console. A sign-in launch never shows
   it either way — the point of starting with the machine is that the archive and
   the overlay server are up, not that you are asked a question.
-- **Launch at startup** — registers the application with Windows.
-- **Start minimised** — launches to the tray rather than to a window.
-- **Close to tray** — the close button hides the window instead of quitting.
-  On by default, because overlays served to OBS should survive you tidying your
-  desktop.
-- **Fast boot** — shortens the boot cinematic. The stages still run; only the
-  presentation is abbreviated.
+- **Launch at sign-in** — registers the console to start when you sign in to
+  Windows.
+- **Start in the tray** — a sign-in launch comes up in the tray rather than on
+  screen. Only means anything once launch at sign-in is on, so the control is
+  disabled until then; opening the console yourself always shows it.
+- **Close retires to the tray** — the close button hides the window instead of
+  quitting, so overlays served to OBS survive you tidying your desktop. On by
+  default. `Alt+F4` and Quit on the tray icon always quit regardless — an
+  application that refuses the operating system's own close is one you cannot
+  get rid of.
 
 ## ARCHIVE
 
 ![regulation-02-archive.png](regulation-02-archive.png)
 
-Where projects are filed, and the local database that holds the register.
+Where projects are filed, and the local database that holds the register. Two
+panels: what you set, and what the daemon reports.
 
-| Setting              | Effect                                                     |
-| -------------------- | ---------------------------------------------------------- |
-| **Filing root**      | The directory your shelves live in. Required               |
-| **Satellite roots**  | Further directories to scan for work                       |
-| **Project template** | A folder copied when a new project is created              |
-| **Scan on launch**   | Re-reads the filing root at startup                        |
-| **Intake mode**      | `move` or `copy`. See the ARCHIVE chapter                  |
-| **Port**             | The loopback port the database answers on. Default `27917` |
-| **Executable path**  | Override the located `mongod`                              |
+| Setting                       | Effect                                                          |
+| ------------------------------ | ---------------------------------------------------------------- |
+| **Filing root**                | The directory your shelves live in. Reported here, not set      |
+| **Project template**           | A folder copied when a new project is created                   |
+| **Other locations**            | Further directories to scan for work. Read only, nothing is filed into one |
+| **When taking a project in**   | `MOVE` or `COPY`. See the ARCHIVE chapter                        |
+| **Re-index on launch**         | Walks the filing root and every other location again at startup |
 
-Changing the port restarts the database. Changing the filing root does not move
-any files — it re-points the console at a different tree.
+The filing root is chosen once, at ARCHIVE's own setup gate — this page only
+reports it, and deliberately has no button that would change it: repointing
+the root would not move any files, so there is nothing here that would only
+pretend to.
+
+Beneath the settings, a read-only report of the daemon itself — state, the
+port it actually bound (`27917` by default), its own version, where its
+runtime was resolved from, how many times the supervisor has restarted it
+this session, and the round-trip of the last ping — with **Restart archive**
+and **Reveal data directory** underneath.
 
 ## INTEGRATIONS
 
@@ -120,9 +131,12 @@ Accounts and services the broadcast kit reads from.
   crosses into the console.
 - **Twitch channel** — the channel chat is read from. Read-only ingest; the
   console never sends messages.
-- **Overlay port** — where the broadcast server answers. Default is claimed
-  upward if taken.
-- **Overlay asset path** — a directory of your own images for overlays to draw.
+
+The broadcast server's own port is a setting the main process holds and binds
+without asking the renderer — a compromised renderer should not get to choose
+what the application listens on — so there is no control for it here.
+OBSERVATORY's own addresses already carry the resolved port; changing it means
+editing the settings file directly.
 
 ## BOARD
 
@@ -164,7 +178,10 @@ are the real resolved ones rather than templates.
 | **User data**    | Settings, logs, archive data          |
 | **Log file**     | The current session's log             |
 | **Archive data** | The database's own directory          |
-| **Versions**     | Candy Haven, Electron, Chromium, Node |
+| **Locale**       | The operating system locale Candy Haven is running under |
+
+Candy Haven, Electron, Chromium and Node versions are one gesture away
+instead — NEXUS's own RUNTIME panel, not repeated here.
 
 ## Export and import
 

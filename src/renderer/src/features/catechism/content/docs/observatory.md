@@ -7,8 +7,10 @@ local address, so OBS composites them and this console drives them.
 
 ## What each one does
 
-Every overlay carries a **kind** and one plain sentence — on the desk, and in
-its own masthead — so the kit can be read without already knowing the names.
+Every overlay carries a **kind** and one plain sentence, so the kit can be
+read without already knowing the names. The kind is the loudest gold on the
+bench and repeats as a chip in the overlay's own masthead; the sentence is one
+hover away on its board row and printed in full in that same masthead.
 
 | Overlay             | Kind                          | What it does                                                               |
 | ------------------- | ----------------------------- | -------------------------------------------------------------------------- |
@@ -25,15 +27,19 @@ its own masthead — so the kit can be read without already knowing the names.
 | THE DOCKET          | REQUEST QUEUE                 | A queue of chat requests showing what you are working on next _(reserved)_ |
 
 The lore line each overlay carries — _"Harmony decided for all, not by all."_ —
-is still there, set faint beneath the plain one. It used to be the **first**
-thing every entry said after its name, which spent the top of the page on mood
-rather than on function.
+lives in the overlay's own masthead now, set faint beneath the rule. It used to
+be the **first** thing the bench said about every overlay, ahead of the
+sentence and the steps below, which spent the top of a live console on mood
+rather than on function. It was cut from the bench along with the steps for the
+same reason: a desk somebody has open mid-broadcast is not where either is
+read.
 
-The bench also gives three plain steps for how each one runs. For THE CONCORD:
-_you write the options_, _chat votes with `!vote 2` or a bare `2`_, _close it;
-a tie is settled by a visible coin-toss_. A sentence can say what an overlay
-is; only the steps say how it is used, and they carry the chat command — which
-is the whole interface for three of these.
+How each one runs, in three plain steps, is no longer drawn anywhere in the
+console — it lives here instead. For THE CONCORD: _you write the options_,
+_chat votes with `!vote 2` or a bare `2`_, _close it; a tie is settled by a
+visible coin-toss_. A sentence can say what an overlay is; only the steps say
+how it is used, and they carry the chat command — which is the whole interface
+for three of these.
 
 ## The desk
 
@@ -190,8 +196,10 @@ readings:
 | **Restart server**     | Rebinds it, picking up a changed port                       |
 | **Reconnect chat**     | Reattaches the chat socket                                  |
 
-The port, the resolved paths and the rest live in REGULATION — under
-INTEGRATIONS for the port, DIAGNOSTICS for everything else.
+The port itself is not a REGULATION control — the main process binds it
+without asking the renderer, so an address here is the only place it is ever
+seen. The resolved paths and the rest of the installation's own diagnostics
+live in REGULATION, under DIAGNOSTICS.
 
 ## Adding an overlay to OBS
 

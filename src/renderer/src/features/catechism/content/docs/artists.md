@@ -60,23 +60,34 @@ success, where the picture is the first thing in front of you.
 A name that already exists is **returned rather than refused** — you get the
 existing record, which is what you meant.
 
+## Opening a record
+
+A card opens as a dossier rather than a form. What are they on, how do I reach
+them, what did I write down about them — that is almost always what a click is
+asking, and every one of those is a read: credits named rather than counted,
+links pressable and opening in your own browser rather than in the console,
+notes as prose. **Edit** sits beside it as a door rather than the default.
+
+If nobody on the roster is marked as you, Edit is also where **This is me**
+asks. Marking a record answers it once; the roster leads with it after.
+
 ## The record
 
-| Field          | For                                                               |
-| -------------- | ----------------------------------------------------------------- |
-| **Name**       | How they are billed. What appears on credits                      |
-| **Real name**  | For splits and paperwork. Never shown where the alias belongs     |
-| **Roles**      | Producer, vocalist, instrumentalist, writer, DJ, engineer, visual |
-| **Picture**    | Copied into the archive — see below                               |
-| **Links**      | Spotify, SoundCloud, Bandcamp, socials, or anything else          |
-| **Colour**     | Yours to pick. Stored exactly as chosen                           |
-| **Notes**      | How you met, what they play, who to ask                           |
-| **This is me** | Marks your own record, so credits can name you like anybody else  |
-
-Everything saves as you stop typing. There is no save button, and that is
-deliberate: a roster entry is filled in over time, usually while doing
-something else, and a form that has to be committed is one you abandon
+Set from Edit. Everything saves as you stop typing — there is no save button,
+and that is deliberate: a roster entry is filled in over time, usually while
+doing something else, and a form that has to be committed is one you abandon
 half-finished.
+
+| Field          | For                                                                     |
+| -------------- | ------------------------------------------------------------------------ |
+| **Name**       | How they are billed. What appears on credits                             |
+| **Real name**  | For splits and paperwork. Never shown where the alias belongs            |
+| **Roles**      | Producer, vocalist, instrumentalist, writer, DJ, engineer, visual, other |
+| **Picture**    | Copied into the archive — see below                                      |
+| **Links**      | Spotify, SoundCloud, Bandcamp, socials, or anything else                 |
+| **Colour**     | Yours to pick. Stored exactly as chosen                                  |
+| **Notes**      | How you met, what they play, who to ask                                  |
+| **This is me** | Marks your own record, so credits can name you like anybody else         |
 
 ### Pictures are copied, not linked
 

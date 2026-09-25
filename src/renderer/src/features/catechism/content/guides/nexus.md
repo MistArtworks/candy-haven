@@ -4,9 +4,11 @@
 
 ![nexus-01-landing.png](nexus-01-landing.png)
 
-The suspended orb reports the live state of the archive — the database every
-other department reads through. It is the fastest health check the console has:
-if the orb is steady, the installation is sound.
+One of four fields, chosen when the application opens and held for the
+session, reports the live state of the archive — the database every other
+department reads through. It is the fastest health check the console has: a
+line beneath the wordmark names the state in words, and the whole field cools
+the moment the archive is anything but starting, connecting or online.
 
 The version and the last boot's duration are set beneath it.
 

@@ -4,34 +4,42 @@ What to set up on a fresh installation, in the order that avoids doubling back.
 Steps 1 and 2 are required before the ARCHIVE will draw anything at all. The
 rest are optional and depend on what you intend to use.
 
-## 1. Set the filing root
+## 1. Establish the archive
 
 ![archive-05-setup.png](archive-05-setup.png)
 
-The filing root is the directory your shelves actually live in. Until it is set,
+The filing root is the directory the archive builds in. Until it is chosen,
 ARCHIVE shows a setup gate rather than an empty register — a deliberate choice,
 because an empty ARCHIVE and an unconfigured one look identical and mean
-completely different things.
+completely different things. The gate sits inert at the foot of the ARCHIVE
+page rather than blocking it, so you can look around before filling it in.
 
-1. Open [REGULATION](/regulation) and select the **ARCHIVE** category.
-2. Set **Filing root** to the directory you keep music projects in.
-3. Return to [ARCHIVE](/archive). The gate is replaced by the register.
-
-Pick the directory you _already_ use. Candy Haven files into real folders on
-disk, so pointing it at your existing library means your existing work is
-already where it expects.
+1. Open [ARCHIVE](/archive) directly. REGULATION only reports the filing root
+   once it exists — it has no way to set it.
+2. Choose an **archive location**. It does not need to hold your projects
+   already: everything the archive creates lives inside one `Candy Haven`
+   directory here, so nothing of yours is intermixed with ours. Your music
+   folder is a reasonable choice.
+3. Choose a **project template** — an Ableton set copied into every project you
+   create. Both a location and a template are required before the gate clears.
+4. Optionally add any directories your projects are already in. Nothing is
+   moved yet; they are read only, and everything found is ready to file once
+   the register opens.
 
 ```
-D:\Music\Projects           <- filing root
-├── Electronic              <- a category
-│   ├── Halftime            <- a genre
-│   │   └── Ossuary         <- a project
-│   └── Drum and Bass
-└── Collaborations
+D:\Music                    <- archive location
+└── Candy Haven             <- everything the app made, kept in one place
+    └── Projects
+        ├── Electronic      <- a category
+        │   ├── Halftime    <- a genre
+        │   │   └── Ossuary <- a project
+        │   └── Drum and Bass
+        └── Collaborations
 ```
 
-> Moving the filing root later is not a migration — it re-points the console at
-> a different tree. Move the files yourself first, then change the setting.
+> Chosen once, at the gate. REGULATION reports the filing root but cannot
+> change it — repointing it would not move what is already filed, so there is
+> no button there that would only pretend to.
 
 ## 2. Confirm the archive is running
 

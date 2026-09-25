@@ -1355,23 +1355,41 @@ Inside the wrapper:
 
 ```
 Candy Haven\
-  EDM\                          GENRE  (depth 0)
-    Undertow Project\           PROJECT — allowed directly in a genre
-    Melodic Bass\               FOLDER (depth 1+) — optional subdivision
-      Solstice Project\         PROJECT — the Ableton project folder itself
-        Solstice.als            template copy, renamed
-        Samples\  Backup\       Ableton's
-        WIPS\ MIX & MASTER\ STEMS\ GRAPHICS\ MARKETING\ REFERENCES\
+  Projects\                    the filing tree — see below
+    EDM\                          GENRE  (depth 0)
+      Undertow Project\           PROJECT — allowed directly in a genre
+      Melodic Bass\               FOLDER (depth 1+) — optional subdivision
+        Solstice Project\         PROJECT — the Ableton project folder itself
+          Solstice.als            template copy, renamed
+          Samples\  Backup\       Ableton's
+          WIPS\ MIX & MASTER\ STEMS\ GRAPHICS\ MARKETING\ REFERENCES\
   RELEASES\                     reserved; never a genre, skipped by the scan
-    Solstice\  MASTER\ ART\ COPY\
+    Candy Heist - Solstice\     one folder per published release, named by billing
+      Solstice.wav  Cover Art.png  Spotify Canvas.mp4  Release Details.txt
   RECYCLE BIN\                  reserved; deleted projects, skipped by the scan
     Undertow Project\
+  Media\                       reserved; copied artist and release artwork
+  Release Mastered Tracks\     reserved; legacy — see the note below
 ```
 
-`RESERVED_WRAPPER_DIRECTORIES` holds both reserved names. They are refused as
-genre names and excluded from the scan walk. The bin **must** stay excluded:
-indexing it would resurrect every deleted project as a live record on the next
-launch.
+`PROJECTS_DIRECTORY_NAME` (`Projects`) is a later addition: the tree used to
+hang directly off the wrapper, with genres as its top level. A containing
+directory buys two things — the wrapper's own children become a fixed set the
+app owns outright, and the tree gains a root that is a real directory rather
+than an implied one, which is what lets a category be an ordinary folder
+record like every other node.
+
+`RESERVED_WRAPPER_DIRECTORIES` now holds five names — `Projects`,
+`RELEASES`, `RECYCLE BIN`, `Media`, and the legacy `Release Mastered Tracks`
+— refused as genre names and excluded from the scan walk. The bin **must**
+stay excluded: indexing it would resurrect every deleted project as a live
+record on the next launch.
+
+`Release Mastered Tracks` is a relic of the pre-D10 final-master workflow
+(§10, "The pipeline meets the catalogue"), which **moved** a chosen bounce
+here. Nothing writes into it any more — the final master is a pointer to
+wherever the file already sits — but the name stays reserved because an
+operator who used the old workflow has files living there still.
 
 The project folder **is** the Ableton project folder. That keeps the scanner's
 definition — "a folder directly containing a `.als`" — true, which is why

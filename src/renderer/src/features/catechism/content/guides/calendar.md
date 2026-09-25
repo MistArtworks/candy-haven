@@ -22,3 +22,10 @@ derived from a project or a release, and that boundary is deliberate: a delivery
 date you wrote down should not move because a project changed stage.
 
 Click a day to file one. Give it a title, a time if it has one, and a kind.
+
+## What you didn't file
+
+A release date from the DISCOGRAPHY shows on its day in every lens, marked
+with a gold diamond rather than a chip — a reading, not an entry, so clicking
+it opens the release instead of an editor. A year after a release goes out, a
+hollow diamond marks the same day again as its anniversary.
