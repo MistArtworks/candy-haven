@@ -66,18 +66,6 @@ import type {
   TrackDraft,
   TrackPatch
 } from '../domain/discography'
-/* THE SEEDER · temporary. Delete this import with the feature. */
-import type {
-  SeedChoice,
-  SeedCredentials,
-  SeedEnvImport,
-  SeedLogBatch,
-  SeedOutcome,
-  SeedPlan,
-  SeedProgress,
-  SeedState,
-  SeedUndoResult
-} from '../domain/seed'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -318,44 +306,6 @@ export interface CandyHavenApi {
      * disk moves.
      */
     setTrackMaster(id: string, trackId: string, path: string | null): Promise<DiscographyRelease>
-  }
-  /**
-   * THE SEEDER — temporary. Fills an empty DISCOGRAPHY from the platforms the
-   * music is already on, then this whole block is deleted.
-   *
-   * Three gestures: harvest, review, write. `run` proposes and writes
-   * nothing; `decide` and `include` rebuild the proposal from the cached
-   * harvest so the confirm screen always shows what `apply` would do.
-   *
-   * Credentials are **write-only across this bridge with one exception**:
-   * `SeedState` has no field that could carry one back, and no other method
-   * returns one. The exception is `loadEnv`, which returns what the
-   * operator's own file on their own disk contains so the form can show it
-   * — the same values they would otherwise have typed into it.
-   */
-  readonly seed: {
-    state(): Promise<SeedState>
-    /**
-     * Fills the form from an env file, chosen in a dialog opened by main.
-     *
-     * Null when the operator cancels. Follows `SOUNDCLOUD_TRACK_LIST` and
-     * reads the links it names, which is the part that cannot be typed.
-     */
-    loadEnv(): Promise<SeedEnvImport | null>
-    run(credentials: SeedCredentials): Promise<SeedPlan>
-    decide(key: string, choice: SeedChoice): Promise<SeedPlan>
-    include(key: string, include: boolean): Promise<SeedPlan>
-    apply(): Promise<SeedOutcome>
-    reset(): Promise<void>
-    /** Leaves a harvest still in progress. Works while it is running. */
-    abandon(): Promise<void>
-    /** Reverses the last run, exactly and only. */
-    undo(): Promise<SeedUndoResult>
-    /** Keeps the run and forgets how to undo it. */
-    accept(): Promise<void>
-    onProgress(listener: (progress: SeedProgress) => void): Unsubscribe
-    /** The run narrating itself, in batches of a tenth of a second. */
-    onLog(listener: (batch: SeedLogBatch) => void): Unsubscribe
   }
   /**
    * The selection rite served to OBS. Every method returns the whole state:

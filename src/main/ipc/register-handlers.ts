@@ -278,46 +278,6 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     services.discography.setTrackMaster(id, trackId, path)
   )
 
-  /*
-   * THE SEEDER — temporary. Delete this block with the feature.
-   *
-   * `seed:run` is the only channel that carries credentials, and it carries
-   * them one way. Nothing here returns one.
-   */
-  router.handle('seed:state', () => services.seed.getState())
-  router.handle('seed:load-env', async () => {
-    const window = windows.mainWindow
-    const options = {
-      title: 'Choose the seeder environment file',
-      properties: ['openFile'] as string[],
-      filters: [
-        { name: 'Environment files', extensions: ['seed', 'env', 'txt', 'local'] },
-        { name: 'All files', extensions: ['*'] }
-      ]
-    }
-
-    // `showOpenDialog` hides dotfiles behind the platform's own toggle, and
-    // `.env.seed` is a dotfile — so the dialog is told to show them rather
-    // than leaving the operator unable to find the file they came for.
-    options.properties.push('showHiddenFiles')
-
-    const result = window
-      ? await dialog.showOpenDialog(window, { ...options, properties: options.properties as never })
-      : await dialog.showOpenDialog({ ...options, properties: options.properties as never })
-
-    if (result.canceled) return null
-    const path = result.filePaths[0]
-    return path ? services.seed.loadEnv(path) : null
-  })
-  router.handle('seed:run', (credentials) => services.seed.run(credentials))
-  router.handle('seed:decide', ({ key, choice }) => services.seed.decide(key, choice))
-  router.handle('seed:include', ({ key, include }) => services.seed.setIncluded(key, include))
-  router.handle('seed:apply', () => services.seed.apply())
-  router.handle('seed:reset', () => services.seed.reset())
-  router.handle('seed:abandon', () => services.seed.abandon())
-  router.handle('seed:undo', () => services.seed.undo())
-  router.handle('seed:accept', () => services.seed.acceptRun())
-
   // --------------------------------------------------------------------- rite
 
   router.handle('rite:state', () => services.rite.current)
@@ -824,10 +784,6 @@ export function registerEventBridges(deps: {
   services.muster.on('state', (state) => router.broadcast('muster:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   services.calendar.on('changed', (state) => router.broadcast('calendar:state', state))
-
-  // THE SEEDER · temporary. Delete with the feature.
-  services.seed.on('progress', (progress) => router.broadcast('seed:progress', progress))
-  services.seed.on('log', (batch) => router.broadcast('seed:log', batch))
 
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

@@ -89,19 +89,6 @@ import {
   TrackDraftSchema,
   TrackPatchSchema
 } from '../domain/discography'
-/* --- THE SEEDER · temporary. Delete this import with the feature. --- */
-import {
-  SeedChoiceSchema,
-  SeedCredentialsSchema,
-  SeedEnvImportSchema,
-  SeedLogBatchSchema,
-  SeedOutcomeSchema,
-  SeedPlanSchema,
-  SeedProgressSchema,
-  SeedStateSchema,
-  SeedUndoResultSchema
-} from '../domain/seed'
-
 /**
  * The IPC contract is declared once, here, and consumed by:
  *   - the main-process router, which validates inputs and outputs at runtime
@@ -524,63 +511,6 @@ export const IPC_INVOKE = {
     output: DiscographyReleaseSchema
   },
 
-  /*
-   * ------------------------------------------------------------------------
-   * THE SEEDER — temporary. Six channels, one folder, one route.
-   *
-   * Fills an empty DISCOGRAPHY from the platforms the music is already on,
-   * runs once on the operator's machine, and is then deleted along with
-   * everything in this block. See docs/DISCOGRAPHY_SEEDER.md §7.
-   *
-   * Note what is *not* here: no channel returns credentials. They cross the
-   * bridge once, inbound, on `seed:run`, and live in the service's memory for
-   * the run. `SeedState` has no field that could carry one back.
-   * ------------------------------------------------------------------------
-   */
-  'seed:state': { input: z.void(), output: SeedStateSchema },
-  /**
-   * Fills the credential form from an env file the operator picks.
-   *
-   * **Takes no input.** The file dialog is opened in the main process and
-   * only the path it returns is read, because a channel accepting a path
-   * from the renderer would be a "read any file and parse it into key/value
-   * pairs" endpoint. Null when the dialog is cancelled.
-   */
-  'seed:load-env': { input: z.void(), output: SeedEnvImportSchema.nullable() },
-  /** Harvests all six sources and proposes a plan. Writes nothing. */
-  'seed:run': { input: SeedCredentialsSchema, output: SeedPlanSchema },
-  /** Overrules one flagged call. Returns the whole plan, rebuilt. */
-  'seed:decide': {
-    input: z.object({ key: z.string(), choice: SeedChoiceSchema }),
-    output: SeedPlanSchema
-  },
-  /** Ticks a record off the plan, or back on. */
-  'seed:include': {
-    input: z.object({ key: z.string(), include: z.boolean() }),
-    output: SeedPlanSchema
-  },
-  /** Writes the plan the operator has just confirmed. Additive; see apply.ts. */
-  'seed:apply': { input: z.void(), output: SeedOutcomeSchema },
-  /** Forgets the credentials, the harvest and the plan. Keeps the journal. */
-  'seed:reset': { input: z.void(), output: z.void() },
-  /**
-   * Leaves a harvest that is still reading, and ignores what it returns.
-   *
-   * Distinct from `seed:reset`, which refuses while the service is busy —
-   * busy is precisely when this is needed.
-   */
-  'seed:abandon': { input: z.void(), output: z.void() },
-  /**
-   * Takes back the last run, exactly — see `src/main/services/seed/journal.ts`.
-   *
-   * Reverses what the journal records and nothing else: created records go,
-   * added rows come off records that already existed, and anything the
-   * operator has done since is untouched.
-   */
-  'seed:undo': { input: z.void(), output: SeedUndoResultSchema },
-  /** Drops the journal without undoing. For a run the operator is happy with. */
-  'seed:accept': { input: z.void(), output: z.void() },
-
   /**
    * Selection rite (OBSERVATORY section). The winner is drawn in main and
    * travels inside the spin command, so the console and every browser source
@@ -984,17 +914,7 @@ export const IPC_EVENT = {
   'overlay:info': OverlayServerInfoSchema,
   'calendar:state': CalendarStateSchema,
   'auditorium:file': z.object({ path: z.string().nullable() }),
-  'window:state': WindowStateSchema,
-  /** THE SEEDER · temporary. Delete both with the feature. */
-  'seed:progress': SeedProgressSchema,
-  /**
-   * The harvest narrating itself, batched.
-   *
-   * Separate from `seed:progress` because the two are different kinds of
-   * thing: progress replaces itself and drives a bar, and this accumulates
-   * and is read. See `SeedLogEntrySchema`.
-   */
-  'seed:log': SeedLogBatchSchema
+  'window:state': WindowStateSchema
 } satisfies Record<string, z.ZodType>
 
 export type EventMap = typeof IPC_EVENT
