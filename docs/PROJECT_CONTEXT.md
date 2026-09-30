@@ -1090,6 +1090,24 @@ D29 in `docs/DISCOGRAPHY.md`.
   with no far end would generate rows forever, so it bounds them to one year
   from the anchor, which is every record exactly once.
 
+### An album's tracks stay inside it — 2026-09-30
+
+D30 in `docs/DISCOGRAPHY.md`.
+
+- **The grid lists only records that came out on their own.** A single or
+  remix another release carries is that release's track — drawn inside it,
+  not beside it — unless it has a UPC or a date different from the
+  carrier's. `trackOfIndex` in `discography.constants.ts` decides; it is
+  derived on every read into `DiscographySummary.trackOf` and never stored,
+  so there is no migration.
+- **Only DISCOGRAPHY reads it**, on the operator's instruction: the grid, its
+  counts and its masthead dots. CALENDAR, ARTISTS, the palette and the
+  ARCHIVE still see every record.
+- **The sheet and pickers keep the full list** — the album's rows resolve
+  their titles against it.
+- A folded record's own sheet reads **Track N of A** after its kind, as a link
+  back to the album.
+
 ### The date picker is drawn in the document — 2026-09-18
 
 D28 in `docs/DISCOGRAPHY.md`.

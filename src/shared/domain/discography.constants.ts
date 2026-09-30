@@ -167,6 +167,101 @@ export const DISCOGRAPHY_LENS_PURPOSE: Record<DiscographyLens, string> = {
   forthcoming: 'Scheduled, not yet released.'
 }
 
+// -------------------------------------------------------------------- track of
+
+/** Where a record sits when it came out as another release's track. */
+export interface TrackOfPlacement {
+  /** The release it came out on. */
+  releaseId: string
+  /** Its place in that release's running order. */
+  position: number
+}
+
+/**
+ * The parts of a release `trackOfIndex` reads. Structural, so a stored release
+ * and anything shaped like one both qualify, and a probe can build one by hand.
+ */
+export interface TrackOfSource {
+  id: string
+  kind: ReleaseKind
+  releaseDate: string | null
+  upc: string
+  tracks: readonly { releaseId: string | null; position: number }[]
+}
+
+/**
+ * Which records came out as a track of another release rather than on their
+ * own, by the record's id.
+ *
+ * An album carries its tracks as rows, and a row may name the record that *is*
+ * that recording (`ReleaseTrackSchema.releaseId`). Two quite different things
+ * are stored that way:
+ *
+ * - **W**, a single that came out in May, which the September album then
+ *   carries. A product in its own right — it had a day of its own.
+ * - **Y**, a track that only ever came out *with* the album. It has a record
+ *   because the seeder gave every track on a multi-track release one, or
+ *   because an auto-raised single was collected into the running order.
+ *
+ * The grid lists W and draws Y inside the album (D30 in docs/DISCOGRAPHY.md).
+ * Nothing stored says which is which, and nothing needs to: **a record with a
+ * life of its own shows it in its own fields.**
+ *
+ * - **A UPC.** It identifies a product, so a record carrying one is a product
+ *   whatever its date. The seeder left every track it promoted without one —
+ *   "no second product, so no second barcode".
+ * - **A date of its own.** A record dated differently from the release carrying
+ *   it came out on another day, before that release or after it, so it was put
+ *   out on its own. One dated the same day, or not dated at all, came out with
+ *   it.
+ *
+ * Derived on every read and never stored, like `appearsOn`: the rows are the
+ * one copy of the relationship, and a stored flag would be a second opinion
+ * about it that could disagree.
+ *
+ * Only a one-recording record can be a track (`seedsOneTrack`). The service
+ * already refuses anything else on the way in, and it is checked again here
+ * because an earlier build let any kind be collected — an EP carried by a
+ * compilation is not one of the compilation's tracks.
+ *
+ * When several releases carry one record, the earliest wins: a track that came
+ * out on the album and turned up on a compilation a year later is still the
+ * album's. Rows naming a record that no longer exists, or naming the release
+ * they sit on, are skipped.
+ */
+export function trackOfIndex(releases: readonly TrackOfSource[]): Map<string, TrackOfPlacement> {
+  const byId = new Map(releases.map((release) => [release.id, release]))
+  const index = new Map<string, TrackOfPlacement & { carrierDate: string | null }>()
+
+  for (const carrier of releases) {
+    const carrierDate = carrier.releaseDate || null
+
+    for (const row of carrier.tracks) {
+      if (!row.releaseId || row.releaseId === carrier.id) continue
+
+      const record = byId.get(row.releaseId)
+      if (!record || !seedsOneTrack(record.kind)) continue
+      if (record.upc.trim()) continue
+
+      const ownDate = record.releaseDate || null
+      if (ownDate !== null && ownDate !== carrierDate) continue
+
+      const held = index.get(record.id)
+      if (held && !isEarlier(carrierDate, held.carrierDate)) continue
+
+      index.set(record.id, { releaseId: carrier.id, position: row.position, carrierDate })
+    }
+  }
+
+  return new Map([...index].map(([id, { releaseId, position }]) => [id, { releaseId, position }]))
+}
+
+/** Whether ISO date `a` falls before `b`, an undated release sorting after every dated one. */
+function isEarlier(a: string | null, b: string | null): boolean {
+  if (a === null) return false
+  return b === null || a < b
+}
+
 // ---------------------------------------------------------------------- sort
 
 export const DISCOGRAPHY_SORTS = ['date', 'title', 'kind', 'tracks'] as const

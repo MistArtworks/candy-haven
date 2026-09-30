@@ -37,6 +37,33 @@ The panel's header carries the **kind** rather than the title, which is what
 lets the title be set as a title instead of as small-caps in a rule. The
 register still reads as a register — numbered, ruled, status on the right.
 
+## An album's tracks stay inside it
+
+When an album comes out, its tracks often have records of their own too — one
+each, pointed at from the album's running order. The catalogue does not list
+those beside the album. It lists what came out as a release, and a track that
+only came out *with* the album is reached through the album.
+
+It tells the two apart from the track's own record:
+
+| The track's record has | In the catalogue |
+| --- | --- |
+| A date of its own, different from the album's — a single out before it, or after it | Listed, as a release of its own |
+| Its own UPC | Listed — a UPC is a product |
+| The album's date, or no date at all | Inside the album, not listed |
+
+Nothing needs setting. The album's running order still reaches every track —
+**Open** beside a row goes to its record — and that record reads **Track 3 of**
+the album straight after its kind, which is also the way back. Searching a
+track's name finds the album, with the matching track named on its card.
+
+Only this page does this. The CALENDAR, ARTISTS and the command palette still
+show every record.
+
+> If an album is removed, its tracks have nothing holding them and are listed
+> again. The same happens when an album's date changes and a track still
+> carries the old one — give the track the new date.
+
 ## The lenses
 
 | Lens            | Shows                                 |
@@ -56,9 +83,10 @@ looking at, and what you can do.
 
 - The **lenses** scope the whole catalogue, and sit beside **Raise a release**
   because that is the action they scope.
-- **Search** covers the title, the label and the credited artists — because
-  "everything on Monstercat" and "everything with Nasko" are the two questions
-  a discography gets asked that a title search cannot answer. The ✕ clears it.
+- **Search** covers the title, the label, the credited artists and the running
+  order — because "everything on Monstercat", "everything with Nasko" and
+  "where is Menace" are three questions a title search cannot answer. A card
+  found by one of its tracks names the track. The ✕ clears it.
 - **Kind chips** narrow to singles, EPs, albums, compilations or remixes, and
   stack — picking two shows both.
 - **Any label** appears once there are labels to pick from. A select rather

@@ -26,7 +26,9 @@ import {
   normaliseIsrc,
   normaliseUpc,
   releaseYear,
-  seedsOneTrack
+  seedsOneTrack,
+  trackOfIndex,
+  type TrackOfPlacement
 } from '@shared/domain/discography.constants'
 import type { CalendarRelease } from '@shared/domain/calendar'
 import type { MediaFile, ProjectRecord } from '@shared/domain/projects'
@@ -147,9 +149,12 @@ export class DiscographyService {
     ].sort((a, b) => a.localeCompare(b))
 
     const collectedBy = this.collectedByIndex(releases)
+    // Which records came out as another release's track, so the grid can
+    // draw them inside that release rather than beside it. See D30.
+    const trackOf = trackOfIndex(releases)
 
     return {
-      releases: releases.map((release) => this.summarise(release, roster, collectedBy)),
+      releases: releases.map((release) => this.summarise(release, roster, collectedBy, trackOf)),
       labels,
       total: releases.length
     }
@@ -1453,7 +1458,8 @@ export class DiscographyService {
   private summarise(
     release: DiscographyRelease,
     roster: ReadonlyMap<string, string>,
-    collectedBy: ReadonlyMap<string, readonly string[]> = new Map()
+    collectedBy: ReadonlyMap<string, readonly string[]> = new Map(),
+    trackOf: ReadonlyMap<string, TrackOfPlacement> = new Map()
   ): DiscographySummary {
     const { tracks, ...rest } = release
     const names = [...release.artistIds, ...release.featuredArtistIds]
@@ -1467,7 +1473,8 @@ export class DiscographyService {
       trackTitles: tracks.map((track) => track.title).filter(Boolean),
       artistNames: names,
       year: releaseYear(release.releaseDate),
-      appearsOn: [...(collectedBy.get(release.id) ?? [])]
+      appearsOn: [...(collectedBy.get(release.id) ?? [])],
+      trackOf: trackOf.get(release.id) ?? null
     }
   }
 

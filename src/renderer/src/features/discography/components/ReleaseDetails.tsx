@@ -128,6 +128,13 @@ export function ReleaseDetails({
   const projectNames = new Map(projects.map((project) => [project.id, project.name]))
   /** Titles for the rows that name a release, so one can be drawn as a link. */
   const releaseTitles = new Map(releases.map((entry) => [entry.id, entry.title]))
+  /*
+   * The release this record came out as a track of, when it did not come out
+   * on its own (D30). The grid leaves such a record out, so the record itself
+   * is the one place left to say where it went — and the way back to it.
+   */
+  const trackOf = releases.find((entry) => entry.id === release.id)?.trackOf ?? null
+  const trackOfTitle = trackOf ? releaseTitles.get(trackOf.releaseId) : undefined
 
   const out = release.status === 'released'
   const mastered = release.tracks.filter((track) => track.master !== null).length
@@ -186,6 +193,29 @@ export function ReleaseDetails({
               <span className={styles.heroFigureKind} {...tooltipTrigger('Kind')}>
                 {RELEASE_KIND_LABEL[release.kind]}
               </span>
+              {/*
+                Straight after the kind, because it qualifies it: a SINGLE that
+                is track 3 of an album is that album's track, not a single the
+                catalogue lists on its own.
+              */}
+              {trackOf && trackOfTitle ? (
+                onOpenRelease ? (
+                  <button
+                    type="button"
+                    className={styles.heroFigureLink}
+                    onClick={() => onOpenRelease(trackOf.releaseId)}
+                    {...tooltipTrigger(
+                      `Came out as part of ${trackOfTitle}, so the catalogue lists it there`
+                    )}
+                  >
+                    Track {trackOf.position} of {trackOfTitle}
+                  </button>
+                ) : (
+                  <span className={styles.heroFigure}>
+                    Track {trackOf.position} of {trackOfTitle}
+                  </span>
+                )
+              ) : null}
               <span className={styles.heroFigure} {...tooltipTrigger('Status')}>
                 {RELEASE_STATUS_LABEL[release.status]}
               </span>

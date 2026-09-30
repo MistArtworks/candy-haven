@@ -143,6 +143,21 @@ export function DiscographyPage(): ReactNode {
   const [dialogError, setDialogError] = useState<string | null>(null)
 
   const releases = useMemo(() => data?.releases ?? [], [data])
+  /*
+   * What the grid lists: everything but the records that came out as another
+   * release's track (D30).
+   *
+   * An album's tracks are often records too, and listing them beside it put
+   * a "single" in the catalogue for every track, most of which never came out
+   * as one. They are reached through the album's running order instead, and
+   * search still finds them by name — a card holding a matched track says so.
+   *
+   * Only the grid and its counts read this. The sheet, the raise dialog and
+   * the pickers keep the whole list, because that is what the album's rows
+   * resolve their titles against; filtering it would silently drop every
+   * "Open Y" link along with Y.
+   */
+  const listed = useMemo(() => releases.filter((release) => release.trackOf === null), [releases])
   const roster = useMemo(() => registry.data?.artists ?? [], [registry.data])
   const projects = useMemo(() => registry.data?.projects ?? [], [registry.data])
 
@@ -150,7 +165,7 @@ export function DiscographyPage(): ReactNode {
 
   const shown = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    return releases.filter((release) => {
+    return listed.filter((release) => {
       if (lens === 'catalogue' && !isPublic(release.status)) return false
       if (lens === 'forthcoming' && !isForthcoming(release.status)) return false
       if (kinds.length > 0 && !kinds.includes(release.kind)) return false
@@ -177,7 +192,7 @@ export function DiscographyPage(): ReactNode {
         .toLowerCase()
         .includes(needle)
     })
-  }, [releases, lens, kinds, search, labelFilter])
+  }, [listed, lens, kinds, search, labelFilter])
 
   const filtered = kinds.length > 0 || labelFilter !== '' || search.trim().length > 0
 
@@ -274,10 +289,10 @@ export function DiscographyPage(): ReactNode {
 
   const counts = useMemo(
     () => ({
-      released: releases.filter((r) => isPublic(r.status)).length,
-      forthcoming: releases.filter((r) => isForthcoming(r.status)).length
+      released: listed.filter((r) => isPublic(r.status)).length,
+      forthcoming: listed.filter((r) => isForthcoming(r.status)).length
     }),
-    [releases]
+    [listed]
   )
 
   return (
@@ -408,7 +423,7 @@ export function DiscographyPage(): ReactNode {
               {filtered ? (
                 <>
                   <span className={styles.count}>
-                    {shown.length} of {releases.length}
+                    {shown.length} of {listed.length}
                   </span>
                   <Button size="sm" variant="ghost" onClick={clearFilters}>
                     Clear

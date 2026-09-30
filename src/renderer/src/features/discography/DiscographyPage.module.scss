@@ -1524,6 +1524,28 @@
   white-space: nowrap;
 }
 
+// The release a record came out on, when it came out as one of its tracks
+// (D30). The one reading on the line that goes somewhere, so it is gold, as
+// the running order's own "Open" is. Declared ahead of the rule below, which
+// has to win on the left edge: that is where the divider and the gap are.
+.heroFigureLink {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  white-space: nowrap;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
 .heroFigures > * + * {
   @include hairline(left, 0.1);
   padding-left: space(4);

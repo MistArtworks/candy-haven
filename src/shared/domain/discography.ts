@@ -358,7 +358,18 @@ export const DiscographySummarySchema = DiscographyReleaseSchema.omit({ tracks: 
    * and for the same reason: one relationship, one copy of it. A single knows
    * nothing about the albums it ends up on, and does not need to.
    */
-  appearsOn: z.array(z.string()).default([])
+  appearsOn: z.array(z.string()).default([]),
+  /**
+   * The release this record came out as a track of, and its place there —
+   * null for a record that came out on its own. See `trackOfIndex`.
+   *
+   * The grid leaves such a record out and reaches it through that release
+   * instead (D30). Derived on every read, exactly as `appearsOn` is.
+   */
+  trackOf: z
+    .object({ releaseId: z.string(), position: z.number().int().min(1) })
+    .nullable()
+    .default(null)
 })
 export type DiscographySummary = z.infer<typeof DiscographySummarySchema>
 

@@ -2058,3 +2058,106 @@ without a bound it would never stop generating rows.
 **One year from the anchor.** That shows every record in the catalogue exactly
 once, which is the most the question "what is coming" can honestly want. It is
 the one arbitrary number in this feature and it is confined to one call site.
+
+---
+
+## 35. D30 — an album's tracks live inside it, 2026-09-30
+
+*"Tracks W, X, Y and Z are part of album A, and I release W and X as singles
+first. When I release the album, I get the album and all of W, X, Y and Z in
+the grid. I don't want to see Y and Z as discography items. They are existing
+items which are linked to the album, but I don't want to see them in my
+discography grid."*
+
+### How they got there
+
+The seeder gave every track on a multi-track record a record of its own and
+pointed the parent's running order at them, so a song could be found by name
+(DISCOGRAPHY_SEEDER.md §6). An auto-raised single collected into an album's
+running order lands in exactly the same shape. Either way the catalogue listed
+an album and, beside it, one "single" per track — most of which never came out
+as one.
+
+### The rule, and why nothing had to be stored
+
+The rows already say which records an album carries: `ReleaseTrackSchema.releaseId`.
+What they do not say is whether a carried record *also* came out on its own.
+W — the May single the September album then carries — and Y — a track that
+only ever came out with the album — are stored identically.
+
+Nothing needed adding, because **a record with a life of its own shows it in
+its own fields**:
+
+| A carried record with | Reads as |
+| --- | --- |
+| a UPC | a product in its own right — listed |
+| a date different from the carrying release's | out on another day, before it or after it — listed |
+| the carrying release's date, or no date at all | out *with* it — drawn inside it |
+
+Only a one-recording kind can be a track (`seedsOneTrack`), which is the rule
+`assertOneRecording` already enforces on the way in — rechecked because an
+earlier build let any kind be collected. When several releases carry one
+record, the earliest keeps it: a track that turned up on a compilation a year
+after its album is still the album's.
+
+`trackOfIndex` in `discography.constants.ts` — pure and zod-free, so it was
+probed over twenty-one cases with no database, the `distributionFromLinks`
+precedent. `getRegistry` runs it beside `collectedByIndex` and ships the
+answer as `DiscographySummary.trackOf`, `{ releaseId, position } | null`.
+
+**Derived on every read, never stored**, as `appearsOn` is and for the same
+reason. The alternative was a stored "list this" flag, and it would have
+needed a migration guessing which seeded records to switch off, a switch on
+every record, and a rule for new ones — a second opinion about a relationship
+the rows already hold, free to disagree with it. The seeded records needed no
+migration at all: they carry their album's date and no UPC, which the rule
+reads correctly exactly as they stand.
+
+### Where it lands, and only there
+
+The grid, its `N entries` / `N of M` count, and the masthead's `out` and
+`coming` dots all read `listed` in `DiscographyPage`. Asked directly, the
+operator kept it to this department — *"everywhere else I don't mind it
+showing"* — so CALENDAR markers and anniversaries, ARTISTS counts and lists,
+the command palette and the ARCHIVE's appearances still see every record.
+`scheduledDates`, `creditIndex`, `creditsForArtist` and `appearances` are
+untouched.
+
+A folded track stays in reach:
+
+- the album's running order, whose **Open** already goes to its record;
+- search, because the grid matches track titles and the album's card says
+  `holds "Y"`;
+- the record itself, whose hero reads **Track 3 of A** straight after the kind
+  — the kind says SINGLE, and this is what qualifies it — as a link back.
+
+The sheet, the raise dialog and the pickers keep the **whole** list. The
+album's rows resolve their titles against it, and filtering it would silently
+drop every **Open Y** along with Y.
+
+### Edge cases, accepted
+
+- **An album removed.** Nothing carries its tracks any more, so they are
+  listed again. They exist and nothing holds them, which is what the grid
+  should say.
+- **An album's date moved** after a track copied the old one. The track now
+  reads as out on a day of its own and returns to the grid. Give it the new
+  date, or clear its own. Seeded records carry historical dates, so this is
+  unlikely to come from them.
+- **A planned single with no date yet**, already collected into the album,
+  sits inside the album until it is given a date of its own.
+- **A row added by name** names no record, so the record behind it stays
+  listed. The seeder wrote plain rows when a parent already existed before its
+  run, so a straggler of that kind is possible. Swap the row for the record
+  with **Add from the catalogue** and it folds in.
+
+### Found, and left for its own change
+
+`addTrack` drops a collected record's project link — it builds the row with
+`projectId: draft.projectId ?? null` — while `rowFromCollected`, the other way
+in, carries it across, under a comment saying "collected" must mean the same
+thing whichever door it came through. So a single collected from the running
+order leaves the album's row without its project, and marking the album
+released does not move that project to RELEASED. With the track's own record
+now out of sight, that gap is easier to miss. Raised with the operator; not
+changed here.

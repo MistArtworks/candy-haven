@@ -46,6 +46,10 @@ later. If something is missing from it, move it to TRACK READY in the ARCHIVE.
 
 A track with no project is ordinary: a back catalogue has none.
 
+When an album comes out, a track that only came out *with* it is drawn inside
+the album rather than listed beside it. One that came out on its own first — a
+single — stays listed.
+
 ## Which file shipped
 
 Once a track has a project, **PICK MASTER** lists that project's own bounces and
