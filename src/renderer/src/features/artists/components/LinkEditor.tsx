@@ -22,14 +22,8 @@ export interface LinkEditorProps {
 /**
  * Where somebody can be found.
  *
- * ARTISTS and COLOPHON. The website's places to follow are the same object as
- * an artist's socials (a platform, an address, a label for what the list
- * cannot name), so COLOPHON draws its list with this rather than a copy that
- * would drift from it. It lives here because ARTISTS had it first.
- *
- * It was ARTISTS only for a while. Before that it was shared with DISCOGRAPHY,
- * on the reasoning that a release's platform links and an artist's socials
- * were the same object — a
+ * ARTISTS only, now. This was shared with DISCOGRAPHY on the reasoning that a
+ * release's platform links and an artist's socials were the same object — a
  * platform, an address, and a label for the ones the platform list cannot
  * name — and while that was true it was worth one editor rather than two that
  * would drift.

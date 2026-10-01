@@ -2,8 +2,9 @@
 
 ## The details the website carries
 
-Where to write, where to call, who to message, and where to follow. The
-website shows them on every page, and this is the one place each is written.
+Where to write, where to call, who to message, and where to follow and listen.
+The website shows them on every page, and this is the one place each is
+written.
 
 A colophon is the note at the back of a book saying who made it and where they
 can be found. The website's footer is that note.
@@ -22,21 +23,26 @@ nudges the bar instead. A half-typed address is never written by accident.
 Each field checks what it holds as you type, and says why underneath when it
 cannot be stored. Nothing is filed while one is red.
 
-- **Email** needs a name, an `@` and a domain.
-- **Phone** is kept as you space it, and shows what it dials underneath.
-- **Discord** is the username alone: lowercase, without the `@`.
+- **Booking email** needs a name, an `@` and a domain.
+- **Phone number** is kept as you space it, and shows what it dials underneath.
+- **Discord username** is the username alone: lowercase, without the `@`.
+- **A profile** must be on its own platform. A SoundCloud address will not go
+  into Spotify's field.
 
 Every field may also be left empty. The website leaves out what is not set
 rather than printing a guess.
 
-## Places to follow
+## Profiles
 
-Paste an address into **Add a link**. The platform is guessed from it once,
-and left alone after that, so you can correct it.
+Instagram, Spotify, Apple Music, SoundCloud and YouTube are always on the page.
+The navbar and the footer draw Instagram, SoundCloud, Spotify and YouTube.
 
-The list is in the order the website shows it. These are not your card on the
-roster: that holds every address you can be found at, for credits, and this is
-the ones the website points people to.
+Any other platform is added by pasting its address into **Add a platform**: it
+is placed under its own platform, from YouTube Music and Deezer to Beatport and
+Mixcloud. **Remove** takes one off again.
+
+These are not your card on the roster: that holds every address you can be
+found at, for credits, and these are the ones the website points people to.
 
 ## Kept here, for now
 

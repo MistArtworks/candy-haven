@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ArtistLinkSchema } from './artists'
 
 /**
  * Schema half of the colophon domain: the details the website carries.
@@ -11,16 +10,30 @@ import { ArtistLinkSchema } from './artists'
  * **Every field carries a `.default()`**, as everywhere else here.
  */
 
+export type { ColophonProfiles, ProfilePlatform } from './colophon.constants'
+
 export {
-  MAX_COLOPHON_LINKS,
+  CORE_PROFILE_PLATFORMS,
   MAX_DISCORD,
   MAX_EMAIL,
   MAX_PHONE,
+  NAVBAR_PROFILE_PLATFORMS,
+  PROFILE_PLATFORMS,
+  PROFILE_PLATFORM_LABEL,
   checkDiscord,
   checkEmail,
   checkPhone,
+  checkProfileUrl,
   dialString,
-  emptyColophon
+  emptyColophon,
+  emptyProfiles,
+  isCoreProfile,
+  isNavbarProfile,
+  isProfilePlatform,
+  listedPlatforms,
+  profilePlatformOf,
+  profilesFromLinks,
+  readProfiles
 } from './colophon.constants'
 
 /**
@@ -33,17 +46,17 @@ export {
  * whole record unreadable over one long value rather than refuse the next
  * write. The rules are enforced where they belong, in `ColophonService.update`.
  *
- * ## Why the links are an artist's links
+ * ## Why the profiles are a map
  *
- * A place to follow somebody is a platform and an address, which is exactly
- * what `ArtistLinkSchema` already is, platform table and all. A second shape
- * would be a second list of platforms to keep in step with the first.
+ * Keyed by platform, a profile on each, because the website draws each
+ * platform behind its own mark and has nowhere to put a second Spotify. The
+ * keys are not an enum here, for the same reason as the missing `.max()`: a
+ * platform retired from `PROFILE_PLATFORMS` should drop off the page, not make
+ * the record unreadable. `readProfiles` is what gives the map its shape.
  *
- * They are **not** the operator's own roster card, though, and that is a
- * choice rather than an oversight. The card is every address somebody can be
- * found at, kept for credits; these are the ones the website points people to,
- * a selection and an order of their own. Tying the two together would mean a
- * Beatport page added for the credits appeared in the footer too.
+ * They are not the operator's own roster card, and that is a choice. The card
+ * is every address somebody can be found at, kept for credits; these are the
+ * ones the website points people to.
  */
 export const ColophonSchema = z.object({
   /** Where bookings and questions are written to. */
@@ -52,19 +65,23 @@ export const ColophonSchema = z.object({
   phone: z.string().default(''),
   /** The username people message after a booking. */
   discord: z.string().default(''),
-  /** Where the website points people to follow, in the order it lists them. */
-  links: z.array(ArtistLinkSchema).default([]),
+  /** The artist's profile on each platform, keyed by platform. */
+  profiles: z.record(z.string(), z.string()).default({}),
   /** When the record was last filed. Zero means never. */
   updatedAt: z.number().default(0)
 })
 export type Colophon = z.infer<typeof ColophonSchema>
 
-/** What one filing changes. Absent means unchanged; every field replaces. */
+/** What one filing changes. Absent means unchanged. */
 export const ColophonPatchSchema = z.object({
   email: z.string().optional(),
   phone: z.string().optional(),
   discord: z.string().optional(),
-  /** Replaces the whole list, as every list in a patch here does. */
-  links: z.array(ArtistLinkSchema).optional()
+  /**
+   * The whole set, as it should stand: a platform left out is taken off the
+   * page. Whole rather than per platform, because removing one is a change a
+   * per-platform patch could only say with a sentinel value.
+   */
+  profiles: z.record(z.string(), z.string()).optional()
 })
 export type ColophonPatch = z.infer<typeof ColophonPatchSchema>

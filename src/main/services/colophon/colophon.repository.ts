@@ -1,6 +1,7 @@
 import type { Collection, Db } from 'mongodb'
 import { ColophonSchema } from '@shared/domain/colophon'
 import type { Colophon } from '@shared/domain/colophon'
+import { profilesFromLinks, readProfiles } from '@shared/domain/colophon.constants'
 import { getLogger } from '@main/core/logger'
 import { Collections } from '@main/services/archive/schema'
 
@@ -18,8 +19,14 @@ const logger = getLogger('colophon:repository')
 /** The one document's key. */
 const COLOPHON_ID = 'colophon'
 
-/** Stored shape: the record, under its fixed `_id`. */
-export type ColophonDocument = Colophon & { _id: string }
+/**
+ * Stored shape: the record, under its fixed `_id`.
+ *
+ * `links` is what the first build kept in place of `profiles`; see
+ * `profilesFromLinks`. Read, never written: the next filing replaces the
+ * document with one that does not carry it.
+ */
+export type ColophonDocument = Colophon & { _id: string; links?: unknown }
 
 export class ColophonRepository {
   constructor(private readonly db: Db) {}
@@ -40,8 +47,15 @@ export class ColophonRepository {
     const document = await this.colophon.findOne({ _id: COLOPHON_ID })
     if (!document) return null
 
-    const { _id, ...rest } = document
-    const parsed = ColophonSchema.safeParse(rest)
+    // A record from before the profiles carries them as a list; they are read
+    // into the map here, before the schema would strip the list as an unknown
+    // key and lose them.
+    const { _id, links, ...rest } = document
+    const parsed = ColophonSchema.safeParse(
+      rest.profiles === undefined && links !== undefined
+        ? { ...rest, profiles: profilesFromLinks(links) }
+        : rest
+    )
     if (!parsed.success) {
       logger.warn(
         `Colophon record ${_id} is unreadable; reading it as unfiled`,
@@ -50,7 +64,7 @@ export class ColophonRepository {
       return null
     }
 
-    return parsed.data
+    return { ...parsed.data, profiles: readProfiles(parsed.data.profiles) }
   }
 
   async write(colophon: Colophon): Promise<void> {

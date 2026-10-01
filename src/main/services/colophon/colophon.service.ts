@@ -1,12 +1,13 @@
-import type { ArtistLink } from '@shared/domain/artists'
-import { checkLinkUrl, type NameCheck } from '@shared/domain/artists.constants'
-import type { Colophon, ColophonPatch } from '@shared/domain/colophon'
+import type { NameCheck } from '@shared/domain/artists.constants'
+import type { Colophon, ColophonPatch, ColophonProfiles } from '@shared/domain/colophon'
 import {
-  MAX_COLOPHON_LINKS,
   checkDiscord,
   checkEmail,
   checkPhone,
-  emptyColophon
+  checkProfileUrl,
+  emptyColophon,
+  emptyProfiles,
+  isProfilePlatform
 } from '@shared/domain/colophon.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
@@ -62,14 +63,14 @@ export class ColophonService {
     if (phone !== undefined) this.require(checkPhone(phone))
     if (discord !== undefined) this.require(checkDiscord(discord))
 
-    const links = patch.links ? this.checkLinks(patch.links) : undefined
+    const profiles = patch.profiles ? this.checkProfiles(patch.profiles) : undefined
 
     const next: Colophon = {
       ...current,
       ...(email !== undefined ? { email } : {}),
       ...(phone !== undefined ? { phone } : {}),
       ...(discord !== undefined ? { discord } : {}),
-      ...(links !== undefined ? { links } : {}),
+      ...(profiles !== undefined ? { profiles } : {}),
       updatedAt: Date.now()
     }
 
@@ -89,22 +90,26 @@ export class ColophonService {
   }
 
   /**
-   * The links, checked and trimmed, in the order given.
+   * The profiles as they should stand, checked.
    *
-   * The same rule the roster applies to an artist's links, because these are
-   * the same object: an address that opens, and a ceiling on how many.
+   * A platform the colophon does not know is refused rather than dropped:
+   * dropping it would file something other than what was sent and say nothing.
+   * Each address is trimmed and must be on its own platform, the rule
+   * `checkProfileUrl` states. The core platforms are put back if the patch
+   * left them out, because the page always draws them.
    */
-  private checkLinks(links: readonly ArtistLink[]): ArtistLink[] {
-    if (links.length > MAX_COLOPHON_LINKS) {
-      throw new AppError(`The website carries at most ${MAX_COLOPHON_LINKS} links.`, {
-        code: ErrorCode.Validation,
-        recoverable: false
-      })
-    }
+  private checkProfiles(patch: Readonly<Record<string, string>>): ColophonProfiles {
+    const next = emptyProfiles()
 
-    return links.map((link) => {
-      this.require(checkLinkUrl(link.url))
-      return { ...link, url: link.url.trim(), label: link.label.trim() }
-    })
+    for (const [platform, raw] of Object.entries(patch)) {
+      if (!isProfilePlatform(platform)) {
+        this.require({ ok: false, reason: `The colophon has no platform called ${platform}.` })
+        continue
+      }
+      const url = raw.trim()
+      this.require(checkProfileUrl(platform, url))
+      next[platform] = url
+    }
+    return next
   }
 }

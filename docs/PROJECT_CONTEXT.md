@@ -929,7 +929,8 @@ hour, and the departments coming to it (the services, the lore, publishing
 itself) would crowd a division about going live.
 
 Its first department is **COLOPHON**, the details the website carries on every
-page: email, phone, Discord username and the places to follow. Decisions:
+page: the booking email, the phone number, the Discord username and the
+artist's profile on each platform. Decisions:
 
 - **One record, one collection.** `publication_colophon`, one document under
   the fixed `_id` `colophon`. Archive data rather than a setting: settings are
@@ -944,10 +945,22 @@ page: email, phone, Discord username and the places to follow. Decisions:
   `ColophonService.update` runs them again. Values are trimmed, never
   otherwise corrected: a phone number is kept as spaced, and `dialString`
   derives what it dials. The stored schema is permissive, as distribution is.
-- **Links are `ArtistLinkSchema`**, drawn by the roster's `LinkEditor`, because
-  a place to follow is a platform and an address. They are deliberately not
-  the operator's own roster card: the card is every address kept for credits,
-  this is the website's selection and order.
+- **Profiles are a map, one address per platform**, not a list of links. The
+  first build used `ArtistLinkSchema` and the roster's `LinkEditor`; it moved
+  the same day, once the website's own platforms were set beside it, because
+  the website draws each platform behind its own mark and a list could file a
+  second Spotify or a page with nowhere to go. `PROFILE_PLATFORMS` is the
+  table (ids shared with `DISTRIBUTION_PLATFORMS` where they mean the same
+  thing; `youtube` is the channel, `youtube-music` the service). Five are
+  core and always present (Instagram, Spotify, Apple Music, SoundCloud,
+  YouTube); the rest are added by pasting an address, recognised by host
+  (`profilePlatformOf`), and every address must be on its own platform
+  (`checkProfileUrl`). `NAVBAR_PROFILE_PLATFORMS` are the four the website's
+  navbar and footer draw. The stored map's keys are plain strings and
+  `readProfiles` gives it its shape, so a retired platform drops off rather
+  than making the record unreadable; `profilesFromLinks` reads a record from
+  the list era. Deliberately not the operator's own roster card: the card is
+  every address kept for credits, this is what the website points people to.
 - **Local only, and it says so.** The page's PUBLICATION panel reads "Not yet"
   for published. Nothing outside reads the record until publishing is built.
 - COLOPHON took `Ctrl`+`0`, which pushed TELEMETRY past the tenth slot; it

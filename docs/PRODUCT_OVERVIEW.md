@@ -280,7 +280,10 @@ Twitch is read-only — the app listens to chat and never posts.
 The first department of PUBLICATION, the division for the website. One record of
 the details the site shows on every page: the email bookings are written to, the
 phone number (kept as it should read, with what it dials shown underneath), the
-Discord username people message after a booking, and the places to follow from.
+Discord username people message after a booking, and the artist's profile on
+every platform: Instagram, Spotify, Apple Music, SoundCloud and YouTube always,
+and any of sixteen more (YouTube Music, Deezer, TIDAL, Bandcamp, Beatport and the
+rest) added by pasting an address. Each address must be on its own platform.
 Each field says what is wrong with it as it is typed, and nothing is written until
 the change is filed from the bar at the bottom of the screen, so a half-typed
 address is never stored. It is kept on the artist's machine like everything else;
