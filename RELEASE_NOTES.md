@@ -1,32 +1,35 @@
-The rail gets out of the way now, and every hint in the console finally looks like it belongs here.
+A new division for everything the public sees, and the first page in it: every detail the website carries, written once, here.
 
-## THE RAIL
+## PUBLICATION
 
-Each division opens on its own — one at a time — and closing one no longer
-stutters: the whole division shrinks in a single motion instead of fading
-out and snapping shut a beat later.
+BROADCAST is folded into a new division, PUBLICATION, for everything the public sees: OBSERVATORY's overlays while a stream is live, and the website at any hour. OBSERVATORY keeps its number and its shortcut, Ctrl+9.
 
-The whole rail can be put away entirely. Its own masthead carries the switch
-now, where the department count used to sit; the title bar's copy is gone.
-Bringing the rail back is a small switch that floats at the corner it used to
-occupy, since nothing else on screen stands for it once the whole directory
-is out of sight — or **Ctrl+]** from anywhere, which works in both
-directions and needs no mouse at all.
+## COLOPHON
 
-## HOVER HINTS
+The new department under PUBLICATION, on Ctrl+0. One place for every detail the website carries, so none of it has to be typed into the site again.
 
-Every hint in the console — on a button, a division heading, a status dot —
-now draws in the console's own dark, hairlined style instead of the plain
-system-yellow box Windows drew before. A few explanations that sat on
-disabled controls, saying why a button would not let you press it yet,
-turned out to never have shown at all: a disabled control does not answer a
-hover. Those now do.
+Correspondence holds the booking, management and press emails, the phone number, the WhatsApp number, and the Discord and Telegram usernames. Particulars holds where you are based, your time zone, management, booking agency, label and press kit.
 
-## UNDER THE HOOD
+Profiles holds your page on 72 platforms, each with a field of its own: Instagram, Spotify, Apple Music, SoundCloud and YouTube first, then every other streaming service, the social platforms, live streams and DJ mixes, the stores, community and support pages, and the catalogues.
 
-Faster in the places that add up over time rather than the ones you'd
-notice in a screenshot: a BROADCAST overlay left running for a whole stream
-no longer does needless work every single frame, a full ARCHIVE rescan no
-longer stalls the rest of the console while it runs, and dragging a DARKROOM
-grading control redraws the preview only as often as the screen can actually
-show it.
+Every field checks itself as you type and says why when something is wrong. A link has to be on the platform its field is for, so a SoundCloud link will not go into Spotify's field. The phone number shows what it dials, the WhatsApp and Telegram fields show the link they open, and the time zone shows the time there now. Nothing is saved until you press File changes.
+
+## PUBLIC OR PRIVATE
+
+Every field has a toggle on its right. Public fields will go out with the website; private ones stay on this machine. Everything starts private, except the seven the website cannot do without, which are locked public: the booking email, the phone number, the Discord username, and Instagram, SoundCloud, Spotify and YouTube. Each panel can switch all of its fields at once.
+
+Nothing is published yet. The website does not read COLOPHON until publishing from the console is built.
+
+## DISCOGRAPHY
+
+An album's tracks are drawn inside the album now, instead of beside it as singles that never came out as one. A track that had its own release, before the album or after it, keeps its place in the grid. A folded track's sheet reads Track N of A, as the way back to its album.
+
+The Seed from the platforms link is gone. The back catalogue has been brought in, which was the seeder's one job.
+
+## SHORTCUTS
+
+TELEMETRY moves to Ctrl+Shift+T, because COLOPHON took Ctrl+0.
+
+## THE MANUAL
+
+CATECHISM has a COLOPHON chapter and quick guide, and a pass through the rest of the manual brought it in line with what the console does now.
