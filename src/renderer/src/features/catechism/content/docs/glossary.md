@@ -6,12 +6,16 @@ are listed, because the second kind is impossible to spot without the first.
 
 ## The console
 
-**Department** — a section of the console, reached from the rail. Thirteen of
-them, grouped into four divisions.
+**Department** — a section of the console, reached from the rail. Fourteen of
+them, grouped into five divisions.
 
 **Division** — the grouping a department is filed under: COMMAND, PRODUCTION,
-BROADCAST, OVERSIGHT. It tells you what kind of question the departments inside
-it answer.
+BROADCAST, PUBLICATION, OVERSIGHT. It tells you what kind of question the
+departments inside it answer.
+
+**Colophon** — the details the website carries on every page: the email, the
+phone number, the Discord username and the places to follow. Named for the note
+at the back of a book that says who made it and where they can be found.
 
 **Reserved** — a department that is routed and specified but not yet built. Its
 page lists what it will do when commissioned. INTERFACE is the only one.

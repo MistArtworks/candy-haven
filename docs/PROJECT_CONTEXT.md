@@ -5,9 +5,10 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-09-23 (v1.18.0). Twelve of thirteen departments delivered;
-> INTERFACE is the only one still reserved — that count hasn't changed since
-> DISCOGRAPHY and ARTISTS shipped on 2026-09-16. The department table in §10
+> Last updated: 2026-10-01. Thirteen of fourteen departments delivered;
+> INTERFACE is the only one still reserved. COLOPHON opened a fifth division,
+> PUBLICATION, on 2026-10-01: the website's details, kept locally until the
+> website is published from here (§10, §14). The department table in §10
 > is current, but `src/shared/domain/navigation.ts` remains the source of
 > truth and this file is what needs correcting when the two disagree — it has
 > gone stale before, more than once.
@@ -838,7 +839,7 @@ than unpacking 800 MB.
 
 `projects` · `project_versions` · `archive_folders` · `archive_volumes` ·
 `archive_tags` · `releases` · `overlays` · `command_history` · `events` ·
-`migrations`
+`migrations` · `publication_colophon`
 
 **Schema version 2** (`applyMigrations`) drops `projects`, `archive_folders`,
 `releases`, `release_assets`, `transmission_tasks` and `unlinked_media` once, on
@@ -906,15 +907,51 @@ and Nexus all read from it.
 | 7   | `auditorium`  | `/auditorium`   | **shipped** | Listening room and visualiser                          |
 | 8   | `darkroom`    | `/darkroom`     | **shipped** | Grading photographs onto the console palette           |
 | 9   | `observatory` | `/observatory`  | **shipped** | The broadcast desk and every overlay served to OBS     |
-| 10  | `telemetry`   | `/telemetry`    | **shipped** | Host vitals                                            |
-| 11  | `dispatch`    | `/dispatch`     | **shipped** | The shared board                                       |
-| 12  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
-| 13  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
+| 10  | `colophon`    | `/colophon`     | **shipped** | The details the website carries                        |
+| 11  | `telemetry`   | `/telemetry`    | **shipped** | Host vitals                                            |
+| 12  | `dispatch`    | `/dispatch`     | **shipped** | The shared board                                       |
+| 13  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
+| 14  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
 
-**Thirteen departments, twelve shipped.** INTERFACE remains the only reserved
-one. The rail has outgrown the numbered chords: `Ctrl`+`1`…`9`,`0` reach the
-first ten, and DISPATCH, REGULATION and CATECHISM have named chords
-(`Ctrl`+`Shift`+`D`, `Ctrl`+`,`, `Ctrl`+`Shift`+`K`). See `ConsoleLayout.tsx`.
+**Fourteen departments, thirteen shipped,** in five divisions: COMMAND,
+PRODUCTION, BROADCAST, PUBLICATION, OVERSIGHT. INTERFACE remains the only
+reserved one. The rail has outgrown the numbered chords: `Ctrl`+`1`…`9`,`0`
+reach the first ten, and TELEMETRY, DISPATCH, REGULATION and CATECHISM have
+named chords (`Ctrl`+`Shift`+`T`, `Ctrl`+`Shift`+`D`, `Ctrl`+`,`,
+`Ctrl`+`Shift`+`K`). See `ConsoleLayout.tsx`.
+
+### PUBLICATION and COLOPHON — added 2026-10-01
+
+A fifth division, **PUBLICATION**, between BROADCAST and OVERSIGHT: what the
+public reads when nothing is live, which is the website and what it carries.
+BROADCAST is a stream that is on or off; this is a standing record read at any
+hour, and the departments coming to it (the services, the lore, publishing
+itself) would crowd a division about going live.
+
+Its first department is **COLOPHON**, the details the website carries on every
+page: email, phone, Discord username and the places to follow. Decisions:
+
+- **One record, one collection.** `publication_colophon`, one document under
+  the fixed `_id` `colophon`. Archive data rather than a setting: settings are
+  how this console behaves on this machine, and this is a record of the
+  practice the website will be built from. It is not in the settings export.
+- **Filed as a draft** through the unsaved-changes bar, the REGULATION model,
+  not committed as typed like the roster's sheet. `useColophonDraft` holds the
+  edits alone and lays them over the stored record, so nothing has to be kept
+  in step with the query.
+- **Checked twice.** `colophon.constants.ts` holds the rules (`checkEmail`,
+  `checkPhone`, `checkDiscord`) so the page can refuse beside the field;
+  `ColophonService.update` runs them again. Values are trimmed, never
+  otherwise corrected: a phone number is kept as spaced, and `dialString`
+  derives what it dials. The stored schema is permissive, as distribution is.
+- **Links are `ArtistLinkSchema`**, drawn by the roster's `LinkEditor`, because
+  a place to follow is a platform and an address. They are deliberately not
+  the operator's own roster card: the card is every address kept for credits,
+  this is the website's selection and order.
+- **Local only, and it says so.** The page's PUBLICATION panel reads "Not yet"
+  for published. Nothing outside reads the record until publishing is built.
+- COLOPHON took `Ctrl`+`0`, which pushed TELEMETRY past the tenth slot; it
+  gained `Ctrl`+`Shift`+`T`, the arrangement DISPATCH got when it was pushed.
 
 ### DISCOGRAPHY and ARTISTS — added 2026-09-16
 
@@ -1851,6 +1888,12 @@ They are recorded so nearer-term work does not foreclose them.
 
   What remains outstanding from this bullet is the **website**: the
   discography is a private record until something publishes it.
+
+- **Website, continued (2026-10-01).** The PUBLICATION division now exists,
+  with COLOPHON as its first department (§10), and the website itself has been
+  built separately as a Next.js site. Publishing, the step that projects this
+  console's records out to it, is still not built; until it is, everything in
+  PUBLICATION is kept locally and read by nothing outside.
 
 ---
 

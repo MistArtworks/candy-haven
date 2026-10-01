@@ -40,7 +40,7 @@ throughout.
 
 |                          | Count                              | Notes                                    |
 | ------------------------ | ---------------------------------- | ---------------------------------------- |
-| Departments (sections)   | **13 total — 12 live, 1 reserved** | Only INTERFACE is unbuilt                |
+| Departments (sections)   | **14 total — 13 live, 1 reserved** | Only INTERFACE is unbuilt                |
 | Live-stream graphics     | **9 shipped**, plus a chat widget  | 1 more (THE DOCKET) specified, unbuilt   |
 | Built-in manual chapters | 16                                 | Written as prose, shipped inside the app |
 | Platform                 | Windows only                       | Installer-based, auto-updating           |
@@ -50,15 +50,16 @@ when built, so the shape of the finished product is visible while it is being as
 
 ## 4. How the application is organised
 
-Departments are grouped into four **divisions**, which tell you what kind of question
+Departments are grouped into five **divisions**, which tell you what kind of question
 each one answers:
 
-| Division       | Purpose                                                        | Departments                                |
-| -------------- | -------------------------------------------------------------- | ------------------------------------------ |
-| **COMMAND**    | Seeing the system whole, and instructing it                    | NEXUS, INTERFACE _(reserved)_              |
-| **PRODUCTION** | The work itself — what is filed, when it is due, how it sounds | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
-| **BROADCAST**  | What an audience sees while a stream is live                   | OBSERVATORY                                |
-| **OVERSIGHT**  | The condition of the installation and the rules it runs under  | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
+| Division        | Purpose                                                        | Departments                                |
+| --------------- | -------------------------------------------------------------- | ------------------------------------------ |
+| **COMMAND**     | Seeing the system whole, and instructing it                    | NEXUS, INTERFACE _(reserved)_              |
+| **PRODUCTION**  | The work itself — what is filed, when it is due, how it sounds | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
+| **BROADCAST**   | What an audience sees while a stream is live                   | OBSERVATORY                                |
+| **PUBLICATION** | What the public reads when nothing is live: the website        | COLOPHON                                   |
+| **OVERSIGHT**   | The condition of the installation and the rules it runs under  | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
 
 Everything is numbered, every department has a keyboard shortcut, and the layout is
 consistent from page to page.
@@ -273,6 +274,17 @@ the evening before a stream rather than discovering problems on air. The simulat
 the _real_ code paths, so the real limits genuinely bite.
 
 Twitch is read-only — the app listens to chat and never posts.
+
+### COLOPHON — the details the website carries _(live)_
+
+The first department of PUBLICATION, the division for the website. One record of
+the details the site shows on every page: the email bookings are written to, the
+phone number (kept as it should read, with what it dials shown underneath), the
+Discord username people message after a booking, and the places to follow from.
+Each field says what is wrong with it as it is typed, and nothing is written until
+the change is filed from the bar at the bottom of the screen, so a half-typed
+address is never stored. It is kept on the artist's machine like everything else;
+nothing reads it from outside until publishing the website is built.
 
 ### TELEMETRY — host vitals _(live)_
 

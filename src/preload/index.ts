@@ -296,6 +296,10 @@ const api: CandyHavenApi = {
     remove: (id) => invoke('calendar:delete', { id }),
     onState: (listener) => subscribe('calendar:state', listener)
   },
+  colophon: {
+    get: () => invoke('colophon:get'),
+    update: (patch) => invoke('colophon:update', patch)
+  },
   auditorium: {
     read: (path) => invoke('auditorium:read', { path }),
     popout: (file, at = null, playing = false) =>

@@ -411,6 +411,11 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     await services.calendar.remove(id)
   })
 
+  // ----------------------------------------------------------------- colophon
+
+  router.handle('colophon:get', () => services.colophon.get())
+  router.handle('colophon:update', (patch) => services.colophon.update(patch))
+
   /**
    * Hands a release's canvas to the sheet so it can be watched.
    *

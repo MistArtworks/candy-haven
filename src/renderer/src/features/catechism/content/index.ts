@@ -112,6 +112,12 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'observatory'
   },
   {
+    id: 'colophon',
+    label: 'COLOPHON',
+    purpose: 'The details the website carries, and how they are filed',
+    section: 'colophon'
+  },
+  {
     id: 'telemetry',
     label: 'TELEMETRY',
     purpose: 'Host vitals and what each reading means',

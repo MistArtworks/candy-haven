@@ -20,6 +20,7 @@ import { ScenePage } from '@renderer/features/observatory/overlays/scene/ScenePa
 import { CalendarPage } from '@renderer/features/calendar/CalendarPage'
 import { AuditoriumPage } from '@renderer/features/auditorium/AuditoriumPage'
 import { DarkroomPage } from '@renderer/features/darkroom/DarkroomPage'
+import { ColophonPage } from '@renderer/features/colophon/ColophonPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
 import { DispatchPage } from '@renderer/features/dispatch/DispatchPage'
@@ -132,6 +133,8 @@ export function AppRouter(): ReactNode {
             />
           }
         />
+
+        <Route path="/colophon" element={<ColophonPage />} />
 
         <Route path="/telemetry" element={<TelemetryPage />} />
 

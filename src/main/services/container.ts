@@ -8,6 +8,7 @@ import { TagsService } from './tags/tags.service'
 import { ArtistsService } from './artists/artists.service'
 import { DiscographyService } from './discography/discography.service'
 import { CalendarService } from './calendar/calendar.service'
+import { ColophonService } from './colophon/colophon.service'
 import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
 import { TimerService } from './overlay/timer.service'
@@ -64,6 +65,11 @@ export interface ServiceContainer {
    * projection of a project or a release.
    */
   readonly calendar: CalendarService
+  /**
+   * COLOPHON: the details the website carries. One record in a collection of
+   * its own, and nothing else; it reads no other service and none reads it.
+   */
+  readonly colophon: ColophonService
   /** Shared by every overlay: one HTTP server, many pages. */
   readonly overlayServer: OverlayServer
   /**
@@ -188,6 +194,7 @@ export function createServiceContainer(): ServiceContainer {
     artists,
     discography,
     calendar,
+    colophon: new ColophonService(archive),
     overlayServer,
     chat,
     rite,

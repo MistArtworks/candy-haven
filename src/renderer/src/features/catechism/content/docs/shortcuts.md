@@ -15,7 +15,8 @@ Available from any department.
 | Chord                   | Does                                                    | While typing |
 | ----------------------- | ------------------------------------------------------- | ------------ |
 | `Ctrl`+`1` … `Ctrl`+`9` | Walk the first nine departments, as the rail draws them | Yes          |
-| `Ctrl`+`0`              | The tenth — TELEMETRY                                   | Yes          |
+| `Ctrl`+`0`              | The tenth: COLOPHON                                     | Yes          |
+| `Ctrl`+`Shift`+`T`      | Open TELEMETRY                                          | Yes          |
 | `Ctrl`+`Shift`+`D`      | Open DISPATCH                                           | Yes          |
 | `Ctrl`+`,`              | Open REGULATION                                         | Yes          |
 | `Ctrl`+`Shift`+`O`      | Open OBSERVATORY                                        | Yes          |
@@ -49,14 +50,16 @@ added or removed renumbers the rest with it. Reserved departments are bound too
 — they are on the rail, and a shortcut that silently skipped one would make the
 numbering stop matching what is on screen.
 
-**A number row has ten keys and the rail has thirteen departments.** So the
-first ten are reachable by position and the last three — DISPATCH, REGULATION
-and CATECHISM — have named chords instead of fictional numbers. Every
+**A number row has ten keys and the rail has fourteen departments.** So the
+first ten are reachable by position and the last four (TELEMETRY, DISPATCH,
+REGULATION and CATECHISM) have named chords instead of fictional numbers. Every
 department is reachable from the keyboard; only the first ten are reachable by
 counting.
 
 This changed when DISCOGRAPHY and ARTISTS shipped. If you have `Ctrl`+`9` in
-your fingers for DISPATCH, it is now `Ctrl`+`Shift`+`D`.
+your fingers for DISPATCH, it is now `Ctrl`+`Shift`+`D`. It changed again when
+COLOPHON opened PUBLICATION: `Ctrl`+`0` is COLOPHON now, and TELEMETRY is
+`Ctrl`+`Shift`+`T`.
 
 ## ARCHIVE
 

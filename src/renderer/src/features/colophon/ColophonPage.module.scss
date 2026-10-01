@@ -1,0 +1,78 @@
+@use 'abstracts' as *;
+
+/*
+ * Extra bottom padding reserves room for the fixed unsaved-changes bar, so
+ * the last field in the column is never sitting underneath it. REGULATION's
+ * arrangement, for REGULATION's reason.
+ */
+.page {
+  padding: space(10) space(10) space(24);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+}
+
+/*
+ * Two slabs side by side, then the publication readout across both.
+ *
+ * Stretch, so the pair reads as one band rather than a ragged edge when the
+ * link list is longer than the three fields beside it.
+ */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+.grid > * {
+  grid-column: span 3;
+}
+
+.wide {
+  grid-column: span 6 !important;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: space(6);
+}
+
+// The archive-offline notice: a readout, as the roster sets its own.
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  max-width: 78ch;
+}
+
+// A panel's opening line, in the voice of the field hints beside it rather
+// than the readout face: it explains, it does not report a figure.
+.lede {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+  max-width: 78ch;
+  margin: 0 0 space(5);
+}
+
+.count {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+
+  .grid > * {
+    grid-column: span 6;
+  }
+}

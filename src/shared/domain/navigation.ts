@@ -13,6 +13,7 @@ export const SECTION_IDS = [
   'auditorium',
   'darkroom',
   'observatory',
+  'colophon',
   'telemetry',
   'dispatch',
   'regulation',
@@ -29,7 +30,13 @@ export type SectionId = (typeof SECTION_IDS)[number]
  * one undivided column read as a menu; four named divisions read as an
  * organisation chart, which is the register this console is written in.
  */
-export const SECTION_GROUP_IDS = ['command', 'production', 'broadcast', 'oversight'] as const
+export const SECTION_GROUP_IDS = [
+  'command',
+  'production',
+  'broadcast',
+  'publication',
+  'oversight'
+] as const
 
 export type SectionGroupId = (typeof SECTION_GROUP_IDS)[number]
 
@@ -56,6 +63,20 @@ export const SECTION_GROUP: Record<SectionGroupId, SectionGroupDefinition> = {
     id: 'broadcast',
     label: 'BROADCAST',
     purpose: 'What is served to an audience while it is live'
+  },
+  /*
+   * BROADCAST's other half: what the public reads when nothing is live.
+   *
+   * The website, and what it carries. Filed as a division of its own rather
+   * than under BROADCAST because the two answer different questions: one is a
+   * stream that is on or off, the other a standing record read at any hour.
+   * The departments coming to it (the services, the lore, publishing itself)
+   * would crowd a division about going live.
+   */
+  publication: {
+    id: 'publication',
+    label: 'PUBLICATION',
+    purpose: 'What the public reads when nothing is live: the website and what it carries'
   },
   oversight: {
     id: 'oversight',
@@ -173,13 +194,30 @@ export const SECTIONS: readonly SectionDefinition[] = [
     implemented: true
   },
   {
+    /*
+     * The details the website carries on every page.
+     *
+     * A colophon is the note at the back of a book saying who made it and
+     * where they can be found; the website's footer and contact pages are
+     * exactly that note, so this is where it is written.
+     */
+    id: 'colophon',
+    path: '/colophon',
+    label: 'COLOPHON',
+    purpose: 'The details the website carries: where to write, call, message and follow',
+    epigraph: 'Every record carries the seal of where it may be answered.',
+    group: 'publication',
+    order: 9,
+    implemented: true
+  },
+  {
     id: 'telemetry',
     path: '/telemetry',
     label: 'TELEMETRY',
     purpose: 'Host vitals: processor, memory, graphics and storage',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'oversight',
-    order: 9,
+    order: 10,
     implemented: true
   },
   {
@@ -189,7 +227,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Feedback and suggestions between operators, ruled on and recorded',
     epigraph: 'Nothing is lost that is entered into the record.',
     group: 'oversight',
-    order: 10,
+    order: 11,
     implemented: true
   },
   {
@@ -199,7 +237,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Operator settings, archive control and update channel',
     epigraph: 'Harmony is maintained.',
     group: 'oversight',
-    order: 11,
+    order: 12,
     implemented: true
   },
   {
@@ -209,7 +247,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'How this console is operated, department by department',
     epigraph: 'We do not question the shape of the universe.',
     group: 'oversight',
-    order: 12,
+    order: 13,
     implemented: true
   }
 ] as const

@@ -89,6 +89,7 @@ import {
   TrackDraftSchema,
   TrackPatchSchema
 } from '../domain/discography'
+import { ColophonPatchSchema, ColophonSchema } from '../domain/colophon'
 /**
  * The IPC contract is declared once, here, and consumed by:
  *   - the main-process router, which validates inputs and outputs at runtime
@@ -740,6 +741,19 @@ export const IPC_INVOKE = {
     output: CalendarEntrySchema
   },
   'calendar:delete': { input: z.object({ id: z.string() }), output: z.void() },
+
+  // ----------------------------------------------------------------- colophon
+
+  /**
+   * COLOPHON: the details the website carries. One record, so no ids.
+   *
+   * Read whole and filed whole. The page edits a draft and files it through
+   * the unsaved-changes bar, the way REGULATION files settings, so a
+   * half-typed address is never written; the update returns the record as
+   * stored, which the page adopts as its new baseline.
+   */
+  'colophon:get': { input: z.void(), output: ColophonSchema },
+  'colophon:update': { input: ColophonPatchSchema, output: ColophonSchema },
 
   // --------------------------------------------------------------- auditorium
 

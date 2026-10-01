@@ -100,12 +100,12 @@ export function ConsoleLayout(): ReactNode {
        * application on this desktop does.
        *
        * The rail has now grown past ten — thirteen with DISCOGRAPHY and
-       * ARTISTS — so the numbering has stopped being the whole affordance,
-       * exactly as this comment used to predict. The three departments past
-       * the tenth get **named** chords instead of fictional numbers, below:
-       * `Ctrl+Shift+D`, `Ctrl+,` and `Ctrl+Shift+K`. Every department is
-       * reachable from the keyboard; only the first ten are reachable by
-       * position.
+       * ARTISTS, fourteen with COLOPHON — so the numbering has stopped being
+       * the whole affordance, exactly as this comment used to predict. The
+       * four departments past the tenth get **named** chords instead of
+       * fictional numbers, below: `Ctrl+Shift+T`, `Ctrl+Shift+D`, `Ctrl+,`
+       * and `Ctrl+Shift+K`. Every department is reachable from the keyboard;
+       * only the first ten are reachable by position.
        */
       ...SECTIONS.slice(0, 10).map((entry, index) => ({
         chord: `ctrl+${index === 9 ? '0' : index + 1}`,
@@ -141,6 +141,19 @@ export function ConsoleLayout(): ReactNode {
         group: 'Global',
         whileTyping: true,
         run: () => navigate(getSection('dispatch').path)
+      },
+      {
+        /*
+         * TELEMETRY lost `Ctrl+0` when COLOPHON opened PUBLICATION ahead of
+         * it, for the reason DISPATCH lost `Ctrl+9`: a department went in
+         * before it and pushed it past the tenth slot. It gets a named chord
+         * rather than none.
+         */
+        chord: 'ctrl+shift+t',
+        label: 'Host vitals',
+        group: 'Global',
+        whileTyping: true,
+        run: () => navigate(getSection('telemetry').path)
       },
       {
         /*

@@ -71,6 +71,16 @@ export const Collections = {
    * statement of intent the operator made. See shared/domain/calendar.ts.
    */
   Calendar: 'calendar',
+  /**
+   * COLOPHON: the details the website carries (PUBLICATION division).
+   *
+   * One document, keyed `colophon`, because the website has one address, one
+   * number and one list of places to follow. A collection of its own rather
+   * than a field in settings: settings are how this console behaves on this
+   * machine, and this is a record of the practice that the website will be
+   * built from. No index plan; the one read is by `_id`.
+   */
+  Colophon: 'publication_colophon',
   /** Stream overlay scenes and layouts (OBSERVATORY section). */
   Overlays: 'overlays',
   /** Natural-language commands and their resolved actions (INTERFACE section). */

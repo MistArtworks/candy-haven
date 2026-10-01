@@ -66,6 +66,7 @@ import type {
   TrackDraft,
   TrackPatch
 } from '../domain/discography'
+import type { Colophon, ColophonPatch } from '../domain/colophon'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -459,6 +460,17 @@ export interface CandyHavenApi {
     patch(id: string, patch: CalendarPatch): Promise<CalendarEntry>
     remove(id: string): Promise<void>
     onState(listener: (state: CalendarState) => void): Unsubscribe
+  }
+  /**
+   * COLOPHON: the details the website carries, as one record.
+   *
+   * Kept in the archive on this machine; nothing reads it from outside yet.
+   */
+  readonly colophon: {
+    /** The record, or an empty one when nothing has been filed. */
+    get(): Promise<Colophon>
+    /** Files what changed. Refuses a field it cannot store, naming the rule. */
+    update(patch: ColophonPatch): Promise<Colophon>
   }
   readonly auditorium: {
     /** Reads a chosen audio file whole. See the contract for why. */
