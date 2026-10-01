@@ -49,15 +49,15 @@ found at, for credits, and these are the ones the website points people to.
 
 ## Public or private, field by field
 
-Under every field's name is **Public** or **Private**. Press it to switch.
-Public fields go out with the website; private ones stay on this machine.
-**All public** and **All private** switch a whole panel.
+Every field has a toggle on its right. On is **Public**: it goes out with the
+website. Off is **Private**: it stays on this machine. **All public** and **All
+private** switch a whole panel.
 
-Seven are **Always public**, because the website cannot be built without them:
-the booking email, the phone number, the Discord username, and Instagram,
+Seven are locked on, because the website cannot be built without them: the
+booking email, the phone number, the Discord username, and Instagram,
 SoundCloud, Spotify and YouTube.
 
-Profiles start public, details start private.
+Everything else starts private.
 
 ## Kept here, for now
 

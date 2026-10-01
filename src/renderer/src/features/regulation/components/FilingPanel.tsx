@@ -1,6 +1,7 @@
 import { useCallback, useState, type ReactNode } from 'react'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
+import { Toggle } from '@renderer/components/primitives/Toggle'
 import { truncatePath } from '@renderer/lib/format'
 import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { useApplySettings, useSettings } from '@renderer/hooks/useSettings'
@@ -215,16 +216,11 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
 
         <div className={styles.control}>
           <span className={styles.controlLabel}>Re-index on launch</span>
-          <button
-            type="button"
-            className={styles.toggle}
-            role="switch"
-            aria-checked={scanOnLaunch}
-            data-on={scanOnLaunch || undefined}
-            onClick={() => applySettings({ workspace: { scanOnLaunch: !scanOnLaunch } })}
-          >
-            <span className={styles.toggleThumb} />
-          </button>
+          <Toggle
+            label="Re-index on launch"
+            checked={scanOnLaunch}
+            onChange={() => applySettings({ workspace: { scanOnLaunch: !scanOnLaunch } })}
+          />
           <p className={styles.controlHint}>
             An unchanged set is not decompressed again, so this costs a directory walk rather than
             seconds. Turn it off if the locations live on a slow or remote drive.

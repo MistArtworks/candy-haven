@@ -1,0 +1,75 @@
+@use 'abstracts' as *;
+
+// Moved here from RegulationPage.module.scss, so every toggle the console had
+// before reads as it did. Focus, the gold tone and the locked state are new.
+.toggle {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 20px;
+  @include hairline(all, 0.16);
+  background: var(--ch-surface-sunken);
+  transition: border-color $duration-fast linear;
+
+  &[data-on] {
+    border-color: var(--ch-accent);
+  }
+
+  &[data-tone='gold'][data-on] {
+    border-color: var(--ch-gold-500);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+
+  // Fixed in its state: the track dashed, so it reads as set rather than
+  // as switched, and no pointer to promise it would move.
+  &[data-locked] {
+    border-style: dashed;
+    cursor: default;
+  }
+}
+
+.thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  background: var(--ch-concrete-500);
+  transition:
+    transform $duration-base $ease-out-expo,
+    background-color $duration-base linear;
+
+  .toggle[data-on] & {
+    transform: translateX(20px);
+    background: var(--ch-accent-bright);
+    box-shadow: 0 0 10px var(--ch-accent-glow);
+  }
+
+  // Gold carries no glow: on a page of eighty-five, a glow on each would be
+  // a field of light.
+  .toggle[data-tone='gold'][data-on] & {
+    background: var(--ch-gold-300);
+    box-shadow: none;
+  }
+
+  .toggle[data-tone='gold'][data-locked] & {
+    background: var(--ch-gold-500);
+  }
+}
+
+.lock {
+  display: block;
+
+  path {
+    stroke: var(--ch-surface-sunken);
+  }
+
+  rect {
+    fill: var(--ch-surface-sunken);
+  }
+}

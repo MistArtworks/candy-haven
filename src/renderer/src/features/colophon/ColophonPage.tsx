@@ -39,6 +39,7 @@ import { TextInput } from '@renderer/components/primitives/Input'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { Skeleton } from '@renderer/components/primitives/Skeleton'
+import { Toggle } from '@renderer/components/primitives/Toggle'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useSystemStore, selectArchive } from '@renderer/app/store/system.store'
 import {
@@ -48,7 +49,6 @@ import {
 } from '@renderer/hooks/useColophon'
 import { formatIsoDate } from '@renderer/lib/format'
 import * as shell from '@renderer/lib/shell'
-import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './ColophonPage.module.scss'
 
 interface DetailField {
@@ -225,15 +225,16 @@ function Action({
 }
 
 /**
- * A field's public or private, in its gutter under the label.
+ * A field's public or private, on the field's right: the console's toggle and
+ * the word for its state.
  *
- * A switch rather than a pair of options, because there are exactly two
- * states and the one showing is the one in force. The square is the
- * console's checkbox mark, filled for public and open for private, so it
- * reads as a stamp on the field rather than as a control laid beside it. A
- * field that must stay public shows the stamp without the switch.
+ * The word is part of the control, so pressing it switches too, and it is
+ * there because a switch alone does not say which way is public. A field that
+ * must stay public shows the toggle locked on, with a padlock in the thumb and
+ * the reason on hover, in the same place, so every row of the page has its
+ * state in the same column.
  */
-function VisibilitySwitch({
+function VisibilityToggle({
   field,
   visibility,
   onChange,
@@ -248,38 +249,34 @@ function VisibilitySwitch({
 
   if (isAlwaysPublic(field)) {
     return (
-      <span
-        className={styles.visibility}
-        data-public
-        data-fixed
-        {...tooltipTrigger('The website cannot be built without it, so it stays public.')}
-      >
-        <span className={styles.visibilityMark} aria-hidden="true" />
-        Always public
+      <span className={styles.visibility} data-public data-fixed>
+        <Toggle
+          checked
+          locked
+          tone="gold"
+          label={`${label} is always public`}
+          tooltip="Always public. The website cannot be built without it."
+        />
+        <span className={styles.visibilityWord}>Public</span>
       </span>
     )
   }
 
   const isPublic = visibility === 'public'
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={isPublic}
-      aria-label={`${label} is public`}
-      className={styles.visibility}
-      data-public={isPublic || undefined}
-      disabled={disabled}
-      onClick={() => onChange(isPublic ? 'private' : 'public')}
-      {...tooltipTrigger(
-        isPublic
-          ? 'Public: published with the website. Press to keep it private.'
-          : 'Private: kept on this machine only. Press to make it public.'
-      )}
-    >
-      <span className={styles.visibilityMark} aria-hidden="true" />
-      {isPublic ? 'Public' : 'Private'}
-    </button>
+    <label className={styles.visibility} data-public={isPublic || undefined}>
+      <Toggle
+        checked={isPublic}
+        tone="gold"
+        label={`${label} is public`}
+        disabled={disabled}
+        tooltip={
+          isPublic ? 'Public: published with the website.' : 'Private: kept on this machine only.'
+        }
+        onChange={(on) => onChange(on ? 'public' : 'private')}
+      />
+      <span className={styles.visibilityWord}>{isPublic ? 'Public' : 'Private'}</span>
+    </label>
   )
 }
 
@@ -351,9 +348,9 @@ function publicTally(fields: ColophonFields, panelFields: readonly ColophonField
  * reach the artist through, who represents them and where they are, and their
  * profile on every platform the colophon knows.
  *
- * Every field is public or private. Public goes out with the website; private
- * stays on this machine. The fields the website cannot be built without are
- * stamped Always public and have no switch.
+ * Every field is public or private, switched on its right. Public goes out
+ * with the website; private stays on this machine. The fields the website
+ * cannot be built without show the switch locked on.
  *
  * Filed as a draft through the unsaved-changes bar, as REGULATION is, rather
  * than committing as it is typed like the roster's sheet. This is a record the
@@ -553,33 +550,33 @@ function Details({
             invalid={!check.ok}
             hint={check.reason ?? detailHint(detail, value, link)}
             aside={
-              <span className={styles.gutterTools}>
-                <VisibilitySwitch
-                  field={detail}
-                  visibility={fields.visibility[detail]}
-                  disabled={saving}
-                  onChange={(visibility) => edit({ visibility: { [detail]: visibility } })}
-                />
-                {link || offerLocal ? (
-                  <span className={styles.actions}>
-                    {link ? (
-                      <Action
-                        label="Open"
-                        disabled={saving}
-                        onPress={() => shell.openExternal(link)}
-                      />
-                    ) : null}
-                    {offerLocal ? (
-                      <Action
-                        label="Use local"
-                        name={`Use this machine's time zone, ${local}`}
-                        disabled={saving}
-                        onPress={() => edit({ timeZone: local })}
-                      />
-                    ) : null}
-                  </span>
-                ) : null}
-              </span>
+              link || offerLocal ? (
+                <span className={styles.actions}>
+                  {link ? (
+                    <Action
+                      label="Open"
+                      disabled={saving}
+                      onPress={() => shell.openExternal(link)}
+                    />
+                  ) : null}
+                  {offerLocal ? (
+                    <Action
+                      label="Use local"
+                      name={`Use this machine's time zone, ${local}`}
+                      disabled={saving}
+                      onPress={() => edit({ timeZone: local })}
+                    />
+                  ) : null}
+                </span>
+              ) : undefined
+            }
+            trailing={
+              <VisibilityToggle
+                field={detail}
+                visibility={fields.visibility[detail]}
+                disabled={saving}
+                onChange={(visibility) => edit({ visibility: { [detail]: visibility } })}
+              />
             }
           />
         )
@@ -640,24 +637,22 @@ function ProfilePanel({
               invalid={!check.ok}
               hint={check.reason ?? profileHint(platform, opens)}
               aside={
-                <span className={styles.gutterTools}>
-                  <VisibilitySwitch
-                    field={platform}
-                    visibility={fields.visibility[platform]}
+                opens ? (
+                  <Action
+                    label="Open"
+                    name={`Open ${PROFILE_PLATFORM_LABEL[platform]}`}
                     disabled={saving}
-                    onChange={(visibility) => edit({ visibility: { [platform]: visibility } })}
+                    onPress={() => shell.openExternal(url.trim())}
                   />
-                  {opens ? (
-                    <span className={styles.actions}>
-                      <Action
-                        label="Open"
-                        name={`Open ${PROFILE_PLATFORM_LABEL[platform]}`}
-                        disabled={saving}
-                        onPress={() => shell.openExternal(url.trim())}
-                      />
-                    </span>
-                  ) : null}
-                </span>
+                ) : undefined
+              }
+              trailing={
+                <VisibilityToggle
+                  field={platform}
+                  visibility={fields.visibility[platform]}
+                  disabled={saving}
+                  onChange={(visibility) => edit({ visibility: { [platform]: visibility } })}
+                />
               }
             />
           )

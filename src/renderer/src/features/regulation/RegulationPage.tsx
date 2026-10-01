@@ -19,6 +19,7 @@ import { TextInput } from '@renderer/components/primitives/Input'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { Button } from '@renderer/components/primitives/Button'
 import { Meter } from '@renderer/components/primitives/Meter'
+import { Toggle } from '@renderer/components/primitives/Toggle'
 import { gridVariants } from '@renderer/motion/transitions'
 import { notify } from '@renderer/components/feedback/notify'
 import { formatRate, truncatePath } from '@renderer/lib/format'
@@ -441,20 +442,15 @@ export function RegulationPage(): ReactNode {
 
                   <div className={styles.control}>
                     <span className={styles.controlLabel}>Fast boot</span>
-                    <button
-                      type="button"
-                      className={styles.toggle}
-                      role="switch"
-                      aria-checked={appearance?.fastBoot ?? false}
-                      data-on={appearance?.fastBoot || undefined}
-                      onClick={() =>
+                    <Toggle
+                      label="Fast boot"
+                      checked={appearance?.fastBoot ?? false}
+                      onChange={() =>
                         applySettings({
                           appearance: { fastBoot: !(appearance?.fastBoot ?? false) }
                         })
                       }
-                    >
-                      <span className={styles.toggleThumb} />
-                    </button>
+                    />
                     <p className={styles.controlHint}>
                       Enter the console automatically once the boot sequence completes.
                     </p>
@@ -526,20 +522,15 @@ export function RegulationPage(): ReactNode {
                 <div className={styles.controls}>
                   <div className={styles.control}>
                     <span className={styles.controlLabel}>Open the vestibule first</span>
-                    <button
-                      type="button"
-                      className={styles.toggle}
-                      role="switch"
-                      aria-checked={system?.showVestibule ?? true}
-                      data-on={system?.showVestibule || undefined}
-                      onClick={() =>
+                    <Toggle
+                      label="Open the vestibule first"
+                      checked={system?.showVestibule ?? true}
+                      onChange={() =>
                         applySettings({
                           system: { showVestibule: !(system?.showVestibule ?? true) }
                         })
                       }
-                    >
-                      <span className={styles.toggleThumb} />
-                    </button>
+                    />
                     <p className={styles.controlHint}>
                       A small window opens ahead of the console offering two things: a new project,
                       or the console proper. Creating one there files it, copies your template set
@@ -551,20 +542,15 @@ export function RegulationPage(): ReactNode {
 
                   <div className={styles.control}>
                     <span className={styles.controlLabel}>Launch at sign-in</span>
-                    <button
-                      type="button"
-                      className={styles.toggle}
-                      role="switch"
-                      aria-checked={system?.launchAtStartup ?? false}
-                      data-on={system?.launchAtStartup || undefined}
-                      onClick={() =>
+                    <Toggle
+                      label="Launch at sign-in"
+                      checked={system?.launchAtStartup ?? false}
+                      onChange={() =>
                         applySettings({
                           system: { launchAtStartup: !(system?.launchAtStartup ?? false) }
                         })
                       }
-                    >
-                      <span className={styles.toggleThumb} />
-                    </button>
+                    />
                     <p className={styles.controlHint}>
                       Registers the console to start when you sign in to Windows. The point is not
                       the window — it is that the archive, the overlay server and the chat ingest
@@ -574,21 +560,16 @@ export function RegulationPage(): ReactNode {
 
                   <div className={styles.control}>
                     <span className={styles.controlLabel}>Start in the tray</span>
-                    <button
-                      type="button"
-                      className={styles.toggle}
-                      role="switch"
-                      aria-checked={system?.startMinimised ?? true}
-                      data-on={system?.startMinimised || undefined}
+                    <Toggle
+                      label="Start in the tray"
+                      checked={system?.startMinimised ?? true}
                       disabled={!system?.launchAtStartup}
-                      onClick={() =>
+                      onChange={() =>
                         applySettings({
                           system: { startMinimised: !(system?.startMinimised ?? true) }
                         })
                       }
-                    >
-                      <span className={styles.toggleThumb} />
-                    </button>
+                    />
                     <p className={styles.controlHint}>
                       A sign-in launch comes up in the tray rather than on screen. Only applies when
                       the console is launched by the sign-in; opening it yourself always shows it.
@@ -597,20 +578,15 @@ export function RegulationPage(): ReactNode {
 
                   <div className={styles.control}>
                     <span className={styles.controlLabel}>Close retires to the tray</span>
-                    <button
-                      type="button"
-                      className={styles.toggle}
-                      role="switch"
-                      aria-checked={system?.closeToTray ?? true}
-                      data-on={system?.closeToTray || undefined}
-                      onClick={() =>
+                    <Toggle
+                      label="Close retires to the tray"
+                      checked={system?.closeToTray ?? true}
+                      onChange={() =>
                         applySettings({
                           system: { closeToTray: !(system?.closeToTray ?? true) }
                         })
                       }
-                    >
-                      <span className={styles.toggleThumb} />
-                    </button>
+                    />
                     <p className={styles.controlHint}>
                       The console&apos;s own close button puts it in the tray and leaves the
                       overlays serving. <strong>Alt+F4 always quits</strong>, whatever this is set
@@ -726,18 +702,13 @@ export function RegulationPage(): ReactNode {
               <Panel label="Rehearsal" index="01">
                 <div className={styles.control}>
                   <span className={styles.controlLabel}>Test mode</span>
-                  <button
-                    type="button"
-                    className={styles.toggle}
-                    role="switch"
-                    aria-checked={workspace?.testMode ?? false}
-                    data-on={workspace?.testMode || undefined}
-                    onClick={() =>
+                  <Toggle
+                    label="Test mode"
+                    checked={workspace?.testMode ?? false}
+                    onChange={() =>
                       applySettings({ workspace: { testMode: !(workspace?.testMode ?? false) } })
                     }
-                  >
-                    <span className={styles.toggleThumb} />
-                  </button>
+                  />
                   <p className={styles.controlHint}>
                     Lets broadcast features run without the service they depend on, and reveals
                     their simulators. THE CONCORD normally refuses to open a poll with no Twitch

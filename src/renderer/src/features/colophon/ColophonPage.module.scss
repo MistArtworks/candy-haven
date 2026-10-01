@@ -84,14 +84,6 @@
   }
 }
 
-// Under a field's label: its visibility, then what it can do.
-.gutterTools {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-}
-
 .actions {
   display: flex;
   gap: space(3);
@@ -105,53 +97,31 @@
 }
 
 /*
- * Public or private: the checkbox's square, filled for public.
- *
- * Gold rather than the crimson the checkbox uses. There are eighty-five of
- * these on the page, and crimson is the console's one saturated colour, kept
- * for what demands attention; a field marked public does not.
+ * Public or private, on the field's right: the toggle and its word. The word
+ * has a fixed width so every toggle on the page sits in one column.
  */
 .visibility {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  @include label(8px, 0.14em);
-  color: var(--ch-text-faint);
+  gap: space(2);
   cursor: pointer;
 
-  &[data-public] {
-    color: var(--ch-gold-300);
-  }
-
-  // Always public: the stamp without the switch.
   &[data-fixed] {
-    color: var(--ch-text-secondary);
     cursor: default;
-  }
-
-  &:hover:not(:disabled):not([data-fixed]) {
-    color: var(--ch-text-secondary);
-  }
-
-  &:disabled {
-    cursor: default;
-    opacity: 0.5;
-  }
-
-  &:focus-visible {
-    @include focus-ring(2px);
   }
 }
 
-.visibilityMark {
-  flex-shrink: 0;
-  width: 7px;
-  height: 7px;
-  @include hairline(all, 0.3);
+.visibilityWord {
+  @include label(8px, 0.14em);
+  width: rem(48px);
+  color: var(--ch-text-faint);
 
   .visibility[data-public] & {
-    border-color: var(--ch-gold-500);
-    background: var(--ch-gold-500);
+    color: var(--ch-gold-300);
+  }
+
+  .visibility[data-fixed] & {
+    color: var(--ch-text-secondary);
   }
 }
 

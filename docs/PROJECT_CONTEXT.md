@@ -512,8 +512,9 @@ Tokens: `$titlebar-height: 40px`, `$rail-width: 232px`,
 | `PageHeader`          | Section masthead: numbered label, purpose line, rule, epigraph, actions.                     |
 | `Field` / `FieldGrid` | Labelled readout; grid supports 1–4 columns.                                                 |
 | `Calendar`            | A month grid, drawn in the document. No positioning of its own; pair with `usePanelAnchor`. |
-| `Input` exports       | `TextInput`, `TextArea`, `SelectInput`, `DateInput`, `Checkbox`, `SearchInput`. Ruled fields; optional label gutter via `layout`. See D27. |
+| `Input` exports       | `TextInput`, `TextArea`, `SelectInput`, `DateInput`, `Checkbox`, `SearchInput`. Ruled fields; optional label gutter via `layout`; `TextInput` takes a `trailing` control at its right. See D27. |
 | `Button`              | `variant: primary\|ghost\|danger`, `size: sm\|md`, `busy`.                                   |
+| `Toggle`              | Square two-state switch (`role="switch"`). `tone: accent\|gold`, `locked` for a fixed state, `tooltip`. REGULATION's settings and COLOPHON's visibility. |
 | `Meter`               | Linear progress with quarter ticks; `null` value = indeterminate sweep.                      |
 | `StatusDot`           | Square state indicator; **always pass `label`** — never colour alone.                        |
 | `Sigil`               | The four-point Sonoalchemy star (used in titlebar, Nexus hero).                              |
@@ -974,9 +975,11 @@ Decisions:
   archive. The future projection is the values filtered by the map.
   `ALWAYS_PUBLIC` is exactly what candy-heist reads today (`siteContact`:
   email, phone, Discord; `socialLinks`: Instagram, SoundCloud, Spotify,
-  YouTube); those have no switch, are forced public on read, and the service
-  refuses them private (`checkVisibility`). Defaults: profiles public, details
-  private, so no way to reach a person is published by accident.
+  YouTube); their toggle is drawn locked, they are forced public on read, and
+  the service refuses them private (`checkVisibility`). Every other field
+  defaults private, so nothing is published because it was filled in. The
+  switch is the `Toggle` primitive in its `gold` tone, passed to each field
+  through `TextInput`'s `trailing` slot.
 - **Local only, and it says so.** The page's PUBLICATION panel reads "Not yet"
   for published. Nothing outside reads the record until publishing is built.
 - COLOPHON took `Ctrl`+`0`, which pushed TELEMETRY past the tenth slot; it

@@ -118,22 +118,24 @@ beside the platform's name opens it in the browser.
 
 ## Public and private
 
-Every field, detail or profile, is **public** or **private**, and says which
-under its name.
+Every field, detail or profile, is **public** or **private**, set by the toggle
+on its right.
 
 - **Public** goes out with the website: when the website is published from
   here, a public field that is filled in is shown there.
 - **Private** stays in the archive on this machine and goes nowhere else. It is
   still checked and filed like any other field; it is simply never published.
 
-Press the word under a field's name to switch it. A filled square is public,
-an open one private. **All public** and **All private** beside each panel's
-tally switch every field in that panel at once. A visibility change is an
-unfiled change like any other: it waits for **File changes**.
+Press the toggle, or the word beside it, to switch. On, with the thumb to the
+right in gold, is public; off is private. **All public** and **All private**
+beside each panel's tally switch every field in that panel at once. A
+visibility change is an unfiled change like any other: it waits for **File
+changes**.
 
-Seven fields are stamped **Always public** and have no switch, because the
-website cannot be built without them. They are exactly what the website reads
-today:
+Seven fields are **always public**. Their toggle is locked on: the track is
+dashed, the thumb carries a padlock, and it does not move. Hover it for the
+reason, which is that the website cannot be built without them. They are
+exactly what the website reads today:
 
 | Field                | Where the website shows it                                      |
 | -------------------- | --------------------------------------------------------------- |
@@ -147,11 +149,9 @@ today:
 
 The archive refuses to make one of them private, whatever asks.
 
-Until you choose, **profiles start public and details start private**. A
-profile is a page its platform already shows the world, so publishing its
-address tells nobody anything new. A detail is a way to reach a person, a line
-or a place, and putting one on the website should be a choice somebody made,
-not something that happened because a field was filled in.
+Until you choose, **every other field is private**. Nothing goes out with the
+website because a field happened to be filled in; publishing one is a choice
+you make, a field or a panel at a time.
 
 ## Filing
 

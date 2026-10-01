@@ -262,39 +262,6 @@
   }
 }
 
-// ------------------------------------------------------------------- toggle
-
-.toggle {
-  position: relative;
-  width: 40px;
-  height: 20px;
-  @include hairline(all, 0.16);
-  background: var(--ch-surface-sunken);
-  transition: border-color $duration-fast linear;
-
-  &[data-on] {
-    border-color: var(--ch-accent);
-  }
-}
-
-.toggleThumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 12px;
-  height: 12px;
-  background: var(--ch-concrete-500);
-  transition:
-    transform $duration-base $ease-out-expo,
-    background-color $duration-base linear;
-
-  .toggle[data-on] & {
-    transform: translateX(20px);
-    background: var(--ch-accent-bright);
-    box-shadow: 0 0 10px var(--ch-accent-glow);
-  }
-}
-
 // ------------------------------------------------------------------ shared
 
 .actions {

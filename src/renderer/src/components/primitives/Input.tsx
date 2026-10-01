@@ -113,6 +113,12 @@ export interface TextInputProps {
    * to establish that these are writable — see the note in the stylesheet.
    */
   boxed?: boolean
+  /**
+   * Beside the field, at its right: a control that belongs to this one field,
+   * such as COLOPHON's public switch. Additive and defaulted; the value keeps
+   * its rule and the control sits past the end of it.
+   */
+  trailing?: ReactNode
   className?: string
 }
 
@@ -132,9 +138,37 @@ export function TextInput({
   size = 'md',
   layout = 'stacked',
   boxed = false,
+  trailing,
   className
 }: TextInputProps): ReactNode {
   const id = useId()
+
+  const input = (
+    <input
+      id={id}
+      type={password ? 'password' : 'text'}
+      className={[
+        styles.input,
+        boxed ? styles.boxed : '',
+        mono || password ? styles.mono : '',
+        size === 'lg' ? styles.lg : '',
+        invalid ? styles.invalid : ''
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      value={value}
+      placeholder={placeholder}
+      maxLength={maxLength}
+      disabled={disabled}
+      data-enter={onEnter ? 'own' : undefined}
+      onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
+      onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key !== 'Enter' || !onEnter) return
+        event.preventDefault()
+        onEnter()
+      }}
+    />
+  )
 
   return (
     <ControlShell
@@ -146,30 +180,18 @@ export function TextInput({
       layout={layout}
       className={className}
     >
-      <input
-        id={id}
-        type={password ? 'password' : 'text'}
-        className={[
-          styles.input,
-          boxed ? styles.boxed : '',
-          mono || password ? styles.mono : '',
-          size === 'lg' ? styles.lg : '',
-          invalid ? styles.invalid : ''
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        value={value}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        disabled={disabled}
-        data-enter={onEnter ? 'own' : undefined}
-        onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
-        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-          if (event.key !== 'Enter' || !onEnter) return
-          event.preventDefault()
-          onEnter()
-        }}
-      />
+      {/*
+        One wrapper in the control's slot, so the gutter layout, which places
+        the shell's children by order, still finds the value second.
+      */}
+      {trailing ? (
+        <span className={styles.trailed}>
+          {input}
+          <span className={styles.trailing}>{trailing}</span>
+        </span>
+      ) : (
+        input
+      )}
     </ControlShell>
   )
 }

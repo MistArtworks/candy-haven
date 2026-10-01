@@ -1121,18 +1121,16 @@ export function fieldLabel(field: ColophonField): string {
 }
 
 /**
- * A field's visibility before anybody has chosen one.
+ * A field's visibility before anybody has chosen one: private, unless the
+ * website cannot be built without it.
  *
- * Profiles start public and details start private, and the asymmetry is the
- * point. A profile is a page the platform already shows the world, so
- * publishing its address tells nobody anything new. A detail is a way to reach
- * a person, a line or a place, and putting one on the website should be a
- * choice somebody made rather than something that happened because a field
- * was filled in.
+ * Nothing goes out with the website because a field happened to be filled
+ * in. Publishing a detail or a profile is a choice somebody makes, field by
+ * field or a panel at a time, and until it is made the field stays on this
+ * machine.
  */
 export function defaultVisibility(field: ColophonField): Visibility {
-  if (isAlwaysPublic(field)) return 'public'
-  return isProfilePlatform(field) ? 'public' : 'private'
+  return isAlwaysPublic(field) ? 'public' : 'private'
 }
 
 export function defaultVisibilities(): ColophonVisibility {
@@ -1146,7 +1144,8 @@ export function defaultVisibilities(): ColophonVisibility {
  * and values dropped, and the fields that must be public made public.
  *
  * A record filed before visibility existed reads with every field at its
- * default, which keeps every detail private until somebody says otherwise.
+ * default, which keeps everything but the always-public fields private until
+ * somebody says otherwise.
  */
 export function readVisibility(raw: Readonly<Record<string, unknown>>): ColophonVisibility {
   const visibility = defaultVisibilities()

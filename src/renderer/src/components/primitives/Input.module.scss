@@ -70,6 +70,25 @@
   color: var(--ch-text-faint);
 }
 
+// The value and a control of its own beside it: the value takes the room,
+// the control keeps its size.
+.trailed {
+  display: flex;
+  align-items: center;
+  gap: space(4);
+
+  > .input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.trailing {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .hint {
   font-size: rem(11px);
   color: var(--ch-text-faint);
