@@ -1,12 +1,10 @@
 import type { NameCheck } from '@shared/domain/artists.constants'
 import type { Colophon, ColophonPatch, ColophonProfiles } from '@shared/domain/colophon'
 import {
-  checkDiscord,
-  checkEmail,
-  checkPhone,
+  COLOPHON_DETAILS,
+  checkDetail,
   checkProfileUrl,
   emptyColophon,
-  emptyProfiles,
   isProfilePlatform
 } from '@shared/domain/colophon.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
@@ -51,29 +49,25 @@ export class ColophonService {
    * is normalised: a phone number is kept as it was spaced and a username as it
    * was typed, and a value that breaks a rule is refused with the rule rather
    * than quietly corrected into something the operator did not write.
+   *
+   * Everything is checked before anything is written, so a refusal on the
+   * last field leaves the record exactly as it was.
    */
   async update(patch: ColophonPatch): Promise<Colophon> {
     const current = await this.get()
+    const next: Colophon = { ...current }
 
-    const email = patch.email?.trim()
-    const phone = patch.phone?.trim()
-    const discord = patch.discord?.trim()
-
-    if (email !== undefined) this.require(checkEmail(email))
-    if (phone !== undefined) this.require(checkPhone(phone))
-    if (discord !== undefined) this.require(checkDiscord(discord))
-
-    const profiles = patch.profiles ? this.checkProfiles(patch.profiles) : undefined
-
-    const next: Colophon = {
-      ...current,
-      ...(email !== undefined ? { email } : {}),
-      ...(phone !== undefined ? { phone } : {}),
-      ...(discord !== undefined ? { discord } : {}),
-      ...(profiles !== undefined ? { profiles } : {}),
-      updatedAt: Date.now()
+    for (const detail of COLOPHON_DETAILS) {
+      const raw = patch[detail]
+      if (raw === undefined) continue
+      const value = raw.trim()
+      this.require(checkDetail(detail, value))
+      next[detail] = value
     }
 
+    if (patch.profiles) next.profiles = this.checkProfiles(current.profiles, patch.profiles)
+
+    next.updatedAt = Date.now()
     await this.repository.write(next)
     logger.info('Filed the colophon')
     return next
@@ -90,17 +84,19 @@ export class ColophonService {
   }
 
   /**
-   * The profiles as they should stand, checked.
+   * The profiles, with the named platforms changed and checked.
    *
-   * A platform the colophon does not know is refused rather than dropped:
-   * dropping it would file something other than what was sent and say nothing.
-   * Each address is trimmed and must be on its own platform, the rule
-   * `checkProfileUrl` states. The core platforms are put back if the patch
-   * left them out, because the page always draws them.
+   * Only the platforms the patch names are touched; the rest keep what they
+   * hold. A platform the colophon does not know is refused rather than
+   * dropped: dropping it would file something other than what was sent and say
+   * nothing. Each address is trimmed and must be on its own platform, the rule
+   * `checkProfileUrl` states.
    */
-  private checkProfiles(patch: Readonly<Record<string, string>>): ColophonProfiles {
-    const next = emptyProfiles()
-
+  private checkProfiles(
+    current: Readonly<ColophonProfiles>,
+    patch: Readonly<Record<string, string>>
+  ): ColophonProfiles {
+    const next = { ...current }
     for (const [platform, raw] of Object.entries(patch)) {
       if (!isProfilePlatform(platform)) {
         this.require({ ok: false, reason: `The colophon has no platform called ${platform}.` })

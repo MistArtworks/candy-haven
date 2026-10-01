@@ -9,10 +9,10 @@ import { checkLinkUrl, type NameCheck } from './artists.constants'
  *
  * ## What the colophon is
  *
- * The details the website carries: the address bookings are written to, the
- * number that is called, the Discord username people message after a
- * booking, and the artist's profile on every platform people follow and
- * listen on. One record, not a register, because the website has one of each.
+ * The details the website carries: every address and number people reach the
+ * artist through, who represents them and where they are, and their profile
+ * on every platform people follow, listen, watch and buy on. One record, not
+ * a register, because the website has one of each.
  *
  * ## Kept here, published later
  *
@@ -38,15 +38,94 @@ export const MAX_PHONE = 32
 /** Discord's own ceiling on a username. */
 export const MAX_DISCORD = 32
 
+/** Telegram's own ceiling on a username. */
+export const MAX_TELEGRAM = 32
+
+/** A city and a country, as the website should print them. */
+export const MAX_BASED_IN = 64
+
+/** The longest IANA zone is 30 characters; this leaves room and no more. */
+export const MAX_TIME_ZONE = 64
+
+/** A person's or a company's name: management, an agency, a label. */
+export const MAX_NAME = 96
+
 /** E.164: no number anywhere is longer than fifteen digits. */
 const MAX_DIGITS = 15
 
 /** Shorter than this and it cannot be a whole number, with or without a code. */
 const MIN_DIGITS = 7
 
+/**
+ * Every detail the colophon holds besides the profiles, in the order the page
+ * draws them. The schema checks its shape against this with `satisfies`, so a
+ * detail added here and not there fails to compile.
+ */
+export const COLOPHON_DETAILS = [
+  'email',
+  'managementEmail',
+  'pressEmail',
+  'phone',
+  'whatsapp',
+  'discord',
+  'telegram',
+  'basedIn',
+  'timeZone',
+  'management',
+  'agency',
+  'label',
+  'pressKit'
+] as const
+
+export type ColophonDetail = (typeof COLOPHON_DETAILS)[number]
+
 /** The record before anything has been written into it. */
 export function emptyColophon(): Colophon {
-  return { email: '', phone: '', discord: '', profiles: emptyProfiles(), updatedAt: 0 }
+  return {
+    email: '',
+    managementEmail: '',
+    pressEmail: '',
+    phone: '',
+    whatsapp: '',
+    discord: '',
+    telegram: '',
+    basedIn: '',
+    timeZone: '',
+    management: '',
+    agency: '',
+    label: '',
+    pressKit: '',
+    profiles: emptyProfiles(),
+    updatedAt: 0
+  }
+}
+
+/** The rule each detail is held to. One place, so the page and the service agree. */
+export function checkDetail(detail: ColophonDetail, value: string): NameCheck {
+  switch (detail) {
+    case 'email':
+    case 'managementEmail':
+    case 'pressEmail':
+      return checkEmail(value)
+    case 'phone':
+      return checkPhone(value)
+    case 'whatsapp':
+      return checkWhatsApp(value)
+    case 'discord':
+      return checkDiscord(value)
+    case 'telegram':
+      return checkTelegram(value)
+    case 'basedIn':
+      return checkName(value, MAX_BASED_IN)
+    case 'timeZone':
+      return checkTimeZone(value)
+    case 'management':
+    case 'agency':
+    case 'label':
+      return checkName(value, MAX_NAME)
+    case 'pressKit':
+      return value.trim() ? checkLinkUrl(value) : { ok: true }
+  }
 }
 
 // -------------------------------------------------------------------- email
@@ -114,7 +193,36 @@ export function dialString(value: string): string {
   return trimmed.startsWith('+') ? `+${digits}` : digits
 }
 
-// ------------------------------------------------------------------ discord
+/**
+ * A WhatsApp number, or nothing.
+ *
+ * A phone number by every rule above, and one more: it must carry its country
+ * code. A chat link (`wa.me/…`) is opened from anywhere in the world and has
+ * no local area to assume, so a number without its `+` would open a chat with
+ * somebody else. Kept apart from the phone number because the two are often
+ * not the same line.
+ */
+export function checkWhatsApp(value: string): NameCheck {
+  const trimmed = value.trim()
+  if (trimmed.length === 0) return { ok: true }
+  const phone = checkPhone(trimmed)
+  if (!phone.ok) return phone
+  if (!trimmed.startsWith('+')) {
+    return {
+      ok: false,
+      reason: 'WhatsApp needs the whole international number. Start with + and the country code.'
+    }
+  }
+  return { ok: true }
+}
+
+/** The chat link a WhatsApp number opens, or empty for one that cannot. */
+export function whatsappLink(value: string): string {
+  if (!value.trim() || !checkWhatsApp(value).ok) return ''
+  return `https://wa.me/${value.replace(/\D/g, '')}`
+}
+
+// ---------------------------------------------------------------- usernames
 
 /**
  * A Discord username, or nothing.
@@ -157,66 +265,634 @@ export function checkDiscord(value: string): NameCheck {
   return { ok: true }
 }
 
+/**
+ * A Telegram username, or nothing.
+ *
+ * Telegram's rules: five to thirty-two characters, letters, numbers and
+ * underscores, starting with a letter and not ending with an underscore.
+ * Unlike Discord's, case is the operator's: Telegram matches usernames without
+ * regard to it, so `CandyHeist` and `candyheist` are the same account and
+ * either is a fair way to write it.
+ */
+export function checkTelegram(value: string): NameCheck {
+  const trimmed = value.trim()
+  if (trimmed.length === 0) return { ok: true }
+  if (trimmed.startsWith('@')) {
+    return { ok: false, reason: 'Leave off the @. A Telegram username is written without one.' }
+  }
+  if (!/^[A-Za-z0-9_]+$/.test(trimmed)) {
+    return {
+      ok: false,
+      reason: 'Telegram usernames hold letters, numbers and underscores only.'
+    }
+  }
+  if (!/^[A-Za-z]/.test(trimmed)) {
+    return { ok: false, reason: 'A Telegram username starts with a letter.' }
+  }
+  if (trimmed.length < 5) {
+    return { ok: false, reason: 'A Telegram username is at least five characters.' }
+  }
+  if (trimmed.length > MAX_TELEGRAM) {
+    return { ok: false, reason: `A Telegram username is at most ${MAX_TELEGRAM} characters.` }
+  }
+  if (trimmed.endsWith('_')) {
+    return { ok: false, reason: 'A Telegram username cannot end with an underscore.' }
+  }
+  return { ok: true }
+}
+
+/** The address a Telegram username opens, or empty for one that cannot. */
+export function telegramLink(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed || !checkTelegram(trimmed).ok) return ''
+  return `https://t.me/${trimmed}`
+}
+
+// -------------------------------------------------------------- particulars
+
+/** A name or a place, as the website should print it, or nothing. */
+export function checkName(value: string, max: number): NameCheck {
+  const trimmed = value.trim()
+  if (trimmed.length > max) {
+    return { ok: false, reason: `That is longer than ${max} characters.` }
+  }
+  return { ok: true }
+}
+
+/**
+ * An IANA time zone, `America/Halifax`, or nothing.
+ *
+ * The zone rather than an offset, because an offset is wrong for half the
+ * year anywhere that keeps summer time, and the website should be able to say
+ * what time it is where the artist is on the day somebody asks. Checked against
+ * the zone database the runtime carries, which is the same one the website's
+ * will. Refused rather than corrected when only the case is wrong, by the same
+ * rule as a Discord username.
+ */
+export function checkTimeZone(value: string): NameCheck {
+  const trimmed = value.trim()
+  if (trimmed.length === 0) return { ok: true }
+
+  let resolved: string
+  try {
+    resolved = new Intl.DateTimeFormat('en-US', { timeZone: trimmed }).resolvedOptions().timeZone
+  } catch {
+    return {
+      ok: false,
+      reason: 'That is not a time zone. Write it as the zone database does: America/Halifax.'
+    }
+  }
+
+  if (resolved !== trimmed && resolved.toLowerCase() === trimmed.toLowerCase()) {
+    return { ok: false, reason: `Written ${resolved}.` }
+  }
+  return { ok: true }
+}
+
+/** This machine's own zone, for the page to offer as a one-press fill. */
+export function localTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone
+}
+
 // ----------------------------------------------------------------- profiles
 
 /**
+ * The kinds of platform, each its own panel on the page.
+ *
+ * Ordered by how often somebody arriving at the website wants them: to follow
+ * and to listen first, the reference pages last.
+ */
+export const PROFILE_GROUPS = [
+  'essentials',
+  'listen',
+  'follow',
+  'live',
+  'stores',
+  'community',
+  'catalogues'
+] as const
+
+export type ProfileGroup = (typeof PROFILE_GROUPS)[number]
+
+export const PROFILE_GROUP_SPEC: Record<ProfileGroup, { label: string; purpose: string }> = {
+  essentials: {
+    label: 'Essentials',
+    purpose:
+      'The five the website cannot do without. The navbar and the footer draw Instagram, SoundCloud, Spotify and YouTube; Apple Music stands with them wherever the website lists where to listen.'
+  },
+  listen: {
+    label: 'Listen',
+    purpose: 'Every other service the records stream on, from the global ones to the regional.'
+  },
+  follow: {
+    label: 'Follow',
+    purpose: 'The social platforms, where people keep up between releases.'
+  },
+  live: {
+    label: 'Live, mixes and video',
+    purpose: 'Live streams, DJ mixes and tracklists, video, and the listings that carry the shows.'
+  },
+  stores: {
+    label: 'Stores and services',
+    purpose: 'Where records, beats and production work are bought and booked.'
+  },
+  community: {
+    label: 'Community and support',
+    purpose: 'Where listeners gather, and where they can support the work directly.'
+  },
+  catalogues: {
+    label: 'Catalogues',
+    purpose: 'The reference pages: discography databases, credits, lyrics and scrobbles.'
+  }
+}
+
+interface ProfilePlatformSpec {
+  /** As the platform writes its own name. */
+  label: string
+  group: ProfileGroup
+  /**
+   * The hosts its addresses live on, matched exactly or as a subdomain. One
+   * ending in `.` is a prefix instead, for services on a domain per country
+   * (`music.amazon.` takes `.com`, `.co.uk`, `.de` and the rest).
+   */
+  hosts: readonly string[]
+  /** What one of its addresses looks like, as the field's example. */
+  example: string
+}
+
+/**
  * Every platform the colophon holds a profile on, in the order the page draws
- * them: where people follow the artist, and where they listen.
+ * them within each group.
  *
  * Ids follow the console's existing tables wherever a platform means the same
  * thing there (`spotify`, `apple`, `soundcloud`, `bandcamp`, `beatport`,
- * `amazon`, `deezer`, `tidal`, `instagram`), so a profile here and a release's
- * distribution row can be matched later without a translation table. Two are
- * deliberately split: `youtube` is the channel, which is what the website's
- * footer means, and `youtube-music` is the music service, which is what
- * DISCOGRAPHY's own `youtube` distributes to.
+ * `amazon`, `deezer`, `tidal`, `instagram`, `tiktok`, `x`), so a profile here
+ * and a release's distribution row can be matched later without a translation
+ * table. Two are deliberately split: `youtube` is the channel, which is what
+ * the website's footer means, and `youtube-music` is the music service, which
+ * is what DISCOGRAPHY's own `youtube` distributes to.
  *
  * Not `DISTRIBUTION_PLATFORMS`, for the reason that table gives for not being
  * `SOCIAL_PLATFORMS`: it is where a *record* goes out, and this is where the
- * *artist* can be found, which includes the DJ platforms and the regional
- * services a release list has no reason to carry.
+ * *artist* can be found, which is a far longer list.
  */
-export const PROFILE_PLATFORMS = [
-  'instagram',
-  'spotify',
-  'apple',
-  'soundcloud',
-  'youtube',
-  'youtube-music',
-  'deezer',
-  'tidal',
-  'amazon',
-  'bandcamp',
-  'beatport',
-  'beatsource',
-  'traxsource',
-  'mixcloud',
-  'audiomack',
-  'qobuz',
-  'pandora',
-  'anghami',
-  'boomplay',
-  'jiosaavn',
-  'gaana'
-] as const
+const PROFILE_PLATFORM_SPEC = {
+  // Essentials
+  instagram: {
+    label: 'Instagram',
+    group: 'essentials',
+    hosts: ['instagram.com', 'instagr.am'],
+    example: 'https://www.instagram.com/…'
+  },
+  spotify: {
+    label: 'Spotify',
+    group: 'essentials',
+    hosts: ['spotify.com', 'spotify.link'],
+    example: 'https://open.spotify.com/artist/…'
+  },
+  apple: {
+    label: 'Apple Music',
+    group: 'essentials',
+    hosts: ['music.apple.com', 'itunes.apple.com'],
+    example: 'https://music.apple.com/…/artist/…'
+  },
+  soundcloud: {
+    label: 'SoundCloud',
+    group: 'essentials',
+    hosts: ['soundcloud.com', 'snd.sc'],
+    example: 'https://soundcloud.com/…'
+  },
+  youtube: {
+    label: 'YouTube',
+    group: 'essentials',
+    hosts: ['youtube.com', 'youtu.be'],
+    example: 'https://www.youtube.com/@…'
+  },
 
-export type ProfilePlatform = (typeof PROFILE_PLATFORMS)[number]
+  // Listen
+  'youtube-music': {
+    label: 'YouTube Music',
+    group: 'listen',
+    hosts: ['music.youtube.com'],
+    example: 'https://music.youtube.com/channel/…'
+  },
+  amazon: {
+    label: 'Amazon Music',
+    group: 'listen',
+    hosts: ['music.amazon.'],
+    example: 'https://music.amazon.com/artists/…'
+  },
+  deezer: {
+    label: 'Deezer',
+    group: 'listen',
+    hosts: ['deezer.com', 'deezer.page.link'],
+    example: 'https://www.deezer.com/artist/…'
+  },
+  tidal: {
+    label: 'TIDAL',
+    group: 'listen',
+    hosts: ['tidal.com'],
+    example: 'https://tidal.com/artist/…'
+  },
+  pandora: {
+    label: 'Pandora',
+    group: 'listen',
+    hosts: ['pandora.com'],
+    example: 'https://www.pandora.com/artist/…'
+  },
+  iheart: {
+    label: 'iHeartRadio',
+    group: 'listen',
+    hosts: ['iheart.com'],
+    example: 'https://www.iheart.com/artist/…'
+  },
+  qobuz: {
+    label: 'Qobuz',
+    group: 'listen',
+    hosts: ['qobuz.com'],
+    example: 'https://www.qobuz.com/…/interpreter/…'
+  },
+  napster: {
+    label: 'Napster',
+    group: 'listen',
+    hosts: ['napster.com'],
+    example: 'https://web.napster.com/artist/…'
+  },
+  audiomack: {
+    label: 'Audiomack',
+    group: 'listen',
+    hosts: ['audiomack.com'],
+    example: 'https://audiomack.com/…'
+  },
+  audius: {
+    label: 'Audius',
+    group: 'listen',
+    hosts: ['audius.co'],
+    example: 'https://audius.co/…'
+  },
+  shazam: {
+    label: 'Shazam',
+    group: 'listen',
+    hosts: ['shazam.com'],
+    example: 'https://www.shazam.com/artist/…'
+  },
+  anghami: {
+    label: 'Anghami',
+    group: 'listen',
+    hosts: ['anghami.com'],
+    example: 'https://play.anghami.com/artist/…'
+  },
+  boomplay: {
+    label: 'Boomplay',
+    group: 'listen',
+    hosts: ['boomplay.com', 'boomplaymusic.com'],
+    example: 'https://www.boomplay.com/artists/…'
+  },
+  jiosaavn: {
+    label: 'JioSaavn',
+    group: 'listen',
+    hosts: ['jiosaavn.com', 'saavn.com'],
+    example: 'https://www.jiosaavn.com/artist/…'
+  },
+  gaana: {
+    label: 'Gaana',
+    group: 'listen',
+    hosts: ['gaana.com'],
+    example: 'https://gaana.com/artist/…'
+  },
+  wynk: {
+    label: 'Wynk Music',
+    group: 'listen',
+    hosts: ['wynk.in'],
+    example: 'https://wynk.in/music/artist/…'
+  },
+  netease: {
+    label: 'NetEase Cloud Music',
+    group: 'listen',
+    hosts: ['music.163.com'],
+    example: 'https://music.163.com/#/artist?id=…'
+  },
+  'qq-music': {
+    label: 'QQ Music',
+    group: 'listen',
+    hosts: ['y.qq.com'],
+    example: 'https://y.qq.com/n/ryqq/singer/…'
+  },
+  kkbox: {
+    label: 'KKBOX',
+    group: 'listen',
+    hosts: ['kkbox.com'],
+    example: 'https://www.kkbox.com/…/artist/…'
+  },
+  melon: {
+    label: 'Melon',
+    group: 'listen',
+    hosts: ['melon.com'],
+    example: 'https://www.melon.com/artist/…'
+  },
+  joox: {
+    label: 'JOOX',
+    group: 'listen',
+    hosts: ['joox.com'],
+    example: 'https://www.joox.com/…/artist/…'
+  },
+  'line-music': {
+    label: 'LINE MUSIC',
+    group: 'listen',
+    hosts: ['music.line.me'],
+    example: 'https://music.line.me/webapp/artist/…'
+  },
+  yandex: {
+    label: 'Yandex Music',
+    group: 'listen',
+    hosts: ['music.yandex.'],
+    example: 'https://music.yandex.com/artist/…'
+  },
 
-/**
- * Always on the page, filled or not.
- *
- * The four the operator named as musts (Spotify, Apple Music, SoundCloud and
- * YouTube), and Instagram, which the website's navbar and footer draw beside
- * three of them. Every other platform is added when there is a profile to put
- * on it, so the page does not open on sixteen empty fields.
- */
-export const CORE_PROFILE_PLATFORMS = [
-  'instagram',
-  'spotify',
-  'apple',
-  'soundcloud',
-  'youtube'
-] as const satisfies readonly ProfilePlatform[]
+  // Follow
+  tiktok: {
+    label: 'TikTok',
+    group: 'follow',
+    hosts: ['tiktok.com'],
+    example: 'https://www.tiktok.com/@…'
+  },
+  x: {
+    label: 'X',
+    group: 'follow',
+    hosts: ['x.com', 'twitter.com'],
+    example: 'https://x.com/…'
+  },
+  facebook: {
+    label: 'Facebook',
+    group: 'follow',
+    hosts: ['facebook.com', 'fb.com', 'fb.me'],
+    example: 'https://www.facebook.com/…'
+  },
+  threads: {
+    label: 'Threads',
+    group: 'follow',
+    hosts: ['threads.net', 'threads.com'],
+    example: 'https://www.threads.net/@…'
+  },
+  bluesky: {
+    label: 'Bluesky',
+    group: 'follow',
+    hosts: ['bsky.app'],
+    example: 'https://bsky.app/profile/…'
+  },
+  snapchat: {
+    label: 'Snapchat',
+    group: 'follow',
+    hosts: ['snapchat.com'],
+    example: 'https://www.snapchat.com/add/…'
+  },
+  reddit: {
+    label: 'Reddit',
+    group: 'follow',
+    hosts: ['reddit.com'],
+    example: 'https://www.reddit.com/user/…'
+  },
+  tumblr: {
+    label: 'Tumblr',
+    group: 'follow',
+    hosts: ['tumblr.com'],
+    example: 'https://www.tumblr.com/…'
+  },
+  pinterest: {
+    label: 'Pinterest',
+    group: 'follow',
+    hosts: ['pinterest.com'],
+    example: 'https://www.pinterest.com/…'
+  },
+  linkedin: {
+    label: 'LinkedIn',
+    group: 'follow',
+    hosts: ['linkedin.com'],
+    example: 'https://www.linkedin.com/in/…'
+  },
+  vk: {
+    label: 'VK',
+    group: 'follow',
+    hosts: ['vk.com'],
+    example: 'https://vk.com/…'
+  },
+  weibo: {
+    label: 'Weibo',
+    group: 'follow',
+    hosts: ['weibo.com'],
+    example: 'https://weibo.com/…'
+  },
+  linktree: {
+    label: 'Linktree',
+    group: 'follow',
+    hosts: ['linktr.ee'],
+    example: 'https://linktr.ee/…'
+  },
+
+  // Live, mixes and video
+  twitch: {
+    label: 'Twitch',
+    group: 'live',
+    hosts: ['twitch.tv'],
+    example: 'https://www.twitch.tv/…'
+  },
+  kick: {
+    label: 'Kick',
+    group: 'live',
+    hosts: ['kick.com'],
+    example: 'https://kick.com/…'
+  },
+  vimeo: {
+    label: 'Vimeo',
+    group: 'live',
+    hosts: ['vimeo.com'],
+    example: 'https://vimeo.com/…'
+  },
+  mixcloud: {
+    label: 'Mixcloud',
+    group: 'live',
+    hosts: ['mixcloud.com'],
+    example: 'https://www.mixcloud.com/…'
+  },
+  hearthis: {
+    label: 'hearthis.at',
+    group: 'live',
+    hosts: ['hearthis.at'],
+    example: 'https://hearthis.at/…'
+  },
+  '1001tracklists': {
+    label: '1001Tracklists',
+    group: 'live',
+    hosts: ['1001tracklists.com'],
+    example: 'https://www.1001tracklists.com/dj/…'
+  },
+  'resident-advisor': {
+    label: 'Resident Advisor',
+    group: 'live',
+    hosts: ['ra.co', 'residentadvisor.net'],
+    example: 'https://ra.co/dj/…'
+  },
+  songkick: {
+    label: 'Songkick',
+    group: 'live',
+    hosts: ['songkick.com'],
+    example: 'https://www.songkick.com/artists/…'
+  },
+  bandsintown: {
+    label: 'Bandsintown',
+    group: 'live',
+    hosts: ['bandsintown.com', 'bnds.us'],
+    example: 'https://www.bandsintown.com/a/…'
+  },
+
+  // Stores and services
+  bandcamp: {
+    label: 'Bandcamp',
+    group: 'stores',
+    hosts: ['bandcamp.com'],
+    example: 'https://….bandcamp.com'
+  },
+  beatport: {
+    label: 'Beatport',
+    group: 'stores',
+    hosts: ['beatport.com'],
+    example: 'https://www.beatport.com/artist/…'
+  },
+  beatsource: {
+    label: 'Beatsource',
+    group: 'stores',
+    hosts: ['beatsource.com'],
+    example: 'https://www.beatsource.com/artist/…'
+  },
+  traxsource: {
+    label: 'Traxsource',
+    group: 'stores',
+    hosts: ['traxsource.com'],
+    example: 'https://www.traxsource.com/artist/…'
+  },
+  juno: {
+    label: 'Juno Download',
+    group: 'stores',
+    hosts: ['junodownload.com'],
+    example: 'https://www.junodownload.com/artists/…'
+  },
+  '7digital': {
+    label: '7digital',
+    group: 'stores',
+    hosts: ['7digital.com'],
+    example: 'https://us.7digital.com/artist/…'
+  },
+  beatstars: {
+    label: 'BeatStars',
+    group: 'stores',
+    hosts: ['beatstars.com', 'bsta.rs'],
+    example: 'https://www.beatstars.com/…'
+  },
+  airbit: {
+    label: 'Airbit',
+    group: 'stores',
+    hosts: ['airbit.com'],
+    example: 'https://airbit.com/…'
+  },
+  soundbetter: {
+    label: 'SoundBetter',
+    group: 'stores',
+    hosts: ['soundbetter.com'],
+    example: 'https://soundbetter.com/profiles/…'
+  },
+
+  // Community and support
+  'discord-server': {
+    label: 'Discord server',
+    group: 'community',
+    hosts: ['discord.gg', 'discord.com'],
+    example: 'https://discord.gg/…'
+  },
+  'telegram-channel': {
+    label: 'Telegram channel',
+    group: 'community',
+    hosts: ['t.me', 'telegram.me'],
+    example: 'https://t.me/…'
+  },
+  'whatsapp-channel': {
+    label: 'WhatsApp channel',
+    group: 'community',
+    hosts: ['whatsapp.com'],
+    example: 'https://whatsapp.com/channel/…'
+  },
+  patreon: {
+    label: 'Patreon',
+    group: 'community',
+    hosts: ['patreon.com'],
+    example: 'https://www.patreon.com/…'
+  },
+  kofi: {
+    label: 'Ko-fi',
+    group: 'community',
+    hosts: ['ko-fi.com'],
+    example: 'https://ko-fi.com/…'
+  },
+  buymeacoffee: {
+    label: 'Buy Me a Coffee',
+    group: 'community',
+    hosts: ['buymeacoffee.com'],
+    example: 'https://www.buymeacoffee.com/…'
+  },
+
+  // Catalogues
+  discogs: {
+    label: 'Discogs',
+    group: 'catalogues',
+    hosts: ['discogs.com'],
+    example: 'https://www.discogs.com/artist/…'
+  },
+  musicbrainz: {
+    label: 'MusicBrainz',
+    group: 'catalogues',
+    hosts: ['musicbrainz.org'],
+    example: 'https://musicbrainz.org/artist/…'
+  },
+  genius: {
+    label: 'Genius',
+    group: 'catalogues',
+    hosts: ['genius.com'],
+    example: 'https://genius.com/artists/…'
+  },
+  musixmatch: {
+    label: 'Musixmatch',
+    group: 'catalogues',
+    hosts: ['musixmatch.com'],
+    example: 'https://www.musixmatch.com/artist/…'
+  },
+  lastfm: {
+    label: 'Last.fm',
+    group: 'catalogues',
+    hosts: ['last.fm'],
+    example: 'https://www.last.fm/music/…'
+  },
+  allmusic: {
+    label: 'AllMusic',
+    group: 'catalogues',
+    hosts: ['allmusic.com'],
+    example: 'https://www.allmusic.com/artist/…'
+  },
+  wikipedia: {
+    label: 'Wikipedia',
+    group: 'catalogues',
+    hosts: ['wikipedia.org'],
+    example: 'https://en.wikipedia.org/wiki/…'
+  }
+} as const satisfies Record<string, ProfilePlatformSpec>
+
+export type ProfilePlatform = keyof typeof PROFILE_PLATFORM_SPEC
+
+/** Every platform, in table order. */
+export const PROFILE_PLATFORMS = Object.keys(PROFILE_PLATFORM_SPEC) as ProfilePlatform[]
+
+/** As each platform writes its own name. */
+export const PROFILE_PLATFORM_LABEL = Object.fromEntries(
+  PROFILE_PLATFORMS.map((platform) => [platform, PROFILE_PLATFORM_SPEC[platform].label])
+) as Record<ProfilePlatform, string>
 
 /** The four the website's navbar and footer draw, each behind its own mark. */
 export const NAVBAR_PROFILE_PLATFORMS = [
@@ -226,66 +902,30 @@ export const NAVBAR_PROFILE_PLATFORMS = [
   'youtube'
 ] as const satisfies readonly ProfilePlatform[]
 
-/** As each platform writes its own name. */
-export const PROFILE_PLATFORM_LABEL: Record<ProfilePlatform, string> = {
-  instagram: 'Instagram',
-  spotify: 'Spotify',
-  apple: 'Apple Music',
-  soundcloud: 'SoundCloud',
-  youtube: 'YouTube',
-  'youtube-music': 'YouTube Music',
-  deezer: 'Deezer',
-  tidal: 'TIDAL',
-  amazon: 'Amazon Music',
-  bandcamp: 'Bandcamp',
-  beatport: 'Beatport',
-  beatsource: 'Beatsource',
-  traxsource: 'Traxsource',
-  mixcloud: 'Mixcloud',
-  audiomack: 'Audiomack',
-  qobuz: 'Qobuz',
-  pandora: 'Pandora',
-  anghami: 'Anghami',
-  boomplay: 'Boomplay',
-  jiosaavn: 'JioSaavn',
-  gaana: 'Gaana'
+/** What one of a platform's addresses looks like. */
+export function profileExample(platform: ProfilePlatform): string {
+  return PROFILE_PLATFORM_SPEC[platform].example
+}
+
+/** A group's platforms, in table order. */
+export function platformsIn(group: ProfileGroup): ProfilePlatform[] {
+  return PROFILE_PLATFORMS.filter((platform) => PROFILE_PLATFORM_SPEC[platform].group === group)
+}
+
+/** True for a key the colophon knows as a platform. */
+export function isProfilePlatform(value: string): value is ProfilePlatform {
+  return Object.hasOwn(PROFILE_PLATFORM_SPEC, value)
+}
+
+/** True for a platform the website's navbar and footer draw. */
+export function isNavbarProfile(platform: ProfilePlatform): boolean {
+  return (NAVBAR_PROFILE_PLATFORMS as readonly ProfilePlatform[]).includes(platform)
 }
 
 /**
- * The hosts each platform's addresses live on.
- *
- * Matched against an address's hostname, exactly or as a subdomain, so
- * `nasko.bandcamp.com` is Bandcamp. `music.youtube.com` sits inside YouTube's
- * domain and belongs to YouTube Music, so the more specific platform is tried
- * first (`SPECIFIC_FIRST`). Amazon's music service lives on a different domain
- * in every country, so it is matched on its `music.amazon.` prefix instead and
- * lists no hosts here.
+ * Platforms whose hosts sit inside another's, tried before it:
+ * `music.youtube.com` is inside YouTube's domain and belongs to YouTube Music.
  */
-const PROFILE_HOSTS: Record<ProfilePlatform, readonly string[]> = {
-  instagram: ['instagram.com', 'instagr.am'],
-  spotify: ['spotify.com', 'spotify.link'],
-  apple: ['music.apple.com', 'itunes.apple.com'],
-  soundcloud: ['soundcloud.com', 'snd.sc'],
-  youtube: ['youtube.com', 'youtu.be'],
-  'youtube-music': ['music.youtube.com'],
-  deezer: ['deezer.com', 'deezer.page.link'],
-  tidal: ['tidal.com'],
-  amazon: [],
-  bandcamp: ['bandcamp.com'],
-  beatport: ['beatport.com'],
-  beatsource: ['beatsource.com'],
-  traxsource: ['traxsource.com'],
-  mixcloud: ['mixcloud.com'],
-  audiomack: ['audiomack.com'],
-  qobuz: ['qobuz.com'],
-  pandora: ['pandora.com'],
-  anghami: ['anghami.com'],
-  boomplay: ['boomplay.com', 'boomplaymusic.com'],
-  jiosaavn: ['jiosaavn.com', 'saavn.com'],
-  gaana: ['gaana.com']
-}
-
-/** Platforms whose hosts sit inside another's, tried before it. */
 const SPECIFIC_FIRST: readonly ProfilePlatform[] = ['youtube-music']
 
 /** The order addresses are recognised in. */
@@ -293,6 +933,11 @@ const RECOGNITION_ORDER: readonly ProfilePlatform[] = [
   ...SPECIFIC_FIRST,
   ...PROFILE_PLATFORMS.filter((platform) => !SPECIFIC_FIRST.includes(platform))
 ]
+
+function hostMatches(host: string, known: string): boolean {
+  if (known.endsWith('.')) return host.startsWith(known)
+  return host === known || host.endsWith(`.${known}`)
+}
 
 /** Which platform an address is on, or null for one the colophon does not know. */
 export function profilePlatformOf(url: string): ProfilePlatform | null {
@@ -303,28 +948,11 @@ export function profilePlatformOf(url: string): ProfilePlatform | null {
     return null
   }
 
-  if (host.startsWith('music.amazon.')) return 'amazon'
   for (const platform of RECOGNITION_ORDER) {
-    if (PROFILE_HOSTS[platform].some((known) => host === known || host.endsWith(`.${known}`))) {
-      return platform
-    }
+    const hosts: readonly string[] = PROFILE_PLATFORM_SPEC[platform].hosts
+    if (hosts.some((known) => hostMatches(host, known))) return platform
   }
   return null
-}
-
-/** True for a key the colophon knows as a platform. */
-export function isProfilePlatform(value: string): value is ProfilePlatform {
-  return (PROFILE_PLATFORMS as readonly string[]).includes(value)
-}
-
-/** True for a platform the page always draws. */
-export function isCoreProfile(platform: ProfilePlatform): boolean {
-  return (CORE_PROFILE_PLATFORMS as readonly ProfilePlatform[]).includes(platform)
-}
-
-/** True for a platform the website's navbar and footer draw. */
-export function isNavbarProfile(platform: ProfilePlatform): boolean {
-  return (NAVBAR_PROFILE_PLATFORMS as readonly ProfilePlatform[]).includes(platform)
 }
 
 /**
@@ -355,21 +983,16 @@ export function checkProfileUrl(platform: ProfilePlatform, url: string): NameChe
   return { ok: true }
 }
 
-/**
- * The profiles, keyed by platform.
- *
- * A key present is a platform on the page; its value may be empty, a profile
- * planned and not set up yet. The core platforms are always present.
- */
-export type ColophonProfiles = Record<string, string>
+/** The profiles, keyed by platform: every platform present, empty when unset. */
+export type ColophonProfiles = Record<ProfilePlatform, string>
 
 export function emptyProfiles(): ColophonProfiles {
-  return Object.fromEntries(CORE_PROFILE_PLATFORMS.map((platform) => [platform, '']))
+  return Object.fromEntries(PROFILE_PLATFORMS.map((platform) => [platform, ''])) as ColophonProfiles
 }
 
 /**
- * A stored map, as the page should see it: every core platform present, every
- * platform this console does not know dropped, the rest kept as they are.
+ * A stored map, as the page should see it: every platform present, every key
+ * this console does not know dropped.
  *
  * Read rather than refused, because the stored schema is permissive on
  * purpose and a platform retired from the table should not make the whole
@@ -384,23 +1007,16 @@ export function readProfiles(raw: Readonly<Record<string, unknown>>): ColophonPr
   return profiles
 }
 
-/** The platforms on the page: the core ones, then those added, in table order. */
-export function listedPlatforms(profiles: Readonly<ColophonProfiles>): ProfilePlatform[] {
-  return PROFILE_PLATFORMS.filter(
-    (platform) => isCoreProfile(platform) || profiles[platform] !== undefined
-  )
-}
-
 /**
  * The profiles, from the free list of links the first COLOPHON kept.
  *
  * COLOPHON opened with a list of links and moved to a profile per platform the
  * same day (2026-10-01), once the website's own platforms were set beside it.
  * A record filed in between is read through this, so nothing typed into it is
- * lost: each link is placed by the platform its address is actually on, the
- * first of each winning, and an address on no platform the colophon knows is
- * left behind. Pure, like `distributionFromLinks`, so it reads without a
- * database.
+ * lost that has somewhere to go: each link is placed by the platform its
+ * address is actually on, the first of each winning, and an address on no
+ * platform the colophon knows is left behind. Pure, like
+ * `distributionFromLinks`, so it reads without a database.
  */
 export function profilesFromLinks(links: unknown): ColophonProfiles {
   const profiles = emptyProfiles()

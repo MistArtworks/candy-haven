@@ -18,11 +18,12 @@
 }
 
 /*
- * The details and the readout side by side, then the profiles across both.
+ * The two panels of details side by side, then a panel per kind of platform
+ * across both, then the publication readout.
  *
- * The profiles take the full width because they are the one panel that grows:
- * beside the three details they would leave a column of empty panel for every
- * platform added. Stretch, so the pair above reads as one band.
+ * The profiles take the full width because there are many of them: two
+ * columns of fields, three on a wide screen, read faster than one long one.
+ * Stretch, so the pair of details reads as one band.
  */
 .grid {
   display: grid;
@@ -69,22 +70,18 @@
 }
 
 /*
- * Two columns of profiles, read across: a field per platform, each with its
- * label in the gutter, so the addresses start at the same x in both columns.
+ * Columns of profiles, read across: a field per platform, each with its label
+ * in the gutter, so the addresses start at the same x in every column.
  */
 .profiles {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: space(10);
   row-gap: space(6);
-}
 
-// The add field closes the set across both columns, ruled off from it: it is
-// not a profile, it is where the next one comes from.
-.add {
-  grid-column: 1 / -1;
-  padding-top: space(5);
-  @include hairline(top, 0.1);
+  @include above('xl') {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .actions {
@@ -92,7 +89,7 @@
   gap: space(3);
 }
 
-// Open, Remove and Add: REGULATION's dismiss, set in the gutter under the
+// Open and Use local: REGULATION's dismiss, set in the gutter under the
 // field's label rather than drawn as buttons beside every address.
 .action {
   @include label(9px, 0.16em);

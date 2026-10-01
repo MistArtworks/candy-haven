@@ -3,17 +3,16 @@ import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tan
 import type { NameCheck } from '@shared/domain/artists.constants'
 import type {
   Colophon,
+  ColophonDetail,
   ColophonPatch,
   ColophonProfiles,
   ProfilePlatform
 } from '@shared/domain/colophon'
 import {
-  checkDiscord,
-  checkEmail,
-  checkPhone,
-  checkProfileUrl,
-  isCoreProfile,
-  isProfilePlatform
+  COLOPHON_DETAILS,
+  PROFILE_PLATFORMS,
+  checkDetail,
+  checkProfileUrl
 } from '@shared/domain/colophon.constants'
 
 /**
@@ -39,19 +38,13 @@ export function useColophon(enabled = true): UseQueryResult<Colophon> {
 /** What the page edits: the record without its timestamp. */
 export type ColophonFields = Omit<Colophon, 'updatedAt'>
 
-/** An edit to any of the three details. Profiles have their own two calls. */
-export interface ColophonEdit {
-  email?: string
-  phone?: string
-  discord?: string
+/** An edit: any of the details, and any of the platforms. */
+export type ColophonEdit = Partial<Record<ColophonDetail, string>> & {
+  profiles?: Partial<ColophonProfiles>
 }
 
-export interface ColophonChecks {
-  email: NameCheck
-  phone: NameCheck
-  discord: NameCheck
-  /** One verdict per platform on the page. */
-  profiles: Partial<Record<ProfilePlatform, NameCheck>>
+export type ColophonChecks = Record<ColophonDetail, NameCheck> & {
+  profiles: Record<ProfilePlatform, NameCheck>
 }
 
 export interface ColophonDraft {
@@ -62,26 +55,11 @@ export interface ColophonDraft {
   /** Each field's verdict on what it currently holds. */
   checks: ColophonChecks
   edit: (edit: ColophonEdit) => void
-  /** Sets a platform's address, putting the platform on the page if it was not. */
-  setProfile: (platform: ProfilePlatform, url: string) => void
-  /** Takes a platform off the page. The core ones stay. */
-  removeProfile: (platform: ProfilePlatform) => void
   dirty: boolean
   saving: boolean
   error: string | null
   save: () => void
   discard: () => void
-}
-
-/** The same platforms with the same addresses, whatever order they were added in. */
-function sameProfiles(a: Readonly<ColophonProfiles>, b: Readonly<ColophonProfiles>): boolean {
-  const keys = Object.keys(a)
-  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key])
-}
-
-/** The draft's edits: the three details, and the profiles once one is touched. */
-interface Edits extends ColophonEdit {
-  profiles?: ColophonProfiles
 }
 
 /**
@@ -90,14 +68,11 @@ interface Edits extends ColophonEdit {
  * ## The draft is the edits, not a copy
  *
  * Only what has been changed is held, and it is laid over the stored record
- * to draw the page. A copy of the whole record would have to be kept in step
- * with the query every time it refetched, which is an effect writing state
- * from state; holding the edits alone means the page always shows the stored
- * value for anything not touched, and Discard is simply forgetting them.
- *
- * The profiles are the exception in grain, not in kind: once one is touched
- * the whole set is held, because taking a platform off the page is a change to
- * the set rather than to any one address.
+ * to draw the page, platform by platform for the profiles. A copy of the
+ * whole record would have to be kept in step with the query every time it
+ * refetched, which is an effect writing state from state; holding the edits
+ * alone means the page always shows the stored value for anything not
+ * touched, and Discard is simply forgetting them.
  *
  * An edit that returns a field to its stored value is still held, but it does
  * not count as a change: `dirty` compares, it does not count keys. The bar
@@ -113,47 +88,49 @@ export function useColophonDraft(enabled: boolean): ColophonDraft {
   const queryClient = useQueryClient()
   const { data: stored } = useColophon(enabled)
 
-  const [edits, setEdits] = useState<Edits>({})
+  const [edits, setEdits] = useState<ColophonEdit>({})
   const [error, setError] = useState<string | null>(null)
 
   const fields = useMemo<ColophonFields | null>(() => {
     if (!stored) return null
-    return {
-      email: edits.email ?? stored.email,
-      phone: edits.phone ?? stored.phone,
-      discord: edits.discord ?? stored.discord,
-      profiles: edits.profiles ?? stored.profiles
-    }
+    const details = Object.fromEntries(
+      COLOPHON_DETAILS.map((detail) => [detail, edits[detail] ?? stored[detail]])
+    ) as Record<ColophonDetail, string>
+    return { ...details, profiles: { ...stored.profiles, ...edits.profiles } }
   }, [stored, edits])
 
   /** Only what differs from the record: what filing would send. */
   const patch = useMemo<ColophonPatch>(() => {
     if (!stored) return {}
     const changed: ColophonPatch = {}
-    if (edits.email !== undefined && edits.email !== stored.email) changed.email = edits.email
-    if (edits.phone !== undefined && edits.phone !== stored.phone) changed.phone = edits.phone
-    if (edits.discord !== undefined && edits.discord !== stored.discord) {
-      changed.discord = edits.discord
+    for (const detail of COLOPHON_DETAILS) {
+      const value = edits[detail]
+      if (value !== undefined && value !== stored[detail]) changed[detail] = value
     }
-    if (edits.profiles !== undefined && !sameProfiles(edits.profiles, stored.profiles)) {
-      changed.profiles = edits.profiles
+
+    const profiles: Record<string, string> = {}
+    for (const platform of PROFILE_PLATFORMS) {
+      const url = edits.profiles?.[platform]
+      if (url !== undefined && url !== stored.profiles[platform]) profiles[platform] = url
     }
+    if (Object.keys(profiles).length > 0) changed.profiles = profiles
+
     return changed
   }, [stored, edits])
 
   const dirty = Object.keys(patch).length > 0
 
   const checks = useMemo<ColophonChecks>(() => {
-    const profiles: Partial<Record<ProfilePlatform, NameCheck>> = {}
-    for (const [platform, url] of Object.entries(fields?.profiles ?? {})) {
-      if (isProfilePlatform(platform)) profiles[platform] = checkProfileUrl(platform, url)
-    }
-    return {
-      email: checkEmail(fields?.email ?? ''),
-      phone: checkPhone(fields?.phone ?? ''),
-      discord: checkDiscord(fields?.discord ?? ''),
-      profiles
-    }
+    const details = Object.fromEntries(
+      COLOPHON_DETAILS.map((detail) => [detail, checkDetail(detail, fields?.[detail] ?? '')])
+    ) as Record<ColophonDetail, NameCheck>
+    const profiles = Object.fromEntries(
+      PROFILE_PLATFORMS.map((platform) => [
+        platform,
+        checkProfileUrl(platform, fields?.profiles[platform] ?? '')
+      ])
+    ) as Record<ProfilePlatform, NameCheck>
+    return { ...details, profiles }
   }, [fields])
 
   const file = useMutation({
@@ -172,47 +149,21 @@ export function useColophonDraft(enabled: boolean): ColophonDraft {
   })
 
   const edit = useCallback((next: ColophonEdit) => {
-    setEdits((current) => ({ ...current, ...next }))
+    setEdits((current) => ({
+      ...current,
+      ...next,
+      // Platforms merge one by one, so typing into Spotify's field does not
+      // forget what was typed into Instagram's.
+      ...(next.profiles ? { profiles: { ...current.profiles, ...next.profiles } } : {})
+    }))
     // A refusal is about what was filed; typing again starts a new attempt.
     setError(null)
   }, [])
 
-  /*
-   * Both read the held set inside the updater rather than `fields` from the
-   * render, so two changes made in one tick build on each other instead of
-   * the later one quietly undoing the earlier.
-   */
-  const changeProfiles = useCallback(
-    (change: (profiles: ColophonProfiles) => ColophonProfiles) => {
-      if (!stored) return
-      setEdits((current) => ({ ...current, profiles: change(current.profiles ?? stored.profiles) }))
-      setError(null)
-    },
-    [stored]
-  )
-
-  const setProfile = useCallback(
-    (platform: ProfilePlatform, url: string) =>
-      changeProfiles((profiles) => ({ ...profiles, [platform]: url })),
-    [changeProfiles]
-  )
-
-  const removeProfile = useCallback(
-    (platform: ProfilePlatform) => {
-      if (isCoreProfile(platform)) return
-      changeProfiles((profiles) =>
-        Object.fromEntries(Object.entries(profiles).filter(([key]) => key !== platform))
-      )
-    },
-    [changeProfiles]
-  )
-
   const { mutate } = file
   const valid =
-    checks.email.ok &&
-    checks.phone.ok &&
-    checks.discord.ok &&
-    Object.values(checks.profiles).every((check) => check.ok)
+    COLOPHON_DETAILS.every((detail) => checks[detail].ok) &&
+    PROFILE_PLATFORMS.every((platform) => checks.profiles[platform].ok)
 
   const save = useCallback(() => {
     if (Object.keys(patch).length === 0) return
@@ -233,8 +184,6 @@ export function useColophonDraft(enabled: boolean): ColophonDraft {
     fields,
     checks,
     edit,
-    setProfile,
-    removeProfile,
     dirty,
     saving: file.isPending,
     error,

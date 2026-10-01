@@ -13,10 +13,10 @@ them, grouped into five divisions.
 BROADCAST, PUBLICATION, OVERSIGHT. It tells you what kind of question the
 departments inside it answer.
 
-**Colophon** — the details the website carries on every page: the booking
-email, the phone number, the Discord username and the artist's profile on each
-platform. Named for the note at the back of a book that says who made it and
-where they can be found.
+**Colophon** — the details the website carries: where to write, call and
+message, who represents the artist and where they are, and the artist's profile
+on every platform. Named for the note at the back of a book that says who made
+it and where they can be found.
 
 **Reserved** — a department that is routed and specified but not yet built. Its
 page lists what it will do when commissioned. INTERFACE is the only one.

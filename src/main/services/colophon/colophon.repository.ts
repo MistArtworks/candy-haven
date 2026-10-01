@@ -1,7 +1,7 @@
 import type { Collection, Db } from 'mongodb'
 import { ColophonSchema } from '@shared/domain/colophon'
 import type { Colophon } from '@shared/domain/colophon'
-import { profilesFromLinks, readProfiles } from '@shared/domain/colophon.constants'
+import { profilesFromLinks } from '@shared/domain/colophon.constants'
 import { getLogger } from '@main/core/logger'
 import { Collections } from '@main/services/archive/schema'
 
@@ -26,7 +26,11 @@ const COLOPHON_ID = 'colophon'
  * `profilesFromLinks`. Read, never written: the next filing replaces the
  * document with one that does not carry it.
  */
-export type ColophonDocument = Colophon & { _id: string; links?: unknown }
+export type ColophonDocument = Omit<Colophon, 'profiles'> & {
+  _id: string
+  profiles?: Record<string, string>
+  links?: unknown
+}
 
 export class ColophonRepository {
   constructor(private readonly db: Db) {}
@@ -64,7 +68,7 @@ export class ColophonRepository {
       return null
     }
 
-    return { ...parsed.data, profiles: readProfiles(parsed.data.profiles) }
+    return parsed.data
   }
 
   async write(colophon: Colophon): Promise<void> {

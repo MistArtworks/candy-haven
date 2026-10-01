@@ -929,8 +929,10 @@ hour, and the departments coming to it (the services, the lore, publishing
 itself) would crowd a division about going live.
 
 Its first department is **COLOPHON**, the details the website carries on every
-page: the booking email, the phone number, the Discord username and the
-artist's profile on each platform. Decisions:
+page: correspondence (booking, management and press emails, phone, WhatsApp,
+Discord and Telegram), particulars (based in, time zone, management, booking
+agency, label, press kit) and the artist's profile on each of 72 platforms.
+Decisions:
 
 - **One record, one collection.** `publication_colophon`, one document under
   the fixed `_id` `colophon`. Archive data rather than a setting: settings are
@@ -940,27 +942,31 @@ artist's profile on each platform. Decisions:
   not committed as typed like the roster's sheet. `useColophonDraft` holds the
   edits alone and lays them over the stored record, so nothing has to be kept
   in step with the query.
-- **Checked twice.** `colophon.constants.ts` holds the rules (`checkEmail`,
-  `checkPhone`, `checkDiscord`) so the page can refuse beside the field;
-  `ColophonService.update` runs them again. Values are trimmed, never
+- **Checked twice.** `colophon.constants.ts` holds the rules, one per detail
+  through `checkDetail` (and `COLOPHON_DETAILS`, which the schema's shape is
+  checked against with `satisfies`), so the page can refuse beside the field;
+  `ColophonService.update` runs them again, all before writing any. Values are trimmed, never
   otherwise corrected: a phone number is kept as spaced, and `dialString`
   derives what it dials. The stored schema is permissive, as distribution is.
 - **Profiles are a map, one address per platform**, not a list of links. The
   first build used `ArtistLinkSchema` and the roster's `LinkEditor`; it moved
   the same day, once the website's own platforms were set beside it, because
   the website draws each platform behind its own mark and a list could file a
-  second Spotify or a page with nowhere to go. `PROFILE_PLATFORMS` is the
-  table (ids shared with `DISTRIBUTION_PLATFORMS` where they mean the same
-  thing; `youtube` is the channel, `youtube-music` the service). Five are
-  core and always present (Instagram, Spotify, Apple Music, SoundCloud,
-  YouTube); the rest are added by pasting an address, recognised by host
-  (`profilePlatformOf`), and every address must be on its own platform
-  (`checkProfileUrl`). `NAVBAR_PROFILE_PLATFORMS` are the four the website's
-  navbar and footer draw. The stored map's keys are plain strings and
-  `readProfiles` gives it its shape, so a retired platform drops off rather
-  than making the record unreadable; `profilesFromLinks` reads a record from
-  the list era. Deliberately not the operator's own roster card: the card is
-  every address kept for credits, this is what the website points people to.
+  second Spotify or a page with nowhere to go. `PROFILE_PLATFORM_SPEC` is the
+  table: 72 platforms, each with a label, a group, its hosts and an example
+  address, ids shared with `DISTRIBUTION_PLATFORMS` where they mean the same
+  thing (`youtube` is the channel, `youtube-music` the service). Every
+  platform is always on the page, named, in seven `PROFILE_GROUPS` panels
+  (Essentials: Instagram, Spotify, Apple Music, SoundCloud, YouTube); there
+  is no add or remove. An address must be on its own platform, recognised by
+  host (`profilePlatformOf`, with prefixes for per-country domains such as
+  `music.amazon.`). `NAVBAR_PROFILE_PLATFORMS` are the four the website's
+  navbar and footer draw. The stored map's keys are plain strings and the
+  schema's `readProfiles` transform gives it its shape, so a retired platform
+  drops off rather than making the record unreadable; `profilesFromLinks`
+  reads a record from the list era. Deliberately not the operator's own
+  roster card: the card is every address kept for credits, this is what the
+  website points people to.
 - **Local only, and it says so.** The page's PUBLICATION panel reads "Not yet"
   for published. Nothing outside reads the record until publishing is built.
 - COLOPHON took `Ctrl`+`0`, which pushed TELEMETRY past the tenth slot; it
