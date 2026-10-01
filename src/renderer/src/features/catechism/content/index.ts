@@ -114,7 +114,7 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
   {
     id: 'colophon',
     label: 'COLOPHON',
-    purpose: 'The details the website carries, and how they are filed',
+    purpose: 'The details the website carries. Coming soon',
     section: 'colophon'
   },
   {

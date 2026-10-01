@@ -13,14 +13,15 @@ involves is filed here rather than spread across applications that cannot see on
 another. See [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) §1 for who uses
 it and why.
 
-Fourteen departments, grouped into four divisions. Thirteen are in service — the
+Fourteen departments, grouped into four divisions. Twelve are in service — the
 operational overview, the project registry and filing tree, everything
 released and where it went, the artist roster, the dated register, the
 listening room, photo grading onto the console palette, the broadcast overlay
-kit, the details the website carries, host telemetry, a shared feedback board,
-operator settings and the built-in manual. **INTERFACE**, the natural-language
-command console, is routed and specified but not yet commissioned; its page
-lists what it will do.
+kit, host telemetry, a shared feedback board, operator settings and the
+built-in manual. **INTERFACE**, the natural-language command console, is routed
+and specified but not yet commissioned; its page lists what it will do.
+**COLOPHON**, the details the website carries, is reserved while it is
+reworked; its page says it is coming soon.
 
 ---
 

@@ -274,7 +274,9 @@ the _real_ code paths, so the real limits genuinely bite.
 
 Twitch is read-only — the app listens to chat and never posts.
 
-### COLOPHON — the details the website carries _(live)_
+### COLOPHON — the details the website carries _(coming soon)_
+
+Reserved in 1.19.1 while it is reworked: its page says it is coming soon. What follows is what it held, and will hold again.
 
 PUBLICATION's department for the website, beside OBSERVATORY's for the stream. One record of
 the details the site shows: the booking, management and press emails, the phone

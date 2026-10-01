@@ -29,8 +29,9 @@ question a department answers, which is usually enough to know where to look.
 
 A department marked **RESERVED** is routed and specified but not yet built. Its
 page lists what it will do when it is commissioned, so the shape of the finished
-console is legible while it is being assembled. INTERFACE is the only reserved
-department at present.
+console is legible while it is being assembled. INTERFACE and COLOPHON are
+reserved at present; COLOPHON's page says it is coming soon while it is
+reworked.
 
 ## The archive underneath
 

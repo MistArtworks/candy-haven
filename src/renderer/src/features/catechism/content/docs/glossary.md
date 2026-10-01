@@ -20,7 +20,7 @@ it and where they can be found. Each field is **public** (goes out with the
 website) or **private** (stays on this machine); a few are always public.
 
 **Reserved** — a department that is routed and specified but not yet built. Its
-page lists what it will do when commissioned. INTERFACE is the only one.
+page lists what it will do when commissioned. INTERFACE and COLOPHON are reserved; COLOPHON's says it is coming soon.
 
 **Masthead** — the header every page opens with: number, label, purpose, rule,
 epigraph.

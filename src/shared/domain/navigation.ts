@@ -191,6 +191,10 @@ export const SECTIONS: readonly SectionDefinition[] = [
      * A colophon is the note at the back of a book saying who made it and
      * where they can be found; the website's footer and contact pages are
      * exactly that note, so this is where it is written.
+     *
+     * Reserved again in 1.19.1, while the website's side is worked out: the
+     * page says it is coming soon, and the built department waits in the
+     * code for its route to swap back.
      */
     id: 'colophon',
     path: '/colophon',
@@ -199,7 +203,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     epigraph: 'Every record carries the seal of where it may be answered.',
     group: 'publication',
     order: 9,
-    implemented: true
+    implemented: false
   },
   {
     id: 'telemetry',

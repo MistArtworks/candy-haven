@@ -10,8 +10,16 @@ import styles from './ReservedPage.module.scss'
 
 export interface ReservedPageProps {
   sectionId: SectionId
-  /** Capabilities this department will provide, shown as a commissioning plan. */
-  scope: string[]
+  /**
+   * Capabilities this department will provide, shown as a commissioning plan.
+   * Left out for a department taken back out of service while it is reworked,
+   * whose plan is not settled enough to promise.
+   */
+  scope?: string[]
+  /** The status line, when the standing one does not fit. */
+  headline?: string
+  /** The sentence under it. */
+  note?: string
 }
 
 /**
@@ -23,7 +31,12 @@ export interface ReservedPageProps {
  * feature replaces this component with its own page and flips `implemented` in
  * the shared navigation registry.
  */
-export function ReservedPage({ sectionId, scope }: ReservedPageProps): ReactNode {
+export function ReservedPage({
+  sectionId,
+  scope,
+  headline = 'Reserved — not yet in service',
+  note = 'This department is defined in the system registry and routed, but its capabilities have not been commissioned. It will come online in a future delivery.'
+}: ReservedPageProps): ReactNode {
   const section = getSection(sectionId)
 
   return (
@@ -45,25 +58,24 @@ export function ReservedPage({ sectionId, scope }: ReservedPageProps): ReactNode
           <div className={styles.noticeBody}>
             <Sigil size={72} weight={1} className={styles.mark} />
             <div>
-              <p className={styles.headline}>Reserved — not yet in service</p>
-              <p className={styles.copy}>
-                This department is defined in the system registry and routed, but its capabilities
-                have not been commissioned. It will come online in a future delivery.
-              </p>
+              <p className={styles.headline}>{headline}</p>
+              <p className={styles.copy}>{note}</p>
             </div>
           </div>
         </Panel>
 
-        <Panel label="Commissioning scope" index="02" className={styles.plan}>
-          <ol className={styles.scope}>
-            {scope.map((item, index) => (
-              <li key={item} className={styles.scopeItem}>
-                <span className={styles.scopeIndex}>{String(index + 1).padStart(2, '0')}</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ol>
-        </Panel>
+        {scope && scope.length > 0 ? (
+          <Panel label="Commissioning scope" index="02" className={styles.plan}>
+            <ol className={styles.scope}>
+              {scope.map((item, index) => (
+                <li key={item} className={styles.scopeItem}>
+                  <span className={styles.scopeIndex}>{String(index + 1).padStart(2, '0')}</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ol>
+          </Panel>
+        ) : null}
       </motion.div>
     </div>
   )

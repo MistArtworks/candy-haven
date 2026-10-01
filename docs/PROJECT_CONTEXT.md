@@ -5,11 +5,11 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-10-01. Thirteen of fourteen departments delivered;
-> INTERFACE is the only one still reserved. COLOPHON opened PUBLICATION on
+> Last updated: 2026-10-01. Twelve of fourteen departments in service;
+> INTERFACE and COLOPHON are reserved. COLOPHON opened PUBLICATION on
 > 2026-10-01, and BROADCAST was folded into it the same day, leaving four
-> divisions: the website's details are kept locally until the website is
-> published from here (§10, §14). The department table in §10
+> divisions. COLOPHON was reserved again in 1.19.1 while the website's side is
+> worked out; its built page, service and stored record are kept (§10, §14). The department table in §10
 > is current, but `src/shared/domain/navigation.ts` remains the source of
 > truth and this file is what needs correcting when the two disagree — it has
 > gone stale before, more than once.
@@ -909,15 +909,17 @@ and Nexus all read from it.
 | 7   | `auditorium`  | `/auditorium`   | **shipped** | Listening room and visualiser                          |
 | 8   | `darkroom`    | `/darkroom`     | **shipped** | Grading photographs onto the console palette           |
 | 9   | `observatory` | `/observatory`  | **shipped** | The broadcast desk and every overlay served to OBS     |
-| 10  | `colophon`    | `/colophon`     | **shipped** | The details the website carries                        |
+| 10  | `colophon`    | `/colophon`     | reserved    | The details the website carries (coming soon)          |
 | 11  | `telemetry`   | `/telemetry`    | **shipped** | Host vitals                                            |
 | 12  | `dispatch`    | `/dispatch`     | **shipped** | The shared board                                       |
 | 13  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
 | 14  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
 
-**Fourteen departments, thirteen shipped,** in four divisions: COMMAND,
-PRODUCTION, PUBLICATION, OVERSIGHT. INTERFACE remains the only
-reserved one. The rail has outgrown the numbered chords: `Ctrl`+`1`…`9`,`0`
+**Fourteen departments, twelve in service,** in four divisions: COMMAND,
+PRODUCTION, PUBLICATION, OVERSIGHT. INTERFACE and COLOPHON are reserved:
+COLOPHON was built (below) and taken back out of service in 1.19.1, its route
+pointing at `ReservedPage` with a "Coming soon" status and no scope, while
+`ColophonPage`, its service and its stored record wait in the code. The rail has outgrown the numbered chords: `Ctrl`+`1`…`9`,`0`
 reach the first ten, and TELEMETRY, DISPATCH, REGULATION and CATECHISM have
 named chords (`Ctrl`+`Shift`+`T`, `Ctrl`+`Shift`+`D`, `Ctrl`+`,`,
 `Ctrl`+`Shift`+`K`). See `ConsoleLayout.tsx`.

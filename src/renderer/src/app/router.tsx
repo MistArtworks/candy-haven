@@ -20,7 +20,6 @@ import { ScenePage } from '@renderer/features/observatory/overlays/scene/ScenePa
 import { CalendarPage } from '@renderer/features/calendar/CalendarPage'
 import { AuditoriumPage } from '@renderer/features/auditorium/AuditoriumPage'
 import { DarkroomPage } from '@renderer/features/darkroom/DarkroomPage'
-import { ColophonPage } from '@renderer/features/colophon/ColophonPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
 import { DispatchPage } from '@renderer/features/dispatch/DispatchPage'
@@ -134,7 +133,21 @@ export function AppRouter(): ReactNode {
           }
         />
 
-        <Route path="/colophon" element={<ColophonPage />} />
+        {/*
+          Taken back out of service while the website's side is worked out.
+          ColophonPage, its service and its stored record are all kept; this
+          route goes back to it, and `implemented` flips back, when it returns.
+        */}
+        <Route
+          path="/colophon"
+          element={
+            <ReservedPage
+              sectionId="colophon"
+              headline="Coming soon"
+              note="The details the website carries will be kept here. COLOPHON is being reworked, and it comes back in a future update."
+            />
+          }
+        />
 
         <Route path="/telemetry" element={<TelemetryPage />} />
 
