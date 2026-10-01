@@ -6,10 +6,13 @@ import type {
   ColophonDetail,
   ColophonPatch,
   ColophonProfiles,
-  ProfilePlatform
+  ColophonVisibility,
+  ProfilePlatform,
+  Visibility
 } from '@shared/domain/colophon'
 import {
   COLOPHON_DETAILS,
+  COLOPHON_FIELDS,
   PROFILE_PLATFORMS,
   checkDetail,
   checkProfileUrl
@@ -38,9 +41,10 @@ export function useColophon(enabled = true): UseQueryResult<Colophon> {
 /** What the page edits: the record without its timestamp. */
 export type ColophonFields = Omit<Colophon, 'updatedAt'>
 
-/** An edit: any of the details, and any of the platforms. */
+/** An edit: any of the details, any of the platforms, any field's visibility. */
 export type ColophonEdit = Partial<Record<ColophonDetail, string>> & {
   profiles?: Partial<ColophonProfiles>
+  visibility?: Partial<ColophonVisibility>
 }
 
 export type ColophonChecks = Record<ColophonDetail, NameCheck> & {
@@ -68,10 +72,10 @@ export interface ColophonDraft {
  * ## The draft is the edits, not a copy
  *
  * Only what has been changed is held, and it is laid over the stored record
- * to draw the page, platform by platform for the profiles. A copy of the
- * whole record would have to be kept in step with the query every time it
- * refetched, which is an effect writing state from state; holding the edits
- * alone means the page always shows the stored value for anything not
+ * to draw the page, field by field for the profiles and the visibilities. A
+ * copy of the whole record would have to be kept in step with the query every
+ * time it refetched, which is an effect writing state from state; holding the
+ * edits alone means the page always shows the stored value for anything not
  * touched, and Discard is simply forgetting them.
  *
  * An edit that returns a field to its stored value is still held, but it does
@@ -96,7 +100,11 @@ export function useColophonDraft(enabled: boolean): ColophonDraft {
     const details = Object.fromEntries(
       COLOPHON_DETAILS.map((detail) => [detail, edits[detail] ?? stored[detail]])
     ) as Record<ColophonDetail, string>
-    return { ...details, profiles: { ...stored.profiles, ...edits.profiles } }
+    return {
+      ...details,
+      profiles: { ...stored.profiles, ...edits.profiles },
+      visibility: { ...stored.visibility, ...edits.visibility }
+    }
   }, [stored, edits])
 
   /** Only what differs from the record: what filing would send. */
@@ -114,6 +122,13 @@ export function useColophonDraft(enabled: boolean): ColophonDraft {
       if (url !== undefined && url !== stored.profiles[platform]) profiles[platform] = url
     }
     if (Object.keys(profiles).length > 0) changed.profiles = profiles
+
+    const visibility: Record<string, Visibility> = {}
+    for (const field of COLOPHON_FIELDS) {
+      const chosen = edits.visibility?.[field]
+      if (chosen !== undefined && chosen !== stored.visibility[field]) visibility[field] = chosen
+    }
+    if (Object.keys(visibility).length > 0) changed.visibility = visibility
 
     return changed
   }, [stored, edits])
@@ -152,9 +167,10 @@ export function useColophonDraft(enabled: boolean): ColophonDraft {
     setEdits((current) => ({
       ...current,
       ...next,
-      // Platforms merge one by one, so typing into Spotify's field does not
-      // forget what was typed into Instagram's.
-      ...(next.profiles ? { profiles: { ...current.profiles, ...next.profiles } } : {})
+      // Platforms and visibilities merge one by one, so typing into Spotify's
+      // field does not forget what was typed into Instagram's.
+      ...(next.profiles ? { profiles: { ...current.profiles, ...next.profiles } } : {}),
+      ...(next.visibility ? { visibility: { ...current.visibility, ...next.visibility } } : {})
     }))
     // A refusal is about what was filed; typing again starts a new attempt.
     setError(null)

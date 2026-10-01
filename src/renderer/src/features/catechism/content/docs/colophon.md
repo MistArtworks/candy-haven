@@ -101,8 +101,8 @@ Patreon, Ko-fi and Buy Me a Coffee.
 **Catalogues.** Discogs, MusicBrainz, Genius, Musixmatch, Last.fm, AllMusic and
 Wikipedia.
 
-Seventy-two in all. Each panel counts how many of its platforms are set, and
-the Publication panel counts them all.
+Seventy-two in all. Each panel counts how many of its platforms are set and how
+many are public.
 
 An address must be on the platform its field is for. A SoundCloud address
 pasted into Spotify's field is refused as `That address is on SoundCloud, not
@@ -115,6 +115,43 @@ beside the platform's name opens it in the browser.
 > be found at, kept so credits can point somewhere. These are the ones the
 > website points people to. Tying the two together would put a page you added
 > for a credit into the website's footer.
+
+## Public and private
+
+Every field, detail or profile, is **public** or **private**, and says which
+under its name.
+
+- **Public** goes out with the website: when the website is published from
+  here, a public field that is filled in is shown there.
+- **Private** stays in the archive on this machine and goes nowhere else. It is
+  still checked and filed like any other field; it is simply never published.
+
+Press the word under a field's name to switch it. A filled square is public,
+an open one private. **All public** and **All private** beside each panel's
+tally switch every field in that panel at once. A visibility change is an
+unfiled change like any other: it waits for **File changes**.
+
+Seven fields are stamped **Always public** and have no switch, because the
+website cannot be built without them. They are exactly what the website reads
+today:
+
+| Field                | Where the website shows it                                      |
+| -------------------- | --------------------------------------------------------------- |
+| **Booking email**    | The footer, the home page's contact, bookings, enquiries, terms |
+| **Phone number**     | The home page's contact and the contact page                    |
+| **Discord username** | After a booking, and after a DJ enquiry                         |
+| **Instagram**        | The navbar menu, the footer and the about page                  |
+| **SoundCloud**       | The navbar menu, the footer and the about page                  |
+| **Spotify**          | The navbar menu, the footer and the about page                  |
+| **YouTube**          | The navbar menu, the footer and the about page                  |
+
+The archive refuses to make one of them private, whatever asks.
+
+Until you choose, **profiles start public and details start private**. A
+profile is a page its platform already shows the world, so publishing its
+address tells nobody anything new. A detail is a way to reach a person, a line
+or a place, and putting one on the website should be a choice somebody made,
+not something that happened because a field was filled in.
 
 ## Filing
 
@@ -146,10 +183,11 @@ one document. It is archive data rather than a setting, so REGULATION's export
 does not carry it, and it survives a settings reset untouched.
 
 Nothing reads it from outside yet. The **Publication** panel at the foot of the
-page says exactly that: kept here, not yet published, how many profiles are
-set, and when it was last filed. Publishing the website from this console is
+page says exactly that: kept here, not yet published, how many filled fields
+are marked public and would go out, and when it was last filed. Publishing the website from this console is
 still to come, and this is the first record it will be built from.
 
 A colophon filed while this page still kept a list of links is read into the
 profiles: each link goes under the platform its address is on, and one on no
-platform the colophon knows is left out.
+platform the colophon knows is left out. One filed before fields had a
+visibility reads with every field at its starting visibility.

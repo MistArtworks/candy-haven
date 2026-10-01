@@ -27,6 +27,13 @@ import { checkLinkUrl, type NameCheck } from './artists.constants'
  * An empty field is the honest record of a detail not known yet, not a gap to
  * fill with something plausible. The website leaves out what is not set rather
  * than printing a placeholder.
+ *
+ * ## Every field is public or private
+ *
+ * A public field is published with the website; a private one is kept in the
+ * archive and goes nowhere else. The few the website cannot be built without
+ * are public and stay public (`ALWAYS_PUBLIC`). See the visibility section at
+ * the foot of this file.
  */
 
 /** RFC 5321's limit on a whole address. */
@@ -79,6 +86,23 @@ export const COLOPHON_DETAILS = [
 
 export type ColophonDetail = (typeof COLOPHON_DETAILS)[number]
 
+/** As each detail is named, on the page and in a refusal. */
+export const COLOPHON_DETAIL_LABEL: Record<ColophonDetail, string> = {
+  email: 'Booking email',
+  managementEmail: 'Management email',
+  pressEmail: 'Press email',
+  phone: 'Phone number',
+  whatsapp: 'WhatsApp number',
+  discord: 'Discord username',
+  telegram: 'Telegram username',
+  basedIn: 'Based in',
+  timeZone: 'Time zone',
+  management: 'Management',
+  agency: 'Booking agency',
+  label: 'Label',
+  pressKit: 'Press kit'
+}
+
 /** The record before anything has been written into it. */
 export function emptyColophon(): Colophon {
   return {
@@ -96,6 +120,7 @@ export function emptyColophon(): Colophon {
     label: '',
     pressKit: '',
     profiles: emptyProfiles(),
+    visibility: defaultVisibilities(),
     updatedAt: 0
   }
 }
@@ -1030,4 +1055,122 @@ export function profilesFromLinks(links: unknown): ColophonProfiles {
     if (platform && !profiles[platform]) profiles[platform] = url.trim()
   }
   return profiles
+}
+
+// --------------------------------------------------------------- visibility
+
+/**
+ * Whether a field goes out with the website.
+ *
+ * `public` is published with the website when publishing is built; `private`
+ * is kept in the archive on this machine and goes nowhere else. It is the
+ * operator's choice per field, not per kind, because the same kind of detail
+ * can be either: a press address is meant to be found, and a second phone line
+ * may be for people who already have it.
+ */
+export const VISIBILITIES = ['public', 'private'] as const
+
+export type Visibility = (typeof VISIBILITIES)[number]
+
+/**
+ * Every field that carries a visibility: the details, then the platforms.
+ *
+ * One flat set of keys, which works because the two never share a name. The
+ * platforms that sound like details are named for what they are
+ * (`discord-server`, `telegram-channel`, `whatsapp-channel`) and so stay clear
+ * of `discord`, `telegram` and `whatsapp`.
+ */
+export type ColophonField = ColophonDetail | ProfilePlatform
+
+export const COLOPHON_FIELDS: readonly ColophonField[] = [...COLOPHON_DETAILS, ...PROFILE_PLATFORMS]
+
+/**
+ * The fields the website cannot be built without, which are public whatever
+ * is chosen.
+ *
+ * Exactly what the website's own code reads today: its contact details
+ * (`siteContact`: the email, the phone number and the Discord username, each a
+ * required field there) and the four marks in its navbar and footer
+ * (`socialLinks`). A private one would leave the website with a hole where a
+ * detail it promises should be. When the website reads more, this grows with
+ * it.
+ */
+export const ALWAYS_PUBLIC = [
+  'email',
+  'phone',
+  'discord',
+  ...NAVBAR_PROFILE_PLATFORMS
+] as const satisfies readonly ColophonField[]
+
+/** Each field's visibility, every field present. */
+export type ColophonVisibility = Record<ColophonField, Visibility>
+
+/** True for a key the colophon knows as a field. */
+export function isColophonField(value: string): value is ColophonField {
+  return (COLOPHON_FIELDS as readonly string[]).includes(value)
+}
+
+/** True for a field that is public whatever is chosen. */
+export function isAlwaysPublic(field: ColophonField): boolean {
+  return (ALWAYS_PUBLIC as readonly ColophonField[]).includes(field)
+}
+
+/** As a field is named, for a refusal or a control's label. */
+export function fieldLabel(field: ColophonField): string {
+  return isProfilePlatform(field) ? PROFILE_PLATFORM_LABEL[field] : COLOPHON_DETAIL_LABEL[field]
+}
+
+/**
+ * A field's visibility before anybody has chosen one.
+ *
+ * Profiles start public and details start private, and the asymmetry is the
+ * point. A profile is a page the platform already shows the world, so
+ * publishing its address tells nobody anything new. A detail is a way to reach
+ * a person, a line or a place, and putting one on the website should be a
+ * choice somebody made rather than something that happened because a field
+ * was filled in.
+ */
+export function defaultVisibility(field: ColophonField): Visibility {
+  if (isAlwaysPublic(field)) return 'public'
+  return isProfilePlatform(field) ? 'public' : 'private'
+}
+
+export function defaultVisibilities(): ColophonVisibility {
+  return Object.fromEntries(
+    COLOPHON_FIELDS.map((field) => [field, defaultVisibility(field)])
+  ) as ColophonVisibility
+}
+
+/**
+ * A stored map, as the page should see it: every field present, unknown keys
+ * and values dropped, and the fields that must be public made public.
+ *
+ * A record filed before visibility existed reads with every field at its
+ * default, which keeps every detail private until somebody says otherwise.
+ */
+export function readVisibility(raw: Readonly<Record<string, unknown>>): ColophonVisibility {
+  const visibility = defaultVisibilities()
+  for (const field of COLOPHON_FIELDS) {
+    if (isAlwaysPublic(field)) continue
+    const value = raw[field]
+    if (value === 'public' || value === 'private') visibility[field] = value
+  }
+  return visibility
+}
+
+/**
+ * Whether a field may be given a visibility.
+ *
+ * Only one refusal: an always-public field made private. Said with the reason,
+ * because the control for it is not even drawn and a refusal from somewhere
+ * else should explain itself.
+ */
+export function checkVisibility(field: ColophonField, visibility: Visibility): NameCheck {
+  if (visibility === 'private' && isAlwaysPublic(field)) {
+    return {
+      ok: false,
+      reason: `${fieldLabel(field)} is always public. The website cannot be built without it.`
+    }
+  }
+  return { ok: true }
 }

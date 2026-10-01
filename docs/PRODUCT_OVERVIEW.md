@@ -284,7 +284,9 @@ Discord and Telegram; where the artist is based and their time zone, management,
 booking agency, label and press kit; and the artist's profile on 72 platforms,
 each named with its own field, from Instagram, Spotify, Apple Music, SoundCloud
 and YouTube to the regional streaming services, DJ stores, live listings and
-catalogues. Each address must be on its own platform.
+catalogues. Each address must be on its own platform. Every field is marked
+public (it goes out with the website) or private (it stays on the artist's
+machine), except the few the website cannot do without, which are always public.
 Each field says what is wrong with it as it is typed, and nothing is written until
 the change is filed from the bar at the bottom of the screen, so a half-typed
 address is never stored. It is kept on the artist's machine like everything else;

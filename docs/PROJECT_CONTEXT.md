@@ -967,6 +967,16 @@ Decisions:
   reads a record from the list era. Deliberately not the operator's own
   roster card: the card is every address kept for credits, this is what the
   website points people to.
+- **Every field is public or private.** `visibility` is a map beside the
+  values (`COLOPHON_FIELDS`: the 13 details and 72 platforms, which never
+  share a key), shaped by the schema's `readVisibility` transform. Public is
+  published with the website when publishing exists; private never leaves the
+  archive. The future projection is the values filtered by the map.
+  `ALWAYS_PUBLIC` is exactly what candy-heist reads today (`siteContact`:
+  email, phone, Discord; `socialLinks`: Instagram, SoundCloud, Spotify,
+  YouTube); those have no switch, are forced public on read, and the service
+  refuses them private (`checkVisibility`). Defaults: profiles public, details
+  private, so no way to reach a person is published by accident.
 - **Local only, and it says so.** The page's PUBLICATION panel reads "Not yet"
   for published. Nothing outside reads the record until publishing is built.
 - COLOPHON took `Ctrl`+`0`, which pushed TELEMETRY past the tenth slot; it

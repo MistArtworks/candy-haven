@@ -47,6 +47,18 @@ navbar and the footer draw Instagram, SoundCloud, Spotify and YouTube.
 These are not your card on the roster: that holds every address you can be
 found at, for credits, and these are the ones the website points people to.
 
+## Public or private, field by field
+
+Under every field's name is **Public** or **Private**. Press it to switch.
+Public fields go out with the website; private ones stay on this machine.
+**All public** and **All private** switch a whole panel.
+
+Seven are **Always public**, because the website cannot be built without them:
+the booking email, the phone number, the Discord username, and Instagram,
+SoundCloud, Spotify and YouTube.
+
+Profiles start public, details start private.
+
 ## Kept here, for now
 
 The colophon lives in the archive on this machine. Nothing reads it from

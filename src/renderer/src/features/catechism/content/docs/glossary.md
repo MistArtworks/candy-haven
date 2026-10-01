@@ -16,7 +16,8 @@ departments inside it answer.
 **Colophon** — the details the website carries: where to write, call and
 message, who represents the artist and where they are, and the artist's profile
 on every platform. Named for the note at the back of a book that says who made
-it and where they can be found.
+it and where they can be found. Each field is **public** (goes out with the
+website) or **private** (stays on this machine); a few are always public.
 
 **Reserved** — a department that is routed and specified but not yet built. Its
 page lists what it will do when commissioned. INTERFACE is the only one.

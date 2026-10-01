@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { readProfiles, type ColophonDetail } from './colophon.constants'
+import {
+  VISIBILITIES,
+  readProfiles,
+  readVisibility,
+  type ColophonDetail
+} from './colophon.constants'
 
 /**
  * Schema half of the colophon domain: the details the website carries.
@@ -13,13 +18,19 @@ import { readProfiles, type ColophonDetail } from './colophon.constants'
 
 export type {
   ColophonDetail,
+  ColophonField,
   ColophonProfiles,
+  ColophonVisibility,
   ProfileGroup,
-  ProfilePlatform
+  ProfilePlatform,
+  Visibility
 } from './colophon.constants'
 
 export {
+  ALWAYS_PUBLIC,
   COLOPHON_DETAILS,
+  COLOPHON_DETAIL_LABEL,
+  COLOPHON_FIELDS,
   MAX_BASED_IN,
   MAX_DISCORD,
   MAX_EMAIL,
@@ -32,6 +43,7 @@ export {
   PROFILE_GROUP_SPEC,
   PROFILE_PLATFORMS,
   PROFILE_PLATFORM_LABEL,
+  VISIBILITIES,
   checkDetail,
   checkDiscord,
   checkEmail,
@@ -40,10 +52,16 @@ export {
   checkProfileUrl,
   checkTelegram,
   checkTimeZone,
+  checkVisibility,
   checkWhatsApp,
+  defaultVisibilities,
+  defaultVisibility,
   dialString,
   emptyColophon,
   emptyProfiles,
+  fieldLabel,
+  isAlwaysPublic,
+  isColophonField,
   isNavbarProfile,
   isProfilePlatform,
   localTimeZone,
@@ -52,6 +70,7 @@ export {
   profilePlatformOf,
   profilesFromLinks,
   readProfiles,
+  readVisibility,
   telegramLink,
   whatsappLink
 } from './colophon.constants'
@@ -113,6 +132,14 @@ const detailShape = {
  * They are not the operator's own roster card, and that is a choice. The card
  * is every address somebody can be found at, kept for credits; these are the
  * ones the website points people to.
+ *
+ * ## Visibility beside the values, not inside them
+ *
+ * Each field's public or private is its own map rather than a pair stored in
+ * place of every value, so the values keep their plain shape for whatever
+ * reads them, and a projection for the website is the values filtered by the
+ * map. Read through `readVisibility`, which fills the defaults and holds the
+ * always-public fields public whatever is stored.
  */
 export const ColophonSchema = z.object({
   ...detailShape,
@@ -121,6 +148,11 @@ export const ColophonSchema = z.object({
     .record(z.string(), z.string())
     .default({})
     .transform((raw) => readProfiles(raw)),
+  /** Each field's public or private, keyed by detail or platform. */
+  visibility: z
+    .record(z.string(), z.string())
+    .default({})
+    .transform((raw) => readVisibility(raw)),
   /** When the record was last filed. Zero means never. */
   updatedAt: z.number().default(0)
 })
@@ -134,6 +166,8 @@ const detailPatchShape = Object.fromEntries(
 export const ColophonPatchSchema = z.object({
   ...detailPatchShape,
   /** Only the platforms named change; the rest keep what they hold. */
-  profiles: z.record(z.string(), z.string()).optional()
+  profiles: z.record(z.string(), z.string()).optional(),
+  /** Only the fields named change visibility; the rest keep theirs. */
+  visibility: z.record(z.string(), z.enum(VISIBILITIES)).optional()
 })
 export type ColophonPatch = z.infer<typeof ColophonPatchSchema>

@@ -1,10 +1,18 @@
 import type { NameCheck } from '@shared/domain/artists.constants'
-import type { Colophon, ColophonPatch, ColophonProfiles } from '@shared/domain/colophon'
+import type {
+  Colophon,
+  ColophonPatch,
+  ColophonProfiles,
+  ColophonVisibility,
+  Visibility
+} from '@shared/domain/colophon'
 import {
   COLOPHON_DETAILS,
   checkDetail,
   checkProfileUrl,
+  checkVisibility,
   emptyColophon,
+  isColophonField,
   isProfilePlatform
 } from '@shared/domain/colophon.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
@@ -66,6 +74,9 @@ export class ColophonService {
     }
 
     if (patch.profiles) next.profiles = this.checkProfiles(current.profiles, patch.profiles)
+    if (patch.visibility) {
+      next.visibility = this.checkVisibilities(current.visibility, patch.visibility)
+    }
 
     next.updatedAt = Date.now()
     await this.repository.write(next)
@@ -105,6 +116,29 @@ export class ColophonService {
       const url = raw.trim()
       this.require(checkProfileUrl(platform, url))
       next[platform] = url
+    }
+    return next
+  }
+
+  /**
+   * The visibilities, with the named fields changed and checked.
+   *
+   * The same arrangement as the profiles: only what is named changes, a field
+   * the colophon does not know is refused, and so is an always-public field
+   * made private (`checkVisibility`).
+   */
+  private checkVisibilities(
+    current: Readonly<ColophonVisibility>,
+    patch: Readonly<Record<string, Visibility>>
+  ): ColophonVisibility {
+    const next = { ...current }
+    for (const [field, visibility] of Object.entries(patch)) {
+      if (!isColophonField(field)) {
+        this.require({ ok: false, reason: `The colophon has no field called ${field}.` })
+        continue
+      }
+      this.require(checkVisibility(field, visibility))
+      next[field] = visibility
     }
     return next
   }

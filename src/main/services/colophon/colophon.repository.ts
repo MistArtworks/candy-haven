@@ -26,9 +26,10 @@ const COLOPHON_ID = 'colophon'
  * `profilesFromLinks`. Read, never written: the next filing replaces the
  * document with one that does not carry it.
  */
-export type ColophonDocument = Omit<Colophon, 'profiles'> & {
+export type ColophonDocument = Omit<Colophon, 'profiles' | 'visibility'> & {
   _id: string
   profiles?: Record<string, string>
+  visibility?: Record<string, string>
   links?: unknown
 }
 

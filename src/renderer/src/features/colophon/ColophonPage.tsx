@@ -4,6 +4,8 @@ import { getSection } from '@shared/domain/navigation'
 import { MAX_LINK_URL } from '@shared/domain/artists.constants'
 import {
   COLOPHON_DETAILS,
+  COLOPHON_DETAIL_LABEL,
+  COLOPHON_FIELDS,
   MAX_BASED_IN,
   MAX_DISCORD,
   MAX_EMAIL,
@@ -13,18 +15,23 @@ import {
   MAX_TIME_ZONE,
   PROFILE_GROUPS,
   PROFILE_GROUP_SPEC,
-  PROFILE_PLATFORMS,
   PROFILE_PLATFORM_LABEL,
   dialString,
+  fieldLabel,
+  isAlwaysPublic,
   isNavbarProfile,
+  isProfilePlatform,
   localTimeZone,
   platformsIn,
   profileExample,
   telegramLink,
   whatsappLink,
   type ColophonDetail,
+  type ColophonField,
+  type ColophonVisibility,
   type ProfileGroup,
-  type ProfilePlatform
+  type ProfilePlatform,
+  type Visibility
 } from '@shared/domain/colophon.constants'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
@@ -34,13 +41,17 @@ import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { Skeleton } from '@renderer/components/primitives/Skeleton'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useSystemStore, selectArchive } from '@renderer/app/store/system.store'
-import { useColophonDraft, type ColophonDraft } from '@renderer/hooks/useColophon'
+import {
+  useColophonDraft,
+  type ColophonDraft,
+  type ColophonFields
+} from '@renderer/hooks/useColophon'
 import { formatIsoDate } from '@renderer/lib/format'
 import * as shell from '@renderer/lib/shell'
+import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from './ColophonPage.module.scss'
 
 interface DetailField {
-  label: string
   placeholder: string
   maxLength: number
   mono?: boolean
@@ -48,85 +59,72 @@ interface DetailField {
   note: string
 }
 
-/** How each detail is drawn. The rules themselves live in the domain. */
+/** How each detail is drawn. The names and the rules live in the domain. */
 const DETAIL_FIELD: Record<ColophonDetail, DetailField> = {
   email: {
-    label: 'Booking email',
     placeholder: 'bookings@domain.com',
     maxLength: MAX_EMAIL,
     note: 'Where bookings and questions are written to. The website shows it in its footer and on its contact page.'
   },
   managementEmail: {
-    label: 'Management email',
     placeholder: 'management@domain.com',
     maxLength: MAX_EMAIL,
     note: 'For management: labels, brands and partnerships.'
   },
   pressEmail: {
-    label: 'Press email',
     placeholder: 'press@domain.com',
     maxLength: MAX_EMAIL,
     note: 'For press, interviews and features.'
   },
   phone: {
-    label: 'Phone number',
     placeholder: '+1 (902) 555-0142',
     maxLength: MAX_PHONE,
     note: 'As it should read on the page. What it dials is taken from its digits.'
   },
   whatsapp: {
-    label: 'WhatsApp number',
     placeholder: '+1 902 555 0142',
     maxLength: MAX_PHONE,
     note: 'With its country code. It may be the phone number above, or another line.'
   },
   discord: {
-    label: 'Discord username',
     placeholder: 'username',
     maxLength: MAX_DISCORD,
     mono: true,
     note: 'The username people message after a booking. Lowercase, without the @.'
   },
   telegram: {
-    label: 'Telegram username',
     placeholder: 'username',
     maxLength: MAX_TELEGRAM,
     mono: true,
     note: 'Without the @. Five characters at least.'
   },
   basedIn: {
-    label: 'Based in',
     placeholder: 'City, Country',
     maxLength: MAX_BASED_IN,
     note: 'Where the artist works from, as the website prints it.'
   },
   timeZone: {
-    label: 'Time zone',
     placeholder: 'Europe/London',
     maxLength: MAX_TIME_ZONE,
     mono: true,
     note: 'The zone, not an offset, so summer time takes care of itself.'
   },
   management: {
-    label: 'Management',
     placeholder: 'Name or company',
     maxLength: MAX_NAME,
     note: 'Who manages the artist. Left empty while it is the artist.'
   },
   agency: {
-    label: 'Booking agency',
     placeholder: 'Agency',
     maxLength: MAX_NAME,
     note: 'The agency that books the shows, when there is one.'
   },
   label: {
-    label: 'Label',
     placeholder: 'Label',
     maxLength: MAX_NAME,
     note: 'The label the records come out on. Left empty while independent.'
   },
   pressKit: {
-    label: 'Press kit',
     placeholder: 'https://',
     maxLength: MAX_LINK_URL,
     mono: true,
@@ -195,7 +193,13 @@ function profileHint(platform: ProfilePlatform, set: boolean): string | undefine
   return undefined
 }
 
-/** A text action in a field's gutter: Open, Use local. */
+/** True when a field holds something the website would show. */
+function isFilled(fields: ColophonFields, field: ColophonField): boolean {
+  const value = isProfilePlatform(field) ? fields.profiles[field] : fields[field]
+  return value.trim().length > 0
+}
+
+/** A text action in a field's gutter: Open, Use local, All public. */
 function Action({
   label,
   onPress,
@@ -221,6 +225,124 @@ function Action({
 }
 
 /**
+ * A field's public or private, in its gutter under the label.
+ *
+ * A switch rather than a pair of options, because there are exactly two
+ * states and the one showing is the one in force. The square is the
+ * console's checkbox mark, filled for public and open for private, so it
+ * reads as a stamp on the field rather than as a control laid beside it. A
+ * field that must stay public shows the stamp without the switch.
+ */
+function VisibilitySwitch({
+  field,
+  visibility,
+  onChange,
+  disabled
+}: {
+  field: ColophonField
+  visibility: Visibility
+  onChange: (next: Visibility) => void
+  disabled: boolean
+}): ReactNode {
+  const label = fieldLabel(field)
+
+  if (isAlwaysPublic(field)) {
+    return (
+      <span
+        className={styles.visibility}
+        data-public
+        data-fixed
+        {...tooltipTrigger('The website cannot be built without it, so it stays public.')}
+      >
+        <span className={styles.visibilityMark} aria-hidden="true" />
+        Always public
+      </span>
+    )
+  }
+
+  const isPublic = visibility === 'public'
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isPublic}
+      aria-label={`${label} is public`}
+      className={styles.visibility}
+      data-public={isPublic || undefined}
+      disabled={disabled}
+      onClick={() => onChange(isPublic ? 'private' : 'public')}
+      {...tooltipTrigger(
+        isPublic
+          ? 'Public: published with the website. Press to keep it private.'
+          : 'Private: kept on this machine only. Press to make it public.'
+      )}
+    >
+      <span className={styles.visibilityMark} aria-hidden="true" />
+      {isPublic ? 'Public' : 'Private'}
+    </button>
+  )
+}
+
+/**
+ * A panel's tally and its two bulk switches.
+ *
+ * The bulk switches touch only the fields that can change, and each is held
+ * back once every one of those is already that way, so pressing one always
+ * does something.
+ */
+function PanelTools({
+  fields: panelFields,
+  colophon,
+  tally
+}: {
+  fields: readonly ColophonField[]
+  colophon: ColophonDraft
+  tally: string
+}): ReactNode {
+  const { fields, edit, saving } = colophon
+  if (!fields) return null
+
+  const switchable = panelFields.filter((field) => !isAlwaysPublic(field))
+  const setAll = (visibility: Visibility): void => {
+    edit({
+      visibility: Object.fromEntries(
+        switchable.map((field) => [field, visibility])
+      ) as Partial<ColophonVisibility>
+    })
+  }
+  const all = (visibility: Visibility): boolean =>
+    switchable.every((field) => fields.visibility[field] === visibility)
+
+  return (
+    <span className={styles.panelTools}>
+      <span className={styles.count}>{tally}</span>
+      {switchable.length > 0 ? (
+        <>
+          <Action
+            label="All public"
+            name="Make every field in this panel public"
+            disabled={saving || all('public')}
+            onPress={() => setAll('public')}
+          />
+          <Action
+            label="All private"
+            name="Make every field in this panel private"
+            disabled={saving || all('private')}
+            onPress={() => setAll('private')}
+          />
+        </>
+      ) : null}
+    </span>
+  )
+}
+
+/** `4 public`, `12 of 23 public`: how many of a panel's fields go out. */
+function publicTally(fields: ColophonFields, panelFields: readonly ColophonField[]): string {
+  const count = panelFields.filter((field) => fields.visibility[field] === 'public').length
+  return `${count} of ${panelFields.length} public`
+}
+
+/**
  * COLOPHON: the details the website carries.
  *
  * The first department of PUBLICATION. A colophon is the note at the back of
@@ -228,6 +350,10 @@ function Action({
  * footer and contact pages are that note: every address and number people
  * reach the artist through, who represents them and where they are, and their
  * profile on every platform the colophon knows.
+ *
+ * Every field is public or private. Public goes out with the website; private
+ * stays on this machine. The fields the website cannot be built without are
+ * stamped Always public and have no switch.
  *
  * Filed as a draft through the unsaved-changes bar, as REGULATION is, rather
  * than committing as it is typed like the roster's sheet. This is a record the
@@ -264,12 +390,11 @@ export function ColophonPage(): ReactNode {
   }, [colophon.dirty, colophon.saving, colophon.error, colophon.save, colophon.discard, setUnsaved])
 
   const filed = stored !== undefined && stored.updatedAt > 0
-  const setUp = (platforms: readonly ProfilePlatform[]): number =>
-    fields
-      ? platforms.filter(
-          (platform) => fields.profiles[platform].trim() && colophon.checks.profiles[platform].ok
-        ).length
-      : 0
+
+  const filled = fields ? COLOPHON_FIELDS.filter((field) => isFilled(fields, field)) : []
+  const wouldPublish = fields
+    ? filled.filter((field) => fields.visibility[field] === 'public').length
+    : 0
 
   return (
     <div className={styles.page}>
@@ -299,8 +424,8 @@ export function ColophonPage(): ReactNode {
         </Panel>
       ) : !fields ? (
         <div className={styles.grid}>
-          <Skeleton height="520px" />
-          <Skeleton height="520px" />
+          <Skeleton height="560px" />
+          <Skeleton height="560px" />
           <Skeleton height="320px" className={styles.wide} />
         </div>
       ) : (
@@ -310,11 +435,31 @@ export function ColophonPage(): ReactNode {
           initial="initial"
           animate="animate"
         >
-          <Panel label="Correspondence" index="01">
+          <Panel
+            label="Correspondence"
+            index="01"
+            aside={
+              <PanelTools
+                fields={CORRESPONDENCE}
+                colophon={colophon}
+                tally={publicTally(fields, CORRESPONDENCE)}
+              />
+            }
+          >
             <Details details={CORRESPONDENCE} colophon={colophon} />
           </Panel>
 
-          <Panel label="Particulars" index="02">
+          <Panel
+            label="Particulars"
+            index="02"
+            aside={
+              <PanelTools
+                fields={PARTICULARS}
+                colophon={colophon}
+                tally={publicTally(fields, PARTICULARS)}
+              />
+            }
+          >
             <Details details={PARTICULARS} colophon={colophon} />
           </Panel>
 
@@ -329,7 +474,6 @@ export function ColophonPage(): ReactNode {
               key={group}
               group={group}
               index={String(position + 3).padStart(2, '0')}
-              set={setUp(platformsIn(group))}
               colophon={colophon}
             />
           ))}
@@ -339,7 +483,8 @@ export function ColophonPage(): ReactNode {
 
             The website does not read this yet, and a page that let the
             operator believe otherwise would be fabricating a state. The
-            honest readout is that it is kept here and published nowhere.
+            honest readout is that it is kept here and published nowhere, and
+            how much of it is marked to go out when it is.
           */}
           <Panel
             label="Publication"
@@ -354,9 +499,10 @@ export function ColophonPage(): ReactNode {
                 hint="Nothing reads the colophon from outside. Publishing arrives with the website itself."
               />
               <Field
-                label="Profiles set"
-                value={`${setUp(PROFILE_PLATFORMS)} of ${PROFILE_PLATFORMS.length}`}
+                label="Would publish"
+                value={`${wouldPublish} of ${filled.length} filled`}
                 mono
+                hint="The filled fields marked public. Private ones stay on this machine."
               />
               <Field
                 label="Last filed"
@@ -396,7 +542,7 @@ function Details({
         return (
           <TextInput
             key={detail}
-            label={spec.label}
+            label={COLOPHON_DETAIL_LABEL[detail]}
             layout="gutter"
             mono={spec.mono}
             value={value}
@@ -407,25 +553,33 @@ function Details({
             invalid={!check.ok}
             hint={check.reason ?? detailHint(detail, value, link)}
             aside={
-              link || offerLocal ? (
-                <span className={styles.actions}>
-                  {link ? (
-                    <Action
-                      label="Open"
-                      disabled={saving}
-                      onPress={() => shell.openExternal(link)}
-                    />
-                  ) : null}
-                  {offerLocal ? (
-                    <Action
-                      label="Use local"
-                      name={`Use this machine's time zone, ${local}`}
-                      disabled={saving}
-                      onPress={() => edit({ timeZone: local })}
-                    />
-                  ) : null}
-                </span>
-              ) : undefined
+              <span className={styles.gutterTools}>
+                <VisibilitySwitch
+                  field={detail}
+                  visibility={fields.visibility[detail]}
+                  disabled={saving}
+                  onChange={(visibility) => edit({ visibility: { [detail]: visibility } })}
+                />
+                {link || offerLocal ? (
+                  <span className={styles.actions}>
+                    {link ? (
+                      <Action
+                        label="Open"
+                        disabled={saving}
+                        onPress={() => shell.openExternal(link)}
+                      />
+                    ) : null}
+                    {offerLocal ? (
+                      <Action
+                        label="Use local"
+                        name={`Use this machine's time zone, ${local}`}
+                        disabled={saving}
+                        onPress={() => edit({ timeZone: local })}
+                      />
+                    ) : null}
+                  </span>
+                ) : null}
+              </span>
             }
           />
         )
@@ -434,16 +588,14 @@ function Details({
   )
 }
 
-/** One kind of platform: its purpose, then a field for each, two columns across. */
+/** One kind of platform: its purpose, then a field for each, in columns across. */
 function ProfilePanel({
   group,
   index,
-  set,
   colophon
 }: {
   group: ProfileGroup
   index: string
-  set: number
   colophon: ColophonDraft
 }): ReactNode {
   const { fields, checks, edit, saving } = colophon
@@ -451,6 +603,9 @@ function ProfilePanel({
 
   const platforms = platformsIn(group)
   const spec = PROFILE_GROUP_SPEC[group]
+  const set = platforms.filter(
+    (platform) => fields.profiles[platform].trim() && checks.profiles[platform].ok
+  ).length
 
   return (
     <Panel
@@ -458,9 +613,11 @@ function ProfilePanel({
       index={index}
       className={styles.wide}
       aside={
-        <span className={styles.count}>
-          {set} of {platforms.length} set
-        </span>
+        <PanelTools
+          fields={platforms}
+          colophon={colophon}
+          tally={`${set} of ${platforms.length} set · ${publicTally(fields, platforms)}`}
+        />
       }
     >
       <p className={styles.lede}>{spec.purpose}</p>
@@ -483,14 +640,24 @@ function ProfilePanel({
               invalid={!check.ok}
               hint={check.reason ?? profileHint(platform, opens)}
               aside={
-                opens ? (
-                  <Action
-                    label="Open"
-                    name={`Open ${PROFILE_PLATFORM_LABEL[platform]}`}
+                <span className={styles.gutterTools}>
+                  <VisibilitySwitch
+                    field={platform}
+                    visibility={fields.visibility[platform]}
                     disabled={saving}
-                    onPress={() => shell.openExternal(url.trim())}
+                    onChange={(visibility) => edit({ visibility: { [platform]: visibility } })}
                   />
-                ) : undefined
+                  {opens ? (
+                    <span className={styles.actions}>
+                      <Action
+                        label="Open"
+                        name={`Open ${PROFILE_PLATFORM_LABEL[platform]}`}
+                        disabled={saving}
+                        onPress={() => shell.openExternal(url.trim())}
+                      />
+                    </span>
+                  ) : null}
+                </span>
               }
             />
           )
