@@ -7,10 +7,10 @@ are listed, because the second kind is impossible to spot without the first.
 ## The console
 
 **Department** — a section of the console, reached from the rail. Fourteen of
-them, grouped into five divisions.
+them, grouped into four divisions.
 
 **Division** — the grouping a department is filed under: COMMAND, PRODUCTION,
-BROADCAST, PUBLICATION, OVERSIGHT. It tells you what kind of question the
+PUBLICATION, OVERSIGHT. It tells you what kind of question the
 departments inside it answer.
 
 **Colophon** — the details the website carries: where to write, call and

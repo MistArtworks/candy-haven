@@ -30,13 +30,7 @@ export type SectionId = (typeof SECTION_IDS)[number]
  * one undivided column read as a menu; four named divisions read as an
  * organisation chart, which is the register this console is written in.
  */
-export const SECTION_GROUP_IDS = [
-  'command',
-  'production',
-  'broadcast',
-  'publication',
-  'oversight'
-] as const
+export const SECTION_GROUP_IDS = ['command', 'production', 'publication', 'oversight'] as const
 
 export type SectionGroupId = (typeof SECTION_GROUP_IDS)[number]
 
@@ -59,24 +53,21 @@ export const SECTION_GROUP: Record<SectionGroupId, SectionGroupDefinition> = {
     label: 'PRODUCTION',
     purpose: 'The work itself: what is filed, when it is due, and how it sounds'
   },
-  broadcast: {
-    id: 'broadcast',
-    label: 'BROADCAST',
-    purpose: 'What is served to an audience while it is live'
-  },
   /*
-   * BROADCAST's other half: what the public reads when nothing is live.
+   * Everything the public sees: the stream while it is live, and the website
+   * at any hour.
    *
-   * The website, and what it carries. Filed as a division of its own rather
-   * than under BROADCAST because the two answer different questions: one is a
-   * stream that is on or off, the other a standing record read at any hour.
-   * The departments coming to it (the services, the lore, publishing itself)
-   * would crowd a division about going live.
+   * It opened beside a BROADCAST division that held OBSERVATORY alone. One
+   * department under a heading of its own read as a heading for its own sake,
+   * and the question both answer is the same one, what goes out to an
+   * audience, so BROADCAST was folded in rather than kept apart. The
+   * departments still to come (the services, the lore, publishing itself)
+   * belong here too.
    */
   publication: {
     id: 'publication',
     label: 'PUBLICATION',
-    purpose: 'What the public reads when nothing is live: the website and what it carries'
+    purpose: 'What the public sees: the stream while it is live, and the website at any hour'
   },
   oversight: {
     id: 'oversight',
@@ -189,7 +180,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     label: 'OBSERVATORY',
     purpose: 'Stream overlays and live selection rites served to OBS',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
-    group: 'broadcast',
+    group: 'publication',
     order: 8,
     implemented: true
   },

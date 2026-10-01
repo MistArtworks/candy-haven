@@ -13,7 +13,7 @@ involves is filed here rather than spread across applications that cannot see on
 another. See [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) §1 for who uses
 it and why.
 
-Fourteen departments, grouped into five divisions. Thirteen are in service — the
+Fourteen departments, grouped into four divisions. Thirteen are in service — the
 operational overview, the project registry and filing tree, everything
 released and where it went, the artist roster, the dated register, the
 listening room, photo grading onto the console palette, the broadcast overlay

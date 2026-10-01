@@ -6,9 +6,10 @@
 > a hard constraint the user has already decided.
 >
 > Last updated: 2026-10-01. Thirteen of fourteen departments delivered;
-> INTERFACE is the only one still reserved. COLOPHON opened a fifth division,
-> PUBLICATION, on 2026-10-01: the website's details, kept locally until the
-> website is published from here (§10, §14). The department table in §10
+> INTERFACE is the only one still reserved. COLOPHON opened PUBLICATION on
+> 2026-10-01, and BROADCAST was folded into it the same day, leaving four
+> divisions: the website's details are kept locally until the website is
+> published from here (§10, §14). The department table in §10
 > is current, but `src/shared/domain/navigation.ts` remains the source of
 > truth and this file is what needs correcting when the two disagree — it has
 > gone stale before, more than once.
@@ -914,8 +915,8 @@ and Nexus all read from it.
 | 13  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
 | 14  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
 
-**Fourteen departments, thirteen shipped,** in five divisions: COMMAND,
-PRODUCTION, BROADCAST, PUBLICATION, OVERSIGHT. INTERFACE remains the only
+**Fourteen departments, thirteen shipped,** in four divisions: COMMAND,
+PRODUCTION, PUBLICATION, OVERSIGHT. INTERFACE remains the only
 reserved one. The rail has outgrown the numbered chords: `Ctrl`+`1`…`9`,`0`
 reach the first ten, and TELEMETRY, DISPATCH, REGULATION and CATECHISM have
 named chords (`Ctrl`+`Shift`+`T`, `Ctrl`+`Shift`+`D`, `Ctrl`+`,`,
@@ -923,11 +924,14 @@ named chords (`Ctrl`+`Shift`+`T`, `Ctrl`+`Shift`+`D`, `Ctrl`+`,`,
 
 ### PUBLICATION and COLOPHON — added 2026-10-01
 
-A fifth division, **PUBLICATION**, between BROADCAST and OVERSIGHT: what the
-public reads when nothing is live, which is the website and what it carries.
-BROADCAST is a stream that is on or off; this is a standing record read at any
-hour, and the departments coming to it (the services, the lore, publishing
-itself) would crowd a division about going live.
+**PUBLICATION**, between PRODUCTION and OVERSIGHT: everything the public sees,
+the stream while it is live and the website at any hour. It opened as a fifth
+division beside BROADCAST, which held OBSERVATORY alone; the same day BROADCAST
+was folded into it, on the operator's instruction, because a division of one
+department read as a heading for its own sake and both answer the same
+question, what goes out to an audience. OBSERVATORY keeps its place in the
+order (09, `Ctrl`+`9`), so no number or chord moved. The departments still to
+come (the services, the lore, publishing itself) belong here too.
 
 Its first department is **COLOPHON**, the details the website carries on every
 page: correspondence (booking, management and press emails, phone, WhatsApp,

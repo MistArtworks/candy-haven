@@ -50,15 +50,14 @@ when built, so the shape of the finished product is visible while it is being as
 
 ## 4. How the application is organised
 
-Departments are grouped into five **divisions**, which tell you what kind of question
+Departments are grouped into four **divisions**, which tell you what kind of question
 each one answers:
 
 | Division        | Purpose                                                        | Departments                                |
 | --------------- | -------------------------------------------------------------- | ------------------------------------------ |
 | **COMMAND**     | Seeing the system whole, and instructing it                    | NEXUS, INTERFACE _(reserved)_              |
 | **PRODUCTION**  | The work itself — what is filed, when it is due, how it sounds | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
-| **BROADCAST**   | What an audience sees while a stream is live                   | OBSERVATORY                                |
-| **PUBLICATION** | What the public reads when nothing is live: the website        | COLOPHON                                   |
+| **PUBLICATION** | What the public sees: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON |
 | **OVERSIGHT**   | The condition of the installation and the rules it runs under  | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
 
 Everything is numbered, every department has a keyboard shortcut, and the layout is
@@ -277,7 +276,7 @@ Twitch is read-only — the app listens to chat and never posts.
 
 ### COLOPHON — the details the website carries _(live)_
 
-The first department of PUBLICATION, the division for the website. One record of
+PUBLICATION's department for the website, beside OBSERVATORY's for the stream. One record of
 the details the site shows: the booking, management and press emails, the phone
 number (kept as it should read, with what it dials shown underneath), WhatsApp,
 Discord and Telegram; where the artist is based and their time zone, management,

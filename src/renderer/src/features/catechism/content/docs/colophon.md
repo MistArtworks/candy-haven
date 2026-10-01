@@ -4,10 +4,10 @@ The details the website carries: where to write, call, message and follow.
 
 ## What it is
 
-COLOPHON is the first department of **PUBLICATION**, the division for what the
-public reads when nothing is live. BROADCAST is what an audience sees while a
-stream is on; PUBLICATION is the standing record they can read at any hour,
-which is the website and everything it carries.
+COLOPHON is a department of **PUBLICATION**, the division for everything the
+public sees. OBSERVATORY is its other half: what an audience sees while a
+stream is on. COLOPHON is the standing record they can read at any hour, which
+is the website and everything it carries.
 
 A colophon is the note at the back of a book saying who made it and where they
 can be found. The website's footer and its contact page are exactly that note,
