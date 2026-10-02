@@ -1,37 +1,41 @@
-Two new pages for what people send from the website, behind the sign-in you already have.
+A new department for writing the lore of Nayara and putting it on the website, and a manual brought up to date.
 
-## CONTACT
+## LORE
 
-A new department under PUBLICATION. Every message sent from the website's contact page arrives here, with the sender's details and a reference like MSG-7KQ2XD.
+A new department under PUBLICATION, after SERVICES. Write the lore here, chapter by chapter, and publish it to the website's lore page when it is ready.
 
-Opening a new message marks it read. Reply by email opens your own mail with the address and the subject filled in. Mark it replied or archived, or put it back to new, and keep a note against it.
+It has three tabs. CHAPTERS lists every chapter and where it stands: a draft, published, or changed since it was published. WRITE is the editor, with the text and the website's look side by side, or either one on its own. PLANETS is where each chapter's planet is made.
 
-## SERVICES
+## WRITING
 
-Also under PUBLICATION, with two tabs. DJ holds the enquiries sent from Book me as a DJ: who is asking, the event, the venue and the budget. Move each one from new to in talks, then to confirmed or declined, and archive it when it is done.
+The bar above the text formats it like a word processor: bold, italic, headings, bulleted lists, terms and large quotes, with clear formatting, undo and redo. Ctrl+B and Ctrl+I work too.
 
-PRODUCER is coming soon. Producer bookings will arrive there once the website takes payment for them.
+Drafts stay on this machine until you publish them, and they work with no connection. Nothing reaches the website, or the other copy of the console, until a chapter is published.
 
-## YOUR OWN TRACKING
+## PUBLISHING
 
-Statuses and notes are yours. They stay on this machine, the website never sees them, and they work with no connection.
+Publish sends one chapter to the website, with a copy of its planet. Publish order sends the order of the chapters when it differs from the website's. Unpublish takes a chapter off the website and keeps the draft here.
 
-Delete removes a message or an enquiry from the website and from here, after asking first. It needs a connection, so it reads Connect to delete while there is none.
+The first publish replaces the website's own chapters with yours, so it asks first.
 
-## CHECKING FOR NEW
+If the other copy has published the same chapter since you last looked, publishing asks whether to publish over theirs or take theirs instead.
 
-The console checks the website when it starts and when you sign in. After that, press Check for new at the top of either page. Nothing is checked in the background.
+## PLANETS
 
-What is waiting is counted beside CONTACT and SERVICES on the rail, and marked on PUBLICATION's heading while it is folded. When the console starts, one notification says what is waiting.
+Duplicate one of the eleven planets the lore began with and make it your own, or open one you have made. A planet is a stack of layers: grids, veins, cores, sigils, rings, moons and more, 26 kinds in all, each with its own colours, place and motion.
 
 ## SIGNING IN
 
-CONTACT and SERVICES use the DISPATCH sign-in. Signing in on any of the three opens all of them, and signed out they show nothing.
+LORE uses the DISPATCH sign-in, like CONTACT and SERVICES. Signing in on any of the four opens all of them.
 
-## REGULATION
+## THE MANUAL
 
-Integrations has a new Website address field. Leave it empty to read the live website.
+Every chapter of the CATECHISM and every quick guide is up to date, with new pictures throughout and the steps for what is done in each department. DARKROOM has a quick guide of its own.
+
+## FIXES
+
+DARKROOM's number in its masthead matches the rail again. Its palette swatches and ramp stops no longer carry an outline all the time, only when reached with the keyboard.
 
 ## THE RAIL
 
-CONTACT and SERVICES are 11 and 12, so TELEMETRY, DISPATCH, REGULATION and CATECHISM move to 13 to 16. Their shortcuts have not changed.
+LORE is 13, so TELEMETRY, DISPATCH, REGULATION and CATECHISM move to 14 to 17. Their shortcuts have not changed.
