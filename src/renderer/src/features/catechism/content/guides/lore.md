@@ -2,23 +2,29 @@
 
 ## Written here, published there
 
+![lore-01-chapters.png](lore-01-chapters.png)
+
 Chapters, planets and their order are kept on this PC. **File changes** saves
 here only; the website shows a chapter once it is **published**.
 
 The first chapter published switches the website from its own files to the
 lore published from here.
 
-## Three tabs
+## Write
 
-**CHAPTERS** lists them, with where each stands: **DRAFT**, **PUBLISHED** or
-**CHANGED**. **WRITE** gives one chapter the page: the text, side by side with
-its preview, or the preview alone. **PLANETS** makes the planets.
+![lore-04-write.png](lore-04-write.png)
 
-## Writing
+**New chapter** in CHAPTERS opens it in WRITE. Fill in the title, one line and
+planet, then write, with a bar for bold, italic, headings, lists, terms and
+large quotes. `Ctrl+B` and `Ctrl+I` work, and Enter starts a new paragraph.
 
-Title, one line, address, planet, and the text, with a bar for bold, italic,
-headings, lists, terms and large quotes. `Ctrl+B` and `Ctrl+I` work, and Enter
-starts a new paragraph.
+## Review, then publish
+
+![lore-06-preview.png](lore-06-preview.png)
+
+**View** shows the text, the text beside the preview, or the preview alone.
+**Publish** sends the chapter; the status beside its name says where it stands:
+**DRAFT**, **PUBLISHED** or **CHANGED**.
 
 ## Two writers
 
@@ -28,9 +34,11 @@ first.
 
 ## Planets
 
-Layers over a surface, rim and shade: 26 kinds, up to 24 layers, each with its
-own colours, shape, place and motion. **Shuffle**, **Undo**, and eleven presets
-to start from.
+![lore-11-planets.png](lore-11-planets.png)
+
+Layers over the planet itself: 26 kinds, up to 24 layers, each with its own
+colour, shape, movement and place, in sections that fold away. **Shuffle**,
+**Undo**, and eleven presets to start from.
 
 > A published chapter carries a copy of its planet. Change the planet, then
 > publish the chapter again.
