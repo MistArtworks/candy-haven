@@ -1,22 +1,22 @@
 import { z } from 'zod'
-import type { EnquiryStatus, InboxKind, MessageStatus } from '@shared/domain/inbox.constants'
-import { EnquiryStatusSchema, MessageStatusSchema } from '@shared/domain/inbox'
+import type { InboxKind } from '@shared/domain/inbox.constants'
 
 /**
  * The website's private API, as this console calls it.
  *
- * Three calls and nothing else: what changed since a moment, a new status for
- * one thing, and a deletion. Every one carries the board's sign-in as a bearer
- * token, which the website checks against Google's keys and the two accounts'
- * ids before it touches its database. The database itself is never reached
+ * Two calls and nothing else: what was sent or deleted since a moment, and a
+ * deletion. Where each thing stands is the operator's and stays on this
+ * machine, so there is nothing else to send. Both carry the board's sign-in
+ * as a bearer token, which the website checks against Google's keys and the
+ * two accounts' ids before it touches its database. The database itself is never reached
  * from here, and its password is on no machine this console runs on: the
  * repository and the installer are public, and a password in either would be
  * a password for anyone. See docs/INBOX.md.
  *
- * Plain `fetch` rather than `core/net`'s retrying `request`. A check-in that
- * fails is tried again in a minute anyway, and backing off inside one would
- * hold the next one up behind it; what this needs from a failure is its
- * status, so the page can say which kind it was.
+ * Plain `fetch` rather than `core/net`'s retrying `request`. A check-in is
+ * asked for by the operator, who is waiting on it and can ask again; backing
+ * off inside one would leave them watching nothing happen. What this needs
+ * from a failure is its status, so the page can say which kind it was.
  */
 
 /** How long one call may take before it counts as unreachable. */
@@ -55,8 +55,7 @@ export class SiteError extends Error {
 const RemoteFiled = {
   id: z.string(),
   ref: z.string().default(''),
-  createdAt: z.string(),
-  updatedAt: z.string()
+  createdAt: z.string()
 }
 
 const text = z.string().catch('')
@@ -69,7 +68,6 @@ const text = z.string().catch('')
  */
 const RemoteMessageSchema = z.object({
   ...RemoteFiled,
-  status: MessageStatusSchema.catch('new'),
   name: text,
   email: text,
   subject: text,
@@ -85,7 +83,6 @@ export type RemoteMessage = z.infer<typeof RemoteMessageSchema>
 
 const RemoteEnquirySchema = z.object({
   ...RemoteFiled,
-  status: EnquiryStatusSchema.catch('new'),
   name: text,
   title: text,
   email: text,
@@ -143,7 +140,7 @@ export class SiteClient {
     private readonly token: () => Promise<string | null>
   ) {}
 
-  /** Everything changed or deleted since `since`, or since the start. */
+  /** Everything sent or deleted since `since`, or since the start. */
   async changes(since: string | null): Promise<SiteChanges> {
     const query = since ? `?since=${encodeURIComponent(since)}` : ''
     const response = await this.call(`/api/haven/inbox${query}`, { method: 'GET' })
@@ -177,18 +174,6 @@ export class SiteClient {
       more: page.data.more,
       unreadable
     }
-  }
-
-  async setStatus(
-    kind: InboxKind,
-    id: string,
-    status: MessageStatus | EnquiryStatus
-  ): Promise<void> {
-    await this.call(`/api/haven/${PATH[kind]}/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
-    })
   }
 
   /** Deletes it from the website. Already gone counts as done. */

@@ -195,7 +195,7 @@ function DjTab({ state, actions }: { state: InboxState; actions: InboxActions })
           <p className={styles.empty}>
             {all.length === 0
               ? state.link.syncedAt
-                ? 'No bookings yet. An enquiry sent from "Book me as a DJ" lands here within a minute.'
+                ? 'No bookings yet. An enquiry sent from "Book me as a DJ" shows here the next time the console checks: when it starts, or with Check for new.'
                 : 'Nothing here yet. The first check-in fills this in.'
               : 'Nothing matches that.'}
           </p>
@@ -334,7 +334,6 @@ function EnquiryDetail({
     <div className={styles.detail}>
       <div className={styles.detailHead}>
         <h3 className={styles.detailTitle}>{enquiry.eventName || 'An event'}</h3>
-        {enquiry.pending ? <span className={styles.pending}>WAITING TO SEND</span> : null}
         <span className={styles.cardRef}>{enquiry.ref}</span>
       </div>
 
@@ -372,15 +371,10 @@ function EnquiryDetail({
           busy={busy}
           onChange={onStatus}
         />
-        {enquiry.pending ? (
-          <p className={styles.footnote}>
-            Set here while the website was out of reach. It is sent on the next check-in.
-          </p>
-        ) : (
-          <p className={styles.footnote}>
-            A new enquiry keeps the rail&apos;s mark lit until it is taken up or turned down.
-          </p>
-        )}
+        <p className={styles.footnote}>
+          Your own tracking, kept on this machine. A new enquiry keeps the rail&apos;s count lit
+          until it is taken up or turned down.
+        </p>
       </div>
 
       <div className={styles.block}>

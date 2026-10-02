@@ -90,7 +90,8 @@ export const Collections = {
    * kept here is what the last check-in brought, so the department opens with
    * the network down. Each document says which website it came from, so a
    * development copy reading a development server never shows its test
-   * messages among the real ones. The operator's notes live only here.
+   * messages among the real ones. Statuses and notes live only here: they
+   * are the operator's own tracking, and the website never holds them.
    */
   SiteMessages: 'site_contact_messages',
   /** SERVICES: the same arrangement, for "Book me as a DJ" enquiries. */

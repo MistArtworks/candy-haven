@@ -21,6 +21,9 @@ const logger = getLogger('inbox:repository')
  * also carries the website it came from, and every read filters on it: a
  * development copy reading a development server keeps its test messages
  * apart from the real ones without a database of its own.
+ *
+ * The status and the note are kept here and nowhere else. They are the
+ * operator's own tracking; the website holds only what the visitor sent.
  */
 
 type Stored<T> = Omit<T, 'id'> & { _id: string; website: string }
@@ -114,57 +117,37 @@ export class InboxRepository {
     return { messages, enquiries }
   }
 
-  /** Statuses set here that the website has not taken yet. */
-  async pending(
-    kind: InboxKind,
-    website: string
-  ): Promise<{ id: string; status: MessageStatus | EnquiryStatus }[]> {
-    const documents = await this.collection(kind)
-      .find({ website, pending: true }, { projection: { _id: 1, status: 1 } })
-      .toArray()
-    return documents.map((document) => ({ id: document._id, status: document.status }))
-  }
-
   // -------------------------------------------------------------- check-ins
 
-  /**
-   * Lays a page of the website's messages over the copy, and returns the ones
-   * that are new to this machine.
-   */
-  async applyMessages(website: string, remote: readonly RemoteMessage[]): Promise<SiteMessage[]> {
-    const inserted = await this.apply(
+  /** Lays a page of the website's messages over the copy. */
+  async applyMessages(website: string, remote: readonly RemoteMessage[]): Promise<void> {
+    await this.apply(
       this.messages,
       website,
       remote.map((record) => ({
         id: record.id,
-        status: record.status,
         fields: {
           ref: record.ref,
           createdAt: time(record.createdAt),
-          updatedAt: time(record.updatedAt),
           ...pickText(MESSAGE_TEXT, record)
         }
       }))
     )
-    return this.found(inserted, (id) => this.message(website, id))
   }
 
-  async applyEnquiries(website: string, remote: readonly RemoteEnquiry[]): Promise<SiteEnquiry[]> {
-    const inserted = await this.apply(
+  async applyEnquiries(website: string, remote: readonly RemoteEnquiry[]): Promise<void> {
+    await this.apply(
       this.enquiries,
       website,
       remote.map((record) => ({
         id: record.id,
-        status: record.status,
         fields: {
           ref: record.ref,
           createdAt: time(record.createdAt),
-          updatedAt: time(record.updatedAt),
           ...pickText(ENQUIRY_TEXT, record)
         }
       }))
     )
-    return this.found(inserted, (id) => this.enquiry(website, id))
   }
 
   /**
@@ -195,28 +178,15 @@ export class InboxRepository {
 
   // ------------------------------------------------------------------ writes
 
-  /** Sets a status here, marked as waiting to be sent. False when not held. */
+  /** Sets where one stands. This machine's alone. False when not held. */
   async setStatus(
     kind: InboxKind,
     website: string,
     id: string,
     status: MessageStatus | EnquiryStatus
   ): Promise<boolean> {
-    const result = await this.collection(kind).updateOne(
-      { _id: id, website },
-      { $set: { status, pending: true } }
-    )
+    const result = await this.collection(kind).updateOne({ _id: id, website }, { $set: { status } })
     return result.matchedCount > 0
-  }
-
-  /**
-   * Marks a status as taken by the website.
-   *
-   * Only while it is still the status that was sent: one changed again while
-   * the first was in flight stays pending, so the second goes too.
-   */
-  async settle(kind: InboxKind, id: string, status: MessageStatus | EnquiryStatus): Promise<void> {
-    await this.collection(kind).updateOne({ _id: id, status }, { $set: { pending: false } })
   }
 
   async setNote(kind: InboxKind, website: string, id: string, note: string): Promise<boolean> {
@@ -231,57 +201,31 @@ export class InboxRepository {
   // ----------------------------------------------------------------- private
 
   /**
-   * Upserts a page, and returns the ids that were inserted.
+   * Upserts a page.
    *
-   * The website's fields are set and nothing else: the note is this
-   * machine's and is never touched by a check-in. Neither is a status still
-   * waiting to be sent, because the operator set it after whatever the
-   * website is now reporting.
+   * The website's fields are set and nothing else. The status and the note
+   * are the operator's: a copy starts new with an empty note, and no later
+   * check-in touches either.
    */
   private async apply<T extends MessageDocument | EnquiryDocument>(
     collection: Collection<T>,
     website: string,
-    records: readonly { id: string; status: string; fields: Record<string, unknown> }[]
-  ): Promise<string[]> {
-    if (!records.length) return []
-
-    const held = await collection
-      .find({ _id: { $in: records.map((record) => record.id) }, pending: true } as never, {
-        projection: { _id: 1 }
-      })
-      .toArray()
-    const waiting = new Set(held.map((document) => document._id as string))
+    records: readonly { id: string; fields: Record<string, unknown> }[]
+  ): Promise<void> {
+    if (!records.length) return
 
     const operations = records.map((record) => ({
       updateOne: {
         filter: { _id: record.id },
         update: {
-          $set: {
-            ...record.fields,
-            website,
-            ...(waiting.has(record.id) ? {} : { status: record.status, pending: false })
-          },
-          $setOnInsert: { note: '' }
+          $set: { ...record.fields, website },
+          $setOnInsert: { status: 'new', note: '' }
         },
         upsert: true
       }
     })) as unknown as AnyBulkWriteOperation<T>[]
 
-    const result = await collection.bulkWrite(operations, { ordered: false })
-    return Object.values(result.upsertedIds).map((id) => String(id))
-  }
-
-  /** The copies just inserted, read back. A page holds at most a few. */
-  private async found<T>(
-    ids: readonly string[],
-    read: (id: string) => Promise<T | null>
-  ): Promise<T[]> {
-    const records: T[] = []
-    for (const id of ids) {
-      const record = await read(id)
-      if (record) records.push(record)
-    }
-    return records
+    await collection.bulkWrite(operations, { ordered: false })
   }
 }
 

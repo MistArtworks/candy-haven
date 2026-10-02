@@ -22,9 +22,9 @@ const EMPTY: InboxState = {
  * enquiries, as this machine holds them.
  *
  * The state is pushed, like the board's: the main process checks in with the
- * website every minute and broadcasts what changed. The lists are read from
- * the copy and keyed on the state's revision, so a check-in that brings
- * something re-reads them and one that brings nothing does not.
+ * website when the console starts or the operator asks, and broadcasts what
+ * changed. The lists are read from the copy and keyed on the state's
+ * revision, so anything that moves the copy re-reads them.
  */
 export function useInbox(): InboxState {
   const [state, setState] = useState<InboxState>(EMPTY)

@@ -770,12 +770,14 @@ export const IPC_INVOKE = {
    * CONTACT and SERVICES: what the website's visitors send.
    *
    * The lists are read from this machine's copy, so they answer at once and
-   * with the network down; `inbox:sync` is what asks the website. While
+   * with the network down; `inbox:sync` is what asks the website, and nothing
+   * else does after startup. Statuses and notes are this machine's and never
+   * leave it; only a deletion reaches the website. While
    * nobody is signed in to DISPATCH both lists are empty and every write is
    * refused, whatever the copy holds.
    */
   'inbox:state': { input: z.void(), output: InboxStateSchema },
-  /** Checks in with the website now, and answers once it has. */
+  /** Checks in with the website now, and answers once it has. The pages' button. */
   'inbox:sync': { input: z.void(), output: InboxStateSchema },
   'inbox:messages': { input: z.void(), output: z.array(SiteMessageSchema) },
   'inbox:enquiries': { input: z.void(), output: z.array(SiteEnquirySchema) },

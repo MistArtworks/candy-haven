@@ -999,12 +999,14 @@ Decisions:
 The first departments that read from the website rather than for it. The full
 capture is **`docs/INBOX.md`**. In summary:
 
-- **The website is the record; the archive keeps a copy.** The website's
-  contact form and "Book me as a DJ" file into its own Atlas database. This
-  console checks in through the website's private API (`/api/haven/*`) on
-  start and every minute while signed in (`InboxService`), and copies what it
-  finds into `site_contact_messages`, `site_dj_enquiries` and `sync_state`.
-  The pages read the copy, so they open offline.
+- **The website holds what was sent; the archive keeps a copy.** The
+  website's contact form and "Book me as a DJ" file into its own Atlas
+  database, and keep nothing but what the visitor sent. This console checks in
+  through the website's private API (`/api/haven/*`) on start, on sign-in and
+  from the pages' **Check for new** button (`InboxService`), never on a timer
+  (the operator's call), and copies what it finds into
+  `site_contact_messages`, `site_dj_enquiries` and `sync_state`. The pages
+  read the copy, so they open offline.
 - **No database credentials on any machine.** The repository and installers
   are public, so the console never connects to Atlas. It sends DISPATCH's
   Firebase ID token; the website verifies it with Google's keys and an
@@ -1013,10 +1015,12 @@ capture is **`docs/INBOX.md`**. In summary:
   DISPATCH's session (`DispatchService.idToken`); the sign-in band moved to
   `components/session/SignInBand`. Signed out, nothing is fetched or shown,
   the rail's counts included. The rest of the console stays open.
-- **Statuses go both ways; notes stay here; deletes need the website.** A
-  status is set on the copy at once, marked `pending`, and sent on the next
-  check-in. A note is local only. A delete is sent first and applied here only
-  once the website has it, and is refused offline ("Connect to delete").
+- **Statuses and notes stay here; deletes need the website.** Both are the
+  operator's own tracking (the operator's call, the same day it was built):
+  never sent, so each copy of the console keeps its own. The website has no
+  status field and no call to set one. A delete is sent first and applied here
+  only once the website has it, and is refused offline ("Connect to delete");
+  it reaches the other copy through the website's deletion list.
 - **Which website is a build default, not a stored address.** Installed reads
   the live site, run from source reads `http://localhost:3000`; REGULATION →
   INTEGRATIONS → Website address overrides. Each copy is filed under its
@@ -1025,9 +1029,10 @@ capture is **`docs/INBOX.md`**. In summary:
   the archive mirrors real folders on disk and a second one would drift from
   them.
 - **Alerts.** Waiting counts on the rail, a mark on the folded PUBLICATION
-  heading, a Windows notification per check-in that brings something, and one
-  summary after the first check-in of a session. Clicking one opens the
-  department (`inbox:open`, handled by `InboxCues`).
+  heading, and one Windows notification summing up what is waiting after the
+  first check-in of a session. No notification per arrival: without a timer
+  the only other check-ins are made while looking at the page. Clicking it
+  opens the department (`inbox:open`, handled by `InboxCues`).
 - **Placement.** CONTACT (11) and SERVICES (12) follow COLOPHON in
   PUBLICATION, which pushed TELEMETRY, DISPATCH, REGULATION and CATECHISM to
   13–16. Neither has a `Ctrl` chord. SERVICES has two tabs: DJ, and PRODUCER,

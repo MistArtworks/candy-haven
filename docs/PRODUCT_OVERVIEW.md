@@ -298,12 +298,13 @@ nothing reads it from outside until publishing the website is built.
 
 ### CONTACT — messages from the website _(live)_
 
-Every message sent from the website's contact page arrives here within a minute, while
-one of the two is signed in (the same sign-in as DISPATCH). Each can be opened, answered
-from the artist's own email, and marked new, read, replied or archived; opening a new one
-reads it. A private note can be kept against each, and it never leaves the artist's
-machine. Deleting one removes it from the website too, so it needs a connection. New
-messages are counted on the rail and announced with a Windows notification.
+Every message sent from the website's contact page arrives here when the app starts, or
+when **Check for new** is pressed, while one of the two is signed in (the same sign-in as
+DISPATCH). Each can be opened, answered from the artist's own email, and marked new, read,
+replied or archived; opening a new one reads it. Statuses and a private note are the
+artist's own tracking and never leave their machine. Deleting one removes it from the
+website too, so it needs a connection. New messages are counted on the rail, and a Windows
+notification at startup says what is waiting.
 
 ### SERVICES — bookings from the website _(live)_
 

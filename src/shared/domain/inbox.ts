@@ -26,24 +26,20 @@ const FiledShape = {
   id: z.string(),
   /** The reference the visitor could quote, `MSG-7KQ2XD` or `DJ-…`. */
   ref: z.string().default(''),
+  /** When the visitor sent it. */
   createdAt: z.number().default(0),
-  /** When the website last changed it, from either copy of the console. */
-  updatedAt: z.number().default(0),
   /** The operator's own note. Kept on this machine and never sent. */
-  note: z.string().max(INBOX_NOTE_MAX).default(''),
-  /**
-   * A status set here that the website has not taken yet.
-   *
-   * Set while offline, and cleared by the next check-in that delivers it. A
-   * check-in that brings the website's older status back does not overwrite
-   * one of these: the operator's later word stands.
-   */
-  pending: z.boolean().default(false)
+  note: z.string().max(INBOX_NOTE_MAX).default('')
 }
 
 const text = z.string().default('')
 
-/** A message from the website's contact page. */
+/**
+ * A message from the website's contact page.
+ *
+ * `status`, like `note`, is the operator's and this machine's: every copy
+ * starts new, and where it goes from there is never sent anywhere.
+ */
 export const SiteMessageSchema = z.object({
   ...FiledShape,
   status: MessageStatusSchema.default('new'),

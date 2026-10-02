@@ -10,7 +10,6 @@ import type {
   SiteMessage
 } from '@shared/domain/inbox'
 import {
-  INBOX_SYNC_INTERVAL_MS,
   LIVE_WEBSITE_URL,
   LOCAL_WEBSITE_URL,
   websiteOrigin,
@@ -40,7 +39,7 @@ interface InboxEvents {
  */
 const MAX_PAGES = 50
 
-/** Where a notification sends the operator when it is clicked. */
+/** Where the startup notice sends the operator when it is clicked. */
 const PAGE: Record<InboxKind, string> = { message: '/contact', enquiry: '/services' }
 
 /**
@@ -48,21 +47,28 @@ const PAGE: Record<InboxKind, string> = { message: '/contact', enquiry: '/servic
  *
  * The website files a message or a DJ enquiry in its own database and shows
  * the visitor "Sent", and that is the whole of its side. This service checks
- * in with the website when the console starts and every minute after, while
- * someone is signed in, and keeps a copy of what it finds in the archive, so
- * the departments open at once and still open with the network down.
+ * in with the website when asked, and keeps a copy of what it finds in the
+ * archive, so the departments open at once and still open with the network
+ * down.
+ *
+ * **Asked, not polled.** A check-in happens when the console starts, when
+ * someone signs in, when the website's address changes, and when the operator
+ * presses the pages' button. Nothing runs on a timer: the operator chose to
+ * see new arrivals when they look rather than to have the console ask the
+ * website all day. The startup notice is the one alert, since starting is the
+ * one check-in nobody is watching.
  *
  * Signed in means signed in to DISPATCH: the same two accounts, the same
  * session (`DispatchService.idToken`). While nobody is, nothing is fetched and
  * nothing already copied is shown, the rail's counts included.
  *
- * **The website is the record; the copy follows it.** A status set here is
- * written to the copy at once, marked pending, and sent on the next check-in,
- * so it can be set offline. A deletion is the exception: it is sent first and
- * applied here only once the website has taken it, because deleting is the one
- * change that cannot be put right afterwards, and a copy that had deleted
- * something the website still held would bring it back on the next check-in.
- * Notes are this machine's and are never sent.
+ * **The website holds what was sent; everything else is this machine's.**
+ * Where each one stands and the operator's note are kept in the copy and
+ * never sent, so both work offline and each copy of the console keeps its
+ * own. Deleting is the exception, because a deletion has to reach the other
+ * copy too: it is sent first and applied here only once the website has taken
+ * it, since a copy that had deleted something the website still held would
+ * bring it back on the next check-in.
  */
 export class InboxService extends TypedEmitter<InboxEvents> {
   private state: InboxState = {
@@ -76,7 +82,8 @@ export class InboxService extends TypedEmitter<InboxEvents> {
     revision: 0
   }
 
-  private timer: NodeJS.Timeout | null = null
+  /** Whether the listeners are attached, so a retried boot does not double them. */
+  private started = false
   private running: Promise<void> | null = null
   /** A check-in asked for while one was running: run once more after it. */
   private queued = false
@@ -124,22 +131,24 @@ export class InboxService extends TypedEmitter<InboxEvents> {
     return this.dispatch.current.link.identity !== null
   }
 
-  /** Where a clicked notification goes; wired by the main entry. */
+  /** Where a clicked startup notice goes; wired by the main entry. */
   setOpener(open: (path: string) => void): void {
     this.opener = open
   }
 
   /**
-   * Starts checking in. Never throws and never waits on the network: this
-   * runs during boot, and an unreachable website is a state the pages show.
+   * Checks in once, and listens for the moments that call for another. Never
+   * throws and never waits on the network: this runs during boot, and an
+   * unreachable website is a state the pages show.
    */
   initialize(): void {
     // A boot retried after a failure runs its stages again. Listening twice
-    // would check in twice a minute; checking in once more is all it needs.
-    if (this.timer) {
+    // would check in twice on every sign-in; checking in once more is enough.
+    if (this.started) {
       void this.sync()
       return
     }
+    this.started = true
 
     let signedIn = this.signedIn
     let configured = this.dispatch.current.link.state !== 'unconfigured'
@@ -167,7 +176,6 @@ export class InboxService extends TypedEmitter<InboxEvents> {
       })
     )
 
-    this.timer = setInterval(() => void this.sync(), INBOX_SYNC_INTERVAL_MS)
     void this.sync()
   }
 
@@ -178,7 +186,7 @@ export class InboxService extends TypedEmitter<InboxEvents> {
    *
    * One at a time. A request that lands while one is running is folded into a
    * single further run rather than started beside it, so two check-ins never
-   * write the same cursor, and a status set mid-check-in is still sent.
+   * write the same cursor.
    */
   sync(): Promise<void> {
     if (this.running) {
@@ -226,11 +234,9 @@ export class InboxService extends TypedEmitter<InboxEvents> {
     const client = new SiteClient(website, () => this.dispatch.idToken())
 
     try {
-      await this.deliver(client, website)
-      const arrived = await this.pull(client, website)
+      await this.pull(client, website)
       this.patchLink({ state: 'online', message: 'Up to date.', syncedAt: Date.now() })
       await this.refresh()
-      this.announceArrivals(arrived)
     } catch (error) {
       if (!(error instanceof SiteError)) logger.warn('The website check-in failed', error)
       this.patchLink({
@@ -248,43 +254,10 @@ export class InboxService extends TypedEmitter<InboxEvents> {
     }
   }
 
-  /** Sends the statuses set here since the last check-in. */
-  private async deliver(client: SiteClient, website: string): Promise<void> {
-    const repository = this.repository
-
-    for (const kind of ['message', 'enquiry'] as const) {
-      for (const { id, status } of await repository.pending(kind, website)) {
-        try {
-          await client.setStatus(kind, id, status)
-          await repository.settle(kind, id, status)
-        } catch (error) {
-          // Deleted from the other copy since. The deletion is on its way down
-          // in this same check-in; dropping it now saves sending it again.
-          if (error instanceof SiteError && error.kind === 'missing') {
-            await repository.remove(kind, id)
-            continue
-          }
-          throw error
-        }
-      }
-    }
-  }
-
-  /**
-   * Brings the copy up to date, and returns what is new to it.
-   *
-   * The first check-in against a website returns nothing as new, even though
-   * all of it is: announcing every message the website has ever had, one by
-   * one, is not news. The startup notice covers it in a line.
-   */
-  private async pull(
-    client: SiteClient,
-    website: string
-  ): Promise<{ messages: SiteMessage[]; enquiries: SiteEnquiry[] }> {
+  /** Brings the copy up to date with what was sent and deleted. */
+  private async pull(client: SiteClient, website: string): Promise<void> {
     const repository = this.repository
     let cursor = await repository.cursor(website)
-    const first = cursor === null
-    const arrived = { messages: [] as SiteMessage[], enquiries: [] as SiteEnquiry[] }
 
     for (let page = 0; page < MAX_PAGES; page++) {
       const changes = await client.changes(cursor)
@@ -292,21 +265,14 @@ export class InboxService extends TypedEmitter<InboxEvents> {
         logger.warn(`Left out ${changes.unreadable} unreadable record(s) from the website`)
       }
 
-      const messages = await repository.applyMessages(website, changes.messages)
-      const enquiries = await repository.applyEnquiries(website, changes.enquiries)
+      await repository.applyMessages(website, changes.messages)
+      await repository.applyEnquiries(website, changes.enquiries)
       await repository.applyDeletions(changes.deletions)
 
       cursor = changes.cursor
       await repository.saveCursor(website, cursor)
-
-      if (!first) {
-        arrived.messages.push(...messages.filter((message) => message.status === 'new'))
-        arrived.enquiries.push(...enquiries.filter((enquiry) => enquiry.status === 'new'))
-      }
       if (!changes.more) break
     }
-
-    return arrived
   }
 
   // ------------------------------------------------------------------- reads
@@ -393,8 +359,6 @@ export class InboxService extends TypedEmitter<InboxEvents> {
     const held = await this.repository.setStatus(kind, this.website, id, status)
     if (!held) throw notHeld(kind)
     await this.refresh()
-    // Sent now rather than in a minute; offline, it waits for the next one.
-    void this.sync()
   }
 
   private async requireMessage(id: string): Promise<SiteMessage> {
@@ -446,27 +410,6 @@ export class InboxService extends TypedEmitter<InboxEvents> {
 
   // ------------------------------------------------------------ notifications
 
-  /** One notification for whatever a check-in brought, however much. */
-  private announceArrivals(arrived: { messages: SiteMessage[]; enquiries: SiteEnquiry[] }): void {
-    const { messages, enquiries } = arrived
-    if (!messages.length && !enquiries.length) return
-
-    if (messages.length === 1 && !enquiries.length) {
-      const [message] = messages
-      this.notify('New message', `${message.name}: ${message.subject}`, 'message')
-    } else if (enquiries.length === 1 && !messages.length) {
-      const [enquiry] = enquiries
-      const event = enquiry.eventName ? `, for ${enquiry.eventName}` : ''
-      this.notify('New DJ enquiry', `${enquiry.name}${event}`, 'enquiry')
-    } else {
-      this.notify(
-        'New on the website',
-        countWords(messages.length, enquiries.length),
-        messages.length ? 'message' : 'enquiry'
-      )
-    }
-  }
-
   /** The startup notice: what is waiting, if anything is. */
   private announceWaiting(): void {
     const { messages, enquiries } = this.state.waiting
@@ -496,8 +439,6 @@ export class InboxService extends TypedEmitter<InboxEvents> {
   }
 
   dispose(): void {
-    if (this.timer) clearInterval(this.timer)
-    this.timer = null
     for (const unsubscribe of this.unsubscribers.splice(0)) unsubscribe()
     this.shown.clear()
   }

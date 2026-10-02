@@ -487,7 +487,7 @@ export interface CandyHavenApi {
    */
   readonly inbox: {
     state(): Promise<InboxState>
-    /** Checks in with the website now. */
+    /** Checks in with the website now. Nothing else does, after startup. */
     sync(): Promise<InboxState>
     messages(): Promise<SiteMessage[]>
     enquiries(): Promise<SiteEnquiry[]>

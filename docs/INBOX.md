@@ -11,13 +11,15 @@ What the website's visitors send, and how it reaches this console. Added
 2. A Server Action on the website checks it quietly for spam (a hidden field, a
    minimum time to fill, an hourly limit per visitor), files it in the
    website's MongoDB Atlas database with a reference (`MSG-7KQ2XD`, `DJ-4HM9TQ`)
-   and status `new`, and shows the visitor "Sent". No email is sent anywhere.
-3. This console checks in with the website's private API when it starts and
-   every minute after, while someone is signed in to DISPATCH, and keeps a copy
-   of what it finds in the archive.
-4. CONTACT and SERVICES read the copy. A status set on either is written to the
-   copy at once and sent back to the website; a deletion is sent first and then
-   applied here.
+   and its date, and shows the visitor "Sent". That is all the website keeps:
+   no status, no notes. No email is sent anywhere.
+3. This console checks in with the website's private API when it starts, when
+   someone signs in to DISPATCH, and when the operator presses **Check for
+   new**, and keeps a copy of what it finds in the archive. Nothing runs on a
+   timer.
+4. CONTACT and SERVICES read the copy. Statuses and notes are set on the copy
+   and never leave this machine. A deletion is sent to the website first and
+   then applied here, so it reaches the other copy of the console too.
 
 ```
 visitor ─▶ website (Server Action) ─▶ Atlas
@@ -46,15 +48,14 @@ website, and the website decides who gets in:
 
 ## The website's API
 
-All three need the bearer token, and answer `Cache-Control: no-store`.
+Both need the bearer token, and answer `Cache-Control: no-store`. There is
+no call to set a status: the website has nowhere to keep one.
 
-| Call                               | Does                                                          |
-| ---------------------------------- | ------------------------------------------------------------- |
-| `GET /api/haven/inbox?since=<ISO>` | Messages, enquiries and deletions changed at or after `since` |
-| `PATCH /api/haven/messages/<id>`   | `{ "status": … }`; 204, 400 for a bad status, 404 if gone     |
-| `PATCH /api/haven/enquiries/<id>`  | The same, with the enquiry statuses                           |
-| `DELETE /api/haven/messages/<id>`  | 204, also when already gone; leaves a deletion record         |
-| `DELETE /api/haven/enquiries/<id>` | The same                                                      |
+| Call                               | Does                                                      |
+| ---------------------------------- | --------------------------------------------------------- |
+| `GET /api/haven/inbox?since=<ISO>` | Messages and enquiries sent, and deletions, since `since` |
+| `DELETE /api/haven/messages/<id>`  | 204, also when already gone; leaves a deletion record     |
+| `DELETE /api/haven/enquiries/<id>` | The same                                                  |
 
 The inbox answer is `{ messages, enquiries, deletions, cursor, more }`, at most
 200 of each. `cursor` is where to ask from next; `more` means ask again now.
@@ -66,11 +67,16 @@ page as they are.
 
 ## Statuses
 
-The two lists are the website's, word for word, in `inbox.constants.ts`:
+The operator's own tracking, in `inbox.constants.ts`, kept on this machine
+beside the notes (decided 2026-10-01). Every copy starts `new`.
 
 - Messages: `new`, `read`, `replied`, `archived`. Opening a new one reads it.
 - DJ enquiries: `new`, `in_talks`, `confirmed`, `declined`, `archived`. No
   `read`: a new enquiry stays new until it is taken up or turned down.
+
+Because they are local, each copy of the console keeps its own. Two people
+using CONTACT on two machines see the same messages, and the same deletions,
+but not each other's statuses or notes.
 
 ## The copy
 
@@ -78,10 +84,8 @@ The two lists are the website's, word for word, in `inbox.constants.ts`:
   each document carrying the `website` (an origin) it came from. Every read
   filters on it.
 - `sync_state`, one document per website, holding its cursor.
-- `note` is the operator's and is never sent; a check-in never touches it.
-- `pending` marks a status set here that the website has not taken yet. A
-  check-in that brings an older status back leaves a pending one alone, and
-  the next check-in sends it first.
+- `status` and `note` are the operator's and are never sent. A copy is
+  inserted as `new` with an empty note, and no later check-in touches either.
 - Deletions come down as their own list and remove the copy wherever it is
   filed. The website keeps them for a year, so a copy of the console that has
   been off for less than that still hears of them.
@@ -99,15 +103,22 @@ A development copy therefore reads the development server, whose database is
 field. The archive itself is shared: it describes real folders on disk, and a
 second archive for development would drift away from them.
 
+## When it checks
+
+On startup, on signing in, when REGULATION's address changes, and when the
+operator presses **Check for new** on either page. Never on a timer, by the
+operator's choice (2026-10-01): new arrivals are seen when someone looks, and
+the website is not asked anything while nobody is.
+
 ## Alerts
 
 - The rail counts what is waiting (new messages, new enquiries) beside each
   department, and marks PUBLICATION's heading while it is folded.
-- A check-in that brings something new raises one Windows notification. The
-  first check-in against a website raises none, however much it brings.
-- The first check-in of a session, however it goes, raises one notification
-  summarising what is waiting, if anything is.
-- Clicking a notification reveals the console and opens the department
+- The first check-in of a session, however it goes, raises one Windows
+  notification summarising what is waiting, if anything is. There is no
+  notification per arrival: without a timer, the only other check-ins are the
+  operator's own, made while looking at the page.
+- Clicking the notification reveals the console and opens the department
   (`inbox:open`), unless the page showing holds unsaved changes.
 
 ## Signed out

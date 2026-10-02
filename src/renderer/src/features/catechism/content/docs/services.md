@@ -6,9 +6,9 @@ DISPATCH sign-in, and checked in with CONTACT's messages.
 ## DJ
 
 The website's "Book me as a DJ" page files each enquiry with a reference such
-as `DJ-4HM9TQ`. They arrive here exactly as CONTACT's messages do: copied on
-every check-in, readable with the network down, and gone from the page when
-nobody is signed in.
+as `DJ-4HM9TQ`. They arrive here exactly as CONTACT's messages do: copied when
+the console starts or when you press **Check for new**, readable with the
+network down, and gone from the page when nobody is signed in.
 
 | Status      | Means                                  |
 | ----------- | -------------------------------------- |
@@ -25,8 +25,8 @@ turned down.
 The list shows **OPEN** by default: new and in talks. **Reply by email** opens
 your own mail with the address and the event filled in.
 
-Statuses set offline, notes and deleting work as they do in CONTACT: a status
-waits to be sent, a note never leaves this machine, and deleting needs the
+Statuses, notes and deleting work as they do in CONTACT: statuses and notes
+are your own tracking and never leave this machine, and deleting needs the
 website and removes the enquiry everywhere.
 
 ## PRODUCER
@@ -38,6 +38,6 @@ than a question.
 
 ## Being told
 
-New enquiries are counted beside SERVICES on the rail, raise a Windows
-notification when they arrive, and are included in the notice the console gives
-after it starts. Clicking a notification opens SERVICES.
+New enquiries are counted beside SERVICES on the rail and included in the
+notice the console gives when it starts. Clicking that notice opens SERVICES
+when it has no messages to point at.

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { InboxState } from '@shared/domain/inbox'
+import { Button } from '@renderer/components/primitives/Button'
 import { StatusDot, type StatusTone } from '@renderer/components/primitives/StatusDot'
 import { SignInBand } from '@renderer/components/session/SignInBand'
 import { useDispatchActions } from '@renderer/hooks/useDispatch'
@@ -24,8 +25,13 @@ function host(origin: string): string {
 }
 
 /**
- * The header's right side: which website, how the last check-in went, and a
- * way to check now rather than in a minute.
+ * The header's right side: which website, how the last check-in went, and
+ * the button that asks for what is new.
+ *
+ * The button is the only way to check in after startup, short of signing in
+ * again: nothing runs on a timer. So it is a real button rather than a quiet
+ * link, and the readout says when the last check was rather than claiming the
+ * page is up to date.
  */
 export function InboxStatus({
   state,
@@ -52,7 +58,7 @@ export function InboxStatus({
         tone={LINK_TONE[link.state]}
         label={
           link.state === 'online'
-            ? `Up to date${link.syncedAt ? ` · ${formatRelative(link.syncedAt)}` : ''}`
+            ? `Checked${link.syncedAt ? ` · ${formatRelative(link.syncedAt)}` : ''}`
             : link.state === 'signed-out'
               ? 'Signed out'
               : link.message
@@ -61,14 +67,9 @@ export function InboxStatus({
       />
 
       {signedIn ? (
-        <button
-          type="button"
-          className={styles.quiet}
-          disabled={syncing || link.state === 'syncing'}
-          onClick={onSync}
-        >
-          Check now
-        </button>
+        <Button size="sm" busy={syncing || link.state === 'syncing'} onClick={onSync}>
+          Check for new
+        </Button>
       ) : null}
     </div>
   )

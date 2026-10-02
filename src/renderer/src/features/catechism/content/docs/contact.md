@@ -8,9 +8,11 @@ The website's contact page files every message it is sent in the website's own
 database, gives it a reference such as `MSG-7KQ2XD`, and shows the visitor
 "Sent". That is the whole of the website's side: no email goes anywhere.
 
-This console checks in with the website when it starts and every minute after,
-while someone is signed in, and keeps a copy of what it finds. The page reads
-the copy, so it opens at once, and it still opens with the network down.
+This console checks in with the website when it starts, when someone signs in,
+and when you press **Check for new** at the top of the page. It never checks on
+a timer, so a message sent while the console is open shows up the next time you
+press the button. What it finds is kept as a copy; the page reads the copy, so
+it opens at once, and it still opens with the network down.
 
 ## Signing in
 
@@ -43,18 +45,14 @@ The list shows **INBOX** by default, which is everything not archived. **Show**
 narrows it to one status or widens it to everything; **Search** looks through
 the name, address, subject, message and reference.
 
-## Status, offline
+## Statuses and notes are yours
 
-A status is set on the copy at once and sent to the website on the next
-check-in, so it can be set with the network down. Until it is sent the message
-says **WAITING TO SEND**. The other copy of the console sees it after its own
-next check-in.
+A status is your own tracking, and so is the **Note** under a message. Both are
+kept on this machine only: the website never sees them, and neither does the
+other copy of the console. Both work with the network down. The note is filed as
+you type.
 
-## Notes
-
-The **Note** under a message is yours. It is kept on this machine only: the
-website never sees it, and neither does the other copy of the console. It is
-filed as you type.
+The website holds only what the visitor sent.
 
 ## Deleting
 
@@ -69,10 +67,8 @@ reads **Connect to delete** and does nothing.
 
 - The rail counts new messages beside CONTACT, and marks PUBLICATION's heading
   while the division is folded away.
-- A message that arrives while the console is running raises a Windows
-  notification. Clicking it opens CONTACT.
-- The first check-in after the console starts raises one notification saying
-  what is waiting, if anything is.
+- When the console starts, one Windows notification says what is waiting, if
+  anything is. Clicking it opens CONTACT.
 
 ## Which website
 

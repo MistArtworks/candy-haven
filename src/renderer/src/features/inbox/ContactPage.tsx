@@ -36,11 +36,11 @@ const FILTERS: { value: MessageFilter; label: string }[] = [
 /**
  * CONTACT: the messages the website's contact page sends.
  *
- * The website keeps the record and this page keeps a copy, checked in every
- * minute while signed in, so it opens at once and with the network down.
- * Opening a new message reads it; where it stands after that is the
- * operator's to set, and is sent to the website so the other copy of the
- * console sees it too. See docs/INBOX.md.
+ * The website keeps what was sent and this page keeps a copy, brought up to
+ * date when the console starts and when the operator asks, so it opens at
+ * once and with the network down. Opening a new message reads it; where it
+ * stands after that is the operator's own tracking, kept on this machine
+ * with the note. See docs/INBOX.md.
  */
 export function ContactPage(): ReactNode {
   const section = getSection('contact')
@@ -145,7 +145,7 @@ export function ContactPage(): ReactNode {
               <p className={styles.empty}>
                 {all.length === 0
                   ? state.link.syncedAt
-                    ? 'Nobody has written yet. A message sent from the website lands here within a minute.'
+                    ? 'Nobody has written yet. A message sent from the website shows here the next time the console checks: when it starts, or with Check for new.'
                     : 'Nothing here yet. The first check-in fills this in.'
                   : 'Nothing matches that.'}
               </p>
@@ -263,7 +263,6 @@ function MessageDetail({
     <div className={styles.detail}>
       <div className={styles.detailHead}>
         <h3 className={styles.detailTitle}>{message.subject || '(no subject)'}</h3>
-        {message.pending ? <span className={styles.pending}>WAITING TO SEND</span> : null}
         <span className={styles.cardRef}>{message.ref}</span>
       </div>
 
@@ -304,11 +303,9 @@ function MessageDetail({
           busy={busy}
           onChange={onStatus}
         />
-        {message.pending ? (
-          <p className={styles.footnote}>
-            Set here while the website was out of reach. It is sent on the next check-in.
-          </p>
-        ) : null}
+        <p className={styles.footnote}>
+          Your own tracking, like the note: kept on this machine, never on the website.
+        </p>
       </div>
 
       <div className={styles.block}>

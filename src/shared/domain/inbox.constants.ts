@@ -3,9 +3,9 @@
  *
  * The website files what its visitors send (a message from the contact page,
  * an enquiry from "Book me as a DJ") in its own database, and this console
- * keeps a copy of both. The statuses below are the website's, word for word:
- * a status is set here and sent there, so the two lists must not disagree
- * about what one can be. See docs/INBOX.md.
+ * keeps a copy of both. The statuses below are this console's alone: the
+ * operator's own tracking, kept beside the notes on this machine and never
+ * sent to the website. See docs/INBOX.md.
  */
 
 /** Where a message stands. Opening a new one moves it to read on its own. */
@@ -61,9 +61,6 @@ export type InboxLinkState = (typeof INBOX_LINK_STATES)[number]
  */
 export const LIVE_WEBSITE_URL = 'https://candy-heist.vercel.app'
 export const LOCAL_WEBSITE_URL = 'http://localhost:3000'
-
-/** How often the console checks in while signed in. */
-export const INBOX_SYNC_INTERVAL_MS = 60_000
 
 /** A note is the operator's own, and kept on this machine only. */
 export const INBOX_NOTE_MAX = 4000

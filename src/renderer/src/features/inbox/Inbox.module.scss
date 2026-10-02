@@ -350,13 +350,6 @@
   min-width: 0;
 }
 
-.pending {
-  @include label(7px, 0.18em);
-  color: var(--ch-text-muted);
-  @include hairline(all, 0.2);
-  padding: 1px space(2);
-}
-
 .rows {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);

@@ -50,9 +50,9 @@ appearing to work. The orb on the NEXUS landing is the fastest way to check.
 > DISPATCH is one exception. Its record is a _shared_ database, because the
 > whole point of that department is that two machines see the same board.
 >
-> CONTACT and SERVICES are the other. Their record is the website's, and the
-> archive keeps a copy of it, checked in every minute while someone is signed
-> in.
+> CONTACT and SERVICES are the other. What visitors send is kept by the
+> website, and the archive keeps a copy of it, fetched when the console starts
+> or when you ask.
 
 ## Reading the interface
 

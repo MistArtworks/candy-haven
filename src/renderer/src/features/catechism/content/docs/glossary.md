@@ -19,9 +19,10 @@ on every platform. Named for the note at the back of a book that says who made
 it and where they can be found. Each field is **public** (goes out with the
 website) or **private** (stays on this machine); a few are always public.
 
-**Check-in** — CONTACT and SERVICES asking the website what changed: when the
-console starts, then every minute while someone is signed in. What comes back
-is kept as a copy in the archive, filed under the website it came from.
+**Check-in** — CONTACT and SERVICES asking the website what is new: when the
+console starts, when someone signs in, and when **Check for new** is pressed.
+What comes back is kept as a copy in the archive, filed under the website it
+came from.
 
 **Waiting** — a message nobody has opened, or a DJ enquiry nobody has taken up.
 Counted on the rail and in the notice the console gives when it starts.
