@@ -2,13 +2,19 @@ import { useState, type ReactNode } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { getSectionByPath, getSectionGroups, type SectionGroupId } from '@shared/domain/navigation'
+import {
+  getSectionByPath,
+  getSectionGroups,
+  type SectionGroupId,
+  type SectionId
+} from '@shared/domain/navigation'
 import { APP_SUBTITLE } from '@shared/constants'
 import { formatIndex } from '@renderer/lib/format'
 import { useSystemStore, selectArchive, selectUpdate } from '@renderer/app/store/system.store'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import { sheetResizeTransition } from '@renderer/motion/transitions'
 import { tooltipTrigger } from '@renderer/lib/tooltip'
+import { useInbox } from '@renderer/hooks/useInbox'
 import styles from './CommandRail.module.scss'
 
 /**
@@ -65,6 +71,20 @@ export function CommandRail({ hidden = false, onToggleRail }: CommandRailProps):
   const updateReady = update?.state === 'downloaded' || update?.state === 'available'
   const groups = getSectionGroups()
   const activeSection = getSectionByPath(location.pathname)
+
+  /*
+   * What the website has sent that nobody has dealt with yet.
+   *
+   * Counted on the department and, while its division is folded away, marked
+   * on the division's heading, so a message is not missed for sitting under a
+   * closed heading. Zero while signed out: the copy is not shown to whoever
+   * has the machine, and a count of it would be showing it.
+   */
+  const inbox = useInbox()
+  const waiting: Partial<Record<SectionId, number>> = {
+    contact: inbox.waiting.messages,
+    services: inbox.waiting.enquiries
+  }
 
   /*
    * One division open at a time.
@@ -143,6 +163,10 @@ export function CommandRail({ hidden = false, onToggleRail }: CommandRailProps):
 
         {groups.map((group) => {
           const open = openGroupId === group.definition.id
+          const groupWaiting = group.sections.reduce(
+            (total, section) => total + (waiting[section.id] ?? 0),
+            0
+          )
 
           return (
             <section key={group.definition.id} className={styles.group}>
@@ -158,6 +182,13 @@ export function CommandRail({ hidden = false, onToggleRail }: CommandRailProps):
                   {...tooltipTrigger(group.definition.purpose)}
                 >
                   <span className={styles.groupLabel}>{group.definition.label}</span>
+                  {!open && groupWaiting > 0 ? (
+                    <span
+                      className={styles.groupWaiting}
+                      aria-label={`${groupWaiting} waiting`}
+                      {...tooltipTrigger(`${groupWaiting} waiting from the website`)}
+                    />
+                  ) : null}
                   <span className={styles.groupRule} aria-hidden="true" />
                   <svg
                     className={styles.groupChevron}
@@ -218,16 +249,26 @@ export function CommandRail({ hidden = false, onToggleRail }: CommandRailProps):
                                 <span className={styles.purpose}>{section.purpose}</span>
                               </span>
 
-                              <span
-                                className={styles.state}
-                                data-reserved={!section.implemented || undefined}
-                                aria-label={section.implemented ? 'In service' : 'Reserved'}
-                                {...tooltipTrigger(
-                                  section.implemented
-                                    ? 'In service'
-                                    : 'Reserved — not yet in service'
-                                )}
-                              />
+                              <span className={styles.end}>
+                                {waiting[section.id] ? (
+                                  <span
+                                    className={styles.waiting}
+                                    {...tooltipTrigger('Waiting from the website')}
+                                  >
+                                    {waiting[section.id]}
+                                  </span>
+                                ) : null}
+                                <span
+                                  className={styles.state}
+                                  data-reserved={!section.implemented || undefined}
+                                  aria-label={section.implemented ? 'In service' : 'Reserved'}
+                                  {...tooltipTrigger(
+                                    section.implemented
+                                      ? 'In service'
+                                      : 'Reserved — not yet in service'
+                                  )}
+                                />
+                              </span>
                             </>
                           )}
                         </NavLink>

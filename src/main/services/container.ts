@@ -14,6 +14,7 @@ import { RiteService } from './overlay/rite.service'
 import { TimerService } from './overlay/timer.service'
 import { SpotifyService } from './overlay/spotify.service'
 import { DispatchService } from './dispatch/dispatch.service'
+import { InboxService } from './inbox/inbox.service'
 import { ConcordService } from './overlay/concord.service'
 import { MusterService } from './overlay/muster.service'
 import { TwitchChatService } from './chat/twitch-chat.service'
@@ -84,6 +85,12 @@ export interface ServiceContainer {
   readonly timers: TimerService
   readonly nowPlaying: SpotifyService
   readonly dispatch: DispatchService
+  /**
+   * CONTACT and SERVICES: what the website's visitors send, copied here on
+   * every check-in. Borrows DISPATCH's sign-in rather than holding its own,
+   * so it takes the board's service. See docs/INBOX.md.
+   */
+  readonly inbox: InboxService
   readonly concord: ConcordService
   readonly muster: MusterService
   /**
@@ -183,6 +190,10 @@ export function createServiceContainer(): ServiceContainer {
   const rite = new RiteService(archive, overlayServer, settings)
   const concord = new ConcordService(archive, overlayServer, chat, settings)
 
+  // Hoisted for the inbox, which checks in with the website on the board's
+  // sign-in: the same two accounts, so one session rather than two.
+  const dispatch = new DispatchService()
+
   return {
     settings,
     archive,
@@ -200,7 +211,8 @@ export function createServiceContainer(): ServiceContainer {
     rite,
     timers: new TimerService(archive, overlayServer),
     nowPlaying: new SpotifyService(archive, overlayServer),
-    dispatch: new DispatchService(),
+    dispatch,
+    inbox: new InboxService(archive, settings, dispatch),
     concord,
     muster: new MusterService(archive, overlayServer, chat, settings, rite, concord),
     orientation: new OrientationStore()
@@ -227,6 +239,8 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
   container.rite.dispose()
   container.timers.dispose()
   container.nowPlaying.dispose()
+  // Before the board: the inbox borrows its sign-in and listens to it.
+  container.inbox.dispose()
   container.dispatch.dispose()
   container.muster.dispose()
   // Before chat: the poll releases its claim on the way down, and disposing the

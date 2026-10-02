@@ -81,6 +81,25 @@ export const Collections = {
    * built from. No index plan; the one read is by `_id`.
    */
   Colophon: 'publication_colophon',
+  /**
+   * CONTACT: this console's copy of the messages the website's contact page
+   * filed (PUBLICATION division).
+   *
+   * A copy, not the record. The record is in the website's database, which
+   * this console reaches only through the website (docs/INBOX.md); what is
+   * kept here is what the last check-in brought, so the department opens with
+   * the network down. Each document says which website it came from, so a
+   * development copy reading a development server never shows its test
+   * messages among the real ones. The operator's notes live only here.
+   */
+  SiteMessages: 'site_contact_messages',
+  /** SERVICES: the same arrangement, for "Book me as a DJ" enquiries. */
+  SiteEnquiries: 'site_dj_enquiries',
+  /**
+   * Where each website's check-ins have got to: one document per website,
+   * keyed by its address, holding the cursor the website handed back last.
+   */
+  SyncState: 'sync_state',
   /** Stream overlay scenes and layouts (OBSERVATORY section). */
   Overlays: 'overlays',
   /** Natural-language commands and their resolved actions (INTERFACE section). */
@@ -141,6 +160,16 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
   [Collections.Calendar]: [
     // Every read the department makes is "what is on these dates", in order.
     { key: { date: 1, startMinute: 1 }, name: 'calendar_by_date' }
+  ],
+  [Collections.SiteMessages]: [
+    // Every read is "this website's, newest first", and the waiting count is
+    // the same filter with a status on it.
+    { key: { website: 1, createdAt: -1 }, name: 'site_message_by_website' },
+    { key: { website: 1, status: 1 }, name: 'site_message_by_status' }
+  ],
+  [Collections.SiteEnquiries]: [
+    { key: { website: 1, createdAt: -1 }, name: 'site_enquiry_by_website' },
+    { key: { website: 1, status: 1 }, name: 'site_enquiry_by_status' }
   ],
   [Collections.ProjectVersions]: [
     { key: { projectId: 1, capturedAt: -1 }, name: 'version_by_project' },

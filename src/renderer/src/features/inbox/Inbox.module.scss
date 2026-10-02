@@ -1,0 +1,507 @@
+@use 'abstracts' as *;
+
+// CONTACT and SERVICES: what the website's visitors send.
+//
+// Built on the board's furniture, because it is the same arrangement: a list
+// that something arrives in, and the one thing open beside it. The accent is
+// spent where the board spends it, on what is waiting, and nowhere else.
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: stretch;
+}
+
+.listPanel {
+  grid-column: span 3;
+}
+
+.detailPanel {
+  grid-column: span 3;
+}
+
+@include below('lg') {
+  .listPanel,
+  .detailPanel {
+    grid-column: span 6;
+  }
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+}
+
+// ------------------------------------------------------------------ header
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(5);
+}
+
+// Which website is being read. Worth saying aloud: a development copy reads a
+// development server, and the two lists must never be mistaken for each other.
+.website {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.14);
+}
+
+.websiteLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.websiteName {
+  @include readout(10px);
+  color: var(--ch-gold-200);
+}
+
+.quiet {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// -------------------------------------------------------------------- gate
+
+// The missing Firebase config: a standing state, drawn as DISPATCH draws it.
+.gate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin: space(5) 0 0;
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.14);
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.inlineLink {
+  color: var(--ch-gold-300);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+}
+
+// -------------------------------------------------------------------- tabs
+
+// SERVICES' DJ and PRODUCER. The REGULATION segmented switch, at page scale.
+.tabs {
+  display: inline-flex;
+  margin: 0 0 space(5);
+  @include hairline(all, 0.14);
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(5);
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover {
+    color: var(--ch-text-secondary);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[aria-selected='true'] {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
+}
+
+// ------------------------------------------------------------------ list
+
+.count {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// The one accent on the page: how many are waiting.
+.waiting {
+  @include label(8px, 0.14em);
+  color: var(--ch-accent-bright);
+  background: var(--ch-accent-dim);
+  padding: 1px space(2);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: end;
+  gap: space(3);
+  padding-bottom: space(4);
+  @include hairline(bottom, 0.08);
+}
+
+.searchField {
+  min-width: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: space(4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  width: 100%;
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+    box-shadow: inset 2px 0 0 var(--ch-gold-400);
+  }
+
+  // Done with, and drawn back accordingly; still there to be found.
+  &[data-settled] {
+    opacity: 0.62;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  min-width: 0;
+}
+
+.markNew {
+  @include label(7px, 0.18em);
+  color: var(--ch-accent-bright);
+  background: var(--ch-accent-dim);
+  padding: 1px space(2);
+  flex-shrink: 0;
+}
+
+.cardRef {
+  @include label(8px, 0.16em);
+  color: var(--ch-gold-300);
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  min-width: 0;
+}
+
+.cardWho {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  min-width: 0;
+  @include truncate;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.cardStamp {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.cardStatus {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+
+  &[data-tone='good'] {
+    color: var(--ch-gold-300);
+  }
+
+  &[data-tone='bad'] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  margin: space(4) 0 0;
+  line-height: 1.65;
+}
+
+// ----------------------------------------------------------------- detail
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.detailHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex-wrap: wrap;
+  @include hairline(bottom, 0.08);
+  padding-bottom: space(3);
+}
+
+.detailTitle {
+  font-family: var(--ch-font-display);
+  font-size: rem(15px);
+  letter-spacing: 0.04em;
+  color: var(--ch-text-primary);
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.pending {
+  @include label(7px, 0.18em);
+  color: var(--ch-text-muted);
+  @include hairline(all, 0.2);
+  padding: 1px space(2);
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: space(5);
+  row-gap: space(2);
+  margin: 0;
+}
+
+.row {
+  display: contents;
+}
+
+.rowLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+  padding-top: 2px;
+}
+
+.rowValue {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.body {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+}
+
+.sectionLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  @include hairline(all, 0.14);
+}
+
+.segment {
+  position: relative;
+  padding: space(2) space(4);
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-secondary);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.confirmText {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+}
+
+.footnote {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+}
+
+// ------------------------------------------------------------------- soon
+
+// PRODUCER, until the website takes payment for it.
+.soon {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  max-width: rem(640px);
+  padding: space(2) 0;
+}
+
+.soonTitle {
+  font-family: var(--ch-font-display);
+  font-size: rem(18px);
+  letter-spacing: 0.06em;
+  color: var(--ch-text-primary);
+  margin: 0;
+}
+
+.soonText {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}

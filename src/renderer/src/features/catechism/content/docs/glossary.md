@@ -6,7 +6,7 @@ are listed, because the second kind is impossible to spot without the first.
 
 ## The console
 
-**Department** — a section of the console, reached from the rail. Fourteen of
+**Department** — a section of the console, reached from the rail. Sixteen of
 them, grouped into four divisions.
 
 **Division** — the grouping a department is filed under: COMMAND, PRODUCTION,
@@ -18,6 +18,13 @@ message, who represents the artist and where they are, and the artist's profile
 on every platform. Named for the note at the back of a book that says who made
 it and where they can be found. Each field is **public** (goes out with the
 website) or **private** (stays on this machine); a few are always public.
+
+**Check-in** — CONTACT and SERVICES asking the website what changed: when the
+console starts, then every minute while someone is signed in. What comes back
+is kept as a copy in the archive, filed under the website it came from.
+
+**Waiting** — a message nobody has opened, or a DJ enquiry nobody has taken up.
+Counted on the rail and in the notice the console gives when it starts.
 
 **Reserved** — a department that is routed and specified but not yet built. Its
 page lists what it will do when commissioned. INTERFACE and COLOPHON are reserved; COLOPHON's says it is coming soon.

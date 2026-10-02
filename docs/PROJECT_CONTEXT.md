@@ -5,8 +5,9 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-10-01. Twelve of fourteen departments in service;
-> INTERFACE and COLOPHON are reserved. COLOPHON opened PUBLICATION on
+> Last updated: 2026-10-01. Fourteen of sixteen departments in service;
+> INTERFACE and COLOPHON are reserved. CONTACT and SERVICES joined PUBLICATION
+> on 2026-10-01, reading what the website's visitors send (`docs/INBOX.md`). COLOPHON opened PUBLICATION on
 > 2026-10-01, and BROADCAST was folded into it the same day, leaving four
 > divisions. COLOPHON was reserved again in 1.19.1 while the website's side is
 > worked out; its built page, service and stored record are kept (§10, §14). The department table in §10
@@ -910,12 +911,14 @@ and Nexus all read from it.
 | 8   | `darkroom`    | `/darkroom`     | **shipped** | Grading photographs onto the console palette           |
 | 9   | `observatory` | `/observatory`  | **shipped** | The broadcast desk and every overlay served to OBS     |
 | 10  | `colophon`    | `/colophon`     | reserved    | The details the website carries (coming soon)          |
-| 11  | `telemetry`   | `/telemetry`    | **shipped** | Host vitals                                            |
-| 12  | `dispatch`    | `/dispatch`     | **shipped** | The shared board                                       |
-| 13  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
-| 14  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
+| 11  | `contact`     | `/contact`      | **shipped** | Messages sent from the website                         |
+| 12  | `services`    | `/services`     | **shipped** | DJ enquiries from the website; producer to come        |
+| 13  | `telemetry`   | `/telemetry`    | **shipped** | Host vitals                                            |
+| 14  | `dispatch`    | `/dispatch`     | **shipped** | The shared board                                       |
+| 15  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
+| 16  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
 
-**Fourteen departments, twelve in service,** in four divisions: COMMAND,
+**Sixteen departments, fourteen in service,** in four divisions: COMMAND,
 PRODUCTION, PUBLICATION, OVERSIGHT. INTERFACE and COLOPHON are reserved:
 COLOPHON was built (below) and taken back out of service in 1.19.1, its route
 pointing at `ReservedPage` with a "Coming soon" status and no scope, while
@@ -990,6 +993,45 @@ Decisions:
   for published. Nothing outside reads the record until publishing is built.
 - COLOPHON took `Ctrl`+`0`, which pushed TELEMETRY past the tenth slot; it
   gained `Ctrl`+`Shift`+`T`, the arrangement DISPATCH got when it was pushed.
+
+### CONTACT and SERVICES — added 2026-10-01
+
+The first departments that read from the website rather than for it. The full
+capture is **`docs/INBOX.md`**. In summary:
+
+- **The website is the record; the archive keeps a copy.** The website's
+  contact form and "Book me as a DJ" file into its own Atlas database. This
+  console checks in through the website's private API (`/api/haven/*`) on
+  start and every minute while signed in (`InboxService`), and copies what it
+  finds into `site_contact_messages`, `site_dj_enquiries` and `sync_state`.
+  The pages read the copy, so they open offline.
+- **No database credentials on any machine.** The repository and installers
+  are public, so the console never connects to Atlas. It sends DISPATCH's
+  Firebase ID token; the website verifies it with Google's keys and an
+  allow-list of the two account ids.
+- **One sign-in for three departments.** CONTACT and SERVICES borrow
+  DISPATCH's session (`DispatchService.idToken`); the sign-in band moved to
+  `components/session/SignInBand`. Signed out, nothing is fetched or shown,
+  the rail's counts included. The rest of the console stays open.
+- **Statuses go both ways; notes stay here; deletes need the website.** A
+  status is set on the copy at once, marked `pending`, and sent on the next
+  check-in. A note is local only. A delete is sent first and applied here only
+  once the website has it, and is refused offline ("Connect to delete").
+- **Which website is a build default, not a stored address.** Installed reads
+  the live site, run from source reads `http://localhost:3000`; REGULATION →
+  INTEGRATIONS → Website address overrides. Each copy is filed under its
+  website's origin, so development and live never mix. The plan had been a
+  separate `candy_haven_dev` archive for development; it was not done, because
+  the archive mirrors real folders on disk and a second one would drift from
+  them.
+- **Alerts.** Waiting counts on the rail, a mark on the folded PUBLICATION
+  heading, a Windows notification per check-in that brings something, and one
+  summary after the first check-in of a session. Clicking one opens the
+  department (`inbox:open`, handled by `InboxCues`).
+- **Placement.** CONTACT (11) and SERVICES (12) follow COLOPHON in
+  PUBLICATION, which pushed TELEMETRY, DISPATCH, REGULATION and CATECHISM to
+  13–16. Neither has a `Ctrl` chord. SERVICES has two tabs: DJ, and PRODUCER,
+  which says it is coming soon until the website takes payment for bookings.
 
 ### DISCOGRAPHY and ARTISTS — added 2026-09-16
 
@@ -1824,6 +1866,10 @@ figure spans all adapters.
   requests go to the OS browser.
 - Zip extraction sanitises entry paths (zip-slip).
 - The archive daemon is loopback-only.
+- No database credentials ship or are stored. CONTACT and SERVICES reach the
+  website's database only through the website's API, with DISPATCH's Firebase
+  ID token, which the website checks against Google's keys and the two
+  accounts' ids (`docs/INBOX.md`).
 - Stack traces are only serialized across IPC in development.
 
 ---
@@ -1930,8 +1976,10 @@ They are recorded so nearer-term work does not foreclose them.
 - **Website, continued (2026-10-01).** The PUBLICATION division now exists,
   with COLOPHON as its first department (§10), and the website itself has been
   built separately as a Next.js site. Publishing, the step that projects this
-  console's records out to it, is still not built; until it is, everything in
-  PUBLICATION is kept locally and read by nothing outside.
+  console's records out to it, is still not built; until it is, COLOPHON is
+  kept locally and read by nothing outside. The other direction exists:
+  CONTACT and SERVICES read what the website's visitors send (§10,
+  `docs/INBOX.md`).
 
 ---
 

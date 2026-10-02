@@ -315,6 +315,34 @@
   }
 }
 
+// What the website has sent and nobody has dealt with: a count beside the
+// department, in the accent, because it is the one thing on the rail asking
+// for the operator rather than describing the console.
+.end {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.waiting {
+  @include label(8px, 0.08em);
+  min-width: rem(16px);
+  padding: 1px space(1);
+  text-align: center;
+  color: var(--ch-accent-bright);
+  background: var(--ch-accent-dim);
+}
+
+// The same, on a folded division's heading: a mark, not a number, since the
+// heading stands for several departments.
+.groupWaiting {
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  background: var(--ch-accent-bright);
+  box-shadow: 0 0 8px var(--ch-accent-glow);
+}
+
 // -------------------------------------------------------------------- footer
 
 .footer {

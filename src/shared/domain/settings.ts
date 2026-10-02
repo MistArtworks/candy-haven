@@ -281,7 +281,17 @@ export const IntegrationSettingsSchema = z.object({
    * so a pasted URL still shows in the field as what they pasted instead of
    * being silently rewritten under the cursor.
    */
-  twitchChannel: z.string().max(128).default('')
+  twitchChannel: z.string().max(128).default(''),
+  /**
+   * The website CONTACT and SERVICES read from.
+   *
+   * Empty means the build's own default: the live site when installed, the
+   * development server on this machine when run from source. Empty rather than
+   * either address written in, because the installed console and a
+   * development copy share this file, and one address stored here would point
+   * the other at the wrong website. See `LIVE_WEBSITE_URL`.
+   */
+  websiteUrl: z.string().max(256).default('')
 })
 export type IntegrationSettings = z.infer<typeof IntegrationSettingsSchema>
 

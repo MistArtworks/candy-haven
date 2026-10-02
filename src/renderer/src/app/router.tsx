@@ -23,6 +23,8 @@ import { DarkroomPage } from '@renderer/features/darkroom/DarkroomPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
 import { DispatchPage } from '@renderer/features/dispatch/DispatchPage'
+import { ContactPage } from '@renderer/features/inbox/ContactPage'
+import { ServicesPage } from '@renderer/features/inbox/ServicesPage'
 import { CatechismPage } from '@renderer/features/catechism/CatechismPage'
 import { ReservedPage } from '@renderer/features/reserved/ReservedPage'
 import { OVERLAYS, type OverlayId } from '@shared/domain/overlays'
@@ -148,6 +150,9 @@ export function AppRouter(): ReactNode {
             />
           }
         />
+
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/services" element={<ServicesPage />} />
 
         <Route path="/telemetry" element={<TelemetryPage />} />
 

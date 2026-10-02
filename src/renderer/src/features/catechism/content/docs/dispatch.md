@@ -29,6 +29,9 @@ Identity is not chosen, it is resolved: whichever of the two accounts the
 credential belongs to. Sign in once per machine and it stays signed in —
 through a restart — until you sign out.
 
+The same sign-in opens CONTACT and SERVICES. Signing in on any of the three
+signs in on all of them, and signing out here closes the other two.
+
 The one rule that is enforced beyond that is that only the builder rules on an
 item, and that is a division of labour rather than a permission.
 

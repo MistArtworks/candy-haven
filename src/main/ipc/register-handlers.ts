@@ -416,6 +416,21 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('colophon:get', () => services.colophon.get())
   router.handle('colophon:update', (patch) => services.colophon.update(patch))
 
+  // -------------------------------------------------------------------- inbox
+
+  router.handle('inbox:state', () => services.inbox.current)
+  router.handle('inbox:sync', async () => {
+    await services.inbox.sync()
+    return services.inbox.current
+  })
+  router.handle('inbox:messages', () => services.inbox.messages())
+  router.handle('inbox:enquiries', () => services.inbox.enquiries())
+  router.handle('inbox:read', ({ id }) => services.inbox.read(id))
+  router.handle('inbox:message-status', (change) => services.inbox.setMessageStatus(change))
+  router.handle('inbox:enquiry-status', (change) => services.inbox.setEnquiryStatus(change))
+  router.handle('inbox:note', (note) => services.inbox.setNote(note))
+  router.handle('inbox:delete', (target) => services.inbox.remove(target))
+
   /**
    * Hands a release's canvas to the sheet so it can be watched.
    *
@@ -789,6 +804,7 @@ export function registerEventBridges(deps: {
   services.muster.on('state', (state) => router.broadcast('muster:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   services.calendar.on('changed', (state) => router.broadcast('calendar:state', state))
+  services.inbox.on('state', (state) => router.broadcast('inbox:state', state))
 
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

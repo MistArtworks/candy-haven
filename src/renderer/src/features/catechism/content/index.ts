@@ -118,6 +118,18 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'colophon'
   },
   {
+    id: 'contact',
+    label: 'CONTACT',
+    purpose: 'Messages from the website: reading, answering, deleting',
+    section: 'contact'
+  },
+  {
+    id: 'services',
+    label: 'SERVICES',
+    purpose: 'DJ enquiries from the website, and producer bookings to come',
+    section: 'services'
+  },
+  {
     id: 'telemetry',
     label: 'TELEMETRY',
     purpose: 'Host vitals and what each reading means',
@@ -126,7 +138,7 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
   {
     id: 'dispatch',
     label: 'DISPATCH',
-    purpose: 'The shared board, identity and rulings',
+    purpose: 'The shared board, the sign-in and rulings',
     section: 'dispatch'
   },
   {

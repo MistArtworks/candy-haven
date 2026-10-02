@@ -173,6 +173,7 @@ export class BootSequence extends TypedEmitter<BootEvents> {
       concord,
       muster,
       dispatch,
+      inbox,
       overlayServer
     } = this.services
 
@@ -290,6 +291,10 @@ export class BootSequence extends TypedEmitter<BootEvents> {
         // as the rest of this step: an unreachable one reports itself on its own
         // page and is not a reason to hold up the boot.
         await dispatch.initialize()
+
+        // The website inbox checks in on the board's sign-in, so it starts
+        // after the board has restored one. It does not wait for the website.
+        inbox.initialize()
 
         if (workspace.overlayAutoStart) {
           try {

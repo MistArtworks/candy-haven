@@ -35,6 +35,9 @@ throughout.
   installs and runs itself. Nothing about his projects goes to a cloud service.
 - The one exception is the shared feedback board (see DISPATCH), which is deliberately
   online so both people see the same list.
+- And what the website's visitors send (see CONTACT and SERVICES): it is filed by the
+  website, and the console keeps a copy, fetched through the website while one of the
+  two is signed in.
 
 ## 3. Current status at a glance
 
@@ -57,7 +60,7 @@ each one answers:
 | --------------- | -------------------------------------------------------------- | ------------------------------------------ |
 | **COMMAND**     | Seeing the system whole, and instructing it                    | NEXUS, INTERFACE _(reserved)_              |
 | **PRODUCTION**  | The work itself — what is filed, when it is due, how it sounds | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
-| **PUBLICATION** | What the public sees: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON |
+| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES |
 | **OVERSIGHT**   | The condition of the installation and the rules it runs under  | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
 
 Everything is numbered, every department has a keyboard shortcut, and the layout is
@@ -292,6 +295,22 @@ Each field says what is wrong with it as it is typed, and nothing is written unt
 the change is filed from the bar at the bottom of the screen, so a half-typed
 address is never stored. It is kept on the artist's machine like everything else;
 nothing reads it from outside until publishing the website is built.
+
+### CONTACT — messages from the website _(live)_
+
+Every message sent from the website's contact page arrives here within a minute, while
+one of the two is signed in (the same sign-in as DISPATCH). Each can be opened, answered
+from the artist's own email, and marked new, read, replied or archived; opening a new one
+reads it. A private note can be kept against each, and it never leaves the artist's
+machine. Deleting one removes it from the website too, so it needs a connection. New
+messages are counted on the rail and announced with a Windows notification.
+
+### SERVICES — bookings from the website _(live)_
+
+Two tabs. **DJ** holds the "Book me as a DJ" enquiries, which arrive and behave like
+CONTACT's messages, with their own statuses: new, in talks, confirmed, declined, archived.
+**PRODUCER** says it is coming soon: producer bookings arrive once the website takes
+payment for them, so each will already be a booking.
 
 ### TELEMETRY — host vitals _(live)_
 

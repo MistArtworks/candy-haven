@@ -90,6 +90,15 @@ import {
   TrackPatchSchema
 } from '../domain/discography'
 import { ColophonPatchSchema, ColophonSchema } from '../domain/colophon'
+import {
+  EnquiryStatusChangeSchema,
+  InboxNoteSchema,
+  InboxStateSchema,
+  InboxTargetSchema,
+  MessageStatusChangeSchema,
+  SiteEnquirySchema,
+  SiteMessageSchema
+} from '../domain/inbox'
 /**
  * The IPC contract is declared once, here, and consumed by:
  *   - the main-process router, which validates inputs and outputs at runtime
@@ -755,6 +764,30 @@ export const IPC_INVOKE = {
   'colophon:get': { input: z.void(), output: ColophonSchema },
   'colophon:update': { input: ColophonPatchSchema, output: ColophonSchema },
 
+  // -------------------------------------------------------------------- inbox
+
+  /*
+   * CONTACT and SERVICES: what the website's visitors send.
+   *
+   * The lists are read from this machine's copy, so they answer at once and
+   * with the network down; `inbox:sync` is what asks the website. While
+   * nobody is signed in to DISPATCH both lists are empty and every write is
+   * refused, whatever the copy holds.
+   */
+  'inbox:state': { input: z.void(), output: InboxStateSchema },
+  /** Checks in with the website now, and answers once it has. */
+  'inbox:sync': { input: z.void(), output: InboxStateSchema },
+  'inbox:messages': { input: z.void(), output: z.array(SiteMessageSchema) },
+  'inbox:enquiries': { input: z.void(), output: z.array(SiteEnquirySchema) },
+  /** Opening a message: a new one becomes read, anything else is left. */
+  'inbox:read': { input: z.object({ id: z.string() }), output: SiteMessageSchema },
+  'inbox:message-status': { input: MessageStatusChangeSchema, output: SiteMessageSchema },
+  'inbox:enquiry-status': { input: EnquiryStatusChangeSchema, output: SiteEnquirySchema },
+  /** The operator's own note. Never leaves this machine. */
+  'inbox:note': { input: InboxNoteSchema, output: z.void() },
+  /** Deletes it from the website, then from here. Refused offline. */
+  'inbox:delete': { input: InboxTargetSchema, output: z.void() },
+
   // --------------------------------------------------------------- auditorium
 
   /**
@@ -927,6 +960,9 @@ export const IPC_EVENT = {
   'muster:state': MusterStateSchema,
   'overlay:info': OverlayServerInfoSchema,
   'calendar:state': CalendarStateSchema,
+  'inbox:state': InboxStateSchema,
+  /** A clicked notification, asking the console to open a department. */
+  'inbox:open': z.object({ path: z.string() }),
   'auditorium:file': z.object({ path: z.string().nullable() }),
   'window:state': WindowStateSchema
 } satisfies Record<string, z.ZodType>

@@ -14,6 +14,8 @@ export const SECTION_IDS = [
   'darkroom',
   'observatory',
   'colophon',
+  'contact',
+  'services',
   'telemetry',
   'dispatch',
   'regulation',
@@ -67,7 +69,8 @@ export const SECTION_GROUP: Record<SectionGroupId, SectionGroupDefinition> = {
   publication: {
     id: 'publication',
     label: 'PUBLICATION',
-    purpose: 'What the public sees: the stream while it is live, and the website at any hour'
+    purpose:
+      'What the public sees and sends: the stream while it is live, and the website at any hour'
   },
   oversight: {
     id: 'oversight',
@@ -206,13 +209,44 @@ export const SECTIONS: readonly SectionDefinition[] = [
     implemented: false
   },
   {
+    /*
+     * What the website's contact page sends, copied here on every check-in.
+     *
+     * Behind the DISPATCH sign-in, and the reason the website has an API at
+     * all: the record is in the website's database, which this console never
+     * reaches directly. See docs/INBOX.md.
+     */
+    id: 'contact',
+    path: '/contact',
+    label: 'CONTACT',
+    purpose: 'Messages sent from the website, read and answered',
+    epigraph: 'No voice that reaches the gate goes unrecorded.',
+    group: 'publication',
+    order: 10,
+    implemented: true
+  },
+  {
+    /*
+     * What the website books: DJ enquiries now, producer work when its
+     * payments are in. Same sign-in, same check-ins as CONTACT.
+     */
+    id: 'services',
+    path: '/services',
+    label: 'SERVICES',
+    purpose: 'Bookings from the website: DJ enquiries, and producer work to come',
+    epigraph: 'The work is asked for before it is made.',
+    group: 'publication',
+    order: 11,
+    implemented: true
+  },
+  {
     id: 'telemetry',
     path: '/telemetry',
     label: 'TELEMETRY',
     purpose: 'Host vitals: processor, memory, graphics and storage',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'oversight',
-    order: 10,
+    order: 12,
     implemented: true
   },
   {
@@ -222,7 +256,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Feedback and suggestions between operators, ruled on and recorded',
     epigraph: 'Nothing is lost that is entered into the record.',
     group: 'oversight',
-    order: 11,
+    order: 13,
     implemented: true
   },
   {
@@ -232,7 +266,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Operator settings, archive control and update channel',
     epigraph: 'Harmony is maintained.',
     group: 'oversight',
-    order: 12,
+    order: 14,
     implemented: true
   },
   {
@@ -242,7 +276,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'How this console is operated, department by department',
     epigraph: 'We do not question the shape of the universe.',
     group: 'oversight',
-    order: 13,
+    order: 15,
     implemented: true
   }
 ] as const

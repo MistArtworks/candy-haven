@@ -20,12 +20,12 @@ of being re-entered.
 Departments are grouped into four divisions. The division tells you what kind of
 question a department answers, which is usually enough to know where to look.
 
-| Division        | What it is for                                                                 | Departments                                                   |
-| --------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| **COMMAND**     | Where the system is seen whole and instructed                                  | NEXUS, INTERFACE                                              |
-| **PRODUCTION**  | The work itself: what is filed, released, due, and how it sounds               | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
-| **PUBLICATION** | What the public sees: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON                                         |
-| **OVERSIGHT**   | The condition of the installation, and the rules it runs under                 | TELEMETRY, DISPATCH, REGULATION, CATECHISM                    |
+| Division        | What it is for                                                                           | Departments                                                   |
+| --------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **COMMAND**     | Where the system is seen whole and instructed                                            | NEXUS, INTERFACE                                              |
+| **PRODUCTION**  | The work itself: what is filed, released, due, and how it sounds                         | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
+| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES                      |
+| **OVERSIGHT**   | The condition of the installation, and the rules it runs under                           | TELEMETRY, DISPATCH, REGULATION, CATECHISM                    |
 
 A department marked **RESERVED** is routed and specified but not yet built. Its
 page lists what it will do when it is commissioned, so the shape of the finished
@@ -47,8 +47,12 @@ MongoDB instance that Candy Haven owns and supervises itself.
 If the archive is down, most of the console will tell you so rather than
 appearing to work. The orb on the NEXUS landing is the fastest way to check.
 
-> DISPATCH is the one exception. Its record is a _shared_ database, because the
+> DISPATCH is one exception. Its record is a _shared_ database, because the
 > whole point of that department is that two machines see the same board.
+>
+> CONTACT and SERVICES are the other. Their record is the website's, and the
+> archive keeps a copy of it, checked in every minute while someone is signed
+> in.
 
 ## Reading the interface
 

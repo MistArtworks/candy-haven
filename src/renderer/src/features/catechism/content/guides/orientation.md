@@ -28,10 +28,10 @@ each one is for.
 
 - **COMMAND** — where the system is seen whole and instructed.
 - **PRODUCTION** — the work itself: what is filed, when it is due, how it sounds.
-- **PUBLICATION** — what the public sees: the stream while it is live, and the website at any hour.
+- **PUBLICATION** — what the public sees and sends: the stream while it is live, and the website at any hour.
 - **OVERSIGHT** — the condition of the installation, and the rules it runs under.
 
-`Ctrl+1` through `Ctrl+9`, then `Ctrl+0`, walk the rail's first ten departments in the order they are drawn — reserved departments included, so the numbers match what you can see. The rail has since grown past ten: TELEMETRY, DISPATCH, REGULATION and CATECHISM answer to `Ctrl+Shift+T`, `Ctrl+Shift+D`, `Ctrl+,` and `Ctrl+Shift+K` instead.
+`Ctrl+1` through `Ctrl+9`, then `Ctrl+0`, walk the rail's first ten departments in the order they are drawn — reserved departments included, so the numbers match what you can see. The rail has since grown past ten: TELEMETRY, DISPATCH, REGULATION and CATECHISM answer to `Ctrl+Shift+T`, `Ctrl+Shift+D`, `Ctrl+,` and `Ctrl+Shift+K` instead, and CONTACT and SERVICES are reached from the rail.
 
 ## NEXUS — the front door
 

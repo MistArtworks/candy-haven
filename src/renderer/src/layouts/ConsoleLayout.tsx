@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { SECTIONS, getSection, getSectionByPath } from '@shared/domain/navigation'
 import { TimerCues } from '@renderer/app/providers/TimerCues'
 import { ConcordCues } from '@renderer/app/providers/ConcordCues'
+import { InboxCues } from '@renderer/app/providers/InboxCues'
 import { UnsavedBar } from '@renderer/components/feedback/UnsavedBar'
 import { ReleaseNotice } from '@renderer/components/feedback/ReleaseNotice'
 import { Toaster } from '@renderer/components/feedback/Toaster'
@@ -275,6 +276,7 @@ export function ConsoleLayout(): ReactNode {
       */}
       <TimerCues />
       <ConcordCues />
+      <InboxCues />
 
       {/*
         Mounted in the shell rather than on a page: an update is not a property

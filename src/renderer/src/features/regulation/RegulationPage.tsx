@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSection } from '@shared/domain/navigation'
+import { LIVE_WEBSITE_URL, LOCAL_WEBSITE_URL, websiteOrigin } from '@shared/domain/inbox.constants'
 import { useSystemStore, selectArchive, selectUpdate } from '@renderer/app/store/system.store'
 import { useRuntimeInfo } from '@renderer/hooks/useRuntimeInfo'
 import { useSettingsDraft } from '@renderer/hooks/useSettings'
@@ -693,6 +694,43 @@ export function RegulationPage(): ReactNode {
                       THE CONCORD
                     </Link>{' '}
                     to count votes. The connection is only held open while something needs it.
+                  </p>
+
+                  {/*
+                    Empty means the build's own default, shown as the
+                    placeholder: the installed console and a development copy
+                    share this file, and each must find its own website.
+                  */}
+                  <TextInput
+                    label="Website address"
+                    value={integrations?.websiteUrl ?? ''}
+                    mono
+                    placeholder={
+                      runtime?.isPackaged === false ? LOCAL_WEBSITE_URL : LIVE_WEBSITE_URL
+                    }
+                    invalid={
+                      Boolean(integrations?.websiteUrl.trim()) &&
+                      websiteOrigin(integrations?.websiteUrl ?? '') === null
+                    }
+                    onChange={(websiteUrl) =>
+                      applySettings(
+                        { integrations: { websiteUrl } },
+                        { debounceMs: 600, key: 'websiteUrl' }
+                      )
+                    }
+                    hint="Where CONTACT and SERVICES check in. Leave it empty for the default: the live site when installed, the development server on this machine when run from source."
+                  />
+                  <p className={styles.controlHint}>
+                    Read by{' '}
+                    <Link to="/contact" className={styles.inlineLink}>
+                      CONTACT
+                    </Link>{' '}
+                    and{' '}
+                    <Link to="/services" className={styles.inlineLink}>
+                      SERVICES
+                    </Link>{' '}
+                    through the DISPATCH sign-in. Another address is another website, with a copy of
+                    its own.
                   </p>
                 </div>
               </Panel>

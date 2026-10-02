@@ -40,6 +40,7 @@ import {
   useDispatchActions,
   useIdentity
 } from '@renderer/hooks/useDispatch'
+import { SignInBand } from '@renderer/components/session/SignInBand'
 import { ItemCard } from './components/ItemCard'
 import { Thread } from './components/Thread'
 import { formatRelative } from './lib/present'
@@ -240,10 +241,16 @@ export function DispatchPage(): ReactNode {
       ) : null}
 
       {identity === null && state.link.state !== 'unconfigured' ? (
-        <SignIn
+        <SignInBand
+          title="Sign in to the board"
           busy={actions.pending === 'sign-in'}
           onSubmit={(email, password) => void actions.signIn(email, password)}
-        />
+        >
+          Your account decides which of you this is. Neither the address nor the password is stored
+          here — they are exchanged with Firebase for a token, and the database checks that token on
+          every request. That is what keeps the board yours rather than anyone&apos;s who knows its
+          address. The same sign-in opens CONTACT and SERVICES.
+        </SignInBand>
       ) : null}
 
       <motion.div
@@ -406,84 +413,6 @@ export function DispatchPage(): ReactNode {
           )}
         </Panel>
       </motion.div>
-    </div>
-  )
-}
-
-/**
- * The door.
- *
- * One field, because the password *is* the name: there are two accounts and one
- * password each, so asking who you are before asking for proof would be asking
- * a question the answer already contains.
- *
- * Drawn as a band across the page rather than a modal. A modal would imply the
- * board is behind it and merely hidden — it is not, it has not been fetched at
- * all, because an unauthenticated stream is refused by the database's rules.
- * There is nothing underneath to cover.
- */
-function SignIn({
-  busy,
-  onSubmit
-}: {
-  busy: boolean
-  onSubmit: (email: string, password: string) => void
-}): ReactNode {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-
-  const submit = (): void => {
-    if (!email.trim() || !password.trim() || busy) return
-    onSubmit(email, password)
-    /*
-     * Only the password is cleared.
-     *
-     * On success it is spent; on failure it was wrong, and leaving a wrong one
-     * in the field invites pressing Enter again on the same mistake. The
-     * address almost certainly was not the mistake, and retyping it every
-     * attempt would be the annoying half.
-     */
-    setPassword('')
-  }
-
-  return (
-    <div className={styles.signIn}>
-      <div className={styles.signInCopy}>
-        <span className={styles.signInTitle}>Sign in to the board</span>
-        <p className={styles.hint}>
-          Your account decides which of you this is. Neither the address nor the password is stored
-          here — they are exchanged with Firebase for a token, and the database checks that token on
-          every request. That is what keeps the board yours rather than anyone&apos;s who knows its
-          address.
-        </p>
-      </div>
-
-      <div className={styles.signInForm}>
-        <TextInput
-          label="Account"
-          value={email}
-          onChange={setEmail}
-          placeholder="you@example.com"
-          onEnter={submit}
-        />
-        <TextInput
-          label="Password"
-          value={password}
-          onChange={setPassword}
-          password
-          placeholder="••••••••"
-          onEnter={submit}
-        />
-        <Button
-          size="sm"
-          variant="primary"
-          disabled={!email.trim() || !password.trim()}
-          busy={busy}
-          onClick={submit}
-        >
-          Sign in
-        </Button>
-      </div>
     </div>
   )
 }

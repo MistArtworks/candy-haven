@@ -1,0 +1,46 @@
+@use 'abstracts' as *;
+
+// The sign-in band, moved here from DispatchPage.module.scss when CONTACT and
+// SERVICES came to share it. Reads exactly as it did on the board.
+
+.band {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: space(8);
+  flex-wrap: wrap;
+  // Space on both sides. The grid follows immediately after, and without a gap
+  // the band reads as the first panel's header rather than as a gate in front
+  // of the whole page.
+  margin: space(5) 0 space(6);
+  padding: space(5) space(6);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.18);
+  border-left: 2px solid var(--ch-accent);
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: rem(620px);
+}
+
+.title {
+  @include label(11px, 0.16em);
+  color: var(--ch-text-primary);
+}
+
+.hint {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  align-items: flex-end;
+  gap: space(3);
+  min-width: rem(420px);
+}

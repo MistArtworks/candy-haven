@@ -123,7 +123,7 @@ and **Reveal data directory** underneath.
 
 ![regulation-03-integrations.png](regulation-03-integrations.png)
 
-Accounts and services the broadcast kit reads from.
+Accounts and services the broadcast kit and the website inbox read from.
 
 - **Spotify client id** — required by NOW TRANSMITTING. Create an application in
   the Spotify developer dashboard and paste its client id here, then use **Link**
@@ -131,6 +131,10 @@ Accounts and services the broadcast kit reads from.
   crosses into the console.
 - **Twitch channel** — the channel chat is read from. Read-only ingest; the
   console never sends messages.
+- **Website address** — where CONTACT and SERVICES check in. Leave it empty for
+  the default, shown in the field: the live website when installed, the
+  development server on this machine (`http://localhost:3000`) when run from
+  source. Another address is another website, with a copy of its own.
 
 The broadcast server's own port is a setting the main process holds and binds
 without asking the renderer — a compromised renderer should not get to choose

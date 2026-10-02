@@ -50,7 +50,7 @@ export const REGULATION_CATEGORY: Record<RegulationCategory, RegulationCategoryD
   integrations: {
     id: 'integrations',
     label: 'INTEGRATIONS',
-    purpose: 'Accounts and services the broadcast kit reads from.'
+    purpose: 'Accounts and services the broadcast kit and the website inbox read from.'
   },
   board: {
     id: 'board',

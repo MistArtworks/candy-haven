@@ -300,6 +300,19 @@ const api: CandyHavenApi = {
     get: () => invoke('colophon:get'),
     update: (patch) => invoke('colophon:update', patch)
   },
+  inbox: {
+    state: () => invoke('inbox:state'),
+    sync: () => invoke('inbox:sync'),
+    messages: () => invoke('inbox:messages'),
+    enquiries: () => invoke('inbox:enquiries'),
+    read: (id) => invoke('inbox:read', { id }),
+    setMessageStatus: (change) => invoke('inbox:message-status', change),
+    setEnquiryStatus: (change) => invoke('inbox:enquiry-status', change),
+    setNote: (note) => invoke('inbox:note', note),
+    remove: (target) => invoke('inbox:delete', target),
+    onState: (listener) => subscribe('inbox:state', listener),
+    onOpen: (listener) => subscribe('inbox:open', listener)
+  },
   auditorium: {
     read: (path) => invoke('auditorium:read', { path }),
     popout: (file, at = null, playing = false) =>

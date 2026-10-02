@@ -185,6 +185,19 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
     }
   }
 
+  /**
+   * The sign-in, lent to the website inbox.
+   *
+   * CONTACT and SERVICES sit behind the same two accounts as the board, and a
+   * second sign-in for them would be a second password for the same person.
+   * The website checks the token itself (Google signs it, and it names the
+   * account), so lending it hands the inbox nothing the board did not already
+   * hold. Null while signed out.
+   */
+  async idToken(): Promise<string | null> {
+    return this.token()
+  }
+
   private requireAuth(): IdentityAuth {
     if (!this.auth) {
       throw new AppError('The board has no Firebase config yet.', {

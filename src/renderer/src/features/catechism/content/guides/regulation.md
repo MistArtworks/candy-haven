@@ -10,7 +10,7 @@ URL, so a link can point at one.
 - **PRESENTATION** — motion, interface scale, and the accent the console draws with.
 - **STARTUP** — whether this console starts with the machine, and what closing it means.
 - **ARCHIVE** — where projects are filed, and the local database holding the register.
-- **INTEGRATIONS** — accounts and services the broadcast kit reads from.
+- **INTEGRATIONS** — accounts and services the broadcast kit and the website inbox read from.
 - **BOARD** — the shared database behind DISPATCH.
 - **UPDATES** — release channel and how new versions arrive.
 - **REHEARSAL** — test mode, for exercising the kit without a live audience.

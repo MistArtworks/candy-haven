@@ -67,6 +67,15 @@ import type {
   TrackPatch
 } from '../domain/discography'
 import type { Colophon, ColophonPatch } from '../domain/colophon'
+import type {
+  EnquiryStatusChange,
+  InboxNote,
+  InboxState,
+  InboxTarget,
+  MessageStatusChange,
+  SiteEnquiry,
+  SiteMessage
+} from '../domain/inbox'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -471,6 +480,27 @@ export interface CandyHavenApi {
     get(): Promise<Colophon>
     /** Files what changed. Refuses a field it cannot store, naming the rule. */
     update(patch: ColophonPatch): Promise<Colophon>
+  }
+  /**
+   * CONTACT and SERVICES: the website's messages and DJ enquiries, as copied
+   * here. Behind the DISPATCH sign-in. See docs/INBOX.md.
+   */
+  readonly inbox: {
+    state(): Promise<InboxState>
+    /** Checks in with the website now. */
+    sync(): Promise<InboxState>
+    messages(): Promise<SiteMessage[]>
+    enquiries(): Promise<SiteEnquiry[]>
+    /** Opens a message, which reads it if it was new. */
+    read(id: string): Promise<SiteMessage>
+    setMessageStatus(change: MessageStatusChange): Promise<SiteMessage>
+    setEnquiryStatus(change: EnquiryStatusChange): Promise<SiteEnquiry>
+    setNote(note: InboxNote): Promise<void>
+    /** Deletes from the website and from here. Needs the website. */
+    remove(target: InboxTarget): Promise<void>
+    onState(listener: (state: InboxState) => void): Unsubscribe
+    /** A notification was clicked; go where it says. */
+    onOpen(listener: (request: { path: string }) => void): Unsubscribe
   }
   readonly auditorium: {
     /** Reads a chosen audio file whole. See the contract for why. */
