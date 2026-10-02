@@ -6,6 +6,12 @@ A new department under PUBLICATION, after SERVICES. Write the lore here, chapter
 
 It has three tabs. CHAPTERS lists every chapter and where it stands: a draft, published, or changed since it was published. WRITE is the editor, with the text and the website's look side by side, or either one on its own. PLANETS is where each chapter's planet is made.
 
+## THREE WAYS TO SEE THE CHAPTERS
+
+CHAPTERS shows the chapters as a list, as cards, or round an orbit, and keeps the one you chose. The list is where they are put in order, each beside its planet. Cards show each chapter's planet large, with its line and where it stands.
+
+The orbit sets them round a ring the way the website's lore page does, the first at the top, with a place kept for the chapter still to come. The chapter in hand is drawn large and moving in the middle, beside its title, line and planet. Pick a planet on the ring to bring its chapter there, or walk the ring with the arrow keys.
+
 ## WRITING
 
 The bar above the text formats it like a word processor: bold, italic, headings, bulleted lists, terms and large quotes, with clear formatting, undo and redo. Ctrl+B and Ctrl+I work too.
