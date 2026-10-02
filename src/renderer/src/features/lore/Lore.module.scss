@@ -137,9 +137,25 @@
 }
 
 @include below('xl') {
+  .librarySide {
+    grid-column: span 4;
+  }
+
+  .makerMain {
+    grid-column: span 8;
+  }
+}
+
+@include below('lg') {
   .librarySide,
   .makerMain {
     grid-column: span 12;
+  }
+
+  // Stacked, the planet that's open comes first: the library is only where
+  // it was picked from.
+  .makerFirst {
+    order: -1;
   }
 }
 
@@ -585,7 +601,8 @@
   align-items: stretch;
 }
 
-@include below('xl') {
+// Side by side holds until the window is too narrow for two readable columns.
+@include below('md') {
   .writing {
     grid-template-columns: minmax(0, 1fr);
   }

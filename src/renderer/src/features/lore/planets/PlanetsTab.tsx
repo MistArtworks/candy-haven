@@ -42,7 +42,9 @@ export function PlanetsTab({
         label={planet ? planet.name : preset ? preset.name : 'Nothing open'}
         index="02"
         focal={Boolean(planet)}
-        className={styles.makerMain}
+        className={[styles.makerMain, planet || preset ? styles.makerFirst : '']
+          .filter(Boolean)
+          .join(' ')}
         aside={
           planet || preset ? (
             <button type="button" className={styles.quiet} onClick={() => onSelect(null)}>
