@@ -154,6 +154,7 @@ export function LorePage(): ReactNode {
             state={state}
             selectedId={chapterId}
             onOpen={(id) => guarded(() => setParams({ chapter: id, tab: 'write' }))}
+            onOpenPlanet={(id) => guarded(() => setParams({ planet: id, tab: 'planets' }))}
             actions={actions}
           />
         ) : tab === 'write' ? (

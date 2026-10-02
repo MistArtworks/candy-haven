@@ -10,6 +10,14 @@ here only; the website shows a chapter once it is **published**.
 The first chapter published switches the website from its own files to the
 lore published from here.
 
+## See them three ways
+
+![lore-15-orbit.png](lore-15-orbit.png)
+
+CHAPTERS shows the chapters as a **List**, as **Cards** with each planet large,
+or round an **Orbit** the way the website's lore page sets them, the one in hand
+drawn in the middle. Reorder them in the list.
+
 ## Write
 
 ![lore-04-write.png](lore-04-write.png)

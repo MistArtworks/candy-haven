@@ -1,7 +1,7 @@
 # Screenshots
 
 Every image the CATECHISM references, listed from the Markdown itself: what it
-shows and where it is used. 69 files: 63 captures, 4 copies of one of those
+shows and where it is used. 71 files: 65 captures, 4 copies of one of those
 under a second name for the orientation tour, and two supplied photographs.
 
 **Drop a file in this folder and it is available.** `lib/guide-assets.ts` globs
@@ -83,7 +83,7 @@ recovered from them.
 | `dispatch-02-door.png`           | Signed out: the sign-in band across the page                              | `guides/dispatch.md`, `docs/dispatch.md`                          |
 | `dispatch-03-thread.png`         | An item's thread and the ruling controls. Crop                            | `docs/dispatch.md`                                                |
 | `dispatch-04-file.png`           | Filing a new item. Crop                                                   | `guides/dispatch.md`, `docs/dispatch.md`                          |
-| `lore-01-chapters.png`           | CHAPTERS, with published, changed and draft chapters                      | `guides/lore.md`, `docs/lore.md`                                  |
+| `lore-01-chapters.png`           | CHAPTERS as LIST, with published, changed and draft chapters              | `guides/lore.md`, `docs/lore.md`                                  |
 | `lore-02-new-chapter.png`        | The new chapter row. Crop                                                 | `docs/lore.md`                                                    |
 | `lore-03-planet-picker.png`      | Choosing a planet for a chapter. Crop                                     | `docs/lore.md`                                                    |
 | `lore-04-write.png`              | WRITE, side by side                                                       | `guides/lore.md`, `docs/lore.md`                                  |
@@ -96,6 +96,8 @@ recovered from them.
 | `lore-11-planets.png`            | PLANETS, a planet open in the maker                                       | `guides/lore.md`, `docs/lore.md`                                  |
 | `lore-12-add-layer.png`          | Add layer. Crop                                                           | `docs/lore.md`                                                    |
 | `lore-13-layer-settings.png`     | A layer's settings. Crop                                                  | `docs/lore.md`                                                    |
+| `lore-14-cards.png`              | CHAPTERS as CARDS, each chapter with its planet                           | `docs/lore.md`                                                    |
+| `lore-15-orbit.png`              | CHAPTERS as ORBIT, the first chapter in the middle                        | `guides/lore.md`, `docs/lore.md`                                  |
 | `nexus-01-landing.png`           | The landing, on THE GATE                                                  | `guides/nexus.md`, `docs/nexus.md`                                |
 | `nexus-02-overview.png`          | The diagnostic grid, after Descend                                        | `guides/nexus.md`, `guides/orientation.md`, `docs/nexus.md`       |
 | `observatory-01-catalogue.png`   | The desk: the kit, and THE CONCORD on the bench with a vote running       | `guides/observatory.md`, `docs/observatory.md`                    |

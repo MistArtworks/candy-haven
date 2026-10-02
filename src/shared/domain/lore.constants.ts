@@ -70,3 +70,10 @@ export type LoreTab = (typeof LORE_TABS)[number]
 /** How a chapter is looked at while it's written: the text, the text beside the preview, or the preview. */
 export const WRITE_VIEWS = ['write', 'split', 'preview'] as const
 export type WriteView = (typeof WRITE_VIEWS)[number]
+
+/**
+ * How CHAPTERS lays the chapters out: a list to order them by, cards with
+ * each one's planet, or round an orbit the way the website shows them.
+ */
+export const CHAPTER_LAYOUTS = ['list', 'cards', 'orbit'] as const
+export type ChapterLayout = (typeof CHAPTER_LAYOUTS)[number]

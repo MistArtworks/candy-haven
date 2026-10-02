@@ -115,17 +115,20 @@ export function Segmented<T extends string>({
   value,
   options,
   onChange,
-  disabled = false
+  disabled = false,
+  hideLabel = false
 }: {
   label: string
   value: T
   options: ReadonlyArray<{ value: T; label: string }>
   onChange: (value: T) => void
   disabled?: boolean
+  /** Named for screen readers only, where the row it sits in already says what it is. */
+  hideLabel?: boolean
 }): ReactNode {
   return (
     <div className={styles.control}>
-      <span className={styles.controlLabel}>{label}</span>
+      <span className={hideLabel ? styles.srOnly : styles.controlLabel}>{label}</span>
       <div className={styles.segmented} role="group" aria-label={label}>
         {options.map((option) => (
           <button

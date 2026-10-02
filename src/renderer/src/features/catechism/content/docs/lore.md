@@ -27,10 +27,33 @@ from here. The page says **Not live yet** while the website has not switched.
 
 ## The three tabs
 
-- **CHAPTERS**: every chapter in its order, with where each stands. Click a
-  chapter, or its **Write** button, to open it.
+- **CHAPTERS**: every chapter in its order, with where each stands and the
+  planet it is read beside. Click a chapter, or its **Write** button, to open it.
 - **WRITE**: one chapter, given the whole page.
 - **PLANETS**: the planet library, and the planet being made.
+
+## Three ways to see the chapters
+
+The switch at the top of CHAPTERS lays them out three ways. The one chosen is
+kept for next time.
+
+| Layout  | Shows                                                                        |
+| ------- | ---------------------------------------------------------------------------- |
+| `LIST`  | A row each, with a small planet. The one layout where chapters are reordered |
+| `CARDS` | A card each, with its planet large, its line, and where it stands            |
+| `ORBIT` | The chapters round a ring, as the website's lore page sets them              |
+
+![lore-14-cards.png](lore-14-cards.png)
+
+ORBIT puts each chapter's planet on the ring, from the top and clockwise, with a
+place kept for the chapter still to come, as the website does. The one in hand
+is drawn large in the middle, moving, with its title, line, status and planet
+beside it. Pick a planet on the ring to bring its chapter to the middle, or walk
+the ring with the arrow keys; **Write** opens it, and **Open planet** opens its
+planet in PLANETS. The numerals are gold for a published chapter, crimson for
+one changed since, and faint for a draft.
+
+![lore-15-orbit.png](lore-15-orbit.png)
 
 ## How to write a chapter
 
@@ -126,7 +149,7 @@ goes back to what the website has.
 
 ## How to change the order
 
-1. In **CHAPTERS**, drag a chapter by its grip, or hover over it and use the
+1. In **CHAPTERS**, on **LIST**, drag a chapter by its grip, or hover over it and use the
    arrows at its end. The order is kept here.
 2. When the website shows the published chapters in another order, the list says
    so. Press **Publish order** to send this one, or **Use the website's** to take

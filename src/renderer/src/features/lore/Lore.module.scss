@@ -41,7 +41,7 @@
   align-items: center;
   gap: space(2);
   padding: space(2) space(5);
-  @include label(9px, 0.16em);
+  @include label(11px, 0.16em);
   color: var(--ch-text-muted);
   background: none;
   border: 0;
@@ -81,7 +81,7 @@
 }
 
 .tabCount {
-  @include readout(9px);
+  @include readout(11px);
   color: var(--ch-text-faint);
 }
 
@@ -95,19 +95,19 @@
   background: var(--ch-surface-raised);
   @include hairline(all, 0.14);
   border-left: 2px solid var(--ch-gold-400);
-  @include readout(10px);
+  @include readout(12px);
   color: var(--ch-text-secondary);
   line-height: 1.6;
 }
 
 .noticeLabel {
-  @include label(8px, 0.18em);
+  @include label(10px, 0.18em);
   color: var(--ch-gold-300);
   flex-shrink: 0;
 }
 
 .empty {
-  @include readout(11px);
+  @include readout(12px);
   color: var(--ch-text-faint);
   margin: space(4) 0 0;
   line-height: 1.65;
@@ -163,7 +163,7 @@
   display: flex;
   align-items: center;
   gap: space(3);
-  @include readout(9px);
+  @include readout(11px);
   color: var(--ch-text-faint);
 }
 
@@ -179,7 +179,7 @@
 }
 
 .quiet {
-  @include label(8px, 0.16em);
+  @include label(10px, 0.16em);
   color: var(--ch-text-faint);
   background: none;
   border: 0;
@@ -201,26 +201,26 @@
 }
 
 .confirmText {
-  @include readout(10px);
+  @include readout(12px);
   color: var(--ch-crimson-400);
 }
 
 .footnote {
-  @include readout(9px);
+  @include readout(11px);
   color: var(--ch-text-faint);
   line-height: 1.6;
   margin: 0;
 }
 
 .error {
-  @include readout(10px);
+  @include readout(12px);
   color: var(--ch-crimson-400);
   line-height: 1.6;
   margin: 0;
 }
 
 .sectionLabel {
-  @include label(8px, 0.18em);
+  @include label(10px, 0.18em);
   color: var(--ch-text-faint);
 }
 
@@ -246,7 +246,7 @@
   background: var(--ch-surface-raised);
   @include hairline(all, 0.1);
   border-left: 2px solid var(--ch-gold-400);
-  @include readout(9px);
+  @include readout(11px);
   color: var(--ch-text-secondary);
 }
 
@@ -274,7 +274,7 @@
 .chapter {
   position: relative;
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: space(3);
   padding: space(3) space(3) space(3) space(2);
@@ -333,7 +333,7 @@
 }
 
 .numeral {
-  @include readout(10px);
+  @include readout(12px);
   color: var(--ch-gold-300);
   min-width: rem(22px);
 }
@@ -347,13 +347,13 @@
 
 .chapterTitle {
   font-family: var(--ch-font-body);
-  font-size: rem(13px);
+  font-size: rem(14.5px);
   color: var(--ch-text-primary);
   @include truncate;
 }
 
 .chapterMeta {
-  @include readout(9px);
+  @include readout(11px);
   color: var(--ch-text-faint);
   @include truncate;
 }
@@ -403,7 +403,7 @@
 
 // Where a chapter stands against the website.
 .status {
-  @include label(7px, 0.16em);
+  @include label(9px, 0.16em);
   padding: 1px space(2);
   white-space: nowrap;
   color: var(--ch-text-muted);
@@ -422,7 +422,7 @@
 
 // Opens the chapter in WRITE. The whole row does too; this says so.
 .writeButton {
-  @include label(8px, 0.16em);
+  @include label(10px, 0.16em);
   padding: space(1) space(3);
   color: var(--ch-text-secondary);
   background: none;
@@ -556,7 +556,7 @@
 }
 
 .formatCount {
-  @include readout(9px);
+  @include readout(11px);
   color: var(--ch-text-faint);
   padding: 0 space(2);
   white-space: nowrap;
@@ -589,7 +589,7 @@
 
 .planetNameText {
   font-family: var(--ch-font-body);
-  font-size: rem(13px);
+  font-size: rem(14.5px);
   color: var(--ch-text-primary);
   @include truncate;
 }
@@ -630,7 +630,7 @@
   padding: space(5);
   resize: vertical;
   font-family: var(--ch-font-body);
-  font-size: rem(14.5px);
+  font-size: rem(15.5px);
   line-height: 1.8;
   color: var(--ch-text-primary);
   background: var(--ch-surface-sunken);
@@ -765,7 +765,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: space(1) space(5);
-  @include readout(9px);
+  @include readout(11px);
   color: var(--ch-text-faint);
 }
 
@@ -865,14 +865,14 @@
 }
 
 .cardName {
-  @include label(8px, 0.12em);
+  @include label(10px, 0.12em);
   color: var(--ch-text-secondary);
   max-width: 100%;
   @include truncate;
 }
 
 .cardNote {
-  @include readout(8px);
+  @include readout(10px);
   color: var(--ch-text-faint);
 }
 
@@ -911,7 +911,7 @@
   right: space(2);
   bottom: space(2);
   padding: space(1) space(3);
-  @include label(8px, 0.16em);
+  @include label(10px, 0.16em);
   color: var(--ch-text-muted);
   background: rgba(12, 12, 12, 0.7);
   @include hairline(all, 0.16);
@@ -1019,7 +1019,7 @@
 }
 
 .foldTitle {
-  @include label(9px, 0.16em);
+  @include label(11px, 0.16em);
   color: var(--ch-text-secondary);
 }
 
@@ -1027,7 +1027,7 @@
   display: inline-flex;
   align-items: center;
   gap: space(2);
-  @include readout(9px);
+  @include readout(11px);
   color: var(--ch-text-faint);
 }
 
@@ -1046,7 +1046,7 @@
 
 .moreButton {
   align-self: flex-start;
-  @include label(8px, 0.14em);
+  @include label(10px, 0.14em);
   color: var(--ch-gold-300);
   background: none;
   border: 0;
@@ -1082,7 +1082,7 @@
 }
 
 .meter {
-  @include readout(9px);
+  @include readout(11px);
   color: var(--ch-text-faint);
   cursor: default;
 
@@ -1194,13 +1194,13 @@
 
 .layerTitle {
   font-family: var(--ch-font-body);
-  font-size: rem(12px);
+  font-size: rem(13.5px);
   color: var(--ch-text-primary);
   @include truncate;
 }
 
 .layerType {
-  @include label(7px, 0.14em);
+  @include label(9px, 0.14em);
   color: var(--ch-text-faint);
 }
 
@@ -1262,7 +1262,7 @@
 .segment {
   position: relative;
   padding: space(1) space(3);
-  @include label(8px, 0.14em);
+  @include label(10px, 0.14em);
   color: var(--ch-text-muted);
   background: none;
   border: 0;
@@ -1312,7 +1312,7 @@
 }
 
 .controlLabel {
-  @include label(8px, 0.18em);
+  @include label(10px, 0.18em);
   color: var(--ch-text-faint);
 }
 
@@ -1355,7 +1355,7 @@
 }
 
 .hex {
-  @include readout(10px);
+  @include readout(12px);
   color: var(--ch-text-secondary);
 }
 
@@ -1429,14 +1429,329 @@
 }
 
 .addLabel {
-  @include label(8px, 0.12em);
+  @include label(10px, 0.12em);
   color: var(--ch-text-secondary);
 }
 
 .addHint {
-  @include readout(8px);
+  @include readout(10px);
   color: var(--ch-text-faint);
   line-height: 1.4;
+}
+
+// ------------------------------------------------------- chapter layouts
+
+.srOnly {
+  @include visually-hidden;
+}
+
+// LIST: each chapter's planet, small, beside its title.
+.rowPlanet {
+  width: rem(40px);
+  height: rem(40px);
+  flex-shrink: 0;
+}
+
+// CARDS: each chapter with its planet at a size worth seeing.
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(rem(250px), 1fr));
+  gap: space(3);
+  margin: space(4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  width: 100%;
+  height: 100%;
+  padding: space(4);
+  text-align: left;
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+    box-shadow: inset 0 -2px 0 var(--ch-gold-400);
+  }
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(2);
+}
+
+.cardStage {
+  width: 72%;
+  max-width: rem(200px);
+  aspect-ratio: 1;
+  margin: space(2) auto space(3);
+}
+
+.cardTitle {
+  font-family: var(--ch-font-display);
+  font-size: rem(17px);
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+}
+
+.cardLine {
+  font-family: var(--ch-font-body);
+  font-style: italic;
+  font-size: rem(14px);
+  line-height: 1.5;
+  color: var(--ch-text-secondary);
+
+  &[data-empty] {
+    color: var(--ch-text-faint);
+  }
+}
+
+.cardFoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: space(1) space(3);
+  margin-top: auto;
+  padding-top: space(3);
+  @include hairline(top, 0.08);
+  @include readout(11px);
+  color: var(--ch-text-faint);
+}
+
+// ORBIT: the chapters round a ring, as the website's lore page sets them,
+// the one in hand large in the middle and said in full beside it.
+.orbitView {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: space(8);
+  align-items: center;
+  margin-top: space(5);
+}
+
+@include below('lg') {
+  .orbitView {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.orbitStage {
+  position: relative;
+  width: 100%;
+  max-width: rem(620px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.orbitRing {
+  position: absolute;
+  inset: 10%;
+}
+
+.orbitLine {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+
+  circle {
+    fill: none;
+    stroke: rgba(182, 158, 124, 0.3);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+}
+
+.orbitCentre {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.orbitNodes {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.orbitNode {
+  position: absolute;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+}
+
+.orbitPick {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: #0c0c0c;
+  border: 1px solid rgba(182, 158, 124, 0.16);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    border-color $duration-fast linear,
+    box-shadow $duration-fast linear;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+
+  .orbitNode[data-focused] & {
+    border-color: var(--ch-gold-300);
+    box-shadow: 0 0 0 3px rgba(182, 158, 124, 0.16);
+  }
+}
+
+// The numeral out past each planet, coloured by where its chapter stands.
+.orbitNumeral {
+  position: absolute;
+  left: calc(50% + var(--dx) * 92%);
+  top: calc(50% + var(--dy) * 92%);
+  translate: -50% -50%;
+  @include readout(12px);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+  pointer-events: none;
+
+  .orbitNode[data-status='published'] & {
+    color: var(--ch-gold-300);
+  }
+
+  .orbitNode[data-status='changed'] & {
+    color: var(--ch-accent-bright);
+  }
+
+  .orbitNode[data-focused] & {
+    color: var(--ch-text-primary);
+  }
+}
+
+// The place kept for the chapter still to come.
+.orbitNext {
+  display: block;
+  width: 56%;
+  aspect-ratio: 1;
+  margin: 22%;
+  border: 1px dashed rgba(182, 158, 124, 0.32);
+  border-radius: 50%;
+}
+
+.orbitDetail {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  min-width: 0;
+  max-width: rem(560px);
+}
+
+.orbitKicker {
+  @include label(10px, 0.24em);
+  color: var(--ch-gold-300);
+}
+
+.orbitTitle {
+  margin: 0;
+  font-family: var(--ch-font-display);
+  font-size: rem(34px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ch-text-primary);
+}
+
+.orbitLineText {
+  margin: 0;
+  font-family: var(--ch-font-body);
+  font-style: italic;
+  font-size: rem(17px);
+  line-height: 1.5;
+  color: var(--ch-text-secondary);
+
+  &[data-empty] {
+    color: var(--ch-text-faint);
+  }
+}
+
+.orbitFacts {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  margin: 0;
+  padding: space(4) 0;
+  @include hairline(top, 0.08);
+  @include hairline(bottom, 0.08);
+
+  > div {
+    display: grid;
+    grid-template-columns: rem(84px) minmax(0, 1fr);
+    gap: space(3);
+    align-items: baseline;
+  }
+
+  dt {
+    @include label(10px, 0.18em);
+    color: var(--ch-text-faint);
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: space(2) space(3);
+    margin: 0;
+    font-family: var(--ch-font-body);
+    font-size: rem(14px);
+    color: var(--ch-text-primary);
+  }
+}
+
+.orbitWhen {
+  @include readout(11px);
+  color: var(--ch-text-faint);
 }
 
 // ---------------------------------------------------- choosing a planet
@@ -1455,7 +1770,7 @@
   display: flex;
   flex-direction: column;
   gap: space(3);
-  @include readout(11px);
+  @include readout(12px);
   color: var(--ch-text-secondary);
   line-height: 1.65;
 

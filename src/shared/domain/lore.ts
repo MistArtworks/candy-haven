@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { isPresetId, planetSpecSchema, presetById, type PlanetSpec } from '../planets/engine'
+import {
+  isPresetId,
+  planetSpecSchema,
+  presetById,
+  PRESETS,
+  type PlanetSpec
+} from '../planets/engine'
 import {
   DEFAULT_PLANET_ID,
   LORE_LIMITS,
@@ -304,6 +310,40 @@ export function chapterViews(state: LoreState): LoreChapterView[] {
     const live = published.get(id) ?? null
     return { id, draft, published: live, status: chapterStatus(state, draft, live) }
   })
+}
+
+/** The planet a chapter is read beside, as CHAPTERS draws it. */
+export interface ChapterPlanet {
+  /** The planet's id: a preset's, or one in the library here. */
+  id: string
+  name: string
+  spec: PlanetSpec
+  /** Whether PLANETS can open it: false for the copy of somebody else's planet a published chapter carries. */
+  here: boolean
+}
+
+/**
+ * A chapter's planet: the draft's (a preset, or the library's), else the
+ * copy the website has of a chapter published elsewhere, else the planet a
+ * new chapter starts with.
+ */
+export function chapterPlanet(
+  state: Pick<LoreState, 'planets'>,
+  view: Pick<LoreChapterView, 'draft' | 'published'>
+): ChapterPlanet {
+  const id = view.draft?.planetId ?? view.published?.planetId ?? DEFAULT_PLANET_ID
+  const look = view.draft ? planetLook(state, view.draft.planetId) : null
+  if (look) return { id, ...look, here: true }
+  if (view.published) {
+    return {
+      id: view.published.planetId,
+      name: view.published.planetName,
+      spec: view.published.planet,
+      here: planetLook(state, view.published.planetId) !== null
+    }
+  }
+  const fallback = planetLook(state, DEFAULT_PLANET_ID) ?? PRESETS[0]
+  return { id: DEFAULT_PLANET_ID, name: fallback.name, spec: fallback.spec, here: true }
 }
 
 /** The published chapters, in the order here. */
