@@ -67,7 +67,7 @@ saturated colour marks what is live or what bites.
 28 MAR   Label submission closes           DEADLINE
 ```
 
-> If you want a date to follow a *project*, put the project's name in the
+> If you want a date to follow a _project_, put the project's name in the
 > entry's title. The register will not do it for you, and that is the feature —
 > see the note above about derived dates.
 

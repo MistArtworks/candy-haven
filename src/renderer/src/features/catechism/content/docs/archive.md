@@ -100,16 +100,16 @@ ledger, which is the view whose job is figures.
 
 Seven stages in a line, and one off to the side.
 
-| Stage         | What it means                                           |
-| ------------- | ------------------------------------------------------- |
-| `IDEA`        | A loop, a sample, a direction. Nothing committed yet    |
-| `SKETCH`      | The core sections exist. Structure is still open        |
-| `ARRANGEMENT` | Full-length arrangement committed end to end            |
-| `MIX`         | Balance, processing and automation being resolved       |
-| `MASTER`      | Mixdown bounced; mastering passes in progress           |
+| Stage         | What it means                                              |
+| ------------- | ---------------------------------------------------------- |
+| `IDEA`        | A loop, a sample, a direction. Nothing committed yet       |
+| `SKETCH`      | The core sections exist. Structure is still open           |
+| `ARRANGEMENT` | Full-length arrangement committed end to end               |
+| `MIX`         | Balance, processing and automation being resolved          |
+| `MASTER`      | Mixdown bounced; mastering passes in progress              |
 | `TRACK READY` | Finished, and ready to be put out. Linkable in DISCOGRAPHY |
-| `RELEASED`    | Out in the world. Needs the final master named           |
-| `SHELVED`     | Parked indefinitely. Kept for parts, not for release    |
+| `RELEASED`    | Out in the world. Needs the final master named             |
+| `SHELVED`     | Parked indefinitely. Kept for parts, not for release       |
 
 `TRACK READY` is the gate into the catalogue. Reaching it is your statement that
 the work is finished, and only projects at `TRACK READY` or `RELEASED` can be
@@ -312,7 +312,7 @@ a project already on a release — an album track, say — gets nothing new.
 
 **That entry is read-only until you adopt it.** Its sheet opens with a bar
 explaining where it came from and an **ADOPT THIS RELEASE** button; the fields
-below stay inactive until you press it. Until then the entry is a *projection*
+below stay inactive until you press it. Until then the entry is a _projection_
 of this project — the app made it and the app withdraws it again if you clear
 the master — so a form over a record that may vanish would be the wrong offer.
 You can still read every tab, close it, and remove it while it is locked;

@@ -44,15 +44,15 @@ register still reads as a register — numbered, ruled, status on the right.
 When an album comes out, its tracks often have records of their own too — one
 each, pointed at from the album's running order. The catalogue does not list
 those beside the album. It lists what came out as a release, and a track that
-only came out *with* the album is reached through the album.
+only came out _with_ the album is reached through the album.
 
 It tells the two apart from the track's own record:
 
-| The track's record has | In the catalogue |
-| --- | --- |
+| The track's record has                                                              | In the catalogue                |
+| ----------------------------------------------------------------------------------- | ------------------------------- |
 | A date of its own, different from the album's — a single out before it, or after it | Listed, as a release of its own |
-| Its own UPC | Listed — a UPC is a product |
-| The album's date, or no date at all | Inside the album, not listed |
+| Its own UPC                                                                         | Listed — a UPC is a product     |
+| The album's date, or no date at all                                                 | Inside the album, not listed    |
 
 Nothing needs setting. The album's running order still reaches every track —
 **Open** beside a row goes to its record — and that record reads **Track 3 of**
@@ -165,7 +165,7 @@ There is no save button because there is nothing to save — every field is
 written the moment you change it, which is how the whole console works. EDIT
 is there so that reading a finished release cannot accidentally rewrite it.
 
-Everything a release *could* hold is on the page, and anything it does not
+Everything a release _could_ hold is on the page, and anything it does not
 hold reads as a dash. That is deliberate: it makes the record its own
 pre-flight check, so you can see at a glance which of the things READY TO
 PUBLISH insists on is still missing.
@@ -183,13 +183,13 @@ publish or remove without pressing EDIT.
 
 Ordered by when you learn each thing, not by importance:
 
-| Tab        | Holds                                                          |
-| ---------- | -------------------------------------------------------------- |
-| `RELEASE`  | Title, subtitle, kind, status, release date, notes             |
-| `CREDITS`  | Main artist, featuring, and the liner-notes credits            |
-| `TRACKS`   | The running order, project links and release masters           |
-| `TRADE`    | Label, catalogue number, UPC, ℗ and ©, and the distribution    |
-| `ARTWORK`  | Cover and canvas, drawn large                                  |
+| Tab       | Holds                                                       |
+| --------- | ----------------------------------------------------------- |
+| `RELEASE` | Title, subtitle, kind, status, release date, notes          |
+| `CREDITS` | Main artist, featuring, and the liner-notes credits         |
+| `TRACKS`  | The running order, project links and release masters        |
+| `TRADE`   | Label, catalogue number, UPC, ℗ and ©, and the distribution |
+| `ARTWORK` | Cover and canvas, drawn large                               |
 
 It was one long scroll, which put twelve fields, a credit picker, a tracklist,
 six identifiers and two artwork wells at the same altitude.
@@ -220,10 +220,10 @@ a single holds one track, so the kind is the field that has to give.
 **Kind** is what the object is, and it decides how many tracks the release may
 hold:
 
-| Kind                              | Tracks   |
-| --------------------------------- | -------- |
-| `SINGLE` · `REMIX`                | one      |
-| `EP` · `ALBUM` · `COMPILATION`    | up to 40 |
+| Kind                           | Tracks   |
+| ------------------------------ | -------- |
+| `SINGLE` · `REMIX`             | one      |
+| `EP` · `ALBUM` · `COMPILATION` | up to 40 |
 
 A single and a remix each name one recording, so ADD A TRACK disappears once
 the track is there rather than refusing when pressed.
@@ -240,9 +240,9 @@ make a record fit its label.
 **Status** is how public it is, and it is **two states**: either it is out or it
 is not.
 
-| Status      | Means                                                 |
-| ----------- | ----------------------------------------------------- |
-| `SCHEDULED` | Committed to, whether or not it has a date yet        |
+| Status      | Means                                                    |
+| ----------- | -------------------------------------------------------- |
+| `SCHEDULED` | Committed to, whether or not it has a date yet           |
 | `RELEASED`  | Out in the world. Moves every linked project to RELEASED |
 
 `SCHEDULED` does **not** require a date. Leaving the date empty is what says
@@ -271,7 +271,7 @@ right about dates.
   parking work belongs.
 
 Entries stored under any of the three now read as `SCHEDULED`. Note what that
-costs: a release you had shelved says it is committed to. Park the *work* on the
+costs: a release you had shelved says it is committed to. Park the _work_ on the
 project's stage instead.
 
 ### Marking a release RELEASED writes into the ARCHIVE
@@ -393,14 +393,14 @@ single generally produced and wrote it too.
 
 ## Where it went
 
-| Field                | Holds                                                   |
-| -------------------- | ------------------------------------------------------- |
-| **Label**            | Who put it out. Empty means self-released               |
-| **Catalogue number** | The label's own reference                               |
-| **UPC**              | Identifies the _product_ — twelve to fourteen digits    |
-| **ISRC**             | Identifies a _recording_, so it sits on the **track**   |
-| **℗ / ©**            | The recording and the composition, separately           |
-| **Distribution**     | The platforms it goes out on — see below                |
+| Field                | Holds                                                 |
+| -------------------- | ----------------------------------------------------- |
+| **Label**            | Who put it out. Empty means self-released             |
+| **Catalogue number** | The label's own reference                             |
+| **UPC**              | Identifies the _product_ — twelve to fourteen digits  |
+| **ISRC**             | Identifies a _recording_, so it sits on the **track** |
+| **℗ / ©**            | The recording and the composition, separately         |
+| **Distribution**     | The platforms it goes out on — see below              |
 
 The label field autocompletes from labels already used, which is what keeps
 the spelling consistent across a catalogue.
@@ -417,14 +417,14 @@ it here moves the marker there.
 Under the codes, one block per platform — the stores and services this release
 is going to, each holding **two** addresses:
 
-| Slot | What goes in it |
-| --- | --- |
+| Slot         | What goes in it                                                                       |
+| ------------ | ------------------------------------------------------------------------------------- |
 | **PRE-SAVE** | The link you hand out before release day — a DistroKid or Hypeddit gate, a smart link |
-| **STREAM** | Where it actually is, once it is out |
+| **STREAM**   | Where it actually is, once it is out                                                  |
 
 Add a platform as soon as you know you are going to it, and leave both slots
-empty. That is the point of the list: it can say *Spotify is on the plan and
-has nowhere to point yet*, which a plain list of links never could.
+empty. That is the point of the list: it can say _Spotify is on the plan and
+has nowhere to point yet_, which a plain list of links never could.
 
 The one being asked for is the one in gold. Before the release is out that is
 PRE-SAVE; once you mark it RELEASED they swap, and the sheet says how many
@@ -462,13 +462,13 @@ Candy Heist, Nasko & Mist - Moves Like Jaggar (feat. Ekali)
 
 Inside it:
 
-| File | What it is |
-| --- | --- |
-| `<folder name>.wav` | the master, when the release has **one** track |
-| `01 Candy Heist - Solstice.wav` | numbered, when it has **several** |
-| `Cover Art.png` | the artwork, in whatever format you attached |
-| `Spotify Canvas.mp4` | the canvas, likewise |
-| `Release Details.txt` | everything a filename cannot carry |
+| File                            | What it is                                     |
+| ------------------------------- | ---------------------------------------------- |
+| `<folder name>.wav`             | the master, when the release has **one** track |
+| `01 Candy Heist - Solstice.wav` | numbered, when it has **several**              |
+| `Cover Art.png`                 | the artwork, in whatever format you attached   |
+| `Spotify Canvas.mp4`            | the canvas, likewise                           |
+| `Release Details.txt`           | everything a filename cannot carry             |
 
 The details file holds the title, kind, status, date, artists, credits, label,
 catalogue number, UPC, ℗ and ©, notes, every platform with its pre-save and

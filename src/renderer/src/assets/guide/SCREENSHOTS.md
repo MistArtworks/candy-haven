@@ -1,431 +1,136 @@
-# Screenshots to capture
-
-Every image the CATECHISM references, generated from the Markdown itself — so
-this list is exactly what the documentation asks for, no more and no less.
-
-**Drop the files in this folder.** No code change, no import, no registry entry.
-`lib/guide-assets.ts` globs the directory at build time and resolves each image
-by filename.
-
-A name with no file renders a captioned `CAPTURE PENDING` plate showing the
-filename it wanted, so you can also open CATECHISM in the app and read the
-outstanding list off the page.
-
----
-
-## Before you start
-
-|             |                                                             |
-| ----------- | ----------------------------------------------------------- |
-| Format      | PNG                                                         |
-| Window size | 1600 × 1000, or any size — **the same one for all of them** |
-| Accent      | crimson (REGULATION → PRESENTATION → Accent)                |
-| Motion      | full                                                        |
-| UI scale    | 1.0                                                         |
-
-Capture with `Alt`+`PrtScn` (active window) or `Win`+`Shift`+`S` (region). Full-
-console shots keep the title bar and rail; detail shots crop to the panel.
-
-Have real data on screen. An empty state teaches nothing — except the two places
-a chapter documents one on purpose (`archive-05-setup`, `dispatch-02-door`).
-
-> **Five shots cover eleven names.** Take one capture, save it under each name
-> on its line — the NEXUS landing shot serves three:
->
-> - `nexus-01-landing.png` = `welcome-02-nexus.png` = `welcome-03-rail.png`
-> - `archive-01-lenses.png` = `welcome-04-archive.png`
-> - `observatory-01-catalogue.png` = `welcome-05-observatory.png`
-> - `auditorium-01-stage.png` = `welcome-06-auditorium.png`
-> - `regulation-01-categories.png` = `welcome-07-regulation.png`
->
-> That takes 39 files down to **33 distinct captures**.
-
-> **Two images are not captures.** `practice-01-altar.png` and
-> `practice-02-vault.png` are supplied photographs of Candy Heist playing, not
-> screenshots, so there is nothing to shoot and they are excluded from the counts
-> and the checklist below. The first opens the orientation tour; the second opens
-> THE CONSOLE chapter. Both were gradient-mapped from its own luminance onto the
-> console ramp (obsidian → crimson → gold → alabaster, values taken from
-> `styles/base/_theme.scss`) because the original is stage-lit green, which
-> rule 2 of the design language forbids outright.
-
-Shortcuts worth knowing: `Ctrl`+`1`–`9` and `Ctrl`+`0` walk the rail, `Ctrl`+`,` opens
-REGULATION, `Ctrl`+`E` cycles LIST / ICONS / BOARD, `Alt`+`1`–`5` switches
-ARCHIVE lens.
-
----
-
-## Session 1 — NEXUS (2 files)
-
-`Ctrl`+`1`.
-
-**`nexus-01-landing.png`** · also save as `welcome-02-nexus.png` and
-`welcome-03-rail.png`
-
-1. Land on NEXUS. Do not scroll.
-2. Make sure the rail is **expanded**, not collapsed. This shot doubles as the
-   picture of the whole console, so all four divisions have to be visible:
-   COMMAND, PRODUCTION, BROADCAST, OVERSIGHT.
-3. Wait for the stat strip to settle — ARCHIVE should read ONLINE, so a settled
-   strip means the database is up and the shot is representative.
-4. Capture the full window.
-
-**`nexus-02-overview.png`**
-
-1. Scroll down once, or click the descend affordance.
-2. Frame so panels **01 ARCHIVE** through **05 DEPARTMENTS** are visible.
-3. Capture.
-
----
-
-## Session 2 — ARCHIVE (7 files)
-
-`Ctrl`+`3`. Do these in order; each builds on the last.
-
-> ARCHIVE is the **third** chord, not the second. INTERFACE is reserved but
-> still on the rail and still bound, so it holds `Ctrl`+`2` — the numbering
-> follows what is drawn rather than skipping what is not built.
-
-**`archive-01-lenses.png`** · also save as `welcome-04-archive.png`
-
-1. Select the **STACKS** lens (`Alt`+`1`).
-2. Set the view toggle in the panel header to **ICONS**.
-3. Open a genre shelf with several projects on it.
-4. Capture the full window — the lens rail must be legible down the left.
-
-**`archive-02-board.png`**
-
-1. Same shelf, switch the view toggle to **BOARD**.
-2. Ideally have projects sitting in more than one stage column.
-3. Capture.
-
-**`archive-03-intake.png`**
-
-1. Switch to the **INTAKE** lens (`Alt`+`2`).
-2. In the left pane, walk into a folder that holds unfiled projects.
-3. In the right pane, open the shelf you would file them into.
-4. Optional but good: tick two projects so the selection bar is showing.
-5. Capture both panes.
-
-**`archive-04-dossier.png`**
-
-1. Back to **STACKS**. Double-click a project to open its dossier.
-2. Stay on the **OVERVIEW** tab.
-3. Pick a project that has tags and notes on it — an empty dossier is a poor
-   illustration.
-4. Capture.
-
-**`archive-07-stage.png`**
-
-1. In the same dossier, frame the **STAGE** strip (panel 01).
-2. Crop to the strip and the readiness note beneath it.
-3. Capture.
-
-**`archive-11-tags.png`**
-
-1. In a dossier's OVERVIEW tab, find the **TAGS** panel.
-2. Click **MANAGE**.
-3. Capture the dialog.
-
-> **`archive-09-finalmaster.png` and `archive-10-volumes.png` are no longer
-> wanted.** Neither subject exists: the final-master dialog was deleted when
-> the pick moved to the DISCOGRAPHY track, and the VOLUMES lens became
-> DISCOGRAPHY. Both references are out of `docs/archive.md`, so nothing renders
-> a pending plate for them. Do not capture them.
-
-**`archive-05-setup.png`** — the setup gate
-
-1. Open REGULATION → **ARCHIVE** and **copy the current filing root somewhere**.
-2. Clear the filing root.
-3. Go to ARCHIVE. The setup gate is drawn instead of the register. Capture.
-4. **Paste the filing root back.**
-
-> This moves no files and deletes nothing — it only re-points the console. But
-> do put the path back before carrying on, or the department stays gated.
-
----
-
-## Session 3 — CALENDAR (3 files)
-
-`Ctrl`+`4`. Have entries on a few days first, or the views look empty.
-
-**`calendar-01-month.png`**
-
-1. Select the **MONTH** view.
-2. Page to a month with entries spread across several days.
-3. Capture.
-
-**`calendar-02-agenda.png`**
-
-1. Switch to **AGENDA**.
-2. Capture — the list should run several entries deep.
-
-**`calendar-04-entry.png`**
-
-1. In MONTH, click a day cell. The entry dialog opens on that date.
-2. Fill in a title and a time so the dialog is not blank.
-3. Capture, then close **without saving** if it was only for the shot.
-
----
-
-## Session 4 — AUDITORIUM (4 files)
-
-`Ctrl`+`5`.
-
-**`auditorium-01-stage.png`** · also save as `welcome-06-auditorium.png`
-
-1. Click **Admit a file** and open a track.
-2. Press play. The status reads `SOUNDING`.
-3. Let the playhead reach roughly a third in, so the waveform is clearly drawn.
-4. Capture the full window.
-
-**`auditorium-02-presets.png`**
-
-1. Same file, still playing.
-2. Frame the preset rail — WAVEFORM / SPECTRUM / SPECTRAL / STATIC.
-3. Crop to the rail and the stage above it.
-4. Capture.
-
-**`auditorium-03-zoom.png`**
-
-1. WAVEFORM, with a file surveyed.
-2. **Scroll over the render** until `SPAN` in the transport reads about `2.0S`,
-   over a region with a clear transient — a drop or a drum hit.
-3. Capture the stage and the transport together, so the band, the strip beneath
-   it with its lit window box, and the `SPAN` readout are all in frame.
-
-**`auditorium-04-popout.png`**
-
-1. Click **Pop out** in the masthead.
-2. Capture the detached player window on its own.
-
----
-
-## Session 5 — OBSERVATORY (6 files)
-
-`Ctrl`+`Shift`+`O`. The broadcast server must be running for the addresses to be
-real.
-
-**`observatory-01-catalogue.png`** · also save as `welcome-05-observatory.png`
-
-1. Land on the catalogue.
-2. Confirm the **Broadcast server** panel shows a root address and `Serving`.
-3. Capture the full window with as many overlay cards visible as fit.
-
-**`observatory-02-card.png`**
-
-1. Frame a single overlay card — THE CONCORD is a good one, it has two addresses.
-2. The **Source** URL and the canvas size must be readable.
-3. Crop to the card.
-4. Capture.
-
-**`overlay-muster-console.png`**
-
-1. Open **THE MUSTER** (`Open console →` on its card).
-2. Put a question and let a few entries onto the roll — test mode under
-   REGULATION → REHEARSAL is the easy way if chat is not live.
-3. Capture the console page.
-
-**`overlay-concord-console.png`**
-
-1. Open **THE CONCORD**.
-2. File a ballot with three or four options and let some votes land.
-3. Capture with the tally showing real numbers.
-
-**`overlay-selection-scene.png`**
-
-1. Open **RESONANCE SELECTION** and file several petitions.
-2. Open its browser-source URL in a normal browser window.
-3. Start a draw and capture the ring **mid-spin**.
-
-**`overlay-chorus-console.png`**
-
-1. Open **THE CHORUS** (`Configure and copy` on its panel).
-2. Capture the configuration page.
-
----
-
-## Session 6 — TELEMETRY (2 files)
-
-`Ctrl`+`7`.
-
-**`telemetry-01-vitals.png`**
-
-1. Let the page run ten seconds so the sparklines have history in them.
-2. Capture the tile row.
-
-**`telemetry-02-cores.png`**
-
-1. Frame the per-core strip below the tiles.
-2. Best taken while the machine is doing something — an even set of idle bars
-   says less than an uneven one.
-3. Crop to the strip and capture.
-
----
-
-## Session 7 — DISPATCH (3 files)
-
-`Ctrl`+`8`.
-
-**`dispatch-01-board.png`**
-
-1. Sign in to the board.
-2. Have a few items filed, ideally in different states.
-3. Capture the board.
-
-**`dispatch-03-thread.png`**
-
-1. Open an item that has discussion on it.
-2. Capture the thread.
-
-**`dispatch-02-door.png`** — the identity band
-
-1. Sign out.
-2. Capture the band before signing back in. **Have the password to hand.**
-
----
-
-## Session 8 — REGULATION (5 files)
-
-`Ctrl`+`,`.
-
-**`regulation-01-categories.png`** · also save as `welcome-07-regulation.png`
-
-1. Open the **PRESENTATION** category.
-2. Frame so the whole category nav is visible down the side.
-3. Capture the full window.
-
-**`regulation-02-archive.png`** — ARCHIVE category, filing root and satellites.
-
-**`regulation-03-integrations.png`** — INTEGRATIONS category.
-
-> **Blank the Spotify client id and the Twitch channel before capturing.** This
-> image ships in the app.
-
-**`regulation-04-board.png`** — BOARD category. Scrub the connection details too.
-
-**`regulation-05-diagnostics.png`** — DIAGNOSTICS category, paths and versions.
-
----
-
-## Session 9 — last, once everything else is in
-
-**`welcome-08-documentation.png`**
-
-1. `Ctrl`+`0` for CATECHISM — it is the tenth department.
-2. Open the **THE CONSOLE** chapter.
-3. Capture the full window — chapter rail on the left, prose on the right.
-
-This is a picture of the documentation, so take it after the other captures have
-landed. Otherwise it shows a page full of `CAPTURE PENDING` plates.
-
----
-
-## Checklist
-
-| Done | Filename                         | Tier                                   |
-| ---- | -------------------------------- | -------------------------------------- |
-| ☑    | `nexus-01-landing.png`           | 1                                      |
-| ☑    | `nexus-02-overview.png`          | 1                                      |
-| ☑    | `archive-01-lenses.png`          | 1                                      |
-| ☑    | `archive-02-board.png`           | 1                                      |
-| ☑    | `archive-03-intake.png`          | 1                                      |
-| ☑    | `archive-04-dossier.png`         | 1                                      |
-| ☑    | `calendar-01-month.png`          | 1                                      |
-| ☑    | `calendar-02-agenda.png`         | 1                                      |
-| ☑    | `auditorium-01-stage.png`        | 1                                      |
-| ☑    | `auditorium-02-presets.png`      | 1                                      |
-| ☑    | `observatory-01-catalogue.png`   | 1                                      |
-| ☑    | `observatory-02-card.png`        | 1                                      |
-| ☑    | `telemetry-01-vitals.png`        | 1                                      |
-| ☑    | `dispatch-01-board.png`          | 1                                      |
-| ☑    | `regulation-01-categories.png`   | 1                                      |
-| ☑    | `welcome-02-nexus.png`           | 1 · copy of `nexus-01-landing`         |
-| ☑    | `welcome-03-rail.png`            | 1 · copy of `nexus-01-landing`         |
-| ☑    | `welcome-04-archive.png`         | 1 · copy of `archive-01-lenses`        |
-| ☑    | `welcome-05-observatory.png`     | 1 · copy of `observatory-01-catalogue` |
-| ☑    | `welcome-06-auditorium.png`      | 1 · copy of `auditorium-01-stage`      |
-| ☑    | `welcome-07-regulation.png`      | 1 · copy of `regulation-01-categories` |
-| ☑    | `welcome-08-documentation.png`   | 1 · take last                          |
-| ☑    | `archive-05-setup.png`           | 2                                      |
-| ☑    | `archive-07-stage.png`           | 2                                      |
-| ☑    | `archive-11-tags.png`            | 2                                      |
-| ☑    | `auditorium-03-zoom.png`         | 2                                      |
-| ☑    | `auditorium-04-popout.png`       | 2                                      |
-| ☑    | `calendar-04-entry.png`          | 2                                      |
-| ☑    | `dispatch-02-door.png`           | 2                                      |
-| ☑    | `dispatch-03-thread.png`         | 2                                      |
-| ☑    | `telemetry-02-cores.png`         | 2                                      |
-| ☑    | `regulation-02-archive.png`      | 2                                      |
-| ☑    | `regulation-03-integrations.png` | 2 · scrub secrets                      |
-| ☑    | `regulation-04-board.png`        | 2 · scrub secrets                      |
-| ☑    | `regulation-05-diagnostics.png`  | 2                                      |
-| ☑    | `overlay-muster-console.png`     | 2                                      |
-| ☑    | `overlay-concord-console.png`    | 2                                      |
-| ☑    | `overlay-selection-scene.png`    | 2                                      |
-| ☑    | `overlay-chorus-console.png`     | 2                                      |
-
----
-
-## Where each one is used
-
-Useful when a capture looks wrong on the page and you want the sentence it
-illustrates.
-
-| Filename                         | Appears in                                                        |
-| -------------------------------- | ----------------------------------------------------------------- |
-| `archive-01-lenses.png`          | `guides/archive.md`, `docs/archive.md`                            |
-| `archive-02-board.png`           | `guides/archive.md`, `docs/archive.md`                            |
-| `archive-03-intake.png`          | `guides/archive.md`, `docs/archive.md`, `docs/getting-started.md` |
-| `archive-04-dossier.png`         | `guides/archive.md`, `docs/archive.md`                            |
-| `archive-05-setup.png`           | `docs/getting-started.md`                                         |
-| `archive-07-stage.png`           | `docs/archive.md`                                                 |
-| `archive-11-tags.png`            | `docs/archive.md`                                                 |
-| `auditorium-01-stage.png`        | `guides/auditorium.md`, `docs/auditorium.md`                      |
-| `auditorium-02-presets.png`      | `guides/auditorium.md`, `docs/auditorium.md`                      |
-| `auditorium-03-zoom.png`         | `docs/auditorium.md`                                              |
-| `auditorium-04-popout.png`       | `docs/auditorium.md`                                              |
-| `calendar-01-month.png`          | `guides/calendar.md`, `docs/calendar.md`                          |
-| `calendar-02-agenda.png`         | `guides/calendar.md`                                              |
-| `calendar-04-entry.png`          | `docs/calendar.md`                                                |
-| `dispatch-01-board.png`          | `guides/dispatch.md`, `docs/dispatch.md`                          |
-| `dispatch-02-door.png`           | `docs/dispatch.md`                                                |
-| `dispatch-03-thread.png`         | `docs/dispatch.md`                                                |
-| `nexus-01-landing.png`           | `guides/nexus.md`, `docs/nexus.md`                                |
-| `nexus-02-overview.png`          | `guides/nexus.md`, `docs/nexus.md`, `guides/orientation.md`       |
-| `observatory-01-catalogue.png`   | `guides/observatory.md`, `docs/observatory.md`                    |
-| `observatory-02-card.png`        | `guides/observatory.md`, `docs/observatory.md`                    |
-| `overlay-chorus-console.png`     | `docs/observatory.md`                                             |
-| `overlay-concord-console.png`    | `docs/observatory.md`                                             |
-| `overlay-muster-console.png`     | `docs/observatory.md`                                             |
-| `overlay-selection-scene.png`    | `docs/observatory.md`                                             |
-| `practice-01-altar.png`          | `guides/orientation.md`                                           |
-| `practice-02-vault.png`          | `docs/overview.md`                                                |
-| `regulation-01-categories.png`   | `guides/regulation.md`, `docs/regulation.md`                      |
-| `regulation-02-archive.png`      | `docs/regulation.md`                                              |
-| `regulation-03-integrations.png` | `docs/regulation.md`                                              |
-| `regulation-04-board.png`        | `docs/regulation.md`                                              |
-| `regulation-05-diagnostics.png`  | `docs/regulation.md`                                              |
-| `telemetry-01-vitals.png`        | `guides/telemetry.md`, `docs/telemetry.md`                        |
-| `telemetry-02-cores.png`         | `docs/telemetry.md`                                               |
-| `welcome-02-nexus.png`           | — unreferenced (identical to `welcome-03-rail.png`)               |
-| `welcome-03-rail.png`            | `guides/orientation.md`, `docs/overview.md`                       |
-| `welcome-04-archive.png`         | `guides/orientation.md`                                           |
-| `welcome-05-observatory.png`     | `guides/orientation.md`                                           |
-| `welcome-06-auditorium.png`      | `guides/orientation.md`                                           |
-| `welcome-07-regulation.png`      | `guides/orientation.md`                                           |
-| `welcome-08-documentation.png`   | `guides/orientation.md`                                           |
-
----
-
-## Adding one that is not on this list
+# Screenshots
+
+Every image the CATECHISM references, listed from the Markdown itself: what it
+shows and where it is used. 69 files: 63 captures, 4 copies of one of those
+under a second name for the orientation tour, and two supplied photographs.
+
+**Drop a file in this folder and it is available.** `lib/guide-assets.ts` globs
+the directory at build time and resolves each image by filename, so there is
+no import and no registry entry. A name with no file renders a captioned
+`CAPTURE PENDING` plate instead, so a chapter can be written before its picture
+is taken.
+
+## How these were taken
+
+|          |                                             |
+| -------- | ------------------------------------------- |
+| Format   | PNG                                         |
+| Window   | 1600 x 1000, on a display at 100% scaling   |
+| Accent   | crimson                                     |
+| Motion   | full                                        |
+| UI scale | 1.0                                         |
+| Pointer  | native, so no drawn reticle lands in a shot |
+
+Full-window shots keep the title bar and the rail. Crops are tight to the
+panel or dialog, with nothing behind them.
+
+They were taken from a copy of the console with a profile of its own: its own
+folder and its own archive, filled with a made-up practice (projects, releases,
+artists, entries), made-up website visitors in CONTACT and SERVICES, and a
+made-up board in DISPATCH. Nothing on any of them is real, and nothing real was
+read or written to make them.
+
+Rules worth keeping for the next ones:
+
+- **Sample data only.** No real visitor, enquiry, board item or project. This
+  repository is public.
+- **No secrets.** REGULATION's INTEGRATIONS and BOARD are shot with no Spotify
+  client id, no token and no password on screen.
+- **Paths and ports as an installation's.** A copy run beside the real console
+  takes other ports and lives in another folder; the shots carry the usual ones
+  (`27917`, `27918`, `%APPDATA%\candy-haven`).
+- **Nothing a development build adds.** The NEXUS field picker and CATECHISM's
+  **Rehearse first run** are hidden.
+- **AUDITORIUM last.** Once a file is admitted, the transport bar stays along
+  the foot of every page.
+
+The two photographs, `practice-01-altar.png` and `practice-02-vault.png`, are
+not captures. They are Candy Heist playing, gradient-mapped onto the console
+ramp because the originals are stage-lit green; DARKROOM's default ramp was
+recovered from them.
+
+## Every image
+
+| Filename                         | Shows                                                                     | Used in                                                           |
+| -------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `archive-01-lenses.png`          | STACKS on a genre shelf (PERSONAL › TECH HOUSE), in ICONS                 | `guides/archive.md`, `docs/archive.md`                            |
+| `archive-02-board.png`           | ALL in the BOARD view, each project in its stage column                   | `guides/archive.md`, `docs/archive.md`                            |
+| `archive-03-intake.png`          | INTAKE: what is on disk on the left, two marked; the shelves on the right | `guides/archive.md`, `docs/archive.md`, `docs/getting-started.md` |
+| `archive-04-dossier.png`         | A project's dossier on OVERVIEW: stage, credits, tags and notes           | `guides/archive.md`, `docs/archive.md`                            |
+| `archive-05-setup.png`           | The setup gate on a fresh installation. Crop                              | `docs/getting-started.md`                                         |
+| `archive-07-stage.png`           | The dossier's STAGE strip. Crop                                           | `docs/archive.md`                                                 |
+| `archive-11-tags.png`            | Manage tags. Crop                                                         | `docs/archive.md`                                                 |
+| `artists-01-roster.png`          | The roster                                                                | `guides/artists.md`, `docs/artists.md`                            |
+| `artists-02-add.png`             | Add an artist, with a name typed. Crop                                    | `guides/artists.md`, `docs/artists.md`                            |
+| `artists-03-record.png`          | An artist's record: releases, then projects. Crop                         | `guides/artists.md`, `docs/artists.md`                            |
+| `auditorium-01-stage.png`        | A file admitted and held part-way in, on WAVEFORM                         | `guides/auditorium.md`, `docs/auditorium.md`                      |
+| `auditorium-02-presets.png`      | The PRESET panel. Crop                                                    | `guides/auditorium.md`, `docs/auditorium.md`                      |
+| `auditorium-03-zoom.png`         | The band wound in to about a second. Crop                                 | `docs/auditorium.md`                                              |
+| `auditorium-04-popout.png`       | The popout window                                                         | `guides/auditorium.md`, `docs/auditorium.md`                      |
+| `calendar-01-month.png`          | MONTH, with a month of entries                                            | `guides/calendar.md`, `docs/calendar.md`                          |
+| `calendar-02-agenda.png`         | AGENDA                                                                    | `docs/calendar.md`                                                |
+| `calendar-04-entry.png`          | Filing an entry. Crop                                                     | `guides/calendar.md`, `docs/calendar.md`                          |
+| `colophon-01-reserved.png`       | COLOPHON, coming soon                                                     | `docs/colophon.md`                                                |
+| `contact-01-inbox.png`           | The inbox, one message open                                               | `guides/contact.md`, `docs/contact.md`                            |
+| `contact-02-message.png`         | One message: details, Reply by email, status and note. Crop               | `guides/contact.md`, `docs/contact.md`                            |
+| `darkroom-01-plate.png`          | A photograph on the plate, graded on the defaults                         | `guides/darkroom.md`, `docs/darkroom.md`                          |
+| `darkroom-02-ramp.png`           | The RAMP panel. Crop                                                      | `guides/darkroom.md`, `docs/darkroom.md`                          |
+| `discography-01-catalogue.png`   | The catalogue, on CATALOGUE                                               | `guides/discography.md`, `docs/discography.md`                    |
+| `discography-02-raise.png`       | Raise a release, filled in. Crop                                          | `guides/discography.md`, `docs/discography.md`                    |
+| `discography-03-tracks.png`      | A release's TRACKS while editing. Crop                                    | `guides/discography.md`, `docs/discography.md`                    |
+| `discography-04-record.png`      | A release's record                                                        | `guides/discography.md`, `docs/discography.md`                    |
+| `dispatch-01-board.png`          | The board, one item open                                                  | `guides/dispatch.md`, `docs/dispatch.md`                          |
+| `dispatch-02-door.png`           | Signed out: the sign-in band across the page                              | `guides/dispatch.md`, `docs/dispatch.md`                          |
+| `dispatch-03-thread.png`         | An item's thread and the ruling controls. Crop                            | `docs/dispatch.md`                                                |
+| `dispatch-04-file.png`           | Filing a new item. Crop                                                   | `guides/dispatch.md`, `docs/dispatch.md`                          |
+| `lore-01-chapters.png`           | CHAPTERS, with published, changed and draft chapters                      | `guides/lore.md`, `docs/lore.md`                                  |
+| `lore-02-new-chapter.png`        | The new chapter row. Crop                                                 | `docs/lore.md`                                                    |
+| `lore-03-planet-picker.png`      | Choosing a planet for a chapter. Crop                                     | `docs/lore.md`                                                    |
+| `lore-04-write.png`              | WRITE, side by side                                                       | `guides/lore.md`, `docs/lore.md`                                  |
+| `lore-05-format-bar.png`         | The format bar, with a hint showing. Crop                                 | `docs/lore.md`                                                    |
+| `lore-06-preview.png`            | WRITE, full preview                                                       | `guides/lore.md`, `docs/lore.md`                                  |
+| `lore-07-publish-warning.png`    | The first-publish warning. Crop                                           | `docs/lore.md`                                                    |
+| `lore-08-published.png`          | A published chapter in the editor. Crop                                   | `docs/lore.md`                                                    |
+| `lore-09-order.png`              | The order bar, with a new order to publish. Crop                          | `docs/lore.md`                                                    |
+| `lore-10-conflict.png`           | A publish conflict. Crop                                                  | `docs/lore.md`                                                    |
+| `lore-11-planets.png`            | PLANETS, a planet open in the maker                                       | `guides/lore.md`, `docs/lore.md`                                  |
+| `lore-12-add-layer.png`          | Add layer. Crop                                                           | `docs/lore.md`                                                    |
+| `lore-13-layer-settings.png`     | A layer's settings. Crop                                                  | `docs/lore.md`                                                    |
+| `nexus-01-landing.png`           | The landing, on THE GATE                                                  | `guides/nexus.md`, `docs/nexus.md`                                |
+| `nexus-02-overview.png`          | The diagnostic grid, after Descend                                        | `guides/nexus.md`, `guides/orientation.md`, `docs/nexus.md`       |
+| `observatory-01-catalogue.png`   | The desk: the kit, and THE CONCORD on the bench with a vote running       | `guides/observatory.md`, `docs/observatory.md`                    |
+| `observatory-02-card.png`        | A bench's browser source row. Crop                                        | `guides/observatory.md`, `docs/observatory.md`                    |
+| `overlay-chorus-console.png`     | THE CHORUS's page                                                         | `docs/observatory.md`                                             |
+| `overlay-concord-console.png`    | THE CONCORD's page, a vote running in rehearsal                           | `guides/observatory.md`, `docs/observatory.md`                    |
+| `overlay-muster-console.png`     | THE MUSTER's page, a call open in rehearsal                               | `docs/observatory.md`                                             |
+| `overlay-selection-scene.png`    | RESONANCE SELECTION's page, petitions on the ring                         | `docs/observatory.md`                                             |
+| `practice-01-altar.png`          | Supplied photograph, not a capture                                        | `guides/orientation.md`                                           |
+| `practice-02-vault.png`          | Supplied photograph, not a capture                                        | `docs/overview.md`                                                |
+| `regulation-01-categories.png`   | REGULATION on PRESENTATION                                                | `guides/regulation.md`, `docs/regulation.md`                      |
+| `regulation-02-archive.png`      | REGULATION on ARCHIVE                                                     | `docs/regulation.md`                                              |
+| `regulation-03-integrations.png` | INTEGRATIONS, with no client id in it. Crop                               | `docs/regulation.md`                                              |
+| `regulation-04-board.png`        | REGULATION on BOARD                                                       | `docs/regulation.md`                                              |
+| `regulation-05-diagnostics.png`  | DIAGNOSTICS. Crop                                                         | `docs/regulation.md`                                              |
+| `services-01-enquiries.png`      | DJ enquiries, one open                                                    | `guides/services.md`, `docs/services.md`                          |
+| `services-02-enquiry.png`        | One enquiry. Crop                                                         | `guides/services.md`, `docs/services.md`                          |
+| `services-03-producer.png`       | PRODUCER, coming soon. Crop                                               | `docs/services.md`                                                |
+| `telemetry-01-vitals.png`        | TELEMETRY                                                                 | `guides/telemetry.md`, `docs/telemetry.md`                        |
+| `telemetry-02-cores.png`         | PER-CORE LOAD. Crop                                                       | `docs/telemetry.md`                                               |
+| `welcome-03-rail.png`            | Copy of `nexus-01-landing`                                                | `guides/orientation.md`, `docs/overview.md`                       |
+| `welcome-04-archive.png`         | ARCHIVE, STACKS at the top of the tree                                    | `guides/orientation.md`                                           |
+| `welcome-05-observatory.png`     | Copy of `observatory-01-catalogue`                                        | `guides/orientation.md`                                           |
+| `welcome-06-auditorium.png`      | Copy of `auditorium-01-stage`                                             | `guides/orientation.md`                                           |
+| `welcome-07-regulation.png`      | Copy of `regulation-01-categories`                                        | `guides/orientation.md`                                           |
+| `welcome-08-documentation.png`   | CATECHISM, on THE CONSOLE. Take it last                                   | `guides/orientation.md`                                           |
+
+## Adding one
 
 Drop the file here and reference it from any Markdown document under
 `src/renderer/src/features/catechism/content/`:
 
 ```markdown
-![A short caption](my-new-capture.png)
+![a-short-name.png](a-short-name.png)
 ```
 
-The caption becomes the figure's caption on the page. Filename only — no path,
-no import.
+Name it `<scope>-<nn>-<topic>.png`, in kebab-case: the department, `welcome`
+for the orientation tour, or `overlay-<name>` for a broadcast source.

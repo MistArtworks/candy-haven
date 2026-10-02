@@ -26,8 +26,7 @@ and links to a project only when there is one.
 ## Kind, and status
 
 **Kind** is what it is — single, EP, album, compilation, remix — and it sets
-the track ceiling. A single or a remix holds **one** track; the rest hold up to
-40.
+the track ceiling. A single or a remix holds **one** track; the rest hold up to 40.
 
 > A single that ships with its own remix is two recordings, so file it as an
 > EP. The kinds mean what they say here.
@@ -58,7 +57,7 @@ later. If something is missing from it, move it to TRACK READY in the ARCHIVE.
 
 A track with no project is ordinary: a back catalogue has none.
 
-When an album comes out, a track that only came out *with* it is drawn inside
+When an album comes out, a track that only came out _with_ it is drawn inside
 the album rather than listed beside it. One that came out on its own first — a
 single — stays listed.
 

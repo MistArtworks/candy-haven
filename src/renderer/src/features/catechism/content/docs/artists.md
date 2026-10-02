@@ -103,7 +103,7 @@ and that is deliberate: a roster entry is filled in over time, usually while
 doing something else, and a form that has to be committed is one you abandon
 half-finished.
 
-| Field          | For                                                                     |
+| Field          | For                                                                      |
 | -------------- | ------------------------------------------------------------------------ |
 | **Name**       | How they are billed. What appears on credits                             |
 | **Real name**  | For splits and paperwork. Never shown where the alias belongs            |
