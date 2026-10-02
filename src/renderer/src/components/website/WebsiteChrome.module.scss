@@ -1,0 +1,59 @@
+@use 'abstracts' as *;
+
+// The website departments' shared furniture (CONTACT, SERVICES, LORE),
+// moved here from Inbox.module.scss when LORE came to need it.
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: space(5);
+}
+
+// Which website is being read. Worth saying aloud: a development copy reads a
+// development server, and the two must never be mistaken for each other.
+.website {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.14);
+}
+
+.websiteLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.websiteName {
+  @include readout(10px);
+  color: var(--ch-gold-200);
+}
+
+// The missing Firebase config: a standing state, drawn as DISPATCH draws it.
+.gate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin: space(5) 0 0;
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.14);
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.inlineLink {
+  color: var(--ch-gold-300);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+}
+
+.checkForNew {
+  margin-left: auto;
+}

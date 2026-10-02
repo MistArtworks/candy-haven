@@ -1,4 +1,4 @@
-import { app, Notification } from 'electron'
+import { Notification } from 'electron'
 import type {
   EnquiryStatusChange,
   InboxLink,
@@ -9,20 +9,14 @@ import type {
   SiteEnquiry,
   SiteMessage
 } from '@shared/domain/inbox'
-import {
-  LIVE_WEBSITE_URL,
-  LOCAL_WEBSITE_URL,
-  websiteOrigin,
-  type EnquiryStatus,
-  type InboxKind,
-  type MessageStatus
-} from '@shared/domain/inbox.constants'
+import type { EnquiryStatus, InboxKind, MessageStatus } from '@shared/domain/inbox.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import { TypedEmitter } from '@main/core/emitter'
 import type { ArchiveService } from '@main/services/archive/archive.service'
 import type { SettingsService } from '@main/services/settings/settings.service'
 import type { DispatchService } from '@main/services/dispatch/dispatch.service'
+import { hostOf, websiteFor } from '@main/services/website/website.address'
 import { InboxRepository } from './inbox.repository'
 import { SiteClient, SiteError } from './site.client'
 
@@ -117,10 +111,7 @@ export class InboxService extends TypedEmitter<InboxEvents> {
    * source, so a development copy never writes to the live site's records.
    */
   get website(): string {
-    return (
-      websiteOrigin(this.settings.snapshot.integrations.websiteUrl) ??
-      (app.isPackaged ? LIVE_WEBSITE_URL : LOCAL_WEBSITE_URL)
-    )
+    return websiteFor(this.settings.snapshot)
   }
 
   private get repository(): InboxRepository {
@@ -464,12 +455,4 @@ function countWords(messages: number, enquiries: number): string {
     enquiries ? `${enquiries} DJ enquir${enquiries === 1 ? 'y' : 'ies'}` : ''
   ].filter(Boolean)
   return parts.join(' and ')
-}
-
-function hostOf(origin: string): string {
-  try {
-    return new URL(origin).host
-  } catch {
-    return origin
-  }
 }

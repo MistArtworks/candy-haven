@@ -173,6 +173,26 @@ opens a broadcast.
 
 **Rehearsal** — test mode, for exercising the kit with no audience.
 
+## THE LORE
+
+**Draft** — a chapter as written in LORE. Kept on this PC only; the other copy
+of the console never sees it.
+
+**Publish** — sending one chapter to the website as it stands, with a copy of
+its planet. The only way anything written in LORE reaches the website.
+
+**Live** — the website showing the lore published from here rather than its
+own files. Set by the first publish, for good.
+
+**Chapter address** — the end of a chapter's link, `/lore/the-planet`. Fixed
+while the chapter is published. Not the same as an overlay's address.
+
+**Preset** — one of the eleven planets the lore began with. Never changed;
+duplicated to make a planet of your own.
+
+**Layer** — one part of a planet: one of 26 kinds, with its own colours, shape,
+place and motion. Up to 24, stacked.
+
 ## Elsewhere
 
 **Boot stage** — one of the nine steps the launch sequence performs. Named in

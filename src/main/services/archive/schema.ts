@@ -101,6 +101,21 @@ export const Collections = {
    * keyed by its address, holding the cursor the website handed back last.
    */
   SyncState: 'sync_state',
+  /**
+   * LORE: the chapters as written here. Drafts never leave this machine;
+   * publishing one sends it, as it stands, to the website (docs/LORE.md).
+   */
+  LoreChapters: 'lore_chapters',
+  /** LORE: the planet library, kept here; a published chapter carries a copy. */
+  LorePlanets: 'lore_planets',
+  /** LORE: the chapters' order here, one document. "Publish order" sends it. */
+  LoreOrder: 'lore_order',
+  /**
+   * LORE: what the website has published, as last fetched, one document per
+   * website, so the department opens at once and still opens with the
+   * network down. A copy for reading only.
+   */
+  LoreCache: 'lore_cache',
   /** Stream overlay scenes and layouts (OBSERVATORY section). */
   Overlays: 'overlays',
   /** Natural-language commands and their resolved actions (INTERFACE section). */

@@ -313,6 +313,21 @@ const api: CandyHavenApi = {
     onState: (listener) => subscribe('inbox:state', listener),
     onOpen: (listener) => subscribe('inbox:open', listener)
   },
+  lore: {
+    state: () => invoke('lore:state'),
+    sync: () => invoke('lore:sync'),
+    createChapter: (draft) => invoke('lore:create-chapter', draft),
+    saveChapter: (input) => invoke('lore:save-chapter', input),
+    deleteChapter: (input) => invoke('lore:delete-chapter', input),
+    publish: (input) => invoke('lore:publish', input),
+    unpublish: (id) => invoke('lore:unpublish', { id }),
+    reorder: (ids) => invoke('lore:reorder', { ids }),
+    publishOrder: () => invoke('lore:publish-order'),
+    createPlanet: (draft) => invoke('lore:create-planet', draft),
+    savePlanet: (input) => invoke('lore:save-planet', input),
+    deletePlanet: (id) => invoke('lore:delete-planet', { id }),
+    onState: (listener) => subscribe('lore:state', listener)
+  },
   auditorium: {
     read: (path) => invoke('auditorium:read', { path }),
     popout: (file, at = null, playing = false) =>

@@ -15,6 +15,7 @@ import { TimerService } from './overlay/timer.service'
 import { SpotifyService } from './overlay/spotify.service'
 import { DispatchService } from './dispatch/dispatch.service'
 import { InboxService } from './inbox/inbox.service'
+import { LoreService } from './lore/lore.service'
 import { ConcordService } from './overlay/concord.service'
 import { MusterService } from './overlay/muster.service'
 import { TwitchChatService } from './chat/twitch-chat.service'
@@ -91,6 +92,12 @@ export interface ServiceContainer {
    * so it takes the board's service. See docs/INBOX.md.
    */
   readonly inbox: InboxService
+  /**
+   * LORE: the lore of Nayara, written here and published to the website.
+   * Drafts and planets are kept in the archive; only publishing reaches the
+   * website. Borrows DISPATCH's sign-in, as the inbox does. See docs/LORE.md.
+   */
+  readonly lore: LoreService
   readonly concord: ConcordService
   readonly muster: MusterService
   /**
@@ -213,6 +220,7 @@ export function createServiceContainer(): ServiceContainer {
     nowPlaying: new SpotifyService(archive, overlayServer),
     dispatch,
     inbox: new InboxService(archive, settings, dispatch),
+    lore: new LoreService(archive, settings, dispatch),
     concord,
     muster: new MusterService(archive, overlayServer, chat, settings, rite, concord),
     orientation: new OrientationStore()
@@ -239,8 +247,9 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
   container.rite.dispose()
   container.timers.dispose()
   container.nowPlaying.dispose()
-  // Before the board: the inbox borrows its sign-in and listens to it.
+  // Before the board: the inbox and LORE borrow its sign-in and listen to it.
   container.inbox.dispose()
+  container.lore.dispose()
   container.dispatch.dispose()
   container.muster.dispose()
   // Before chat: the poll releases its claim on the way down, and disposing the

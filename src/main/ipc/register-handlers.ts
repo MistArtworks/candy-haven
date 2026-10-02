@@ -431,6 +431,21 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('inbox:note', (note) => services.inbox.setNote(note))
   router.handle('inbox:delete', (target) => services.inbox.remove(target))
 
+  // --------------------------------------------------------------------- lore
+
+  router.handle('lore:state', () => services.lore.current)
+  router.handle('lore:sync', () => services.lore.sync())
+  router.handle('lore:create-chapter', (draft) => services.lore.createChapter(draft))
+  router.handle('lore:save-chapter', (input) => services.lore.saveChapter(input))
+  router.handle('lore:delete-chapter', (input) => services.lore.deleteChapter(input))
+  router.handle('lore:publish', (input) => services.lore.publish(input))
+  router.handle('lore:unpublish', ({ id }) => services.lore.unpublish(id))
+  router.handle('lore:reorder', ({ ids }) => services.lore.reorder(ids))
+  router.handle('lore:publish-order', () => services.lore.publishOrder())
+  router.handle('lore:create-planet', (draft) => services.lore.createPlanet(draft))
+  router.handle('lore:save-planet', (input) => services.lore.savePlanet(input))
+  router.handle('lore:delete-planet', ({ id }) => services.lore.deletePlanet(id))
+
   /**
    * Hands a release's canvas to the sheet so it can be watched.
    *
@@ -805,6 +820,7 @@ export function registerEventBridges(deps: {
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   services.calendar.on('changed', (state) => router.broadcast('calendar:state', state))
   services.inbox.on('state', (state) => router.broadcast('inbox:state', state))
+  services.lore.on('state', (state) => router.broadcast('lore:state', state))
 
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

@@ -24,7 +24,7 @@ question a department answers, which is usually enough to know where to look.
 | --------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | **COMMAND**     | Where the system is seen whole and instructed                                            | NEXUS, INTERFACE                                              |
 | **PRODUCTION**  | The work itself: what is filed, released, due, and how it sounds                         | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
-| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES                      |
+| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES, LORE                |
 | **OVERSIGHT**   | The condition of the installation, and the rules it runs under                           | TELEMETRY, DISPATCH, REGULATION, CATECHISM                    |
 
 A department marked **RESERVED** is routed and specified but not yet built. Its
@@ -53,6 +53,9 @@ appearing to work. The orb on the NEXUS landing is the fastest way to check.
 > CONTACT and SERVICES are the other. What visitors send is kept by the
 > website, and the archive keeps a copy of it, fetched when the console starts
 > or when you ask.
+>
+> LORE runs the other way. Its drafts and planets are written into the archive
+> here, and the website receives a chapter only when it is published.
 
 ## Reading the interface
 

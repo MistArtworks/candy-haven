@@ -131,7 +131,8 @@ Accounts and services the broadcast kit and the website inbox read from.
   crosses into the console.
 - **Twitch channel** — the channel chat is read from. Read-only ingest; the
   console never sends messages.
-- **Website address** — where CONTACT and SERVICES check in. Leave it empty for
+- **Website address** — where CONTACT and SERVICES check in, and where LORE
+  publishes. Leave it empty for
   the default, shown in the field: the live website when installed, the
   development server on this machine (`http://localhost:3000`) when run from
   source. Another address is another website, with a copy of its own.

@@ -1,56 +1,17 @@
 import { z } from 'zod'
 import type { InboxKind } from '@shared/domain/inbox.constants'
+import { SiteError, callWebsite, readJson } from '@main/services/website/website.http'
 
 /**
  * The website's private API, as this console calls it.
  *
  * Two calls and nothing else: what was sent or deleted since a moment, and a
  * deletion. Where each thing stands is the operator's and stays on this
- * machine, so there is nothing else to send. Both carry the board's sign-in
- * as a bearer token, which the website checks against Google's keys and the
- * two accounts' ids before it touches its database. The database itself is never reached
- * from here, and its password is on no machine this console runs on: the
- * repository and the installer are public, and a password in either would be
- * a password for anyone. See docs/INBOX.md.
- *
- * Plain `fetch` rather than `core/net`'s retrying `request`. A check-in is
- * asked for by the operator, who is waiting on it and can ask again; backing
- * off inside one would leave them watching nothing happen. What this needs
- * from a failure is its status, so the page can say which kind it was.
+ * machine, so there is nothing else to send. How a call is made, signed in,
+ * and what its failures mean, is shared with LORE: see website/website.http.ts.
  */
 
-/** How long one call may take before it counts as unreachable. */
-const TIMEOUT_MS = 15_000
-
-/**
- * Why a call to the website failed, in the terms the page states it in.
- *
- * `unreachable` is the network or the website being down. The rest are the
- * website answering, and each needs something different done about it.
- */
-export type SiteFailureKind =
-  | 'unreachable'
-  /** The token was refused: expired between refresh and use, or not real. */
-  | 'refused'
-  /** A real sign-in for an account that is not one of the two. */
-  | 'forbidden'
-  /** Too many refused attempts from here; the website is waiting an hour. */
-  | 'limited'
-  /** The website has no database or sign-in settings yet. */
-  | 'unconfigured'
-  /** The thing is gone: deleted from the other copy. */
-  | 'missing'
-  | 'failed'
-
-export class SiteError extends Error {
-  constructor(
-    readonly kind: SiteFailureKind,
-    message: string
-  ) {
-    super(message)
-    this.name = 'SiteError'
-  }
-}
+export { SiteError, type SiteFailureKind } from '@main/services/website/website.http'
 
 const RemoteFiled = {
   id: z.string(),
@@ -144,13 +105,7 @@ export class SiteClient {
   async changes(since: string | null): Promise<SiteChanges> {
     const query = since ? `?since=${encodeURIComponent(since)}` : ''
     const response = await this.call(`/api/haven/inbox${query}`, { method: 'GET' })
-
-    let body: unknown
-    try {
-      body = await response.json()
-    } catch {
-      throw new SiteError('failed', 'The website answered with something that is not JSON.')
-    }
+    const body = await readJson(response)
 
     const page = ChangesSchema.safeParse(body)
     if (!page.success) {
@@ -188,59 +143,7 @@ export class SiteClient {
 
   // ----------------------------------------------------------------- private
 
-  private async call(path: string, init: RequestInit): Promise<Response> {
-    const token = await this.token()
-    if (!token) throw new SiteError('refused', 'Sign in to reach the website.')
-
-    let response: Response
-    try {
-      response = await fetch(`${this.origin}${path}`, {
-        ...init,
-        headers: { ...init.headers, Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-        // The website marks these no-store; saying so here as well keeps a
-        // cached answer from passing for a fresh one.
-        cache: 'no-store'
-      })
-    } catch {
-      throw new SiteError('unreachable', `Could not reach ${this.origin}.`)
-    }
-
-    if (response.ok) return response
-
-    // The website names its refusals (`not_configured`, `database_unavailable`)
-    // as well as numbering them, and two of them share a 503.
-    const code = await response
-      .json()
-      .then((body: unknown) => (body as { error?: unknown } | null)?.error)
-      .catch(() => undefined)
-    throw failure(response.status, typeof code === 'string' ? code : '', this.origin)
-  }
-}
-
-function failure(status: number, code: string, origin: string): SiteError {
-  if (status === 503 && code === 'database_unavailable') {
-    return new SiteError('unreachable', `${origin} cannot reach its database right now.`)
-  }
-
-  switch (status) {
-    case 401:
-      return new SiteError('refused', 'The website did not accept the sign-in.')
-    case 403:
-      return new SiteError('forbidden', 'The website does not let this account in.')
-    case 404:
-      return new SiteError('missing', 'The website no longer has it.')
-    case 429:
-      return new SiteError(
-        'limited',
-        'The website is refusing this machine for an hour after too many failed sign-ins.'
-      )
-    case 503:
-      return new SiteError('unconfigured', `${origin} is not set up for the console yet.`)
-    default:
-      return new SiteError(
-        status >= 500 ? 'unreachable' : 'failed',
-        `The website answered ${status}.`
-      )
+  private call(path: string, init: RequestInit): Promise<Response> {
+    return callWebsite(this.origin, this.token, path, init)
   }
 }

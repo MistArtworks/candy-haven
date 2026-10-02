@@ -16,6 +16,7 @@ export const SECTION_IDS = [
   'colophon',
   'contact',
   'services',
+  'lore',
   'telemetry',
   'dispatch',
   'regulation',
@@ -240,13 +241,29 @@ export const SECTIONS: readonly SectionDefinition[] = [
     implemented: true
   },
   {
+    /*
+     * The lore of Nayara, written here and published to the website: its
+     * chapters, and the planet each is read beside. Drafts are kept on this
+     * machine; a chapter reaches the website, through the same API as
+     * CONTACT, only when it is published. See docs/LORE.md.
+     */
+    id: 'lore',
+    path: '/lore',
+    label: 'LORE',
+    purpose: 'The lore of Nayara: chapters and planets, written here, published to the website',
+    epigraph: 'The world is fiction. The story is not.',
+    group: 'publication',
+    order: 12,
+    implemented: true
+  },
+  {
     id: 'telemetry',
     path: '/telemetry',
     label: 'TELEMETRY',
     purpose: 'Host vitals: processor, memory, graphics and storage',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'oversight',
-    order: 12,
+    order: 13,
     implemented: true
   },
   {
@@ -256,7 +273,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Feedback and suggestions between operators, ruled on and recorded',
     epigraph: 'Nothing is lost that is entered into the record.',
     group: 'oversight',
-    order: 13,
+    order: 14,
     implemented: true
   },
   {
@@ -266,7 +283,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Operator settings, archive control and update channel',
     epigraph: 'Harmony is maintained.',
     group: 'oversight',
-    order: 14,
+    order: 15,
     implemented: true
   },
   {
@@ -276,7 +293,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'How this console is operated, department by department',
     epigraph: 'We do not question the shape of the universe.',
     group: 'oversight',
-    order: 15,
+    order: 16,
     implemented: true
   }
 ] as const

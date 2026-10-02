@@ -99,6 +99,17 @@ import {
   SiteEnquirySchema,
   SiteMessageSchema
 } from '../domain/inbox'
+import {
+  ChapterDraftSchema,
+  DeleteChapterInputSchema,
+  LoreCreatedSchema,
+  LoreStateSchema,
+  PlanetDraftSchema,
+  PublishChapterInputSchema,
+  PublishResultSchema,
+  SaveChapterInputSchema,
+  SavePlanetInputSchema
+} from '../domain/lore'
 /**
  * The IPC contract is declared once, here, and consumed by:
  *   - the main-process router, which validates inputs and outputs at runtime
@@ -790,6 +801,36 @@ export const IPC_INVOKE = {
   /** Deletes it from the website, then from here. Refused offline. */
   'inbox:delete': { input: InboxTargetSchema, output: z.void() },
 
+  // --------------------------------------------------------------------- lore
+
+  /*
+   * LORE: the lore of Nayara, written here and published to the website.
+   *
+   * The drafts, the planet library and the order are kept here, in the
+   * archive, and saving them never touches the website. Publishing sends
+   * one chapter, as it stands. `lore:state` is everything kept here, with
+   * what the website had published when it was last fetched; `lore:sync`
+   * fetches that again. A publish the website refuses because the other
+   * person published the chapter first comes back as a `conflict` result
+   * carrying their version, not as an error.
+   */
+  'lore:state': { input: z.void(), output: LoreStateSchema },
+  'lore:sync': { input: z.void(), output: LoreStateSchema },
+  'lore:create-chapter': { input: ChapterDraftSchema, output: LoreCreatedSchema },
+  'lore:save-chapter': { input: SaveChapterInputSchema, output: LoreStateSchema },
+  /** Deletes the draft here; `everywhere` takes the chapter off the website first. */
+  'lore:delete-chapter': { input: DeleteChapterInputSchema, output: LoreStateSchema },
+  'lore:publish': { input: PublishChapterInputSchema, output: PublishResultSchema },
+  /** Takes it off the website. The draft stays here. */
+  'lore:unpublish': { input: z.object({ id: z.string() }), output: LoreStateSchema },
+  /** The order here, as the full list of ids. The website's waits for `lore:publish-order`. */
+  'lore:reorder': { input: z.object({ ids: z.array(z.string()) }), output: LoreStateSchema },
+  'lore:publish-order': { input: z.void(), output: LoreStateSchema },
+  'lore:create-planet': { input: PlanetDraftSchema, output: LoreCreatedSchema },
+  'lore:save-planet': { input: SavePlanetInputSchema, output: LoreStateSchema },
+  /** Refused while a chapter here uses it. */
+  'lore:delete-planet': { input: z.object({ id: z.string() }), output: LoreStateSchema },
+
   // --------------------------------------------------------------- auditorium
 
   /**
@@ -963,6 +1004,7 @@ export const IPC_EVENT = {
   'overlay:info': OverlayServerInfoSchema,
   'calendar:state': CalendarStateSchema,
   'inbox:state': InboxStateSchema,
+  'lore:state': LoreStateSchema,
   /** A clicked notification, asking the console to open a department. */
   'inbox:open': z.object({ path: z.string() }),
   'auditorium:file': z.object({ path: z.string().nullable() }),

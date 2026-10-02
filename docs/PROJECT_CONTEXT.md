@@ -5,8 +5,10 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-10-01. Fourteen of sixteen departments in service;
-> INTERFACE and COLOPHON are reserved. CONTACT and SERVICES joined PUBLICATION
+> Last updated: 2026-10-02. Fifteen of seventeen departments in service;
+> INTERFACE and COLOPHON are reserved. LORE joined PUBLICATION on 2026-10-02:
+> the lore written here and published to the website (`docs/LORE.md`).
+> CONTACT and SERVICES joined PUBLICATION
 > on 2026-10-01, reading what the website's visitors send (`docs/INBOX.md`). COLOPHON opened PUBLICATION on
 > 2026-10-01, and BROADCAST was folded into it the same day, leaving four
 > divisions. COLOPHON was reserved again in 1.19.1 while the website's side is
@@ -913,12 +915,13 @@ and Nexus all read from it.
 | 10  | `colophon`    | `/colophon`     | reserved    | The details the website carries (coming soon)          |
 | 11  | `contact`     | `/contact`      | **shipped** | Messages sent from the website                         |
 | 12  | `services`    | `/services`     | **shipped** | DJ enquiries from the website; producer to come        |
-| 13  | `telemetry`   | `/telemetry`    | **shipped** | Host vitals                                            |
-| 14  | `dispatch`    | `/dispatch`     | **shipped** | The shared board                                       |
-| 15  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
-| 16  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
+| 13  | `lore`        | `/lore`         | **shipped** | The lore and its planets, published to the website     |
+| 14  | `telemetry`   | `/telemetry`    | **shipped** | Host vitals                                            |
+| 15  | `dispatch`    | `/dispatch`     | **shipped** | The shared board                                       |
+| 16  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
+| 17  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
 
-**Sixteen departments, fourteen in service,** in four divisions: COMMAND,
+**Seventeen departments, fifteen in service,** in four divisions: COMMAND,
 PRODUCTION, PUBLICATION, OVERSIGHT. INTERFACE and COLOPHON are reserved:
 COLOPHON was built (below) and taken back out of service in 1.19.1, its route
 pointing at `ReservedPage` with a "Coming soon" status and no scope, while
@@ -993,6 +996,31 @@ Decisions:
   for published. Nothing outside reads the record until publishing is built.
 - COLOPHON took `Ctrl`+`0`, which pushed TELEMETRY past the tenth slot; it
   gained `Ctrl`+`Shift`+`T`, the arrangement DISPATCH got when it was pushed.
+
+### LORE — added 2026-10-02
+
+The first department that writes for the website rather than reading from it.
+The full capture is **`docs/LORE.md`**. In summary:
+
+- **Written here, published there.** Drafts, the planet library and the order
+  live in the archive (`lore_chapters`, `lore_planets`, `lore_order`) and are
+  saved through the unsaved-changes bar without touching the network. Publish
+  sends one chapter, whole, with a copy of its planet, to the website's
+  `/api/haven/lore/*`, which keeps only what is published. The operator's call
+  on 2026-10-02, replacing shared drafts in Atlas the same day.
+- **Two writers, checked at publish.** Each published chapter has a revision;
+  a draft remembers the one it started from, per website. Publishing over a
+  newer one asks: publish over theirs, or take theirs.
+- **The website switches over on the first publish** and from then on shows
+  only what is published. Until then it reads its own markdown files.
+- **The planet engine is the website's, copied** into `src/shared/planets`
+  by `npm run sync:planets` (`--check` reports drift). Edit it in the website.
+- **Placement.** LORE (13) follows SERVICES in PUBLICATION, which pushed
+  TELEMETRY, DISPATCH, REGULATION and CATECHISM to 14–17. No `Ctrl` chord.
+  Three tabs, CHAPTERS, WRITE and PLANETS, kept in the address as `?tab=`;
+  WRITE has three views (Write, Side by side, Preview) and a word processor's
+  formatting bar that writes the lore's markdown. Behind the DISPATCH sign-in,
+  like CONTACT and SERVICES.
 
 ### CONTACT and SERVICES — added 2026-10-01
 

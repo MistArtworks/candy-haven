@@ -28,7 +28,15 @@ export default defineConfig(
        * among them — have nothing to say about a plain `.mjs` that never sees
        * `tsc`. Prettier still formats them.
        */
-      'scripts/**/*.mjs'
+      'scripts/**/*.mjs',
+      /*
+       * Copies of the website's own files (the planet engine and the lore's
+       * markdown reader), kept byte for byte by `npm run sync:planets`. They
+       * are written and linted to the website's rules, and reformatting them
+       * here would make the next check report a difference that isn't one.
+       */
+      'src/shared/planets/**',
+      'src/renderer/src/lib/markdown/blocks.ts'
     ]
   },
   tseslint.configs.recommended,

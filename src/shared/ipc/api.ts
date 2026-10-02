@@ -76,6 +76,17 @@ import type {
   SiteEnquiry,
   SiteMessage
 } from '../domain/inbox'
+import type {
+  ChapterDraft,
+  DeleteChapterInput,
+  LoreCreated,
+  LoreState,
+  PlanetDraft,
+  PublishChapterInput,
+  PublishResult,
+  SaveChapterInput,
+  SavePlanetInput
+} from '../domain/lore'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -501,6 +512,27 @@ export interface CandyHavenApi {
     onState(listener: (state: InboxState) => void): Unsubscribe
     /** A notification was clicked; go where it says. */
     onOpen(listener: (request: { path: string }) => void): Unsubscribe
+  }
+  /**
+   * LORE: the lore of Nayara, written here and published to the website.
+   * Drafts and planets are kept here; only publishing reaches the website.
+   * Behind the DISPATCH sign-in. See docs/LORE.md.
+   */
+  readonly lore: {
+    state(): Promise<LoreState>
+    /** Fetches what the website has published. */
+    sync(): Promise<LoreState>
+    createChapter(draft: ChapterDraft): Promise<LoreCreated>
+    saveChapter(input: SaveChapterInput): Promise<LoreState>
+    deleteChapter(input: DeleteChapterInput): Promise<LoreState>
+    publish(input: PublishChapterInput): Promise<PublishResult>
+    unpublish(id: string): Promise<LoreState>
+    reorder(ids: string[]): Promise<LoreState>
+    publishOrder(): Promise<LoreState>
+    createPlanet(draft: PlanetDraft): Promise<LoreCreated>
+    savePlanet(input: SavePlanetInput): Promise<LoreState>
+    deletePlanet(id: string): Promise<LoreState>
+    onState(listener: (state: LoreState) => void): Unsubscribe
   }
   readonly auditorium: {
     /** Reads a chosen audio file whole. See the contract for why. */

@@ -6,6 +6,7 @@
     "src/preload/**/*",
     "src/shared/**/*"
   ],
+  "exclude": ["src/shared/planets/react/**"],
   "compilerOptions": {
     "composite": true,
     "types": ["electron-vite/node"],

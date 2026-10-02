@@ -20,7 +20,7 @@ import {
   useSiteMessages
 } from '@renderer/hooks/useInbox'
 import { formatRelative, formatStamp } from '@renderer/features/dispatch/lib/present'
-import { CheckForNew, InboxGate, InboxStatus } from './components/InboxChrome'
+import { CheckForNew, WebsiteGate, WebsiteStatus } from '@renderer/components/website/WebsiteChrome'
 import { DeleteControl, DetailRows, NoteField, StatusSwitch } from './components/Filed'
 import styles from './Inbox.module.scss'
 
@@ -93,15 +93,19 @@ export function ContactPage(): ReactNode {
         purpose={section.purpose}
         epigraph={section.epigraph}
         guideId="contact"
-        actions={<InboxStatus state={state} />}
+        actions={<WebsiteStatus link={state.link} />}
       />
 
-      <InboxGate state={state} what="CONTACT" />
+      <WebsiteGate link={state.link} what="CONTACT">
+        What the website&apos;s visitors send is kept behind the same two accounts as the board, and
+        signing in here signs in there too. The website checks the sign-in itself before it hands
+        anything over, so nothing is fetched or shown until someone has.
+      </WebsiteGate>
 
       {open ? (
         <div className={styles.toolbar}>
           <CheckForNew
-            state={state}
+            link={state.link}
             syncing={actions.pending === 'sync'}
             onSync={() => void actions.sync()}
           />

@@ -38,6 +38,8 @@ throughout.
 - And what the website's visitors send (see CONTACT and SERVICES): it is filed by the
   website, and the console keeps a copy, fetched through the website while one of the
   two is signed in.
+- The lore (see LORE) is written on the artist's machine like everything else; a chapter
+  goes to the website only when it is published.
 
 ## 3. Current status at a glance
 
@@ -60,7 +62,7 @@ each one answers:
 | --------------- | -------------------------------------------------------------- | ------------------------------------------ |
 | **COMMAND**     | Seeing the system whole, and instructing it                    | NEXUS, INTERFACE _(reserved)_              |
 | **PRODUCTION**  | The work itself — what is filed, when it is due, how it sounds | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
-| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES |
+| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES, LORE |
 | **OVERSIGHT**   | The condition of the installation and the rules it runs under  | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
 
 Everything is numbered, every department has a keyboard shortcut, and the layout is
@@ -312,6 +314,20 @@ Two tabs. **DJ** holds the "Book me as a DJ" enquiries, which arrive and behave 
 CONTACT's messages, with their own statuses: new, in talks, confirmed, declined, archived.
 **PRODUCER** says it is coming soon: producer bookings arrive once the website takes
 payment for them, so each will already be a booking.
+
+### LORE — the lore of Nayara _(live)_
+
+Where the lore on the website is written. Each chapter has a title, a one-line summary,
+its text, and the planet it is read beside, with a live preview of how the website will
+show it. Chapters are kept on the artist's machine until he publishes them, one at a time;
+the website shows only what has been published, in the order he publishes. Both of them
+can write: each sees the other's chapters once they are published, and publishing over a
+chapter the other has just published asks first.
+
+The planets are made here too, from layers: 26 kinds (grids, fungal veins, constellations,
+craters, noise, rings, moons and more), up to 24 on one planet, each with its own colours,
+shape, position and motion, plus shuffle and undo. Eleven presets, the looks the lore began
+with, are the starting points.
 
 ### TELEMETRY — host vitals _(live)_
 

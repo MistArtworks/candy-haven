@@ -1,14 +1,21 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import type { InboxState } from '@shared/domain/inbox'
 import { Button } from '@renderer/components/primitives/Button'
 import { StatusDot, type StatusTone } from '@renderer/components/primitives/StatusDot'
 import { SignInBand } from '@renderer/components/session/SignInBand'
 import { useDispatchActions } from '@renderer/hooks/useDispatch'
 import { formatRelative } from '@renderer/features/dispatch/lib/present'
-import styles from '../Inbox.module.scss'
+import { isSignedIn, type WebsiteLink } from './link'
+import styles from './WebsiteChrome.module.scss'
 
-const LINK_TONE: Record<InboxState['link']['state'], StatusTone> = {
+/*
+ * The furniture of the departments that work on the website (CONTACT,
+ * SERVICES, LORE): which website, how the last call went, the button that
+ * asks for what's new, and the sign-in in front of it all. Moved out of the
+ * inbox when LORE came to need the same pieces.
+ */
+
+const LINK_TONE: Record<WebsiteLink['state'], StatusTone> = {
   unconfigured: 'offline',
   'signed-out': 'offline',
   syncing: 'pending',
@@ -25,15 +32,13 @@ function host(origin: string): string {
 }
 
 /**
- * The header's right side: which website, and how the last check-in went.
+ * The header's right side: which website, and how the last call went.
  *
  * The readout says when the last check was rather than claiming the page is
- * up to date: nothing runs on a timer, so the page is only as fresh as the
+ * up to date: nothing runs on a timer, so a page is only as fresh as the
  * last time someone asked.
  */
-export function InboxStatus({ state }: { state: InboxState }): ReactNode {
-  const { link } = state
-
+export function WebsiteStatus({ link }: { link: WebsiteLink }): ReactNode {
   return (
     <div className={styles.headerActions}>
       {link.website ? (
@@ -47,7 +52,9 @@ export function InboxStatus({ state }: { state: InboxState }): ReactNode {
         tone={LINK_TONE[link.state]}
         label={
           link.state === 'online'
-            ? `Checked${link.syncedAt ? ` · ${formatRelative(link.syncedAt)}` : ''}`
+            ? link.syncedAt
+              ? `Checked · ${formatRelative(link.syncedAt)}`
+              : link.message || 'Not checked yet'
             : link.state === 'signed-out'
               ? 'Signed out'
               : link.message
@@ -61,28 +68,27 @@ export function InboxStatus({ state }: { state: InboxState }): ReactNode {
 /**
  * The button that asks the website for what is new.
  *
- * The only way to check in after startup, short of signing in again, so it
- * is drawn as the page's one primary action, on its own row above the lists
- * and to the right, where the eye finishes the header. Hidden while signed
- * out, when there is nobody to ask for.
+ * The only way to ask after the page has opened, so it is drawn as the
+ * page's one primary action, on its own row above the content and to the
+ * right, where the eye finishes the header. Hidden while signed out, when
+ * there is nobody to ask for.
  */
 export function CheckForNew({
-  state,
+  link,
   syncing,
   onSync
 }: {
-  state: InboxState
+  link: WebsiteLink
   syncing: boolean
   onSync: () => void
 }): ReactNode {
-  const signedIn = state.link.state !== 'signed-out' && state.link.state !== 'unconfigured'
-  if (!signedIn) return null
+  if (!isSignedIn(link)) return null
 
   return (
     <Button
       variant="primary"
       className={styles.checkForNew}
-      busy={syncing || state.link.state === 'syncing'}
+      busy={syncing || link.state === 'syncing'}
       icon={
         // An arrow into a tray: something arriving.
         <svg viewBox="0 0 12 12" width="12" height="12" fill="none" aria-hidden="true">
@@ -105,14 +111,24 @@ export function CheckForNew({
 /**
  * What stands in front of the page until someone is signed in.
  *
- * The board's sign-in, entered here or on DISPATCH: one session for the
- * three. Without a Firebase config there is no sign-in to use, and the gate
+ * The board's sign-in, entered here or on DISPATCH: one session for all of
+ * them. Without a Firebase config there is no sign-in to use, and the gate
  * says where to add one rather than growing a settings panel here.
  */
-export function InboxGate({ state, what }: { state: InboxState; what: string }): ReactNode {
+export function WebsiteGate({
+  link,
+  what,
+  children
+}: {
+  link: WebsiteLink
+  /** The department, as the gate names it: `CONTACT`, `LORE`. */
+  what: string
+  /** Why it's behind the sign-in, in a sentence or two. */
+  children: ReactNode
+}): ReactNode {
   const dispatch = useDispatchActions()
 
-  if (state.link.state === 'unconfigured') {
+  if (link.state === 'unconfigured') {
     return (
       <div className={styles.gate}>
         <span>
@@ -126,7 +142,7 @@ export function InboxGate({ state, what }: { state: InboxState; what: string }):
     )
   }
 
-  if (state.link.state !== 'signed-out') return null
+  if (link.state !== 'signed-out') return null
 
   return (
     <SignInBand
@@ -134,9 +150,7 @@ export function InboxGate({ state, what }: { state: InboxState; what: string }):
       busy={dispatch.pending === 'sign-in'}
       onSubmit={(email, password) => void dispatch.signIn(email, password)}
     >
-      What the website&apos;s visitors send is kept behind the same two accounts as the board, and
-      signing in here signs in there too. The website checks the sign-in itself before it hands
-      anything over, so nothing is fetched or shown until someone has.
+      {children}
     </SignInBand>
   )
 }

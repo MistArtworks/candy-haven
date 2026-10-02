@@ -13,11 +13,12 @@ involves is filed here rather than spread across applications that cannot see on
 another. See [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) §1 for who uses
 it and why.
 
-Sixteen departments, grouped into four divisions. Fourteen are in service — the
+Seventeen departments, grouped into four divisions. Fifteen are in service — the
 operational overview, the project registry and filing tree, everything
 released and where it went, the artist roster, the dated register, the
 listening room, photo grading onto the console palette, the broadcast overlay
-kit, the website's messages and bookings, host telemetry, a shared feedback
+kit, the website's messages and bookings, the lore of Nayara and its planets
+(written here, published to the website), host telemetry, a shared feedback
 board, operator settings and the built-in manual. **INTERFACE**, the natural-language command console, is routed
 and specified but not yet commissioned; its page lists what it will do.
 **COLOPHON**, the details the website carries, is reserved while it is

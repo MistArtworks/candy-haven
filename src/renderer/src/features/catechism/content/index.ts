@@ -130,6 +130,12 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'services'
   },
   {
+    id: 'lore',
+    label: 'LORE',
+    purpose: 'Writing the lore of Nayara and its planets, and publishing it',
+    section: 'lore'
+  },
+  {
     id: 'telemetry',
     label: 'TELEMETRY',
     purpose: 'Host vitals and what each reading means',

@@ -1,0 +1,1448 @@
+@use 'abstracts' as *;
+
+// LORE: the lore of Nayara, written here and published to the website.
+//
+// Two working surfaces under one header: the chapters (a list beside the
+// one being written, its text beside how it will read) and the planets (a
+// library beside the one being made). The accent is spent where the rest
+// of the console spends it: on the one thing that needs doing, here the
+// difference between what's written and what's live.
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1680px;
+  margin: 0 auto;
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+}
+
+// ----------------------------------------------------------------- toolbar
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin: 0 0 space(5);
+}
+
+.tabs {
+  display: inline-flex;
+  @include hairline(all, 0.14);
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(5);
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover {
+    color: var(--ch-text-secondary);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[aria-selected='true'] {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
+}
+
+.tabCount {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// What the website does on the first publish, said before it happens.
+.notice {
+  display: flex;
+  gap: space(3);
+  align-items: baseline;
+  margin: 0 0 space(5);
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.14);
+  border-left: 2px solid var(--ch-gold-400);
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+}
+
+.noticeLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-gold-300);
+  flex-shrink: 0;
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  margin: space(4) 0 0;
+  line-height: 1.65;
+}
+
+// ------------------------------------------------------------------- grid
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: space(5);
+  align-items: start;
+}
+
+// CHAPTERS and WRITE take the whole width.
+.fullPanel {
+  grid-column: 1 / -1;
+}
+
+// PLANETS gives the maker the room: three columns of it beside the library.
+.librarySide {
+  grid-column: span 3;
+}
+
+.makerMain {
+  grid-column: span 9;
+}
+
+@include below('xl') {
+  .librarySide,
+  .makerMain {
+    grid-column: span 12;
+  }
+}
+
+.count {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.quiet {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.confirmText {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+}
+
+.footnote {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.error {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.sectionLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+// -------------------------------------------------------------- the list
+
+.listHead {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex-wrap: wrap;
+  padding-bottom: space(4);
+  @include hairline(bottom, 0.08);
+}
+
+// The website's order differs: said where the list is, with both ways out.
+.orderNote {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(2) space(3);
+  margin-top: space(3);
+  padding: space(2) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  border-left: 2px solid var(--ch-gold-400);
+  @include readout(9px);
+  color: var(--ch-text-secondary);
+}
+
+.newRow {
+  display: flex;
+  align-items: flex-end;
+  gap: space(2);
+  margin-top: space(4);
+}
+
+.newRowField {
+  flex: 1;
+  min-width: 0;
+}
+
+.chapters {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: space(4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chapter {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(3);
+  padding: space(3) space(3) space(3) space(2);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear,
+    opacity $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+    box-shadow: inset 2px 0 0 var(--ch-gold-400);
+  }
+
+  &[data-dragging] {
+    opacity: 0.4;
+  }
+
+  &[data-drop='before'] {
+    box-shadow: inset 0 2px 0 var(--ch-accent);
+  }
+
+  &[data-drop='after'] {
+    box-shadow: inset 0 -2px 0 var(--ch-accent);
+  }
+}
+
+.grip {
+  display: grid;
+  grid-template-columns: repeat(2, 3px);
+  gap: 3px;
+  padding: space(1);
+  cursor: grab;
+  opacity: 0.45;
+
+  span {
+    width: 3px;
+    height: 3px;
+    background: var(--ch-text-faint);
+  }
+
+  .chapter:hover & {
+    opacity: 1;
+  }
+}
+
+.numeral {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  min-width: rem(22px);
+}
+
+.chapterText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chapterTitle {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.chapterMeta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.chapterSide {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.move {
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity $duration-fast linear;
+
+  .chapter:hover &,
+  .chapter:focus-within & {
+    opacity: 1;
+  }
+}
+
+.moveButton {
+  display: grid;
+  place-items: center;
+  width: rem(18px);
+  height: rem(14px);
+  padding: 0;
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// Where a chapter stands against the website.
+.status {
+  @include label(7px, 0.16em);
+  padding: 1px space(2);
+  white-space: nowrap;
+  color: var(--ch-text-muted);
+  @include hairline(all, 0.2);
+
+  &[data-status='published'] {
+    color: var(--ch-gold-300);
+  }
+
+  &[data-status='changed'] {
+    color: var(--ch-accent-bright);
+    background: var(--ch-accent-dim);
+    border-color: transparent;
+  }
+}
+
+// Opens the chapter in WRITE. The whole row does too; this says so.
+.writeButton {
+  @include label(8px, 0.16em);
+  padding: space(1) space(3);
+  color: var(--ch-text-secondary);
+  background: none;
+  @include hairline(all, 0.2);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  .chapter:hover &,
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-gold-400);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// ------------------------------------------------------------ the editor
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+}
+
+// Which chapter, where it stands, and how it's looked at.
+.editorTop {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: space(3) space(4);
+  padding-bottom: space(4);
+  @include hairline(bottom, 0.08);
+
+  .status {
+    margin-bottom: space(2);
+  }
+}
+
+.chapterPicker {
+  width: rem(340px);
+  max-width: 100%;
+}
+
+// Write or Preview: one column, at a width that reads well.
+.single {
+  width: 100%;
+  max-width: rem(920px);
+  margin: 0 auto;
+
+  .markdown {
+    min-height: 62vh;
+  }
+
+  .preview {
+    max-height: none;
+  }
+}
+
+.writeEmpty {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  max-width: rem(420px);
+}
+
+// ------------------------------------------------------ the formatting bar
+
+.formatBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: space(1);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.12);
+  border-bottom: 0;
+}
+
+.formatButton {
+  display: grid;
+  place-items: center;
+  min-width: rem(30px);
+  height: rem(28px);
+  padding: 0 space(2);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    background $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.06);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    background: rgba(182, 158, 124, 0.1);
+    border-color: rgba(182, 158, 124, 0.28);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.glyphBold {
+  font-family: var(--ch-font-body);
+  font-size: rem(14px);
+  font-weight: 700;
+}
+
+.glyphItalic {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: rem(15px);
+  font-style: italic;
+}
+
+.formatGap {
+  width: 1px;
+  height: rem(16px);
+  margin: 0 space(1);
+  background: rgba(221, 207, 178, 0.14);
+}
+
+.formatCount {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  padding: 0 space(2);
+  white-space: nowrap;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: space(4) space(5);
+}
+
+.planetField {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+}
+
+.planetThumb {
+  width: rem(44px);
+  height: rem(44px);
+  flex-shrink: 0;
+}
+
+.planetName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.planetNameText {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.writing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: space(5);
+  align-items: stretch;
+}
+
+@include below('xl') {
+  .writing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.writeColumn {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+}
+
+.columnHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+}
+
+// Set in the reading face, as a word processor's page is; the marks the bar
+// writes stay visible, small and few.
+.markdown {
+  width: 100%;
+  min-height: rem(520px);
+  padding: space(5);
+  resize: vertical;
+  font-family: var(--ch-font-body);
+  font-size: rem(14.5px);
+  line-height: 1.8;
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+  border-radius: 0;
+  tab-size: 2;
+
+  &:focus {
+    outline: none;
+    border-color: var(--ch-line-strong);
+  }
+
+  &[aria-invalid='true'] {
+    border-color: var(--ch-crimson-400);
+  }
+}
+
+// How the chapter will read on the website: its planet, numeral, title and
+// line, then the text in the site's voices.
+.preview {
+  min-height: rem(520px);
+  max-height: rem(760px);
+  overflow-y: auto;
+  padding: space(6);
+  background: #0c0c0c;
+  @include hairline(all, 0.12);
+}
+
+.previewHead {
+  display: grid;
+  grid-template-columns: rem(120px) minmax(0, 1fr);
+  gap: space(5);
+  align-items: center;
+  margin-bottom: space(6);
+}
+
+.previewPlanet {
+  width: rem(120px);
+  height: rem(120px);
+}
+
+.previewNumeral {
+  @include label(9px, 0.24em);
+  color: #b69e7c;
+  margin: 0 0 space(2);
+}
+
+.previewTitle {
+  font-family: var(--ch-font-display);
+  font-size: rem(30px);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #ddcfb2;
+  margin: 0 0 space(2);
+}
+
+.previewLine {
+  font-family: var(--ch-font-body);
+  font-style: italic;
+  font-size: rem(14px);
+  color: #cdb994;
+  margin: 0;
+}
+
+.previewBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  font-family: var(--ch-font-body);
+  font-size: rem(14px);
+  line-height: 1.75;
+  color: #ddcfb2;
+
+  p {
+    margin: 0;
+  }
+
+  em {
+    color: #d2a961;
+  }
+
+  strong {
+    color: #e3c286;
+    font-weight: 600;
+  }
+}
+
+.previewQuote {
+  margin: space(2) 0;
+  padding-left: space(4);
+  border-left: 2px solid #a32b23;
+  font-style: italic;
+  font-size: rem(19px);
+  line-height: 1.45;
+  color: #e3c286;
+}
+
+.previewHeading {
+  @include label(11px, 0.22em);
+  color: #b69e7c;
+  margin: space(3) 0 0;
+}
+
+.previewList {
+  margin: 0;
+  padding-left: space(5);
+
+  li + li {
+    margin-top: space(1);
+  }
+}
+
+.previewEntries {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: space(2) space(4);
+  margin: 0;
+
+  dt {
+    @include label(10px, 0.14em);
+    color: #d2a961;
+    padding-top: 3px;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1) space(5);
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.editorActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(2);
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+}
+
+// ---------------------------------------------------- the planet library
+
+.libraryPanel {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+}
+
+.presetView {
+  display: grid;
+  grid-template-columns: rem(330px) minmax(0, 1fr);
+  gap: space(6);
+  align-items: start;
+}
+
+@include below('lg') {
+  .presetView {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.presetText {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  max-width: 60ch;
+}
+
+.presetName {
+  margin: 0;
+  font-family: var(--ch-font-display);
+  font-size: rem(26px);
+  font-weight: 400;
+  color: var(--ch-text-primary);
+}
+
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.libraryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(rem(104px), 1fr));
+  gap: space(2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planetCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(2);
+  width: 100%;
+  padding: space(3) space(2) space(2);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+    box-shadow: inset 0 -2px 0 var(--ch-gold-400);
+  }
+}
+
+.cardPlanet {
+  width: rem(72px);
+  height: rem(72px);
+}
+
+.cardName {
+  @include label(8px, 0.12em);
+  color: var(--ch-text-secondary);
+  max-width: 100%;
+  @include truncate;
+}
+
+.cardNote {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+}
+
+// ----------------------------------------------------- the planet editor
+
+// Two sides: what it looks like (and its layers), and what's being changed.
+.maker {
+  display: grid;
+  grid-template-columns: rem(380px) minmax(0, 1fr);
+  gap: space(6);
+  align-items: start;
+}
+
+@include below('lg') {
+  .maker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.makerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  min-width: 0;
+}
+
+.stageBar {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+// Over the planet's corner: holding the motion still, to look closely.
+.stagePause {
+  position: absolute;
+  right: space(2);
+  bottom: space(2);
+  padding: space(1) space(3);
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+  background: rgba(12, 12, 12, 0.7);
+  @include hairline(all, 0.16);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &[aria-pressed='true'] {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.layerThumb {
+  width: rem(30px);
+  height: rem(30px);
+  flex-shrink: 0;
+}
+
+// Lock, duplicate and remove show on the row being looked at; a lock that's
+// on shows always, so a locked layer says so.
+.layerExtra {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  > :not([data-on]) {
+    visibility: hidden;
+  }
+
+  .layer:hover > .layerTools > & > *,
+  .layer:focus-within > .layerTools > & > *,
+  .layer[data-selected] > .layerTools > & > * {
+    visibility: visible;
+  }
+}
+
+// --------------------------------------------- settings, in folding sections
+
+.controlStack {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.controlsHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: space(3);
+  padding-bottom: space(3);
+  @include hairline(bottom, 0.08);
+}
+
+.controlsTitle {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  min-width: 0;
+}
+
+.fold {
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.08);
+
+  &[data-open] {
+    border-color: rgba(182, 158, 124, 0.18);
+  }
+}
+
+.foldHead {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  width: 100%;
+  padding: space(3) space(4);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover .foldTitle {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.foldChevron {
+  flex-shrink: 0;
+  color: var(--ch-text-faint);
+  transition: transform $duration-fast ease-out;
+
+  .fold[data-open] & {
+    transform: rotate(90deg);
+    color: var(--ch-gold-300);
+  }
+}
+
+.foldTitle {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+}
+
+.foldSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.summarySwatch {
+  width: rem(10px);
+  height: rem(10px);
+  @include hairline(all, 0.25);
+}
+
+.foldBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  padding: space(1) space(4) space(4);
+}
+
+.moreButton {
+  align-self: flex-start;
+  @include label(8px, 0.14em);
+  color: var(--ch-gold-300);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-gold-200);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.stageFrame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  background: #0c0c0c;
+  @include hairline(all, 0.12);
+}
+
+.stagePlanet {
+  width: 86%;
+  height: 86%;
+}
+
+.meter {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  cursor: default;
+
+  &[data-heavy] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.controlsColumn {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  min-width: 0;
+}
+
+.layers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layer {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(2) space(2) space(1);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.08);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+    box-shadow: inset 2px 0 0 var(--ch-gold-400);
+  }
+
+  &[data-hidden] {
+    opacity: 0.5;
+  }
+
+  &[data-dragging] {
+    opacity: 0.35;
+  }
+
+  &[data-drop='before'] {
+    box-shadow: inset 0 2px 0 var(--ch-accent);
+  }
+
+  &[data-drop='after'] {
+    box-shadow: inset 0 -2px 0 var(--ch-accent);
+  }
+}
+
+.layerName {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+// Not a layer: the planet itself, under them all. Drawn as the stack's floor.
+.planetEntry {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: space(2) space(3);
+  text-align: left;
+  background: none;
+  border: 1px dashed rgba(182, 158, 124, 0.22);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    border-style: solid;
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+    box-shadow: inset 2px 0 0 var(--ch-gold-400);
+  }
+}
+
+.makerFoot {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  margin-top: space(2);
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+
+  .meta {
+    margin: 0;
+  }
+}
+
+.layerTitle {
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.layerType {
+  @include label(7px, 0.14em);
+  color: var(--ch-text-faint);
+}
+
+.layerTools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: rem(22px);
+  height: rem(22px);
+  padding: 0;
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-300);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.groupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(2);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: space(3) space(4);
+}
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  @include hairline(all, 0.14);
+}
+
+.segment {
+  position: relative;
+  padding: space(1) space(3);
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-secondary);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+    }
+  }
+}
+
+// A switch with its name: the name first, the switch at the end of the row.
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+  min-height: rem(28px);
+}
+
+.controlLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+// --------------------------------------------------------------- colours
+
+.colorField {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.colorWell {
+  width: rem(26px);
+  height: rem(22px);
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  &::-webkit-color-swatch {
+    border: 1px solid var(--ch-line-strong);
+    border-radius: 0;
+  }
+}
+
+.hex {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.swatchButton {
+  width: rem(15px);
+  height: rem(15px);
+  padding: 0;
+  border: 1px solid rgba(221, 207, 178, 0.18);
+  cursor: pointer;
+
+  &[data-selected] {
+    outline: 1px solid var(--ch-gold-200);
+    outline-offset: 1px;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// ----------------------------------------------------- adding a layer
+
+.addGroups {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.addGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(rem(118px), 1fr));
+  gap: space(2);
+}
+
+.addCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(2);
+  padding: space(3) space(2);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  text-align: center;
+
+  &:hover:not(:disabled) {
+    border-color: var(--ch-line-strong);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-gold-300);
+    background: var(--ch-surface-overlay);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.addPlanet {
+  width: rem(58px);
+  height: rem(58px);
+}
+
+.addLabel {
+  @include label(8px, 0.12em);
+  color: var(--ch-text-secondary);
+}
+
+.addHint {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+  line-height: 1.4;
+}
+
+// ---------------------------------------------------- choosing a planet
+
+.pickGroups {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+// ------------------------------------------------------------- conflict
+
+.conflict {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.65;
+
+  p {
+    margin: 0;
+  }
+}
