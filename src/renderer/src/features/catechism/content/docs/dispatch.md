@@ -29,6 +29,11 @@ Identity is not chosen, it is resolved: whichever of the two accounts the
 credential belongs to. Sign in once per machine and it stays signed in —
 through a restart — until you sign out.
 
+1. Type the account's address in **Account** and its **Password** in the band,
+   and press **Sign in**.
+2. The masthead then reads **Signed in as** and the name, with **Sign out**
+   beside it.
+
 The same sign-in opens CONTACT, SERVICES and LORE. Signing in on any of the
 four signs in on all of them, and signing out here closes the other three.
 
@@ -42,11 +47,14 @@ item, and that is a division of labour rather than a permission.
 
 ## Filing an item
 
-1. Write what you want, plainly.
-2. Choose its **kind**.
-3. Choose the **area** it is about.
-4. Set a **priority** if it matters.
-5. File it.
+1. Press **New item** (or `Ctrl`+`N`).
+2. Give it a **Title**: one line, what it is.
+3. Choose its **Kind**, the **Area** it is about, and a **Priority** if it
+   matters.
+4. Add **Detail** if the title is not enough: what you want, and why.
+5. Press **File it**. It is on the other copy's board a moment later.
+
+![dispatch-04-file.png](dispatch-04-file.png)
 
 ### Kinds
 
@@ -75,6 +83,9 @@ This is a record, and a record that rewrites itself is not one.
 
 ## Reading the board
 
+**Search** finds words in a title or a body, **Status** narrows the board to
+pending, resolved or denied items, and **Sort** orders it:
+
 | Sort                 | Orders by                 |
 | -------------------- | ------------------------- |
 | `NEWEST FIRST`       | Most recently filed       |
@@ -91,6 +102,24 @@ surfaces what moved, not what was added.
 
 Every item carries a thread. Either operator can comment; only the builder can
 rule.
+
+### How to reply
+
+1. Open the item from the board.
+2. Write in **Reply** and press **Post**.
+
+### How to rule
+
+Only the builder sees these.
+
+1. Open the item.
+2. Write the **Reason**: required to deny, optional to resolve, and read first
+   by whoever filed it.
+3. Press **Resolve** or **Deny**. **Put back to pending** reopens an item that
+   was settled in haste, with its discussion intact.
+
+**Withdraw** removes the item and its discussion altogether. It asks first, in
+place: **Delete** to go ahead, **Keep** to change your mind.
 
 | Status     | Means                                            |
 | ---------- | ------------------------------------------------ |

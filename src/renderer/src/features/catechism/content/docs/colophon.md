@@ -2,6 +2,8 @@
 
 The details the website carries: where to write, call, message and follow.
 
+![colophon-01-reserved.png](colophon-01-reserved.png)
+
 ## Coming soon
 
 COLOPHON is reserved while it is reworked. Its page on the rail says it is

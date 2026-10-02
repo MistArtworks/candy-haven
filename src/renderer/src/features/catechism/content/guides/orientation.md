@@ -17,14 +17,17 @@ It is written as a department of an institution rather than as an app, so
 everything is numbered, named and filed. That is deliberate, and once you know
 the vocabulary the whole console reads the same way.
 
-> You can reopen this tour at any time from REGULATION, under PRESENTATION.
+> This tour shows once. Everything in it is in the CATECHISM at more length,
+> and every department's **QUICK GUIDE** button (or `F1`) is always there.
 
 ## The rail is an organisation chart
 
 ![welcome-03-rail.png](welcome-03-rail.png)
 
 Departments are grouped into four divisions, and the grouping tells you what
-each one is for.
+each one is for. One division is open at a time, the one you are in; press
+another's heading to look inside it. A red mark on a closed one means something
+in it is waiting.
 
 - **COMMAND** — where the system is seen whole and instructed.
 - **PRODUCTION** — the work itself: what is filed, when it is due, how it sounds.
@@ -52,10 +55,11 @@ departments.
 Two controls do most of the work here, and keeping them apart is what stops the
 page becoming a settings screen.
 
-- The **lens** decides what is in scope — the filing tree, unfiled work found on
-  disk, your albums, the whole register, or the bin.
-- The **view** decides how it is drawn — plates, the ledger, or the pipeline
-  board where a project's stage is changed by dragging it.
+- The **lens** decides what is in scope: the whole register (**ALL**), the
+  filing tree (**STACKS**), work found on disk and not yet filed (**INTAKE**),
+  or the **BIN**.
+- The **view** decides how it is drawn: **ICONS**, the **LIST**, or the
+  pipeline **BOARD**, where a project's stage is changed by dragging it.
 
 ## OBSERVATORY — the broadcast kit
 

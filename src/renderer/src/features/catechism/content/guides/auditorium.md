@@ -21,10 +21,18 @@ whichever tells you what you are listening for.
 - **WAVEFORM** — the window across the band, the whole file on the strip beneath.
 - **SPECTRUM** — the frequency content, live.
 - **SPECTRAL** — the spectrogram, frequency against time.
-- **STATIC** — the file drawn whole, no motion.
+- **STATIC** — the mark alone, unmoved by the signal. For a second screen.
 
 **Scroll over the render to zoom.** Press anywhere on it to move the playhead —
 on the band you are pointing at the window, on the strip at the whole file.
 
-> The player can be detached into its own window, and pinned above everything
-> else, when you want it beside a DAW rather than in front of it.
+## Pop it out
+
+![auditorium-04-popout.png](auditorium-04-popout.png)
+
+**Pop out** detaches the player into its own window, which can be pinned above
+everything else: beside a DAW rather than in front of it, or on a second
+screen.
+
+Once a file is admitted, the transport bar along the foot of the console keeps
+it in reach from every department.

@@ -80,6 +80,21 @@ Selecting a row hides nothing. Every overlay's state stays on the board,
 because having to open each overlay in turn to find out what it was doing is
 the problem this department exists to remove.
 
+### How to run an overlay from the desk
+
+1. Pick it on the board. It loads into the bench.
+2. For THE MUSTER, THE CONCORD and RESONANCE SELECTION, set the **Title** and
+   **Question**, and add the options or entries on the line beneath.
+3. Set what changes per segment: a call's length, a voting window, a clock's
+   duration.
+4. Press the lead verb at the foot of the controls: **Put the call**, **Put the
+   question**, **Draw**, **Start**.
+5. Read the live line at the top of the bench while it runs. The helpers under
+   the verb clear, restart, add a minute, or hand a finished roll on.
+
+Anything that is set once (the ballot's order, a countdown's face, the
+presentation knobs) is on the overlay's own page: **Open full console →**.
+
 ### The bench
 
 One overlay, and everything you do to it.
@@ -174,17 +189,18 @@ here as something having gone wrong.
 
 ## The server
 
-One HTTP server, many pages. It starts with the console by default and answers
-on a port set in REGULATION under INTEGRATIONS.
+One HTTP server, many pages. It starts with the console and answers on
+`127.0.0.1`, on port `27918` by default.
 
 It has no panel of its own, on purpose: a slab restating the port and the root
 sat at the top of the department spending the best space on two numbers that
 never change. What you actually need from it is in two places instead.
 
-**In the masthead**, two state dots — whether chat is attending, and whether
-the server is serving and how many sources are attached to it. If that reads
-`0` while OBS is open, the source is not actually connected; check the URL
-rather than the overlay.
+**In the masthead**, two state dots. The first is chat: `Attending #channel`
+when it is listening. The second is the server: `Awaiting a source` while it
+serves with nothing attached, then how many sources are attached, or `Server
+offline`. If it still reads `Awaiting a source` while OBS is open, the source is
+not actually connected; check the URL rather than the overlay.
 
 **In the strip above the board**, the four things that are actions rather than
 readings:
@@ -219,13 +235,13 @@ deliberately not a preview inside the console: the point of looking is to see
 what OBS will see, and the console rendering it proves nothing.
 
 Setting up a scene collection from nothing means adding nine sources, so
-**Copy every address** on the broadcast panel puts the whole kit on the
+**Copy every address**, in the strip above the board, puts the whole kit on the
 clipboard at once — one labelled line per address, with its canvas.
 
 ```
-THE MUSTER              1920x1080   http://127.0.0.1:7420/muster
-THE MUSTER — WIDGET      460x380    http://127.0.0.1:7420/muster-widget
-THE CONCORD              640x900    http://127.0.0.1:7420/concord
+THE MUSTER              1920x1080   http://127.0.0.1:27918/muster
+THE MUSTER — WIDGET      460x380    http://127.0.0.1:27918/muster-widget
+THE CONCORD              640x900    http://127.0.0.1:27918/concord
 ```
 
 The desk hands over exactly the address the overlay's own page hands over, so
@@ -255,9 +271,9 @@ no setting of its own, because a frame that is not transparent is not a frame.
 
 ### Guides
 
-**Draw safe-area guides on copied addresses**, on the broadcast panel, adds
-`?guides=1` to every address the desk hands over. Position your sources with it
-on, then turn it off and copy again before going live.
+**Guides on**, in the strip above the board, adds `?guides=1` to every address
+the desk hands over. Position your sources with it on, then press it again to
+read **Guides off**, and copy again before going live.
 
 One switch rather than one per address, because guides are wanted on every
 source at once while a scene is being cut and on none of them afterwards. It is

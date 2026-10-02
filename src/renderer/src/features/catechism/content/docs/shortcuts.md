@@ -152,10 +152,27 @@ not today. In MONTH that is the first of the month.
 | `Ctrl`+`O`              | Admit a file                         |
 | `Ctrl`+`←` / `Ctrl`+`→` | Back / forward five seconds          |
 | `Ctrl`+`Home`           | Back to the top                      |
+| `Ctrl`+`↑` / `Ctrl`+`↓` | Zoom the render closer / wider       |
 | `Alt`+`1` … `Alt`+`4`   | WAVEFORM, SPECTRUM, SPECTRAL, STATIC |
 
 Seeking is on `Ctrl`+arrows rather than bare arrows: a bare arrow is how a
 keyboard user moves focus, and taking it would make the department unnavigable.
+
+## LORE
+
+In a chapter's text:
+
+| Chord            | Does                               |
+| ---------------- | ---------------------------------- |
+| `Ctrl`+`B`       | Bold the selection                 |
+| `Ctrl`+`I`       | Italic                             |
+| `Enter`          | In a list, starts the next item    |
+| `Ctrl`+`Z` / `Y` | Undo and redo, formatting included |
+
+In the planet maker, `Ctrl`+`Z` undoes the last change to the planet.
+
+These belong to the editor rather than to the console's registry, so the live
+cheatsheet does not list them.
 
 ## Quick guides
 

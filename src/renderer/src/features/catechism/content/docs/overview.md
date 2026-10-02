@@ -19,6 +19,9 @@ of being re-entered.
 
 Departments are grouped into four divisions. The division tells you what kind of
 question a department answers, which is usually enough to know where to look.
+One division is open on the rail at a time, the one you are in; press another's
+heading to look inside it, and a red mark on a closed one means something in it
+is waiting. The arrow beside **DIRECTORY** hides the rail (`Ctrl`+`]`).
 
 | Division        | What it is for                                                                           | Departments                                                   |
 | --------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -45,7 +48,9 @@ MongoDB instance that Candy Haven owns and supervises itself.
   and stops when it stops.
 
 If the archive is down, most of the console will tell you so rather than
-appearing to work. The orb on the NEXUS landing is the fastest way to check.
+appearing to work. The NEXUS landing is the fastest way to check: the line
+beneath the wordmark names the archive's state in words, and the title bar
+carries it on every page.
 
 > DISPATCH is one exception. Its record is a _shared_ database, because the
 > whole point of that department is that two machines see the same board.

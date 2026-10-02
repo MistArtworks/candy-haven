@@ -16,7 +16,7 @@ Motion, interface scale and the accent this console draws with.
 | Setting             | Effect                                                                                                                               |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Motion**          | `full`, `reduced` or `off`. `reduced` keeps state changes legible but removes ambient movement; `off` disables transitions wholesale |
-| **Interface scale** | `0.8` to `2.0`. Scales the whole console, not just text                                                                              |
+| **Interface scale** | `80%` to `200%`. Scales the whole console, not just text. Set in a dialog: see below                                                 |
 | **Accent**          | `crimson` or `gold`. Shifts every interactive affordance                                                                             |
 | **Grain**           | `0` to `1`. The film grain over the whole console                                                                                    |
 | **Page transition** | `sweep`, `fade` or `off`. How a department arrives. **Off by default**                                                               |
@@ -25,6 +25,17 @@ Motion, interface scale and the accent this console draws with.
 
 > The accent setting does not touch the boot orb, which stays crimson. It is the
 > focal object, and the palette reserves that colour for focal points.
+
+### Interface scale
+
+1. Press **Adjust** beside the current scale.
+2. Pick one of the steps Windows itself offers, or slide to any value between.
+   A sample scales as you choose; the console around it holds still.
+3. Press **Apply** to scale the console, or **Cancel** to leave it.
+
+It is a dialog rather than a slider on the page because the scale is the
+window's own zoom: a slider wired straight to it would rescale itself, and slide
+out from under the pointer, while it was being dragged.
 
 **Off by default**, and deliberately. A transition is pleasant the first ten
 times and then sits between you and the page you asked for, and this console is
@@ -100,13 +111,13 @@ Whether this console starts with the machine, and what closing it means.
 Where projects are filed, and the local database that holds the register. Two
 panels: what you set, and what the daemon reports.
 
-| Setting                       | Effect                                                          |
-| ------------------------------ | ---------------------------------------------------------------- |
-| **Filing root**                | The directory your shelves live in. Reported here, not set      |
-| **Project template**           | A folder copied when a new project is created                   |
-| **Other locations**            | Further directories to scan for work. Read only, nothing is filed into one |
-| **When taking a project in**   | `MOVE` or `COPY`. See the ARCHIVE chapter                        |
-| **Re-index on launch**         | Walks the filing root and every other location again at startup |
+| Setting                      | Effect                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| **Filing root**              | The directory your shelves live in. Reported here, not set                 |
+| **Project template**         | A folder copied when a new project is created                              |
+| **Other locations**          | Further directories to scan for work. Read only, nothing is filed into one |
+| **When taking a project in** | `MOVE` or `COPY`. See the ARCHIVE chapter                                  |
+| **Re-index on launch**       | Walks the filing root and every other location again at startup            |
 
 The filing root is chosen once, at ARCHIVE's own setup gate — this page only
 reports it, and deliberately has no button that would change it: repointing
@@ -147,9 +158,18 @@ editing the settings file directly.
 
 ![regulation-04-board.png](regulation-04-board.png)
 
-The shared database behind DISPATCH. Paste the whole configuration snippet the
-Firebase console shows — it is parsed rather than requiring you to pick the JSON
-out of it.
+The shared database behind DISPATCH, and the sign-in that CONTACT, SERVICES
+and LORE use as well.
+
+1. In the Firebase console, copy the web app's whole configuration snippet.
+2. Paste it into **Firebase config**. It is parsed, so the code around the JSON
+   can come with it.
+3. Press **Attach**.
+
+The panel then reports the **Project**, who is **Signed in as**, and the
+board's **State**, with **Sign out** beneath. A Firebase web config is not a
+secret: it ships inside every web app that uses one, and the database's rules
+are what keep the board to its two accounts.
 
 There is no account to create inside Candy Haven. See the DISPATCH chapter for
 why identity works the way it does.
@@ -158,17 +178,28 @@ why identity works the way it does.
 
 Release channel and how new versions arrive.
 
-- **Channel** — which releases this installation is offered.
-- **Check automatically** — looks for an update in the background at startup.
-- **Download automatically** — fetches it without asking.
+The panel reports the **current version** and the **channel** this installation
+is offered releases from, and the updater's state beside its label.
 
-An update is applied on the next launch, and what changed is shown once when the
-new version first runs.
+1. Press **Check for updates**. An installed copy also checks on its own at
+   startup.
+2. When one is found, press **Download**. By default it downloads on its own
+   too, so it is often already there.
+3. Press **Restart and install**, or leave it: an update that has downloaded is
+   applied on the next launch either way.
+
+What changed is shown once, when the new version first runs. A copy run from
+source cannot update itself, and the panel says so.
 
 ## REHEARSAL
 
-Test mode, for exercising the broadcast kit without a live audience. Turn it on
-to check an overlay's layout, cues and timings before a broadcast.
+Test mode, for exercising the broadcast kit without a live audience.
+
+Turn **Test mode** on and broadcast features run without the service they
+depend on: THE CONCORD and THE MUSTER open with no Twitch channel set, and three
+overlays grow a **Simulator** that fills them with synthetic votes, entries and
+petitions. See OBSERVATORY. Turn it off before going live, because a poll that
+counts nothing looks exactly like one that works.
 
 ## DIAGNOSTICS
 
@@ -178,11 +209,11 @@ Where this installation keeps its files, and what it is running on. Nothing here
 is editable — it is the page to read from when something is wrong, and the paths
 are the real resolved ones rather than templates.
 
-| Field            | Use                                   |
-| ---------------- | ------------------------------------- |
-| **User data**    | Settings, logs, archive data          |
-| **Log file**     | The current session's log             |
-| **Archive data** | The database's own directory          |
+| Field            | Use                                                      |
+| ---------------- | -------------------------------------------------------- |
+| **User data**    | Settings, logs, archive data                             |
+| **Log file**     | The current session's log                                |
+| **Archive data** | The database's own directory                             |
 | **Locale**       | The operating system locale Candy Haven is running under |
 
 Candy Haven, Electron, Chromium and Node versions are one gesture away

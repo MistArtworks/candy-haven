@@ -21,8 +21,9 @@ URL, so a link can point at one.
 Two settings gate whole departments, so they are worth doing before anything
 else.
 
-1. **ARCHIVE → filing root.** Nothing in the ARCHIVE works until this points at a
-   directory. It is where your shelves actually live.
+1. **The filing root**, chosen at the ARCHIVE's own setup gate. Nothing in the
+   ARCHIVE works until it points at a directory; REGULATION → ARCHIVE then
+   reports it.
 2. **INTEGRATIONS → Spotify and Twitch.** Only needed if you intend to run
    NOW TRANSMITTING, THE CONCORD or THE MUSTER.
 

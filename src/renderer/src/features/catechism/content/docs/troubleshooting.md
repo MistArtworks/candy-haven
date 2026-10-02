@@ -63,10 +63,10 @@ rather than making you guess.
 - `archive-schema` — collections and indexes are being reconciled.
 - `harmonics` — the archive health check.
 
-**Fast boot** under REGULATION → STARTUP shortens the cinematic. The stages still
-run; only the presentation is abbreviated.
+**Fast boot** under REGULATION → PRESENTATION skips the hold at the end of the
+boot screen. The stages still run; only the wait for a key is gone.
 
-## The orb is dark, or the archive says OFFLINE
+## The archive says OFFLINE
 
 Nothing that reads the register will work. Read **01 ARCHIVE → Last event** on
 NEXUS — that field is where a failure explains itself.
@@ -87,19 +87,19 @@ supervisor recovers from crashes, but it should not be having to.
 
 Work down this list:
 
-1. Does the OBSERVATORY masthead say **Serving**? If not, **Restart server**.
-2. Does **Attached** count your source? If it reads `0` with OBS open, the source
-   is not connected — the URL is wrong. Copy it again from the desk rather than
+1. Does the OBSERVATORY masthead say **Server offline**? Then press **Restart
+   server**.
+2. With OBS open, does it still say **Awaiting a source**? Then the source is
+   not connected — the URL is wrong. Copy it again from the bench rather than
    correcting it by hand.
-3. Is the source's width and height the canvas the block quotes?
+3. Is the source's width and height the canvas its address row quotes?
 4. Is **Shutdown source when not visible** unchecked? If it is checked, state is
    lost on every scene change.
 5. If the overlay draws on a black slab over your scene, it is not transparent:
    turn **Transparent** on in that overlay's own panel.
 
-**Draw safe-area guides on copied addresses**, on the desk's broadcast panel,
-adds `?guides=1` to every address it hands over. Turn it off and copy again
-before going live.
+**Guides on**, in the strip above the board, adds `?guides=1` to every address
+the desk hands over. Turn it off and copy again before going live.
 
 ## NOW TRANSMITTING is blank
 
@@ -167,8 +167,9 @@ it at more length. `F1` opens the guide for wherever you are.
 ## Where the logs are
 
 REGULATION → **DIAGNOSTICS** lists the real resolved paths for this
-installation: user data, the log file, the archive's own directory, and the
-versions being run.
+installation: user data, the log file and the archive's own directory, with the
+locale. **Open user data** opens the folder. The versions being run are on
+NEXUS, in **03 RUNTIME**.
 
 The log is where a failure that has scrolled past still exists. Filing failures
 record what was refused and why.

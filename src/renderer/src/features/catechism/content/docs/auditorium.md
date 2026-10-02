@@ -107,10 +107,12 @@ transient rather than an interpolation of one.
 
 ## The file's particulars
 
-Drawn plain around the stage, because the stage is the single focal object this
-view is allowed:
+In the **ADMITTED** panel beside the stage, drawn plain, because the stage is
+the single focal object this view is allowed: the file's name, then
 
 `FORMAT` · `SIZE` · `LENGTH` · `POSITION` · `FILED AT`
+
+and **Reveal on disk**, which opens its folder.
 
 ## The popout
 
@@ -120,9 +122,10 @@ view is allowed:
 everything else. That is the configuration this department was actually built
 for: the room on a second monitor, or floating over a DAW, while you work.
 
-Every window is told which file the room is on, so the mini player in the
+Every window is told which file the room is on, so the transport bar in the
 console chrome stays in step with the popout and with the page.
 
-> The mini player in the title bar is a sibling of the console shell rather than
-> part of any page — what is playing is a property of the installation, not of
-> whichever department you happen to be looking at.
+> The transport bar along the foot of the console is a sibling of the console
+> shell rather than part of any page — what is playing is a property of the
+> installation, not of whichever department you happen to be looking at. It
+> appears once something is admitted, and keeps it in reach from everywhere.

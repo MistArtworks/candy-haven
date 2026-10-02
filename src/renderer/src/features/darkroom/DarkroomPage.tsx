@@ -118,6 +118,7 @@ export function DarkroomPage(): ReactNode {
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
+        guideId="darkroom"
         actions={
           <>
             <input

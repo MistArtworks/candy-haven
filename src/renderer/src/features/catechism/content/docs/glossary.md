@@ -6,7 +6,7 @@ are listed, because the second kind is impossible to spot without the first.
 
 ## The console
 
-**Department** — a section of the console, reached from the rail. Sixteen of
+**Department** — a section of the console, reached from the rail. Seventeen of
 them, grouped into four divisions.
 
 **Division** — the grouping a department is filed under: COMMAND, PRODUCTION,
@@ -85,7 +85,7 @@ plus SHELVED off to the side.
 
 **Pipeline** — the seven stages in a line. SHELVED is off-pipeline.
 
-**Status** — where a *release* has got to: SCHEDULED or RELEASED. A different
+**Status** — where a _release_ has got to: SCHEDULED or RELEASED. A different
 axis from a project's stage, which says how finished the work is.
 
 **Intake** — bringing work that is already on disk into the register. Named for
@@ -95,8 +95,9 @@ database does once.
 **Not indexed** — a directory the register has never seen. It cannot be filed
 until a scan has indexed it.
 
-**Filing root** — the directory your shelves live in. Set in REGULATION; nothing
-in the department works without it.
+**Filing root** — the directory your shelves live in. Chosen once, at the
+ARCHIVE's setup gate, and reported in REGULATION; nothing in the department
+works without it.
 
 **Satellite root** — a further directory the scan also walks.
 
@@ -125,7 +126,8 @@ now; a final chosen back then still points into it.
 **Browser source** — OBS's term for a web page composited into a scene. Every
 overlay is one.
 
-**Canvas** — the width and height an overlay is designed for, quoted on its card.
+**Canvas** — the width and height an overlay is designed for, quoted beside its
+address on the bench.
 
 **Full / panel** — whether an overlay is its own scene, or furniture composited
 over one.
