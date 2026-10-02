@@ -3,6 +3,8 @@
 Everything released: singles, EPs, albums, compilations and remixes, and where
 each of them went.
 
+![discography-01-catalogue.png](discography-01-catalogue.png)
+
 ## What this department is for
 
 The ARCHIVE answers _what have I made_. This answers _what have I put out_ —
@@ -93,6 +95,38 @@ looking at, and what you can do.
   than chips, because the list grows with the catalogue and has no ceiling.
 - The count reads `6 of 31` while anything is filtering, and **Clear** appears
   only when there is something to clear.
+
+## How to file a release
+
+1. Press **Raise a release**.
+2. Type the **title** and choose the **kind**. Nothing else is needed yet; a
+   status of **RELEASED** asks for the date as well.
+
+   ![discography-02-raise.png](discography-02-raise.png)
+
+3. Press **Raise**. The release opens on its record.
+4. Press **EDIT** and fill in what you know, tab by tab: the cover on
+   **ARTWORK**, who made it on **CREDITS**, the label and codes on **TRADE**.
+5. On **TRACKS**, press **Add a track** for each recording. A single or a remix
+   already has its one. Link the ARCHIVE project it was made in, when there is
+   one; only finished projects are offered.
+
+   ![discography-03-tracks.png](discography-03-tracks.png)
+
+6. Press **Link a master** beside a track to name the file that shipped as it.
+7. Press **DONE**. The record reads back everything it holds, and a dash marks
+   whatever is still missing.
+
+![discography-04-record.png](discography-04-record.png)
+
+## How to put a release out
+
+1. Give it its **release date**, if it has none yet.
+2. Set **status** to **RELEASED**. Every project linked to one of its tracks
+   moves to **RELEASED** in the ARCHIVE.
+3. On **TRADE**, add the **STREAM** link for each platform as it goes live.
+4. Press **Ready to publish** for a folder to hand to a distributor (see
+   below).
 
 ## Raising an entry
 
@@ -293,9 +327,12 @@ one project shipped as a track now credited to another.
 
 ### The release master
 
-Once a track has a project, **PICK MASTER** lists that project's own bounces —
-every audio file in its folder except the imported samples — and records which
-one shipped.
+Once a track has a project, **Link a master** lists that project's own bounces
+(every audio file in its folder except the imported samples) and records which
+one shipped. A track with no project can still have one: there, **Link a master**
+opens a file browser instead, for a label's master or a file kept elsewhere, and
+**Clear** takes it off again. Once a master is named, the button reads **Change
+master**.
 
 **Nothing moves.** The release stores the path to the file where it already
 sits, beside the set that made it. Clicking the filename afterwards opens the

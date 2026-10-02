@@ -48,6 +48,36 @@ Three kinds of folder, and the tree enforces what may go inside what.
 That rule is why `Ctrl`+`Shift`+`N` is disabled at the root: a project needs a
 shelf, and at the top of the tree there is nowhere to put it.
 
+## How to make a shelf
+
+1. Open the **STACKS** lens (`Alt`+`2`).
+2. At the top of the tree, press the **New category** tile and name it:
+   `PERSONAL`, `COLLABS`, `CLIENT WORK`.
+3. Open the category and press **New shelf**. Choose whether it is a **genre**
+   (what the music is) or an **artist** (who it is with), and name it.
+4. Inside a genre or an artist, **New folder** subdivides it further.
+
+Every shelf is a real directory under the filing root, created as you make it.
+
+## How to start a project
+
+1. Open the shelf it belongs on.
+2. Press **New project** (or `Ctrl`+`Shift`+`N`).
+3. Name it, choose its category (`SINGLE`, `EP`, `REMIX`...) and credit who it is
+   with, then press **Create**.
+
+The folder is made on the shelf with your template set copied into it, ready to
+open in Ableton from the dossier's **OPEN IN ABLETON**.
+
+## How to review a project
+
+1. Double-click a project to open its dossier.
+2. **OVERVIEW** answers the working questions: its stage, tempo, key and length,
+   its tags, credits and notes, and, from TRACK READY, its final master.
+3. **RECORD** holds the rest: the full set analysis, the stage history, and which
+   releases it is a track of.
+4. **FILES** lists what is in the folder.
+
 ## The views
 
 ![archive-02-board.png](archive-02-board.png)

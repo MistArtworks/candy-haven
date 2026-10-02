@@ -22,6 +22,8 @@ MONTH and AGENDA answer different questions. MONTH is _where does the work
 fall_ — shape, clustering, the empty week you did not notice. AGENDA is _what is
 next_, in order, with no gaps to read past.
 
+![calendar-02-agenda.png](calendar-02-agenda.png)
+
 ## Filing an entry
 
 ![calendar-04-entry.png](calendar-04-entry.png)
@@ -31,6 +33,7 @@ next_, in order, with no gaps to read past.
 2. Give the entry a title.
 3. Set a time, or leave it as an all-day entry.
 4. Choose its kind.
+5. Add notes if there are any, and press **File entry**.
 
 An entry is **your own statement** that something happens on a date. Nothing
 you file here is derived from a project, and that boundary is worth keeping: a
@@ -118,10 +121,17 @@ anniversary with it and deleting a release removes them all.
 - **AGENDA** lists anniversaries for one year ahead of whatever date it opens
   on, which is every record in the catalogue exactly once.
 
+## Marking an entry done
+
+In AGENDA and DAY, each entry starts with a small square. Press it to mark the
+entry done (discharged, in the register's words); it stays on the register,
+marked as done. Press it again to reopen it.
+
 ## Editing and removing
 
 Click an existing entry to open it for editing. The dialog is the same one used
-to file it, with the values filled in.
+to file it, with the values filled in; press **Save** to keep the change. To
+remove it, press **Strike from register**, then press it again to confirm.
 
 No entry here is tied to anything else in the console, so removing one affects
 only the calendar. Release markers are not entries and cannot be removed from

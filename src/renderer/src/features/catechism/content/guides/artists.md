@@ -2,13 +2,23 @@
 
 ## The roster
 
+![artists-01-roster.png](artists-01-roster.png)
+
 Who the practice works with. One record each: a name, a face, what they do,
 and where to find them.
 
+## Adding somebody
+
+![artists-02-add.png](artists-02-add.png)
+
 Press **Add an artist** to open a dialog. Only the name is required — the
-roles, the real name, the colour and the notes can wait — and it hands
+roles, the real name, the colour and the notes can wait — and **Add** hands
 straight over to the record's own sheet, where the picture is the first thing
 you set.
+
+## Their record
+
+![artists-03-record.png](artists-03-record.png)
 
 The sheet opens as a dossier, not a form: what they're on, how to reach them,
 what you wrote down. **Edit** is the door to the fields, and everything there

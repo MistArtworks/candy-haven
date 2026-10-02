@@ -23,10 +23,10 @@ how it is drawn.
 The toggle beside the panel switches between three presentations of whatever the
 lens has in scope.
 
-- **PLATES** — a grid of objects. The default, because a shelf is browsed before
+- **ICONS**: a grid of plates. The default, because a shelf is browsed before
   it is audited.
-- **LEDGER** — the table, when the figures are the point.
-- **BOARD** — the pipeline, in columns. Drag a project between columns to change
+- **LIST**: the table, when the figures are the point.
+- **BOARD**: the pipeline, in columns. Drag a project between columns to change
   its stage; the move _is_ the edit.
 
 ## The pipeline
@@ -67,10 +67,10 @@ Three tabs. **OVERVIEW** is what you write — stage, credits, tags and notes.
 **RECORD** is what is read — the set analysis, what is on disk, and which
 release the project went out on. **FILES** is the folder itself.
 
-From TRACK READY, OVERVIEW gains a **FINAL MASTER** panel. Press CHOOSE and it
-lists the project's own bounces; pick the one that goes out. Nothing moves —
-the file stays beside the set that made it, and clicking its name opens the
-folder.
+From TRACK READY, OVERVIEW gains a **FINAL MASTER** panel listing the project's
+own bounces as tiles. Press ▶ to hear one, click the one that goes out, and press
+**SET AS FINAL MASTER**. Nothing moves: the file stays beside the set that made
+it, and clicking its name opens the folder.
 
 > Until it is named, the project cannot reach RELEASED. That is the one thing
 > in the pipeline this console insists on: a release nobody recorded the source

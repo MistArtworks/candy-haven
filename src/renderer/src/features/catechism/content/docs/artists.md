@@ -2,6 +2,8 @@
 
 The roster: who the practice works with, and what they are on.
 
+![artists-01-roster.png](artists-01-roster.png)
+
 ## What an artist record is
 
 One person, with a name, a face, what they do, and where to find them. Records
@@ -45,6 +47,29 @@ what you _do_ here; the second is what you are _looking at_.
 - The count at the end reads `8 of 40` while anything is filtering, so an
   empty page is never confusable with a filter that is too narrow. **Clear**
   appears only when there is something to clear.
+
+## How to add somebody
+
+1. Press **Add an artist**.
+2. Type the **name** they are billed by. Add the real name, roles, colour and
+   notes now or later; only the name is needed.
+
+   ![artists-02-add.png](artists-02-add.png)
+
+3. Press **Add**. Their record opens, ready for a picture: choose one there.
+4. Add their links (Spotify, SoundCloud, socials) under **Edit**.
+
+## How to credit somebody
+
+1. On a project: open its dossier in the ARCHIVE and pick them in the
+   **CREDITS** panel on OVERVIEW.
+2. On a release: open it in DISCOGRAPHY, press **EDIT**, and name them on
+   **CREDITS**, as the main artist, featuring, or in a credit line such as
+   `PRODUCED BY`.
+
+Their card then counts what they are on, and their record lists it.
+
+![artists-03-record.png](artists-03-record.png)
 
 ## Adding somebody
 

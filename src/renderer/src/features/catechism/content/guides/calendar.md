@@ -15,13 +15,14 @@ department.
 
 ## Filing an entry
 
-![calendar-02-agenda.png](calendar-02-agenda.png)
+![calendar-04-entry.png](calendar-04-entry.png)
 
 An entry is your own statement that something happens on a date. Nothing here is
 derived from a project or a release, and that boundary is deliberate: a delivery
 date you wrote down should not move because a project changed stage.
 
-Click a day to file one. Give it a title, a time if it has one, and a kind.
+Click a day to file one. Give it a title, a time if it has one, and a kind,
+then press **File entry**. In AGENDA, the square beside an entry marks it done.
 
 ## What you didn't file
 

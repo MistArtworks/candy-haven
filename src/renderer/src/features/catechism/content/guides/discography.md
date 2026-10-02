@@ -2,6 +2,8 @@
 
 ## What you have put out
 
+![discography-01-catalogue.png](discography-01-catalogue.png)
+
 The ARCHIVE answers _what have I made_. This answers _what have I put out_.
 
 They are different questions, and the difference matters: a discography
@@ -9,9 +11,17 @@ includes a back catalogue, a label master and somebody else's remix — none of
 which has an Ableton project on this machine. So an entry **stands alone**,
 and links to a project only when there is one.
 
-**Raise a release** opens a dialog — the title and the kind are required and
-nothing else is. A single or a remix arrives with its one track already on it,
-because a single _is_ a recording; the longer kinds start empty.
+## Filing a release
+
+![discography-02-raise.png](discography-02-raise.png)
+
+1. Press **Raise a release**. The title and the kind are required, and nothing
+   else is.
+2. The record opens. Press **Edit** and fill in what you know, tab by tab: the
+   cover on ARTWORK, who made it on CREDITS, the label and codes on TRADE.
+3. On **TRACKS**, press **Add a track** for each recording. A single or a remix
+   arrives with its one track already on it, because a single _is_ a
+   recording; the longer kinds start empty.
 
 ## Kind, and status
 
@@ -40,6 +50,8 @@ RELEASED stage in the ARCHIVE. Moving it back returns them.
 
 ## The running order, and the link
 
+![discography-03-tracks.png](discography-03-tracks.png)
+
 A release owns its tracklist. Each track can name the ARCHIVE project behind
 it, and the picker offers **finished work only** — projects at TRACK READY or
 later. If something is missing from it, move it to TRACK READY in the ARCHIVE.
@@ -52,8 +64,10 @@ single — stays listed.
 
 ## Which file shipped
 
-Once a track has a project, **PICK MASTER** lists that project's own bounces and
-records which one went out.
+Once a track has a project, **Link a master** lists that project's own bounces
+and records which one went out. A track with no project can still have one:
+there it opens a file browser instead, for a label's master or a file kept
+elsewhere.
 
 Nothing moves. The release stores the path to the file where it already sits,
 so clicking it opens the folder it lives in — and the project's dossier reports
@@ -71,6 +85,8 @@ The **credits** list underneath is the liner notes — a line per role, naming w
 produced, sang, wrote, mixed or drew it. All optional; most singles have none.
 
 ## Where it went
+
+![discography-04-record.png](discography-04-record.png)
 
 Label, catalogue number, UPC, and the ℗ and © lines. ISRCs sit on the
 **track**, because that is what an ISRC identifies — one album, one UPC,
