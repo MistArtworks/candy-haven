@@ -16,8 +16,8 @@ export interface SignInBandProps {
  * The sign-in, as a band across the top of a page.
  *
  * Moved out of DISPATCH when CONTACT and SERVICES came to sit behind the same
- * two accounts. It is one session wherever it is entered: signing in here
- * signs in on all three, through `window.candy.dispatch.signIn`.
+ * two accounts, and LORE after them. It is one session wherever it is entered:
+ * signing in here signs in on all four, through `window.candy.dispatch.signIn`.
  *
  * Drawn as a band rather than a modal. A modal would imply the page is behind
  * it and merely hidden; it is not, because nothing is fetched or shown until

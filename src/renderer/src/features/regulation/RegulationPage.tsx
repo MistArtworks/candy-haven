@@ -718,16 +718,20 @@ export function RegulationPage(): ReactNode {
                         { debounceMs: 600, key: 'websiteUrl' }
                       )
                     }
-                    hint="Where CONTACT and SERVICES check in. Leave it empty for the default: the live site when installed, the development server on this machine when run from source."
+                    hint="Where CONTACT and SERVICES check in, and where LORE publishes. Leave it empty for the default: the live site when installed, the development server on this machine when run from source."
                   />
                   <p className={styles.controlHint}>
                     Read by{' '}
                     <Link to="/contact" className={styles.inlineLink}>
                       CONTACT
-                    </Link>{' '}
-                    and{' '}
+                    </Link>
+                    ,{' '}
                     <Link to="/services" className={styles.inlineLink}>
                       SERVICES
+                    </Link>{' '}
+                    and{' '}
+                    <Link to="/lore" className={styles.inlineLink}>
+                      LORE
                     </Link>{' '}
                     through the DISPATCH sign-in. Another address is another website, with a copy of
                     its own.

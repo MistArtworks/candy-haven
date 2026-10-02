@@ -249,7 +249,7 @@ export function DispatchPage(): ReactNode {
           Your account decides which of you this is. Neither the address nor the password is stored
           here — they are exchanged with Firebase for a token, and the database checks that token on
           every request. That is what keeps the board yours rather than anyone&apos;s who knows its
-          address. The same sign-in opens CONTACT and SERVICES.
+          address. The same sign-in opens CONTACT, SERVICES and LORE.
         </SignInBand>
       ) : null}
 

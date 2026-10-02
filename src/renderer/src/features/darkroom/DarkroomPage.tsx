@@ -114,7 +114,7 @@ export function DarkroomPage(): ReactNode {
   return (
     <motion.div className={styles.page} variants={gridVariants} initial="hidden" animate="visible">
       <PageHeader
-        index={section.order}
+        index={section.order + 1}
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
