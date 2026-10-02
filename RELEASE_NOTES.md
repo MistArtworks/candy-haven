@@ -1,47 +1,41 @@
-A new department for writing the lore of Nayara and putting it on the website, and a manual brought up to date.
+A new department that puts DISCOGRAPHY on the website, with covers and tapes, and release statuses that follow the release date.
 
-## LORE
+## RELEASES
 
-A new department under PUBLICATION, after SERVICES. Write the lore here, chapter by chapter, and publish it to the website's lore page when it is ready.
+A new department under PUBLICATION, after LORE. It shows every release in DISCOGRAPHY as the website has it: whether visitors see it, whether it is on the home page shelf, and whether anything is still to send.
 
-It has three tabs. CHAPTERS lists every chapter and where it stands: a draft, published, or changed since it was published. WRITE is the editor, with the text and the website's look side by side, or either one on its own. PLANETS is where each chapter's planet is made.
+Publish everything sends every release once and switches the website from its own releases to yours. Before it does, it lists what will show, which drafts stay hidden, and anything that can't go yet, with why.
 
-## THREE WAYS TO SEE THE CHAPTERS
+After that, a release goes to the website when you press Done on its sheet in DISCOGRAPHY, with only what changed. If the website can't be reached it waits, and goes with Sync now.
 
-CHAPTERS shows the chapters as a list, as cards, or round an orbit, and keeps the one you chose. The list is where they are put in order, each beside its planet. Cards show each chapter's planet large, with its line and where it stands.
+## PICK, THEN UPDATE
 
-The orbit sets them round a ring the way the website's lore page does, the first at the top, with a place kept for the chapter still to come. The chapter in hand is drawn large and moving in the middle, beside its title, line and planet. Pick a planet on the ring to bring its chapter there, or walk the ring with the arrow keys.
+Tick releases and choose Show, Hide, Add to shelf, Remove from shelf or Send. Each row also has its own menu. Nothing is sent straight away: every row shows what will change, and the Update bar sends it all in one request. Discard drops it.
 
-## WRITING
+## THE HOME PAGE SHELF
 
-The bar above the text formats it like a word processor: bold, italic, headings, bulleted lists, terms and large quotes, with clear formatting, undo and redo. Ctrl+B and Ctrl+I work too.
+Up to eight releases, in the order you set. Only releases visitors can see go on it, and hiding one takes it off. With none picked, the website shows the newest eight.
 
-Drafts stay on this machine until you publish them, and they work with no connection. Nothing reaches the website, or the other copy of the console, until a chapter is published.
+## COVERS AND TAPES
 
-## PUBLISHING
+Each release's cover goes to the website, shrunk here and compressed there to a small 750 by 750 image. The website also makes the release's tape for the shelf, with the cover printed on it. A changed cover goes again on its own.
 
-Publish sends one chapter to the website, with a copy of its planet. Publish order sends the order of the chapters when it differs from the website's. Unpublish takes a chapter off the website and keeps the draft here.
+Covers go one at a time in the background, and a strip at the top of the page shows what is being sent and how far it has got.
 
-The first publish replaces the website's own chapters with yours, so it asks first.
+## DRAFT, SCHEDULED, RELEASED
 
-If the other copy has published the same chapter since you last looked, publishing asks whether to publish over theirs or take theirs instead.
+Releases now have three statuses. A draft is hidden on the website until its day. Scheduled shows it before its day, with its pre-save links, and needs a date. Released is set by itself on the release day, and can't be set before it.
 
-## PLANETS
+Releases that were scheduled and not out yet are drafts now, so nothing new appears on the website until you schedule it.
 
-Duplicate one of the eleven planets the lore began with and make it your own, or open one you have made. A planet is a stack of layers: grids, veins, cores, sigils, rings, moons and more, 26 kinds in all, each with its own colours, place and motion.
+## THE RELEASE SHEET
 
-## SIGNING IN
-
-LORE uses the DISPATCH sign-in, like CONTACT and SERVICES. Signing in on any of the four opens all of them.
+Edit and Done are at the foot of the sheet. Ready to publish is now Save local bundle, at the top.
 
 ## THE MANUAL
 
-Every chapter of the CATECHISM and every quick guide is up to date, with new pictures throughout and the steps for what is done in each department. DARKROOM has a quick guide of its own.
-
-## FIXES
-
-DARKROOM's number in its masthead matches the rail again. Its palette swatches and ramp stops no longer carry an outline all the time, only when reached with the keyboard.
+RELEASES has a CATECHISM chapter and a quick guide, and the DISCOGRAPHY chapter explains the new statuses.
 
 ## THE RAIL
 
-LORE is 13, so TELEMETRY, DISPATCH, REGULATION and CATECHISM move to 14 to 17. Their shortcuts have not changed.
+RELEASES is 14, so TELEMETRY, DISPATCH, REGULATION and CATECHISM move to 15 to 18. Their shortcuts have not changed.
