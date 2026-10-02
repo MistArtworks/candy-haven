@@ -22,7 +22,7 @@ import {
   type InboxActions
 } from '@renderer/hooks/useInbox'
 import { formatRelative, formatStamp } from '@renderer/features/dispatch/lib/present'
-import { InboxGate, InboxStatus } from './components/InboxChrome'
+import { CheckForNew, InboxGate, InboxStatus } from './components/InboxChrome'
 import { DeleteControl, DetailRows, NoteField, StatusSwitch } from './components/Filed'
 import styles from './Inbox.module.scss'
 
@@ -84,35 +84,36 @@ export function ServicesPage(): ReactNode {
         purpose={section.purpose}
         epigraph={section.epigraph}
         guideId="services"
-        actions={
-          <InboxStatus
-            state={state}
-            syncing={actions.pending === 'sync'}
-            onSync={() => void actions.sync()}
-          />
-        }
+        actions={<InboxStatus state={state} />}
       />
 
       <InboxGate state={state} what="SERVICES" />
 
       {open ? (
         <>
-          <div className={styles.tabs} role="tablist" aria-label="Services">
-            {TABS.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                role="tab"
-                className={styles.tab}
-                aria-selected={tab === entry.id}
-                onClick={() => chooseTab(entry.id)}
-              >
-                {entry.label}
-                {entry.id === 'dj' && state.waiting.enquiries > 0 ? (
-                  <span className={styles.waiting}>{state.waiting.enquiries}</span>
-                ) : null}
-              </button>
-            ))}
+          <div className={styles.toolbar}>
+            <div className={styles.tabs} role="tablist" aria-label="Services">
+              {TABS.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  role="tab"
+                  className={styles.tab}
+                  aria-selected={tab === entry.id}
+                  onClick={() => chooseTab(entry.id)}
+                >
+                  {entry.label}
+                  {entry.id === 'dj' && state.waiting.enquiries > 0 ? (
+                    <span className={styles.waiting}>{state.waiting.enquiries}</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+            <CheckForNew
+              state={state}
+              syncing={actions.pending === 'sync'}
+              onSync={() => void actions.sync()}
+            />
           </div>
 
           {tab === 'dj' ? <DjTab state={state} actions={actions} /> : <ProducerTab />}

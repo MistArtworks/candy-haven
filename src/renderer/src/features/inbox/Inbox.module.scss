@@ -117,12 +117,27 @@
   }
 }
 
+// ----------------------------------------------------------------- toolbar
+
+// The row between the header and the lists: SERVICES' tabs on the left, and
+// on both pages the one primary action, Check for new, on the right.
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin: 0 0 space(5);
+}
+
+.checkForNew {
+  margin-left: auto;
+}
+
 // -------------------------------------------------------------------- tabs
 
 // SERVICES' DJ and PRODUCER. The REGULATION segmented switch, at page scale.
 .tabs {
   display: inline-flex;
-  margin: 0 0 space(5);
   @include hairline(all, 0.14);
 }
 

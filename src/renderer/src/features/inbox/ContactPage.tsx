@@ -20,7 +20,7 @@ import {
   useSiteMessages
 } from '@renderer/hooks/useInbox'
 import { formatRelative, formatStamp } from '@renderer/features/dispatch/lib/present'
-import { InboxGate, InboxStatus } from './components/InboxChrome'
+import { CheckForNew, InboxGate, InboxStatus } from './components/InboxChrome'
 import { DeleteControl, DetailRows, NoteField, StatusSwitch } from './components/Filed'
 import styles from './Inbox.module.scss'
 
@@ -93,16 +93,20 @@ export function ContactPage(): ReactNode {
         purpose={section.purpose}
         epigraph={section.epigraph}
         guideId="contact"
-        actions={
-          <InboxStatus
+        actions={<InboxStatus state={state} />}
+      />
+
+      <InboxGate state={state} what="CONTACT" />
+
+      {open ? (
+        <div className={styles.toolbar}>
+          <CheckForNew
             state={state}
             syncing={actions.pending === 'sync'}
             onSync={() => void actions.sync()}
           />
-        }
-      />
-
-      <InboxGate state={state} what="CONTACT" />
+        </div>
+      ) : null}
 
       {open ? (
         <motion.div

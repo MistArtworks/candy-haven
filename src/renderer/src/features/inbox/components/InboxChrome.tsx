@@ -25,25 +25,14 @@ function host(origin: string): string {
 }
 
 /**
- * The header's right side: which website, how the last check-in went, and
- * the button that asks for what is new.
+ * The header's right side: which website, and how the last check-in went.
  *
- * The button is the only way to check in after startup, short of signing in
- * again: nothing runs on a timer. So it is a real button rather than a quiet
- * link, and the readout says when the last check was rather than claiming the
- * page is up to date.
+ * The readout says when the last check was rather than claiming the page is
+ * up to date: nothing runs on a timer, so the page is only as fresh as the
+ * last time someone asked.
  */
-export function InboxStatus({
-  state,
-  syncing,
-  onSync
-}: {
-  state: InboxState
-  syncing: boolean
-  onSync: () => void
-}): ReactNode {
+export function InboxStatus({ state }: { state: InboxState }): ReactNode {
   const { link } = state
-  const signedIn = link.state !== 'signed-out' && link.state !== 'unconfigured'
 
   return (
     <div className={styles.headerActions}>
@@ -65,13 +54,51 @@ export function InboxStatus({
         }
         pulse={link.state === 'syncing'}
       />
-
-      {signedIn ? (
-        <Button size="sm" busy={syncing || link.state === 'syncing'} onClick={onSync}>
-          Check for new
-        </Button>
-      ) : null}
     </div>
+  )
+}
+
+/**
+ * The button that asks the website for what is new.
+ *
+ * The only way to check in after startup, short of signing in again, so it
+ * is drawn as the page's one primary action, on its own row above the lists
+ * and to the right, where the eye finishes the header. Hidden while signed
+ * out, when there is nobody to ask for.
+ */
+export function CheckForNew({
+  state,
+  syncing,
+  onSync
+}: {
+  state: InboxState
+  syncing: boolean
+  onSync: () => void
+}): ReactNode {
+  const signedIn = state.link.state !== 'signed-out' && state.link.state !== 'unconfigured'
+  if (!signedIn) return null
+
+  return (
+    <Button
+      variant="primary"
+      className={styles.checkForNew}
+      busy={syncing || state.link.state === 'syncing'}
+      icon={
+        // An arrow into a tray: something arriving.
+        <svg viewBox="0 0 12 12" width="12" height="12" fill="none" aria-hidden="true">
+          <path
+            d="M6 1.4v5.6M3.6 4.8 6 7.2l2.4-2.4"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinecap="square"
+          />
+          <path d="M1.8 7.8v2.4h8.4V7.8" stroke="currentColor" strokeWidth="1.1" />
+        </svg>
+      }
+      onClick={onSync}
+    >
+      Check for new
+    </Button>
   )
 }
 
