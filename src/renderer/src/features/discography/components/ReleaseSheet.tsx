@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { ArtistRecord } from '@shared/domain/artists'
 import type {
@@ -115,6 +115,12 @@ export interface ReleaseSheetProps {
   onSetTrackMaster: (trackId: string, path: string | null) => void
   onRemove: () => void
   onClose: () => void
+  /**
+   * Editing finished: DONE pressed, or the sheet closed while being edited.
+   * RELEASES sends the release to the website then, so a half-typed field
+   * never goes out but nothing finished is left behind.
+   */
+  onEdited?: () => void
 }
 
 /**
@@ -159,7 +165,8 @@ export function ReleaseSheet({
   onReorderTracks,
   onSetTrackMaster,
   onRemove,
-  onClose
+  onClose,
+  onEdited
 }: ReleaseSheetProps): ReactNode {
   const [confirming, setConfirming] = useState(false)
   const [tab, setTab] = useState<SheetTab>('release')
@@ -188,7 +195,29 @@ export function ReleaseSheet({
    * `false` on every open, and the sheet is keyed by release id at its call
    * site, so opening the next record cannot inherit the last one's mode.
    */
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditingState] = useState(false)
+
+  /*
+   * When editing ends, RELEASES is told (see `onEdited`). Held in refs so
+   * the sheet closing while still in EDIT tells it too: the unmount below
+   * reads the mode as it last was, not as the render that set it up saw it.
+   */
+  const editingRef = useRef(false)
+  const onEditedRef = useRef(onEdited)
+  useEffect(() => {
+    onEditedRef.current = onEdited
+  })
+  useEffect(
+    () => () => {
+      if (editingRef.current) onEditedRef.current?.()
+    },
+    []
+  )
+  const setEditing = (next: boolean): void => {
+    if (editingRef.current && !next) onEditedRef.current?.()
+    editingRef.current = next
+    setEditingState(next)
+  }
   const animate = useAnimationsEnabled()
   /*
    * Pressing the scrim closes, but a text selection dragged out of a field
@@ -315,29 +344,26 @@ export function ReleaseSheet({
 
             <div className={styles.sheetActions}>
               {/*
-                The way in, and the way back out again.
-
-                Not offered while the entry is unadopted: there the ADOPT bar
-                is the only honest way in, and a second button claiming to
-                unlock the same form would be a dead end.
-
-                DONE rather than SAVE, deliberately. There is nothing to
-                save — every field has already written — and a button
-                labelled SAVE would promise a commit that had happened
-                several keystrokes ago.
+                Offered even when the record is incomplete, and refused by
+                the service with the list of what is missing. A disabled
+                button here would have to re-derive those four conditions
+                in the renderer, and would then be a second opinion about
+                them that could disagree with the first.
               */}
-              {locked ? null : (
-                <Button
-                  size="sm"
-                  variant={editing ? 'primary' : 'ghost'}
-                  onClick={() => setEditing((on) => !on)}
-                  {...tooltipTrigger(
-                    editing ? 'Stop editing — everything is already saved' : 'Edit this release'
-                  )}
-                >
-                  {editing ? 'Done' : 'Edit'}
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                busy={publishing}
+                disabled={locked}
+                {...tooltipTrigger(
+                  locked
+                    ? 'Adopt this release first'
+                    : 'Write the folder into Candy Haven\\RELEASES'
+                )}
+                onClick={onPublish}
+              >
+                Save local bundle
+              </Button>
 
               <Button size="sm" variant="ghost" onClick={onClose}>
                 Close
@@ -547,20 +573,41 @@ export function ReleaseSheet({
 
                         <div className={styles.gutterRow}>
                           <span className={styles.gutterLabel}>Status</span>
+                          {/*
+                            RELEASED is never pressed: the release day sets it. Before
+                            then DRAFT or SCHEDULED, and SCHEDULED needs a date.
+                          */}
                           <div className={styles.chips}>
-                            {RELEASE_STATUSES.map((status: ReleaseStatus) => (
-                              <button
-                                key={status}
-                                type="button"
-                                className={styles.chip}
-                                data-on={release.status === status || undefined}
-                                aria-pressed={release.status === status}
-                                {...tooltipTrigger(RELEASE_STATUS_PURPOSE[status])}
-                                onClick={() => onPatch({ status })}
-                              >
-                                {RELEASE_STATUS_LABEL[status]}
-                              </button>
-                            ))}
+                            {RELEASE_STATUSES.map((status: ReleaseStatus) => {
+                              const out = release.status === 'released'
+                              const why =
+                                status === 'released'
+                                  ? out
+                                    ? 'Out since its release day.'
+                                    : 'Set by itself on the release day.'
+                                  : out
+                                    ? 'Out: its release day has come. Move the date to change it.'
+                                    : status === 'scheduled' && !release.releaseDate
+                                      ? 'Set the release date first.'
+                                      : null
+                              return (
+                                <span
+                                  key={status}
+                                  {...tooltipTrigger(why ?? RELEASE_STATUS_PURPOSE[status])}
+                                >
+                                  <button
+                                    type="button"
+                                    className={styles.chip}
+                                    data-on={release.status === status || undefined}
+                                    aria-pressed={release.status === status}
+                                    disabled={why !== null}
+                                    onClick={() => onPatch({ status })}
+                                  >
+                                    {RELEASE_STATUS_LABEL[status]}
+                                  </button>
+                                </span>
+                              )
+                            })}
                           </div>
                         </div>
 
@@ -574,28 +621,27 @@ export function ReleaseSheet({
                           label="Release date"
                           value={release.releaseDate ?? ''}
                           onChange={(value) => onPatch({ releaseDate: value || null })}
-                          invalid={release.status === 'released' && !release.releaseDate}
                           layout="gutter"
                           hint={
-                            release.status === 'released' && !release.releaseDate
-                              ? 'A released entry needs the date it came out.'
+                            release.status !== 'released' && release.releaseDate
+                              ? 'It turns RELEASED on this day, by itself.'
                               : undefined
                           }
                         />
 
                         {/*
-                          What flipping the status does to the ARCHIVE, said before it is
-                          pressed. RELEASED moves every project behind a track to the
-                          RELEASED stage — a write into another department, and never
-                          something to discover after the fact. In the value column, under
-                          the two controls it is about, and quiet: a consequence to be aware
-                          of rather than a warning.
+                          What going out does to the ARCHIVE, said before it happens.
+                          RELEASED moves every project behind a track to the RELEASED
+                          stage: a write into another department, and never something to
+                          discover after the fact. In the value column, under the two
+                          controls it is about, and quiet: a consequence to be aware of
+                          rather than a warning.
                         */}
                         {release.tracks.some((track) => track.projectId !== null) ? (
                           <p className={styles.gutterNote}>
                             {release.status === 'released'
-                              ? 'Linked projects sit at RELEASED in the ARCHIVE. Moving this back returns them to TRACK READY.'
-                              : 'Marking this RELEASED moves every linked project to RELEASED in the ARCHIVE.'}
+                              ? 'Linked projects sit at RELEASED in the ARCHIVE. Moving the date later returns them to TRACK READY.'
+                              : 'On its release day this turns RELEASED, and every linked project moves to RELEASED in the ARCHIVE.'}
                           </p>
                         ) : null}
 
@@ -924,26 +970,29 @@ export function ReleaseSheet({
                 <span className={styles.footSpacer} />
 
                 {/*
-                  Offered even when the record is incomplete, and refused by
-                  the service with the list of what is missing. A disabled
-                  button here would have to re-derive those four conditions
-                  in the renderer, and would then be a second opinion about
-                  them that could disagree with the first.
+                  The way in, and the way back out again.
+
+                  Not offered while the entry is unadopted: there the ADOPT bar
+                  is the only honest way in, and a second button claiming to
+                  unlock the same form would be a dead end.
+
+                  DONE rather than SAVE, deliberately. There is nothing to
+                  save (every field has already written), and a button
+                  labelled SAVE would promise a commit that had happened
+                  several keystrokes ago.
                 */}
-                <Button
-                  size="md"
-                  variant="primary"
-                  busy={publishing}
-                  disabled={locked}
-                  {...tooltipTrigger(
-                    locked
-                      ? 'Adopt this release first'
-                      : 'Write the folder into Candy Haven\\RELEASES'
-                  )}
-                  onClick={onPublish}
-                >
-                  Ready to publish
-                </Button>
+                {locked ? null : (
+                  <Button
+                    size="md"
+                    variant="primary"
+                    onClick={() => setEditing(!editing)}
+                    {...tooltipTrigger(
+                      editing ? 'Stop editing: everything is already saved' : 'Edit this release'
+                    )}
+                  >
+                    {editing ? 'Done' : 'Edit'}
+                  </Button>
+                )}
               </>
             )}
           </motion.footer>

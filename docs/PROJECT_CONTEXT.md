@@ -5,8 +5,11 @@
 > top to bottom before writing code. Where it says "non-negotiable", treat it as
 > a hard constraint the user has already decided.
 >
-> Last updated: 2026-10-02. Fifteen of seventeen departments in service;
-> INTERFACE and COLOPHON are reserved. LORE joined PUBLICATION on 2026-10-02:
+> Last updated: 2026-10-02. Sixteen of eighteen departments in service;
+> INTERFACE and COLOPHON are reserved. RELEASES joined PUBLICATION on
+> 2026-10-02: DISCOGRAPHY on the website, its covers and the shelf's tapes
+> (CATECHISM chapter `releases`). Release statuses became DRAFT, SCHEDULED and
+> RELEASED, the last set by the release date. LORE joined PUBLICATION on 2026-10-02:
 > the lore written here and published to the website (`docs/LORE.md`).
 > CONTACT and SERVICES joined PUBLICATION
 > on 2026-10-01, reading what the website's visitors send (`docs/INBOX.md`). COLOPHON opened PUBLICATION on
@@ -1190,7 +1193,7 @@ D20-D22 in `docs/DISCOGRAPHY.md`.
   both lists; `AgendaView` folds release dates into its **grouping**, which is
   why that day list is now sorted explicitly instead of inheriting order from
   the sorted entry list.
-- **READY TO PUBLISH** writes `Candy Haven\RELEASES\<billing> - <title>
+- **SAVE LOCAL BUNDLE** (was READY TO PUBLISH; at the top of the sheet since 2026-10-02, with EDIT / DONE moved to the foot) writes `Candy Haven\RELEASES\<billing> - <title>
   [ (feat. ...)]\`: the master(s), `Cover Art.<ext>`, `Spotify Canvas.<ext>`
   and `Release Details.txt`. One track is named exactly as the folder; several
   are `NN <mains> - <title>[ (feat. ...)]`. **Copies, never moves.** A second
@@ -1392,7 +1395,7 @@ D24 in `docs/DISCOGRAPHY.md`.
   unadopted entry keeps that fieldset disabled, and they would go dead.
   `ReleaseDetails` (D25) is outside the fieldset entirely and uses ordinary
   `Button`s; the rule is about the lock, not about house style.
-- READY TO PUBLISH and REMOVE stay live while reading: neither is an edit
+- SAVE LOCAL BUNDLE and REMOVE stay live while reading: neither is an edit
   to the record, and needing EDIT to publish would put a lock in front of
   the thing the record exists for.
 

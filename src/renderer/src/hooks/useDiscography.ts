@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import {
   useMutation,
   useQuery,
@@ -39,6 +40,17 @@ export interface PublishReport {
 const REGISTRY_KEY = ['discography', 'registry'] as const
 
 export function useDiscography(enabled = true): UseQueryResult<DiscographyRegistry> {
+  const queryClient = useQueryClient()
+  // A release turning RELEASED on its day changes the catalogue with nobody
+  // touching it, and moves its projects.
+  useEffect(
+    () =>
+      window.candy.discography.onSettled(() => {
+        void queryClient.invalidateQueries({ queryKey: ['discography'] })
+        void queryClient.invalidateQueries({ queryKey: ['projects'] })
+      }),
+    [queryClient]
+  )
   return useQuery({
     queryKey: REGISTRY_KEY,
     queryFn: () => window.candy.discography.registry(),

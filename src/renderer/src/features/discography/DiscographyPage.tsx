@@ -247,7 +247,7 @@ export function DiscographyPage(): ReactNode {
           if (linked === 0) return
 
           const released = updated.status === 'released'
-          notify.report(released ? 'Marked released' : 'Returned to scheduled', {
+          notify.report(released ? 'Marked released' : 'No longer out', {
             detail: `${plural(linked, 'linked project')} moved to ${
               released ? 'RELEASED' : 'TRACK READY'
             } in the ARCHIVE.`
@@ -534,6 +534,8 @@ export function DiscographyPage(): ReactNode {
               mutations.adopt.isPending
             }
             onOpenRelease={setOpenId}
+            // RELEASES sends it to the website, if it shows these releases yet.
+            onEdited={() => void window.candy.releases.edited(open.data.id)}
             onPatch={patch}
             onPublish={() => {
               mutations.publish.mutate(openId, {

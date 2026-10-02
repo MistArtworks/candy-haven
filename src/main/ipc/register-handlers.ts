@@ -256,7 +256,12 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('discography:get', ({ id }) => services.discography.get(id))
   router.handle('discography:create', (draft) => services.discography.create(draft))
   router.handle('discography:update', ({ id, patch }) => services.discography.update(id, patch))
-  router.handle('discography:delete', ({ id }) => services.discography.remove(id))
+  router.handle('discography:delete', async ({ id }) => {
+    await services.discography.remove(id)
+    // Gone from the catalogue, so gone from the website: now, or once it can
+    // be reached. Not awaited: the website is not a reason to hold the delete.
+    void services.releases.removed(id)
+  })
   router.handle('discography:set-asset', ({ id, asset, sourcePath }) =>
     services.discography.setAsset(id, asset, sourcePath)
   )
@@ -445,6 +450,18 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('lore:create-planet', (draft) => services.lore.createPlanet(draft))
   router.handle('lore:save-planet', (input) => services.lore.savePlanet(input))
   router.handle('lore:delete-planet', ({ id }) => services.lore.deletePlanet(id))
+
+  // ----------------------------------------------------------------- releases
+
+  router.handle('releases:state', () => services.releases.current)
+  router.handle('releases:sync', () => services.releases.sync())
+  router.handle('releases:sync-now', () => services.releases.syncNow())
+  router.handle('releases:publish-everything', () => services.releases.publishEverything())
+  router.handle('releases:edited', ({ id }) => services.releases.edited(id))
+  router.handle('releases:stage', (input) => services.releases.stage(input))
+  router.handle('releases:stage-shelf', ({ siteIds }) => services.releases.stageShelf(siteIds))
+  router.handle('releases:discard', () => services.releases.discard())
+  router.handle('releases:update', () => services.releases.commit())
 
   /**
    * Hands a release's canvas to the sheet so it can be watched.
@@ -821,6 +838,8 @@ export function registerEventBridges(deps: {
   services.calendar.on('changed', (state) => router.broadcast('calendar:state', state))
   services.inbox.on('state', (state) => router.broadcast('inbox:state', state))
   services.lore.on('state', (state) => router.broadcast('lore:state', state))
+  services.releases.on('state', (state) => router.broadcast('releases:state', state))
+  services.discography.onSettled((ids) => router.broadcast('discography:settled', { ids }))
 
   windows.subscribe((state) => router.broadcast('window:state', state))
 }

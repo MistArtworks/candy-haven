@@ -17,6 +17,7 @@ export const SECTION_IDS = [
   'contact',
   'services',
   'lore',
+  'releases',
   'telemetry',
   'dispatch',
   'regulation',
@@ -257,13 +258,30 @@ export const SECTIONS: readonly SectionDefinition[] = [
     implemented: true
   },
   {
+    /*
+     * DISCOGRAPHY, as the website shows it. The catalogue stays in
+     * DISCOGRAPHY; this sends it, through the same API as LORE: "Publish
+     * everything" once, then each release when its sheet is done with. Which
+     * releases are shown and the home page shelf are set here.
+     * See docs/RELEASES.md.
+     */
+    id: 'releases',
+    path: '/releases',
+    label: 'RELEASES',
+    purpose: 'The discography as the website shows it: what is shown, and the shelf',
+    epigraph: 'Every record carries its own way out.',
+    group: 'publication',
+    order: 13,
+    implemented: true
+  },
+  {
     id: 'telemetry',
     path: '/telemetry',
     label: 'TELEMETRY',
     purpose: 'Host vitals: processor, memory, graphics and storage',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'oversight',
-    order: 13,
+    order: 14,
     implemented: true
   },
   {
@@ -273,7 +291,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Feedback and suggestions between operators, ruled on and recorded',
     epigraph: 'Nothing is lost that is entered into the record.',
     group: 'oversight',
-    order: 14,
+    order: 15,
     implemented: true
   },
   {
@@ -283,7 +301,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Operator settings, archive control and update channel',
     epigraph: 'Harmony is maintained.',
     group: 'oversight',
-    order: 15,
+    order: 16,
     implemented: true
   },
   {
@@ -293,7 +311,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'How this console is operated, department by department',
     epigraph: 'We do not question the shape of the universe.',
     group: 'oversight',
-    order: 16,
+    order: 17,
     implemented: true
   }
 ] as const

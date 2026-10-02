@@ -71,7 +71,7 @@ show every record.
 | Lens            | Shows                                 |
 | --------------- | ------------------------------------- |
 | **CATALOGUE**   | What is out in the world. The default |
-| **FORTHCOMING** | Scheduled, not yet released           |
+| **FORTHCOMING** | Drafts and scheduled, not out yet     |
 | **ALL**         | Every entry, whatever its status      |
 
 There used to be a **SHELVED** lens. It went with the status of that name — a
@@ -100,7 +100,7 @@ looking at, and what you can do.
 
 1. Press **Raise a release**.
 2. Type the **title** and choose the **kind**. Nothing else is needed yet; a
-   status of **RELEASED** asks for the date as well.
+   status of **SCHEDULED** asks for the date as well.
 
    ![discography-02-raise.png](discography-02-raise.png)
 
@@ -122,10 +122,13 @@ looking at, and what you can do.
 ## How to put a release out
 
 1. Give it its **release date**, if it has none yet.
-2. Set **status** to **RELEASED**. Every project linked to one of its tracks
-   moves to **RELEASED** in the ARCHIVE.
-3. On **TRADE**, add the **STREAM** link for each platform as it goes live.
-4. Press **Ready to publish** for a folder to hand to a distributor (see
+2. To announce it before its day, set **status** to **SCHEDULED** (or press
+   **Show** for it in RELEASES): the website shows it with its pre-save links.
+   Left a **DRAFT**, it stays hidden until its day.
+3. On its release day it turns **RELEASED** by itself, and every project linked
+   to one of its tracks moves to **RELEASED** in the ARCHIVE.
+4. On **TRADE**, add the **STREAM** link for each platform as it goes live.
+5. Press **Save local bundle** for a folder to hand to a distributor (see
    below).
 
 ## Raising an entry
@@ -139,9 +142,10 @@ The kind defaults to `SINGLE` because it is right most of the time. Your own
 record is billed by default if one is marked **This is me** in ARTISTS; one
 press removes it.
 
-The one thing the dialog insists on beyond those two: a status of `RELEASED`
-needs the date, because the catalogue sorts by it. The dialog says so rather
-than letting the service refuse after you press Raise.
+The one thing the dialog insists on beyond those two: a status of
+`SCHEDULED` needs the date, since it can't be scheduled for no day. A date that
+has already come raises it as `RELEASED`. The dialog says so rather than letting
+the service refuse after you press Raise.
 
 It opens straight into the sheet, where the artwork and codes go.
 
@@ -158,22 +162,24 @@ than cropped, because it is a phone-shaped video in a square frame and
 cropping it would misrepresent it. **REVEAL** shows whichever one you are
 looking at in Explorer.
 
-Press **EDIT** and you get the form instead, in the five tabs below. Press
-**DONE** and it settles back to the record.
+Press **EDIT**, at the foot of the sheet, and you get the form instead, in the
+five tabs below. Press **DONE**, in the same place, and it settles back to the
+record.
 
-There is no save button because there is nothing to save — every field is
+There is no button to save the release because there is nothing to save — every field is
 written the moment you change it, which is how the whole console works. EDIT
 is there so that reading a finished release cannot accidentally rewrite it.
 
 Everything a release _could_ hold is on the page, and anything it does not
 hold reads as a dash. That is deliberate: it makes the record its own
-pre-flight check, so you can see at a glance which of the things READY TO
-PUBLISH insists on is still missing.
+pre-flight check, so you can see at a glance which of the things SAVE LOCAL
+BUNDLE insists on is still missing.
 
 Plenty still works while you are reading — the **OPEN** links beside a
-platform, **REVEAL** on a track's master or on the cover, and both footer
-buttons. Going and looking at something is not editing it, and you can
-publish or remove without pressing EDIT.
+platform, **REVEAL** on a track's master or on the cover, **Save local bundle**
+at the top, and **Remove from catalogue** at the foot. Going and looking at
+something is not editing it, and you can save the bundle or remove without
+pressing EDIT.
 
 > An entry the app raised for you is read-only for a second reason as well,
 > and shows an **ADOPT** bar instead of an EDIT button. Adopting it starts
@@ -237,26 +243,26 @@ Changing the kind of a release that already has more tracks than the new kind
 allows is **refused**, naming the count. Nothing is ever silently dropped to
 make a record fit its label.
 
-**Status** is how public it is, and it is **two states**: either it is out or it
-is not.
+**Status** is how public it is: a draft, announced, or out.
 
-| Status      | Means                                                    |
-| ----------- | -------------------------------------------------------- |
-| `SCHEDULED` | Committed to, whether or not it has a date yet           |
-| `RELEASED`  | Out in the world. Moves every linked project to RELEASED |
+![discography-08-status.png](discography-08-status.png)
 
-`SCHEDULED` does **not** require a date. Leaving the date empty is what says
-"this is going out, I do not know when" — it is the only thing that can say it
-now, which is why the status does not insist on one.
+| Status      | Means                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| `DRAFT`     | Not announced. Hidden on the website until its release day            |
+| `SCHEDULED` | Announced. Shown on the website before its day, with pre-save links   |
+| `RELEASED`  | Out. Set by itself on the release day; moves linked projects with it |
+
+**The date decides when it's out; you decide whether it's announced.** You never
+press `RELEASED`: on its release day a release turns `RELEASED` by itself (the
+console checks every few minutes, and when it starts), and it can't be
+`RELEASED` before that day. Before it, choose `DRAFT` or `SCHEDULED`.
+`SCHEDULED` needs a date; with no date a release is a draft. Move a released
+release's date later and it goes back to `SCHEDULED`.
 
 Status is **not** a project's stage. A stage says how finished the work is; a
 status says how public it is. A track can sit at `TRACK READY` for a year
 while a label schedules it, and neither figure is wrong.
-
-`RELEASED` is refused without a date. The catalogue sorts by date, so an entry
-claiming to be out with no date would file itself beneath everything — and
-guessing today would put a wrong fact in the one record whose job is to be
-right about dates.
 
 ### It used to be five
 
@@ -270,23 +276,25 @@ right about dates.
 - `SHELVED` duplicated the project's own **SHELVED stage**, which is where
   parking work belongs.
 
-Entries stored under any of the three now read as `SCHEDULED`. Note what that
-costs: a release you had shelved says it is committed to. Park the _work_ on the
-project's stage instead.
+Entries stored under any of the three were folded into `SCHEDULED`, and when
+`DRAFT` arrived (2026-10-02) every one not out yet became a draft, so nothing
+appears on the website until you schedule it. Park the _work_ on the project's
+stage instead.
 
-### Marking a release RELEASED writes into the ARCHIVE
+### Going out writes into the ARCHIVE
 
-This is the one status change that reaches outside this department. Every
-project linked to one of the release's tracks moves to the **RELEASED** stage,
-with a line in its stage history naming the release. Moving the release back to
-`SCHEDULED` — or unlinking a track, or removing the entry — returns those
-projects to `TRACK READY`.
+This is the one status change that reaches outside this department. When a
+release turns RELEASED, every project linked to one of its tracks moves to the
+**RELEASED** stage, with a line in its stage history naming the release. Moving
+its date later, unlinking a track, or removing the entry returns those projects
+to `TRACK READY`. A project with no final master named can't move, and is left
+where it is.
 
 Only those two stages are ever touched. A project still at `MIX`, or shelved, or
 in the bin is left exactly where it is: putting a release out should not drag
 unfinished work forward or wake something you deliberately parked.
 
-The status field says which of the two it is about to do before you press it.
+The sheet says which of the two will happen, under the status and the date.
 
 ## The running order
 
@@ -427,7 +435,7 @@ empty. That is the point of the list: it can say _Spotify is on the plan and
 has nowhere to point yet_, which a plain list of links never could.
 
 The one being asked for is the one in gold. Before the release is out that is
-PRE-SAVE; once you mark it RELEASED they swap, and the sheet says how many
+PRE-SAVE; once it turns RELEASED they swap, and the sheet says how many
 platforms are still waiting for a stream link — on the line above the list and
 as a count on the TRADE tab itself, so you can see it from anywhere in the
 sheet.
@@ -451,9 +459,9 @@ On the ARTWORK tab the canvas is reported rather than drawn — a frozen frame
 of a nine-second loop tells you less than knowing it is attached. To actually
 watch it, close EDIT and press CANVAS on the record.
 
-## Ready to publish
+## Save local bundle
 
-The button at the foot of the sheet writes a distributor-ready folder into
+The button at the top of the sheet writes a distributor-ready folder into
 `Candy Haven\RELEASES`, named the way the release is billed:
 
 ```

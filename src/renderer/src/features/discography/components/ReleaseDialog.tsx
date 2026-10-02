@@ -15,6 +15,8 @@ import {
   RELEASE_STATUSES,
   RELEASE_STATUS_LABEL,
   RELEASE_STATUS_PURPOSE,
+  hasArrived,
+  localIsoDate,
   maxTracksFor,
   seedsOneTrack
 } from '@shared/domain/discography.constants'
@@ -53,10 +55,10 @@ export interface ReleaseDialogProps {
  * it is right most of the time and an unset required field is a dialog that
  * refuses to open having told you nothing.
  *
- * A date is offered but not demanded, and the status chips explain what the
- * difference costs: `RELEASED` is the one status that genuinely needs one,
- * and the service refuses it without — so this dialog refuses it here rather
- * than letting the operator find out after pressing Raise.
+ * A date is offered but not demanded. DRAFT or SCHEDULED is chosen here, and
+ * SCHEDULED needs a date, so this dialog asks for one rather than letting the
+ * operator find out after pressing Raise. RELEASED is never chosen: a date
+ * that has already come raises it as RELEASED.
  */
 export function ReleaseDialog({
   roster,
@@ -68,10 +70,8 @@ export function ReleaseDialog({
 }: ReleaseDialogProps): ReactNode {
   const [title, setTitle] = useState('')
   const [kind, setKind] = useState<ReleaseKind>('single')
-  // Everything starts SCHEDULED now that the set is two — an entry exists
-  // because something is meant to go out, and the empty date says when is not
-  // fixed yet. This was `idea`, which no longer exists.
-  const [status, setStatus] = useState<ReleaseStatus>('scheduled')
+  // A draft until it's announced.
+  const [status, setStatus] = useState<ReleaseStatus>('draft')
   const [releaseDate, setReleaseDate] = useState('')
   const [artistIds, setArtistIds] = useState<string[]>(
     // The operator's own record is billed by default, because almost every
@@ -103,7 +103,8 @@ export function ReleaseDialog({
    */
   const collectable = releases.filter((release) => seedsOneTrack(release.kind))
 
-  const needsDate = status === 'released' && !releaseDate
+  const needsDate = status === 'scheduled' && !releaseDate
+  const arrived = hasArrived(releaseDate || null, localIsoDate())
   const canConfirm = title.trim().length > 0 && !needsDate && !busy
 
   const submit = (): void => {
@@ -163,9 +164,16 @@ export function ReleaseDialog({
         </DialogChips>
       </DialogField>
 
-      <DialogField label="Status" hint={RELEASE_STATUS_PURPOSE[status]}>
+      <DialogField
+        label="Status"
+        hint={
+          arrived
+            ? 'Its release day has come, so it goes in as RELEASED.'
+            : RELEASE_STATUS_PURPOSE[status]
+        }
+      >
         <DialogChips>
-          {RELEASE_STATUSES.map((entry) => (
+          {RELEASE_STATUSES.filter((entry) => entry !== 'released').map((entry) => (
             <DialogChip
               key={entry}
               on={status === entry}
@@ -182,8 +190,8 @@ export function ReleaseDialog({
 
         Without a `DialogField` around it: that wrapper draws its own label and
         hint, and `DateInput` draws both itself, so nesting them says
-        everything twice. What is lost is the wrapper's `required` marker — a
-        release date is only required once the entry is RELEASED, and the hint
+        everything twice. What is lost is the wrapper's `required` marker: a
+        release date is only required once the entry is SCHEDULED, and the hint
         below says exactly that, which is more than an asterisk manages.
       */}
       <DateInput
@@ -193,8 +201,8 @@ export function ReleaseDialog({
         invalid={needsDate}
         hint={
           needsDate
-            ? 'A released entry needs the date it came out — the catalogue sorts by it.'
-            : 'Optional until it is out.'
+            ? 'A scheduled release needs its release date.'
+            : 'Optional while it’s a draft. On this day it turns RELEASED.'
         }
       />
 

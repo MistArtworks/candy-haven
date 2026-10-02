@@ -556,13 +556,31 @@
     background: var(--ch-surface-raised);
   }
 
+  // A status the date rules out: RELEASED before its day, or anything else
+  // after it. The one it holds still reads as held.
+  &:disabled {
+    cursor: default;
+
+    &:not([data-on]) {
+      opacity: 0.4;
+    }
+
+    &:hover {
+      color: var(--ch-text-secondary);
+    }
+
+    &[data-on]:hover {
+      color: var(--ch-gold-200);
+    }
+  }
+
   &:focus-visible {
     @include focus-ring(1px);
   }
 }
 
 // Pushes the destructive control away from the constructive one, so REMOVE
-// and READY TO PUBLISH are never adjacent under the pointer.
+// and EDIT / DONE are never adjacent under the pointer.
 .footSpacer {
   flex: 1;
   min-width: space(4);

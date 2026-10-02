@@ -252,7 +252,7 @@ export const DiscographyReleaseSchema = z.object({
    * that has not been migrated yet therefore *reads* correctly instead of
    * being skipped as unreadable.
    */
-  status: ReleaseStatusSchema.default('scheduled').catch('scheduled'),
+  status: ReleaseStatusSchema.default('draft').catch('draft'),
   /**
    * `YYYY-MM-DD`, as every date in this project is.
    *

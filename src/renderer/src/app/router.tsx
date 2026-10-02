@@ -26,6 +26,7 @@ import { DispatchPage } from '@renderer/features/dispatch/DispatchPage'
 import { ContactPage } from '@renderer/features/inbox/ContactPage'
 import { ServicesPage } from '@renderer/features/inbox/ServicesPage'
 import { LorePage } from '@renderer/features/lore/LorePage'
+import { ReleasesPage } from '@renderer/features/releases/ReleasesPage'
 import { CatechismPage } from '@renderer/features/catechism/CatechismPage'
 import { ReservedPage } from '@renderer/features/reserved/ReservedPage'
 import { OVERLAYS, type OverlayId } from '@shared/domain/overlays'
@@ -155,6 +156,7 @@ export function AppRouter(): ReactNode {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/lore" element={<LorePage />} />
+        <Route path="/releases" element={<ReleasesPage />} />
 
         <Route path="/telemetry" element={<TelemetryPage />} />
 

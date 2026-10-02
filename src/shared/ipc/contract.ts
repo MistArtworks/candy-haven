@@ -110,6 +110,13 @@ import {
   SaveChapterInputSchema,
   SavePlanetInputSchema
 } from '../domain/lore'
+import {
+  ReleaseIdInputSchema,
+  ReleasesStateSchema,
+  ShelfInputSchema,
+  StageInputSchema,
+  StageResultSchema
+} from '../domain/releases'
 /**
  * The IPC contract is declared once, here, and consumed by:
  *   - the main-process router, which validates inputs and outputs at runtime
@@ -831,6 +838,32 @@ export const IPC_INVOKE = {
   /** Refused while a chapter here uses it. */
   'lore:delete-planet': { input: z.object({ id: z.string() }), output: LoreStateSchema },
 
+  // ----------------------------------------------------------------- releases
+
+  /*
+   * RELEASES: DISCOGRAPHY, as the website shows it. "Publish everything"
+   * sends every release once; after that a release goes when it's finished
+   * being edited (`releases:edited`), with only what changed. Show, Hide,
+   * the shelf and Send are picked (`releases:stage`) and sent together by
+   * `releases:update`. Behind the DISPATCH sign-in. See docs/RELEASES.md.
+   */
+  'releases:state': { input: z.void(), output: ReleasesStateSchema },
+  /** Fetches what the website has. Never throws: a failure is in the state. */
+  'releases:sync': { input: z.void(), output: ReleasesStateSchema },
+  /** Fetches, then sends every release here that's new, changed or waiting. */
+  'releases:sync-now': { input: z.void(), output: ReleasesStateSchema },
+  'releases:publish-everything': { input: z.void(), output: ReleasesStateSchema },
+  /** A release's sheet closed after editing. Never throws: a failed send waits. */
+  'releases:edited': { input: ReleaseIdInputSchema, output: ReleasesStateSchema },
+  /** Picks Show, Hide, the shelf or Send for some releases, to send with Update. */
+  'releases:stage': { input: StageInputSchema, output: StageResultSchema },
+  /** The shelf as reordered in its panel, to send with Update. */
+  'releases:stage-shelf': { input: ShelfInputSchema, output: ReleasesStateSchema },
+  /** Drops everything picked. */
+  'releases:discard': { input: z.void(), output: ReleasesStateSchema },
+  /** Sends everything picked, in one request. */
+  'releases:update': { input: z.void(), output: ReleasesStateSchema },
+
   // --------------------------------------------------------------- auditorium
 
   /**
@@ -1005,6 +1038,9 @@ export const IPC_EVENT = {
   'calendar:state': CalendarStateSchema,
   'inbox:state': InboxStateSchema,
   'lore:state': LoreStateSchema,
+  'releases:state': ReleasesStateSchema,
+  /** Releases whose status changed on their own, on their day. */
+  'discography:settled': z.object({ ids: z.array(z.string()) }),
   /** A clicked notification, asking the console to open a department. */
   'inbox:open': z.object({ path: z.string() }),
   'auditorium:file': z.object({ path: z.string().nullable() }),

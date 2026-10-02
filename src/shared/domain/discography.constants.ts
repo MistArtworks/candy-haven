@@ -77,48 +77,38 @@ export function seedsOneTrack(kind: ReleaseKind): boolean {
 // -------------------------------------------------------------------- status
 
 /**
- * Where a release has got to. **Two states: it is out, or it is not.**
+ * Where a release has got to: a draft, announced, or out.
  *
  * Distinct from a project's *stage*, and the difference is worth stating: a
  * stage is how finished the work is, a status is how public it is. A track can
  * be at TRACK READY and sit unreleased for a year while a label schedules it.
  *
- * ## Why this is two and was five
+ * ## The date decides out, the operator decides announced
  *
- * It was `idea` · `planned` · `scheduled` · `released` · `shelved`, and three
- * of those stopped earning their place the day TRACK READY became the gate
- * into the catalogue (see `LINKABLE_PROJECT_STAGES`):
+ * - **`draft`**: not announced. The website keeps it hidden until its day.
+ * - **`scheduled`**: announced. The website shows it before its day, with its
+ *   pre-save links. Needs a date: a release can't be scheduled for no day.
+ * - **`released`**: out. Never chosen: a release turns RELEASED on its
+ *   release day by itself (`settledStatus`), and can't be RELEASED before it.
  *
- * - **`idea`** described a release you were only thinking about. Nothing
- *   linkable is speculative any more — every track on an entry is work the
- *   operator has already declared finished, so the entry is past being an idea
- *   by construction.
- * - **`planned`** was `scheduled` without a date, which is what a null
- *   `releaseDate` already says. Two ways to write one fact.
- * - **`shelved`** duplicated the project's own SHELVED stage, which is where
- *   parking work belongs — and parking the *record* of something while the
- *   work carries on was never a state the operator wanted.
- *
- * Cut on the operator's instruction, 2026-09-17, against a recommendation to
- * keep all five. Decision D9 in docs/DISCOGRAPHY.md records the trade-off that
- * was accepted: there is no longer a status meaning "intended, no date". The
- * absence of a `releaseDate` carries that instead, which is why `scheduled`
- * does **not** require one.
+ * History: five statuses (`idea` · `planned` · `scheduled` · `released` ·
+ * `shelved`) were cut to two on 2026-09-17 (decision D9 in
+ * docs/DISCOGRAPHY.md), and `draft` was added and RELEASED tied to the date
+ * on 2026-10-02, when the website began showing the discography from here.
  */
-export const RELEASE_STATUSES = ['scheduled', 'released'] as const
+export const RELEASE_STATUSES = ['draft', 'scheduled', 'released'] as const
 export type ReleaseStatus = (typeof RELEASE_STATUSES)[number]
 
 export const RELEASE_STATUS_LABEL: Record<ReleaseStatus, string> = {
+  draft: 'DRAFT',
   scheduled: 'SCHEDULED',
   released: 'RELEASED'
 }
 
 export const RELEASE_STATUS_PURPOSE: Record<ReleaseStatus, string> = {
-  // Deliberately not "dated and committed to". A date is optional here — it is
-  // the only thing left that can say "intended, not dated yet", so the wording
-  // must not imply one is required.
-  scheduled: 'Committed to, whether or not it has a date yet.',
-  released: 'Out in the world. Moves every linked project to the RELEASED stage.'
+  draft: 'Not announced: hidden on the website until its release day.',
+  scheduled: 'Announced: shown on the website before its day, with pre-save links.',
+  released: 'Out. Set by itself on the release day; moves every linked project to RELEASED.'
 }
 
 /** A release that has actually shipped, for the catalogue lens and counts. */
@@ -126,16 +116,37 @@ export function isPublic(status: ReleaseStatus): boolean {
   return status === 'released'
 }
 
-/**
- * Statuses that read as still coming, for the forthcoming lens.
- *
- * Now the exact complement of `isPublic`, since there are only two. Kept as
- * its own function rather than inlined as `!isPublic`: the lens asks "what is
- * coming", which is a different question that currently has the same answer,
- * and collapsing the two would hide that a third status has to touch both.
- */
+/** Statuses that read as still coming, for the forthcoming lens. */
 export function isForthcoming(status: ReleaseStatus): boolean {
-  return status === 'scheduled'
+  return status !== 'released'
+}
+
+/** Today as a release date is written, `YYYY-MM-DD`, in the operator's own timezone. */
+export function localIsoDate(now: Date = new Date()): string {
+  const pad = (value: number): string => String(value).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+/** Whether a release's day has come. */
+export const hasArrived = (releaseDate: string | null, today: string): boolean =>
+  releaseDate !== null && releaseDate <= today
+
+/**
+ * The status a release holds, given the one asked for and its date.
+ *
+ * RELEASED from its day on, whatever was asked. Before it, DRAFT or
+ * SCHEDULED as chosen, with no date meaning DRAFT. A RELEASED release whose
+ * date moves later was public, so it stays announced (SCHEDULED) rather than
+ * vanishing from the website.
+ */
+export function settledStatus(
+  asked: ReleaseStatus,
+  releaseDate: string | null,
+  today: string
+): ReleaseStatus {
+  if (hasArrived(releaseDate, today)) return 'released'
+  if (releaseDate === null) return 'draft'
+  return asked === 'draft' ? 'draft' : 'scheduled'
 }
 
 // -------------------------------------------------------------------- lenses
@@ -572,7 +583,6 @@ export function extensionOf(path: string): string {
   const dot = name.lastIndexOf('.')
   return dot > 0 ? name.slice(dot + 1).toLowerCase() : ''
 }
-
 
 // ------------------------------------------------------------- identifiers
 

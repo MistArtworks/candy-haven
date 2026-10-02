@@ -175,6 +175,8 @@ export class BootSequence extends TypedEmitter<BootEvents> {
       dispatch,
       inbox,
       lore,
+      releases,
+      discography,
       overlayServer
     } = this.services
 
@@ -298,6 +300,10 @@ export class BootSequence extends TypedEmitter<BootEvents> {
         inbox.initialize()
         // LORE reads what's kept in the archive; it asks the website when it opens.
         lore.initialize()
+        // RELEASES reads what's kept; it sends only what was left waiting.
+        releases.initialize()
+        // Each release's status kept to its date, from now on.
+        discography.startStatusClock()
 
         if (workspace.overlayAutoStart) {
           try {

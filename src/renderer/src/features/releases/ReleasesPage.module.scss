@@ -1,0 +1,651 @@
+@use 'abstracts' as *;
+
+// RELEASES: DISCOGRAPHY as the website shows it. A shelf beside the list
+// of releases; before the website switches over, one panel that offers to.
+// Set at LORE's larger sizes, so the rows read at a glance.
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+}
+
+// ----------------------------------------------------------------- toolbar
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: space(3) space(4);
+  margin: 0 0 space(5);
+}
+
+.toolbarEnd {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+}
+
+.filters {
+  display: inline-flex;
+  @include hairline(all, 0.14);
+}
+
+.filter {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(4);
+  @include label(11px, 0.16em);
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover {
+    color: var(--ch-text-secondary);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+    }
+  }
+}
+
+.filterCount {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+}
+
+// -------------------------------------------------------------------- grid
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: space(5);
+  align-items: start;
+}
+
+.shelfPanel {
+  grid-column: span 4;
+  position: sticky;
+  top: space(4);
+}
+
+.listPanel {
+  grid-column: 5 / -1;
+}
+
+@include below('lg') {
+  .shelfPanel,
+  .listPanel {
+    grid-column: 1 / -1;
+    position: static;
+  }
+}
+
+.note {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: space(3) 0 0;
+}
+
+.empty {
+  @include readout(12px);
+  color: var(--ch-text-faint);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(3);
+}
+
+// --------------------------------------------------------- publish everything
+
+.publishPanel {
+  max-width: rem(860px);
+}
+
+.publish {
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+}
+
+.lead {
+  font-family: var(--ch-font-body);
+  font-size: rem(15px);
+  line-height: 1.7;
+  color: var(--ch-text-secondary);
+  margin: 0;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+}
+
+.previewHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+}
+
+.previewLabel {
+  @include label(10px, 0.18em);
+  color: var(--ch-text-faint);
+
+  .preview[data-group='blocked'] & {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.previewCount {
+  @include readout(13px);
+  color: var(--ch-text-primary);
+}
+
+.previewHint {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  line-height: 1.6;
+  color: var(--ch-text-secondary);
+  margin: 0;
+}
+
+.previewList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space(2) space(4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: space(3);
+    min-width: 0;
+  }
+}
+
+@include below('md') {
+  .previewList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.previewText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.previewTitle {
+  font-family: var(--ch-font-body);
+  font-size: rem(14px);
+  color: var(--ch-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewMeta {
+  @include readout(11px);
+  color: var(--ch-text-muted);
+}
+
+.previewWhy {
+  @include readout(11px);
+  color: var(--ch-crimson-400);
+}
+
+.dialogText {
+  font-family: var(--ch-font-body);
+  font-size: rem(14px);
+  line-height: 1.65;
+  color: var(--ch-text-secondary);
+  margin: 0;
+}
+
+// ------------------------------------------------------------------- shelf
+
+.shelf {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slot {
+  display: grid;
+  grid-template-columns: rem(22px) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(3);
+  min-height: rem(56px);
+  padding: space(2) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+
+  &[data-empty] {
+    grid-template-columns: rem(22px) minmax(0, 1fr);
+    background: none;
+    border-style: dashed;
+  }
+}
+
+.slotNumber {
+  @include readout(12px);
+  color: var(--ch-gold-300);
+}
+
+.slotTitle {
+  font-family: var(--ch-font-body);
+  font-size: rem(14px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.slotEmpty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+}
+
+.slotTools {
+  display: flex;
+  gap: 2px;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: rem(26px);
+  height: rem(26px);
+  padding: 0;
+  font-size: rem(13px);
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// -------------------------------------------------------------------- list
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: space(4);
+  padding: space(3) space(3) space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+
+  &[data-send='problem'] {
+    opacity: 0.75;
+  }
+
+  &[data-picked] {
+    background: rgba(182, 158, 124, 0.07);
+  }
+
+  // Something about it changes with Update: a mark down its leading edge.
+  &[data-changing]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--ch-gold-300);
+  }
+}
+
+@include below('md') {
+  .row {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+
+    .tags {
+      grid-column: 3 / -1;
+      grid-row: 2;
+      justify-content: flex-start;
+    }
+  }
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.rowTitle {
+  font-family: var(--ch-font-body);
+  font-size: rem(15px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.rowMeta {
+  @include readout(11px);
+  color: var(--ch-text-muted);
+}
+
+.rowNotes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: space(1) space(3);
+  margin-top: 2px;
+}
+
+.chip {
+  @include label(9px, 0.16em);
+  padding: 1px space(2);
+  white-space: nowrap;
+  color: var(--ch-text-muted);
+  @include hairline(all, 0.2);
+
+  &[data-send='sent'] {
+    color: var(--ch-gold-300);
+  }
+
+  // Only the cover still to go, and it follows by itself: noted, not flagged.
+  &[data-send='cover'] {
+    color: var(--ch-gold-200);
+    border-style: dashed;
+  }
+
+  &[data-send='changed'],
+  &[data-send='waiting'] {
+    color: var(--ch-accent-bright);
+    background: var(--ch-accent-dim);
+    border-color: transparent;
+  }
+
+  &[data-send='problem'] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.problem {
+  @include readout(11px);
+  color: var(--ch-crimson-400);
+}
+
+.omitted {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+}
+
+// The checkbox that picks a row, and the one that picks them all.
+.check {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ch-accent);
+  cursor: pointer;
+}
+
+// Where a release stands, as small tags: its status, whether visitors see
+// it, its place on the shelf. One that changes with Update reads `A → B`.
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: space(2);
+}
+
+.tag {
+  @include label(9px, 0.14em);
+  padding: 2px space(2);
+  white-space: nowrap;
+  color: var(--ch-text-secondary);
+  @include hairline(all, 0.16);
+
+  &[data-tone='on'] {
+    color: var(--ch-gold-300);
+  }
+
+  &[data-tone='off'] {
+    color: var(--ch-text-muted);
+  }
+
+  &[data-moving] {
+    color: var(--ch-gold-200);
+    border: $hairline dashed var(--ch-line-gold);
+    background: rgba(182, 158, 124, 0.06);
+  }
+}
+
+.tagArrow {
+  color: var(--ch-gold-300);
+  padding: 0 2px;
+}
+
+// The one menu a row has.
+.more {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: rem(16px);
+  line-height: 1;
+  color: var(--ch-text-secondary);
+  background: none;
+  @include hairline(all, 0.14);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.06);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// ---------------------------------------------------------- pick and update
+
+.pickBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(2) space(4);
+  padding: space(2) space(3) space(2) space(4);
+  margin-bottom: space(3);
+  @include hairline(all, 0.1);
+
+  &[data-active] {
+    border-color: var(--ch-line-gold);
+    background: rgba(182, 158, 124, 0.05);
+  }
+}
+
+.pickCount {
+  @include readout(12px);
+  color: var(--ch-text-secondary);
+
+  .pickBar[data-active] & {
+    color: var(--ch-gold-200);
+  }
+}
+
+.pickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+  margin-left: auto;
+}
+
+// Pops up while anything is held, and stays in view while the list scrolls.
+.updateBar {
+  position: sticky;
+  bottom: space(4);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(3) space(4);
+  margin-top: space(5);
+  padding: space(3) space(4) space(3) space(5);
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line-gold);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.updateCount {
+  @include label(11px, 0.16em);
+  color: var(--ch-gold-200);
+}
+
+.updateParts {
+  @include readout(12px);
+  color: var(--ch-text-secondary);
+}
+
+.updateSpacer {
+  flex: 1;
+}
+
+// ---------------------------------------------------------------- activity
+
+// What's being done for the website, while it is: one row per job, with an
+// indeterminate bar for the request and a filling one for the covers.
+.activity {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: 0 0 space(5);
+  padding: space(3) space(5);
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line-gold);
+}
+
+.activityRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(rem(160px), rem(320px));
+  align-items: center;
+  gap: space(4);
+}
+
+.activityLabel {
+  @include label(10px, 0.16em);
+  color: var(--ch-gold-200);
+  white-space: nowrap;
+}
+
+.activityDetail {
+  @include readout(12px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+}
+
+.activityBar {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(182, 158, 124, 0.12);
+
+  > span {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    background: var(--ch-gold-300);
+    transition: width 0.4s ease;
+  }
+
+  &[data-indeterminate] > span {
+    width: 30%;
+    animation: sweep 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes sweep {
+  from {
+    left: -30%;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activityBar[data-indeterminate] > span {
+    width: 100%;
+    left: 0;
+    opacity: 0.5;
+    animation: none;
+  }
+}
+
+.activityNote {
+  @include readout(11px);
+  color: var(--ch-text-muted);
+  margin: 0;
+}

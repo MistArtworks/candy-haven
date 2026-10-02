@@ -180,7 +180,7 @@ Music, Beatport and others), each with a pre-save link and a live stream link, s
 emphasis can shift from one to the other the moment the release date passes. Nothing
 fetches those links automatically yet; they are typed in once they exist.
 
-**READY TO PUBLISH** assembles a distributor-ready folder in one press — the final
+**SAVE LOCAL BUNDLE** assembles a distributor-ready folder in one press — the final
 master(s), cover art, a vertical looping canvas video, and a details file — named and
 numbered correctly for however many tracks and whoever is featured. It refuses if
 anything required is missing, naming the gap, and a second publish overwrites the same

@@ -131,11 +131,24 @@ function failure(status: number, body: unknown, origin: string): SiteError {
     case 403:
       return new SiteError('forbidden', 'The website does not let this account in.', status, body)
     case 404:
-      return new SiteError('missing', 'The website no longer has it.', status, body)
+      // The website names what it can't find; a bare 404 is the address
+      // itself missing: a website older than this console, or one started
+      // before the address was added.
+      return code === 'not_found'
+        ? new SiteError('missing', 'The website no longer has it.', status, body)
+        : new SiteError(
+            'failed',
+            `${origin} does not know this request yet. Restart or update it, then try again.`,
+            status,
+            body
+          )
     case 409:
       return new SiteError(
         code === 'conflict' ? 'conflict' : 'invalid',
-        message || 'Someone else changed this first.',
+        message ||
+          (code === 'out_of_date'
+            ? 'The website changed since it was last fetched. Check for new, then try again.'
+            : 'Someone else changed this first.'),
         status,
         body
       )

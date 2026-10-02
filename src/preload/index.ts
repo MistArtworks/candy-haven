@@ -181,6 +181,7 @@ const api: CandyHavenApi = {
     get: (id) => invoke('discography:get', { id }),
     create: (draft) => invoke('discography:create', draft),
     update: (id, patch) => invoke('discography:update', { id, patch }),
+    onSettled: (listener) => subscribe('discography:settled', listener),
     remove: (id) => invoke('discography:delete', { id }),
     adopt: (id) => invoke('discography:adopt', { id }),
     publish: (id) => invoke('discography:publish', { id }),
@@ -327,6 +328,18 @@ const api: CandyHavenApi = {
     savePlanet: (input) => invoke('lore:save-planet', input),
     deletePlanet: (id) => invoke('lore:delete-planet', { id }),
     onState: (listener) => subscribe('lore:state', listener)
+  },
+  releases: {
+    state: () => invoke('releases:state'),
+    sync: () => invoke('releases:sync'),
+    syncNow: () => invoke('releases:sync-now'),
+    publishEverything: () => invoke('releases:publish-everything'),
+    edited: (id) => invoke('releases:edited', { id }),
+    stage: (input) => invoke('releases:stage', input),
+    stageShelf: (siteIds) => invoke('releases:stage-shelf', { siteIds }),
+    discard: () => invoke('releases:discard'),
+    update: () => invoke('releases:update'),
+    onState: (listener) => subscribe('releases:state', listener)
   },
   auditorium: {
     read: (path) => invoke('auditorium:read', { path }),

@@ -50,11 +50,11 @@ added or removed renumbers the rest with it. Reserved departments are bound too
 — they are on the rail, and a shortcut that silently skipped one would make the
 numbering stop matching what is on screen.
 
-**A number row has ten keys and the rail has seventeen departments.** So the
+**A number row has ten keys and the rail has eighteen departments.** So the
 first ten are reachable by position, and TELEMETRY, DISPATCH, REGULATION and
-CATECHISM have named chords instead of fictional numbers. CONTACT, SERVICES and
-LORE have neither: they are reached from the rail, and the first two also from a
-notification about something they hold.
+CATECHISM have named chords instead of fictional numbers. CONTACT, SERVICES,
+LORE and RELEASES have neither: they are reached from the rail, and the first two
+also from a notification about something they hold.
 
 This changed when DISCOGRAPHY and ARTISTS shipped. If you have `Ctrl`+`9` in
 your fingers for DISPATCH, it is now `Ctrl`+`Shift`+`D`. It changed again when

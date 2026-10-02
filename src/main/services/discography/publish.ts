@@ -199,7 +199,9 @@ function describeRelease(
       if (also.length > 0) lines.push(`      Featuring: ${also.join(', ')}`)
       // Named rather than counted, so the gap is actionable: the operator can
       // see which track to go and pick a master for.
-      lines.push(`      Audio: ${track.master ? track.master.fileName : 'no master — not included'}`)
+      lines.push(
+        `      Audio: ${track.master ? track.master.fileName : 'no master — not included'}`
+      )
       if (track.notes) lines.push(`      Notes: ${track.notes}`)
     }
     lines.push('')

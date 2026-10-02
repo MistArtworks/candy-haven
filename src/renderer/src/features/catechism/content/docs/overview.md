@@ -27,7 +27,7 @@ is waiting. The arrow beside **DIRECTORY** hides the rail (`Ctrl`+`]`).
 | --------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | **COMMAND**     | Where the system is seen whole and instructed                                            | NEXUS, INTERFACE                                              |
 | **PRODUCTION**  | The work itself: what is filed, released, due, and how it sounds                         | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
-| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES, LORE                |
+| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES, LORE, RELEASES      |
 | **OVERSIGHT**   | The condition of the installation, and the rules it runs under                           | TELEMETRY, DISPATCH, REGULATION, CATECHISM                    |
 
 A department marked **RESERVED** is routed and specified but not yet built. Its

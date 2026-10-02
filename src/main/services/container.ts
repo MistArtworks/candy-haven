@@ -16,6 +16,7 @@ import { SpotifyService } from './overlay/spotify.service'
 import { DispatchService } from './dispatch/dispatch.service'
 import { InboxService } from './inbox/inbox.service'
 import { LoreService } from './lore/lore.service'
+import { ReleasesService } from './releases/releases.service'
 import { ConcordService } from './overlay/concord.service'
 import { MusterService } from './overlay/muster.service'
 import { TwitchChatService } from './chat/twitch-chat.service'
@@ -98,6 +99,11 @@ export interface ServiceContainer {
    * website. Borrows DISPATCH's sign-in, as the inbox does. See docs/LORE.md.
    */
   readonly lore: LoreService
+  /**
+   * RELEASES: DISCOGRAPHY, as the website shows it. Sends releases through
+   * the same API and sign-in as LORE. See docs/RELEASES.md.
+   */
+  readonly releases: ReleasesService
   readonly concord: ConcordService
   readonly muster: MusterService
   /**
@@ -201,6 +207,12 @@ export function createServiceContainer(): ServiceContainer {
   // sign-in: the same two accounts, so one session rather than two.
   const dispatch = new DispatchService()
 
+  const releases = new ReleasesService(archive, settings, dispatch, discography, artists)
+  // A release that goes out on its day is sent like one just edited.
+  discography.onSettled((ids) => {
+    for (const id of ids) void releases.edited(id)
+  })
+
   return {
     settings,
     archive,
@@ -221,6 +233,7 @@ export function createServiceContainer(): ServiceContainer {
     dispatch,
     inbox: new InboxService(archive, settings, dispatch),
     lore: new LoreService(archive, settings, dispatch),
+    releases,
     concord,
     muster: new MusterService(archive, overlayServer, chat, settings, rite, concord),
     orientation: new OrientationStore()
@@ -250,6 +263,8 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
   // Before the board: the inbox and LORE borrow its sign-in and listen to it.
   container.inbox.dispose()
   container.lore.dispose()
+  container.discography.dispose()
+  container.releases.dispose()
   container.dispatch.dispose()
   container.muster.dispose()
   // Before chat: the poll releases its claim on the way down, and disposing the

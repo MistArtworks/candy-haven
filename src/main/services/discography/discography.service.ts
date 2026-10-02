@@ -22,11 +22,13 @@ import {
   MAX_DISTRIBUTION,
   RELEASE_KIND_LABEL,
   isLinkableStage,
+  localIsoDate,
   maxTracksFor,
   normaliseIsrc,
   normaliseUpc,
   releaseYear,
   seedsOneTrack,
+  settledStatus,
   trackOfIndex,
   type TrackOfPlacement
 } from '@shared/domain/discography.constants'
@@ -91,6 +93,12 @@ const logger = getLogger('discography')
  */
 export type CatalogueListener = () => Promise<void>
 
+/** Hears which releases changed status by themselves, on their day. */
+export type SettledListener = (ids: string[]) => void
+
+/** How often the statuses are checked against today, so one goes out on its day. */
+const SETTLE_EVERY_MS = 5 * 60 * 1000
+
 export class DiscographyService {
   constructor(
     private readonly archive: ArchiveService,
@@ -104,6 +112,63 @@ export class DiscographyService {
   /** Wired by the container once the calendar service exists. */
   setCatalogueListener(listener: CatalogueListener): void {
     this.catalogueListener = listener
+  }
+
+  private readonly settledListeners = new Set<SettledListener>()
+  private settleTimer: NodeJS.Timeout | null = null
+
+  /** Told whenever releases change status on their own. */
+  onSettled(listener: SettledListener): () => void {
+    this.settledListeners.add(listener)
+    return () => this.settledListeners.delete(listener)
+  }
+
+  /**
+   * Keeps every status in step with its date: now, and every few minutes
+   * after, so a release turns RELEASED on its day without anyone opening it.
+   * A check that fails waits for the next one.
+   */
+  startStatusClock(): void {
+    if (this.settleTimer) return
+    const settle = (): void => {
+      if (!this.archive.isConnected()) return
+      this.settleStatuses().catch((cause) =>
+        logger.warn('Could not settle release statuses', cause)
+      )
+    }
+    settle()
+    this.settleTimer = setInterval(settle, SETTLE_EVERY_MS)
+  }
+
+  dispose(): void {
+    if (this.settleTimer) clearInterval(this.settleTimer)
+    this.settleTimer = null
+    this.settledListeners.clear()
+  }
+
+  /**
+   * Brings each release's status in line with its date: RELEASED once its
+   * day has come, and back to SCHEDULED if a RELEASED one's date moved later.
+   * Its projects move with it, as they would for an edit. Not an edit by the
+   * operator, so an entry the app raised stays the app's.
+   */
+  async settleStatuses(): Promise<string[]> {
+    const today = localIsoDate()
+    const changed: string[] = []
+    for (const release of await this.repository.listAll()) {
+      const status = settledStatus(release.status, release.releaseDate, today)
+      if (status === release.status) continue
+      const next: DiscographyRelease = { ...release, status, updatedAt: Date.now() }
+      await this.repository.replace(next)
+      await this.reconcileLinkedStages(release, next)
+      logger.info(`${release.title} is now ${status} (${release.releaseDate ?? 'no date'})`)
+      changed.push(release.id)
+    }
+    if (changed.length) {
+      await this.notifyCatalogue()
+      for (const listener of this.settledListeners) listener(changed)
+    }
+    return changed
   }
 
   /**
@@ -158,6 +223,11 @@ export class DiscographyService {
       labels,
       total: releases.length
     }
+  }
+
+  /** Every release in full, for RELEASES to turn into what the website shows. */
+  async listAll(): Promise<DiscographyRelease[]> {
+    return this.repository.listAll()
   }
 
   async get(id: string): Promise<DiscographyRelease> {
@@ -387,10 +457,8 @@ export class DiscographyService {
       label: '',
       labelUrl: '',
       catalogueNumber: '',
-      // `scheduled` is where everything starts now that the set is two. An
-      // entry exists because the operator intends to put something out; the
-      // null date is what says they have not fixed when.
-      status: draft.status ?? 'scheduled',
+      // A draft until it's announced; RELEASED if its day has already come.
+      status: settledStatus(draft.status ?? 'draft', draft.releaseDate ?? null, localIsoDate()),
       releaseDate: draft.releaseDate ?? null,
       upc: '',
       phonographicLine: '',
@@ -479,9 +547,8 @@ export class DiscographyService {
         title: project.name,
         kind: 'single',
         // Not RELEASED: naming the master says the work is finished, not that
-        // it is out in the world. `scheduled` with no date is exactly "going
-        // out, when is not fixed yet" — see `RELEASE_STATUSES`.
-        status: 'scheduled',
+        // it is out in the world, or announced. See `RELEASE_STATUSES`.
+        status: 'draft',
         artistIds: [...project.artistIds],
         fromProjectId: projectId
       },
@@ -567,51 +634,26 @@ export class DiscographyService {
     }
 
     /*
-     * A release marked RELEASED with no date is a contradiction the register
-     * would then sort at the bottom of the catalogue, under every idea.
+     * The date decides whether it's out; the operator decides, before then,
+     * whether it's announced. Asking for SCHEDULED with no date is refused,
+     * since there's no day to schedule it for; clearing the date of one that
+     * was scheduled makes it a draft again.
      *
-     * Refused rather than back-filled with today: the operator knows when it
-     * came out and guessing would put a wrong date in a record whose whole
-     * job is to be right about dates.
+     * A project with no final master no longer stops a release going out: its
+     * day decides that now. `reconcileLinkedStages` moves what it can and logs
+     * what it can't, as it always has.
      */
-    const status = patch.status ?? release.status
     const releaseDate = patch.releaseDate !== undefined ? patch.releaseDate : release.releaseDate
 
-    if (status === 'released' && releaseDate === null) {
-      throw new AppError('A released entry needs the date it came out.', {
+    if (patch.status === 'scheduled' && releaseDate === null) {
+      throw new AppError('A scheduled release needs its release date.', {
         code: ErrorCode.Validation,
-        hint: 'Set the release date, or move it back to SCHEDULED.',
+        hint: 'Set the date first. Without one it stays a draft.',
         recoverable: false
       })
     }
 
-    /*
-     * Refused outright if a linked project has not named its final master.
-     *
-     * `released` carries `requiresMaster`, so those projects cannot be moved
-     * to the RELEASED stage — and the alternative to refusing here is letting
-     * the flip succeed and then silently failing to move them, which leaves
-     * the catalogue saying a track is out while the register says it is merely
-     * finished. That disagreement is precisely what the one-directional link
-     * and its propagation exist to prevent.
-     *
-     * Named rather than counted. "Two projects need a final master" sends the
-     * operator hunting; the titles say where to go.
-     */
-    if (status === 'released' && release.status !== 'released') {
-      const unnamed = await this.projectsAwaitingMaster(release)
-
-      if (unnamed.length > 0) {
-        throw new AppError(
-          `${unnamed.join(', ')} ${unnamed.length === 1 ? 'has' : 'have'} no final master named.`,
-          {
-            code: ErrorCode.Validation,
-            hint: 'Open each in the ARCHIVE and choose it in the FINAL MASTER panel, then mark this released.',
-            recoverable: false
-          }
-        )
-      }
-    }
+    const status = settledStatus(patch.status ?? release.status, releaseDate, localIsoDate())
 
     const next: DiscographyRelease = {
       ...release,
@@ -1009,14 +1051,11 @@ export class DiscographyService {
     if (!track.projectId) {
       const extension = extname(path).toLowerCase()
       if (!(AUDIO_EXTENSIONS as readonly string[]).includes(extension)) {
-        throw new AppError(
-          `${extension ? extension : 'That file'} is not an audio format.`,
-          {
-            code: ErrorCode.Validation,
-            hint: `Masters are ${AUDIO_EXTENSIONS.join(', ')}.`,
-            recoverable: false
-          }
-        )
+        throw new AppError(`${extension ? extension : 'That file'} is not an audio format.`, {
+          code: ErrorCode.Validation,
+          hint: `Masters are ${AUDIO_EXTENSIONS.join(', ')}.`,
+          recoverable: false
+        })
       }
 
       const stats = await stat(path).catch(() => null)
@@ -1044,7 +1083,9 @@ export class DiscographyService {
         modifiedAt: stats.mtimeMs
       }
 
-      logger.info(`Release master for "${release.title}" track ${track.position}: ${path} (no project)`)
+      logger.info(
+        `Release master for "${release.title}" track ${track.position}: ${path} (no project)`
+      )
 
       return this.writeTracks(
         release,
@@ -1195,36 +1236,6 @@ export class DiscographyService {
 
     const fileName = path.split(/[\\/]/).pop() ?? path
     return { path, fileName, relativePath: fileName, sizeBytes: 0, modifiedAt: 0 }
-  }
-
-  /**
-   * The names of linked projects that have not named a final master.
-   *
-   * Read through the projects service rather than gated on `hasFinalMaster` in
-   * a summary, because this runs once on a status change and wants the truth
-   * rather than a projection of it. A project that has been forgotten since
-   * the track was linked is skipped: it cannot be moved to RELEASED either
-   * way, and refusing the whole flip over a record that no longer exists would
-   * leave the operator with nothing to fix.
-   */
-  private async projectsAwaitingMaster(release: DiscographyRelease): Promise<string[]> {
-    const ids = [
-      ...new Set(
-        release.tracks.map((track) => track.projectId).filter((id): id is string => id !== null)
-      )
-    ]
-
-    const names: string[] = []
-    for (const id of ids) {
-      try {
-        const project = await this.projects.get(id)
-        if (project.masters.final === null) names.push(project.name)
-      } catch {
-        // Forgotten since the link was made. See above.
-      }
-    }
-
-    return names
   }
 
   /**

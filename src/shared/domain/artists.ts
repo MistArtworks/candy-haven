@@ -209,7 +209,7 @@ export const ArtistReleaseCreditSchema = z.object({
   title: z.string().default(''),
   subtitle: z.string().default(''),
   kind: z.enum(RELEASE_KINDS).default('single').catch('single'),
-  status: z.enum(RELEASE_STATUSES).default('scheduled').catch('scheduled'),
+  status: z.enum(RELEASE_STATUSES).default('draft').catch('draft'),
   releaseDate: z.string().nullable().default(null),
   /**
    * The strongest way they are named on it.

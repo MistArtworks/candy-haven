@@ -136,6 +136,12 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'lore'
   },
   {
+    id: 'releases',
+    label: 'RELEASES',
+    purpose: 'DISCOGRAPHY on the website: shown, hidden, the shelf and covers',
+    section: 'releases'
+  },
+  {
     id: 'telemetry',
     label: 'TELEMETRY',
     purpose: 'Host vitals and what each reading means',

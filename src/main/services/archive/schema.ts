@@ -1,5 +1,5 @@
 import type { Db, IndexDescription } from 'mongodb'
-import { distributionFromLinks } from '@shared/domain/discography.constants'
+import { distributionFromLinks, localIsoDate } from '@shared/domain/discography.constants'
 import { WRAPPER_DIRECTORY_NAME } from '@shared/domain/stacks.constants'
 import { getLogger } from '@main/core/logger'
 import { migrateToProjectsLayout } from '@main/services/stacks/layout-migration'
@@ -116,6 +116,14 @@ export const Collections = {
    * network down. A copy for reading only.
    */
   LoreCache: 'lore_cache',
+  /**
+   * RELEASES: which DISCOGRAPHY release is which on each website, and what
+   * was last sent of it, so a change sends only what changed. One document
+   * per website and release (docs/RELEASES.md).
+   */
+  ReleasesLinks: 'releases_links',
+  /** RELEASES: what each website has, as last fetched. A copy for reading only. */
+  ReleasesCache: 'releases_cache',
   /** Stream overlay scenes and layouts (OBSERVATORY section). */
   Overlays: 'overlays',
   /** Natural-language commands and their resolved actions (INTERFACE section). */
@@ -294,7 +302,7 @@ export async function applySchema(db: Db): Promise<void> {
 /**
  * Current schema version. Bump when stored documents change shape.
  */
-const SCHEMA_VERSION = 11
+const SCHEMA_VERSION = 12
 
 /**
  * Collections dropped by the version 2 migration.
@@ -586,6 +594,11 @@ async function applyMigrations(db: Db): Promise<void> {
     await migrateLinksToDistribution(db)
   }
 
+  if (from < 12) {
+    logger.warn(`Migrating archive schema ${from} -> 12: releases not out yet become drafts`)
+    await migrateScheduledToDraft(db)
+  }
+
   await collection.updateOne(
     { _id: 'schema' as never },
     { $set: { version: SCHEMA_VERSION, appliedAt: new Date() } },
@@ -631,6 +644,31 @@ async function migrateReleaseStatuses(db: Db): Promise<void> {
     )
 
   logger.info(`Folded ${result.modifiedCount} release statuses onto SCHEDULED`)
+}
+
+/**
+ * SCHEDULED, not out yet, becomes DRAFT.
+ *
+ * SCHEDULED used to mean "committed to, dated or not"; it now means
+ * announced, shown on the website before its day. Nothing was announced
+ * under the old meaning, so every release not out yet starts as a draft,
+ * and none appears on the website until the operator schedules it.
+ *
+ * Only the status: a release whose day has come is left for the
+ * discography service to settle to RELEASED, since that move also moves its
+ * projects, which is the service's job and not a migration's.
+ */
+async function migrateScheduledToDraft(db: Db): Promise<void> {
+  const today = localIsoDate()
+  const result = await db.collection(Collections.Discography).updateMany(
+    {
+      status: 'scheduled',
+      $or: [{ releaseDate: null }, { releaseDate: { $gt: today } }]
+    },
+    { $set: { status: 'draft' } }
+  )
+
+  logger.info(`Moved ${result.modifiedCount} releases not out yet to DRAFT`)
 }
 
 /**
@@ -690,9 +728,7 @@ async function migrateLinksToDistribution(db: Db): Promise<void> {
     moved += links.length
   }
 
-  logger.info(
-    `Moved ${moved} platform links onto distribution across ${documents.length} releases`
-  )
+  logger.info(`Moved ${moved} platform links onto distribution across ${documents.length} releases`)
 }
 
 /**

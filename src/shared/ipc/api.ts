@@ -87,6 +87,7 @@ import type {
   SaveChapterInput,
   SavePlanetInput
 } from '../domain/lore'
+import type { ReleasesState, StageInput, StageResult } from '../domain/releases'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -284,6 +285,8 @@ export interface CandyHavenApi {
     registry(): Promise<DiscographyRegistry>
     get(id: string): Promise<DiscographyRelease>
     create(draft: ReleaseDraft): Promise<DiscographyRelease>
+    /** Releases whose status changed on their own, on their day. */
+    onSettled(listener: (payload: { ids: string[] }) => void): Unsubscribe
     update(id: string, patch: ReleasePatch): Promise<DiscographyRelease>
     remove(id: string): Promise<void>
     /**
@@ -533,6 +536,29 @@ export interface CandyHavenApi {
     savePlanet(input: SavePlanetInput): Promise<LoreState>
     deletePlanet(id: string): Promise<LoreState>
     onState(listener: (state: LoreState) => void): Unsubscribe
+  }
+  /**
+   * RELEASES: DISCOGRAPHY, as the website shows it. "Publish everything"
+   * once; then each release goes when its sheet is done with, with only
+   * what changed. Behind the DISPATCH sign-in. See docs/RELEASES.md.
+   */
+  readonly releases: {
+    state(): Promise<ReleasesState>
+    /** Fetches what the website has. */
+    sync(): Promise<ReleasesState>
+    /** Fetches, then sends everything new, changed or waiting. */
+    syncNow(): Promise<ReleasesState>
+    publishEverything(): Promise<ReleasesState>
+    /** A release's sheet closed after editing: sends it, or holds it to send. */
+    edited(id: string): Promise<ReleasesState>
+    /** Picks an action for some releases, held until Update. */
+    stage(input: StageInput): Promise<StageResult>
+    /** The shelf as reordered, held until Update. Takes the website's ids. */
+    stageShelf(siteIds: string[]): Promise<ReleasesState>
+    discard(): Promise<ReleasesState>
+    /** Sends everything picked, in one request. */
+    update(): Promise<ReleasesState>
+    onState(listener: (state: ReleasesState) => void): Unsubscribe
   }
   readonly auditorium: {
     /** Reads a chosen audio file whole. See the contract for why. */
