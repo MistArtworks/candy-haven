@@ -18,6 +18,8 @@ import type { WindowManager } from '@main/app/window-manager'
 import type { PopoutManager } from '@main/app/popout'
 import type { VestibuleManager } from '@main/app/vestibule'
 import { applyLaunchAtStartup } from '@main/app/startup'
+import type { StripManager } from '@main/app/strip'
+import { kindOf, listFolder, openTarget, type TargetHost } from '@main/app/targets'
 import type { IpcRouter } from './router'
 
 const logger = getLogger('ipc:handlers')
@@ -43,10 +45,25 @@ export interface HandlerDependencies {
   retireToTray: () => void
   /** Called when the renderer reports the boot cinematic has finished. */
   onBootEntered: () => void
+  /** THE QUICK STRIP's windows. */
+  strip: StripManager
+  /** How a pin or an attachment opens what it points at. */
+  targets: TargetHost
 }
 
 export function registerIpcHandlers(deps: HandlerDependencies): void {
-  const { router, services, boot, windows, popouts, vestibule, retireToTray, onBootEntered } = deps
+  const {
+    router,
+    services,
+    boot,
+    windows,
+    popouts,
+    vestibule,
+    retireToTray,
+    onBootEntered,
+    strip,
+    targets
+  } = deps
   const { settings, archive, updates } = services
 
   // ------------------------------------------------------------------ runtime
@@ -652,6 +669,49 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     await windows.create({ entered: boot.current.phase === 'ready', route: target })
     vestibule.close()
   })
+
+  // ------------------------------------------------------------- quick strip
+
+  router.handle('strip:open-target', async ({ target }) => {
+    await openTarget(target, targets)
+    // Done with: the popup it was opened from goes.
+    strip.closePopup()
+  })
+
+  router.handle('strip:popup', (popup) => strip.openPopup(popup))
+
+  router.handle('strip:close-popup', () => strip.closePopup())
+
+  router.handle('strip:fit', ({ width, height }, event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    // Only the strip's own windows are sized this way.
+    if (window && strip.owns(window)) strip.fit(window, width, height)
+  })
+
+  router.handle('strip:list-folder', ({ path }) => listFolder(path))
+
+  router.handle('strip:inspect', ({ path }) => kindOf(path))
+
+  router.handle('strip:pick', ({ kind }, event) =>
+    strip.holding(async () => {
+      const window = BrowserWindow.fromWebContents(event.sender)
+      const options: Electron.OpenDialogOptions = {
+        title: kind === 'file' ? 'Choose a file' : 'Choose a folder',
+        properties: [kind === 'file' ? 'openFile' : 'openDirectory']
+      }
+      const result = window
+        ? await dialog.showOpenDialog(window, options)
+        : await dialog.showOpenDialog(options)
+      return result.canceled ? null : (result.filePaths[0] ?? null)
+    })
+  )
+
+  // Switched off, so REGULATION says so; the tray and REGULATION bring it back.
+  router.handle('strip:hide', async () => {
+    await settings.update({ strip: { enabled: false } })
+  })
+
+  router.handle('strip:quit', () => app.quit())
 
   router.handle('vestibule:handoff', async ({ id }) => {
     // The set opens before the window goes, so a failure to launch Ableton

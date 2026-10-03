@@ -14,8 +14,11 @@ import { TimeGrid } from './TimeGrid'
 import styles from '../CalendarPage.module.scss'
 
 import type { CalendarRelease } from '@shared/domain/calendar'
+import type { Pin } from '@shared/domain/strip'
 import { anniversariesOn } from '../anniversaries'
 import { AnniversaryMark } from './AnniversaryMark'
+import { AttachmentLinks } from './AttachmentLinks'
+import { EntryHints } from './EntryHints'
 import { ReleaseMark } from './ReleaseMark'
 
 export interface DayViewProps {
@@ -31,6 +34,8 @@ export interface DayViewProps {
   onOpenEntry: (entry: CalendarEntry) => void
   onOpenSlot: (date: string, startMinute: number) => void
   onToggleDone: (entry: CalendarEntry) => void
+  /** Opens one of an entry's attachments, listed on the sheet. */
+  onOpenAttachment: (pin: Pin) => void
 }
 
 /**
@@ -47,7 +52,8 @@ export function DayView({
   releases,
   onOpenEntry,
   onOpenSlot,
-  onToggleDone
+  onToggleDone,
+  onOpenAttachment
 }: DayViewProps): ReactNode {
   const filed = entriesOn(entries, date)
   const out = releases.filter((release) => release.date === date)
@@ -120,24 +126,31 @@ export function DayView({
                     )}
                   />
 
-                  <button
-                    type="button"
-                    className={styles.sheetBody}
-                    onClick={() => onOpenEntry(entry)}
-                  >
-                    <span className={styles.sheetMeta}>
-                      <span className={styles.sheetKind} data-tone={kind.tone}>
-                        {kind.label}
+                  {/* Beside the body's button rather than in it, as in AGENDA. */}
+                  <div className={styles.sheetMain}>
+                    <button
+                      type="button"
+                      className={styles.sheetBody}
+                      onClick={() => onOpenEntry(entry)}
+                    >
+                      <span className={styles.sheetMeta}>
+                        <span className={styles.sheetKind} data-tone={kind.tone}>
+                          {kind.label}
+                        </span>
+                        <span className={styles.sheetClock}>
+                          {span
+                            ? `${formatMinute(span.start)}–${formatMinute(span.end % 1440)}`
+                            : 'ALL DAY'}
+                        </span>
+                        <EntryHints entry={entry} clip={false} />
                       </span>
-                      <span className={styles.sheetClock}>
-                        {span
-                          ? `${formatMinute(span.start)}–${formatMinute(span.end % 1440)}`
-                          : 'ALL DAY'}
-                      </span>
-                    </span>
-                    <span className={styles.sheetTitle}>{entry.title}</span>
-                    {entry.notes ? <span className={styles.sheetNotes}>{entry.notes}</span> : null}
-                  </button>
+                      <span className={styles.sheetTitle}>{entry.title}</span>
+                      {entry.notes ? (
+                        <span className={styles.sheetNotes}>{entry.notes}</span>
+                      ) : null}
+                    </button>
+                    <AttachmentLinks pins={entry.attachments} onOpen={onOpenAttachment} />
+                  </div>
                 </li>
               )
             })}

@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
-import type { CalendarEntry, CalendarKind } from '@shared/domain/calendar'
+import type { CalendarEntry, CalendarKind, ChecklistItem } from '@shared/domain/calendar'
 import { CALENDAR_KIND, CALENDAR_KIND_LIST, formatMinute } from '@shared/domain/calendar.constants'
+import type { Pin } from '@shared/domain/strip'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { Button } from '@renderer/components/primitives/Button'
 import {
@@ -12,6 +13,8 @@ import {
   TextInput
 } from '@renderer/components/primitives/Input'
 import { useDialogKeys } from '@renderer/hooks/useDialogKeys'
+import { AttachmentsField } from './AttachmentsField'
+import { ChecklistField } from './ChecklistField'
 import styles from '../CalendarPage.module.scss'
 
 /** What the dialog was opened with: an existing entry, or a blank on a date. */
@@ -36,6 +39,8 @@ export interface EntryValues {
   startMinute: number | null
   durationMinutes: number
   notes: string
+  attachments: Pin[]
+  checklist: ChecklistItem[]
 }
 
 /** Durations offered rather than typed: a session is an hour, not 63 minutes. */
@@ -142,6 +147,8 @@ function EntryForm({
   )
   const [duration, setDuration] = useState(existing?.durationMinutes ?? 60)
   const [notes, setNotes] = useState(existing?.notes ?? '')
+  const [attachments, setAttachments] = useState<Pin[]>(existing?.attachments ?? [])
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(existing?.checklist ?? [])
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const canCommit = title.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date) && !busy
@@ -154,7 +161,12 @@ function EntryForm({
       date,
       startMinute: allDay ? null : startMinute,
       durationMinutes: duration,
-      notes: notes.trim()
+      notes: notes.trim(),
+      attachments,
+      // A step cleared of its text is a step removed; see ChecklistField.
+      checklist: checklist
+        .map((item) => ({ ...item, text: item.text.trim() }))
+        .filter((item) => item.text.length > 0)
     }
 
     if (existing) onSave(existing.id, values)
@@ -233,6 +245,10 @@ function EntryForm({
           maxLength={2000}
           placeholder="Anything the entry should carry with it"
         />
+
+        <AttachmentsField value={attachments} onChange={setAttachments} disabled={busy} />
+
+        <ChecklistField value={checklist} onChange={setChecklist} disabled={busy} />
 
         {error ? <p className={styles.dialogError}>{error}</p> : null}
       </div>

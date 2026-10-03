@@ -20,6 +20,7 @@ import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import { CALENDAR_VIEW, CALENDAR_VIEWS, isCalendarView, type CalendarView } from './views'
+import { useOpenAttachment } from './attachments'
 import { MonthView } from './components/MonthView'
 import { DayView } from './components/DayView'
 import { AgendaView } from './components/AgendaView'
@@ -44,6 +45,7 @@ export function CalendarPage(): ReactNode {
   const section = getSection('calendar')
   const { state, ready } = useCalendar()
   const actions = useCalendarActions()
+  const attachment = useOpenAttachment()
 
   const [searchParams, setSearchParams] = useSearchParams()
   const raw = searchParams.get('view')
@@ -193,7 +195,9 @@ export function CalendarPage(): ReactNode {
         date: values.date,
         startMinute: values.startMinute,
         durationMinutes: values.durationMinutes,
-        notes: values.notes
+        notes: values.notes,
+        attachments: values.attachments,
+        checklist: values.checklist
       })
       .then(() => setSubject(null))
       .catch(() => undefined)
@@ -207,7 +211,9 @@ export function CalendarPage(): ReactNode {
         date: values.date,
         startMinute: values.startMinute,
         durationMinutes: values.durationMinutes,
-        notes: values.notes
+        notes: values.notes,
+        attachments: values.attachments,
+        checklist: values.checklist
       })
       .then(() => setSubject(null))
       .catch(() => undefined)
@@ -301,6 +307,16 @@ export function CalendarPage(): ReactNode {
 
       {actions.error && !subject ? <p className={styles.detached}>{actions.error}</p> : null}
 
+      {/* An attachment opened from AGENDA or the day sheet that could not be. */}
+      {attachment.problem ? (
+        <p className={styles.detached}>
+          {attachment.problem}{' '}
+          <button type="button" className={styles.detachedDismiss} onClick={attachment.clear}>
+            Dismiss
+          </button>
+        </p>
+      ) : null}
+
       <motion.div className={styles.stage} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <Panel
           label={CALENDAR_VIEW[view].label}
@@ -339,6 +355,7 @@ export function CalendarPage(): ReactNode {
               onOpenEntry={openEntry}
               onOpenSlot={(date, startMinute) => openDate(date, startMinute)}
               onToggleDone={toggleDone}
+              onOpenAttachment={attachment.open}
             />
           ) : null}
 
@@ -350,6 +367,7 @@ export function CalendarPage(): ReactNode {
               onOpenEntry={openEntry}
               onToggleDone={toggleDone}
               onInspectDate={inspectDate}
+              onOpenAttachment={attachment.open}
             />
           ) : null}
         </Panel>

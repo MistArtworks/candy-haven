@@ -139,6 +139,21 @@
   line-height: 1.6;
 }
 
+.detachedDismiss {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+  margin-left: space(2);
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
 .stage {
   display: block;
 }
@@ -314,6 +329,53 @@
   line-height: 1.3;
   color: var(--ch-text-secondary);
   @include truncate;
+}
+
+// What an entry carries (`EntryHints`): faint figures after the title, and
+// never louder than it. Pushed to the far end of the chip, so a column of them
+// lines up down a month cell.
+.entryHints {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  flex-shrink: 0;
+  margin-left: auto;
+  @include readout(8px);
+  line-height: 1;
+  color: var(--ch-text-faint);
+}
+
+.entryHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+
+  // Every step ticked. Gold rather than brighter: finished is worth seeing,
+  // not worth shouting.
+  &[data-complete] {
+    color: var(--ch-gold-500);
+  }
+}
+
+.entryHintClip {
+  flex-shrink: 0;
+}
+
+// The register's square mark, at the size of the figure beside it, and
+// filled once every step is.
+.entryHintBox {
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+
+  .entryHint[data-complete] & {
+    background: currentColor;
+  }
+}
+
+.srOnly {
+  @include visually-hidden;
 }
 
 // The four permitted tones.
@@ -648,6 +710,11 @@ $kind-tones: (
 }
 
 .timeEntryClock {
+  // A row, so the hints sit beside the clock rather than wrapping under it.
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  white-space: nowrap;
   @include readout(8px);
   color: var(--ch-text-faint);
 }
@@ -787,6 +854,64 @@ $kind-tones: (
   font-size: rem(10px);
   color: var(--ch-text-muted);
   line-height: 1.5;
+}
+
+// The body's button and the attachments under it, which cannot sit inside
+// it. Shared with AGENDA's rows.
+.sheetMain,
+.agendaMain {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+}
+
+// An entry's attachments by name (`AttachmentLinks`). Quiet until pointed at,
+// then gold, as a release marker is: these open something elsewhere rather
+// than amend the entry.
+.entryPins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1) space(2);
+}
+
+.entryPin {
+  display: inline-flex;
+  align-items: baseline;
+  gap: space(2);
+  max-width: rem(240px);
+  padding: 2px space(2);
+  text-align: left;
+  @include hairline(all, 0.1);
+  transition:
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+    background: rgba(182, 158, 124, 0.05);
+
+    .entryPinLabel {
+      color: var(--ch-gold-300);
+    }
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.entryPinKind {
+  @include label(7px, 0.18em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.entryPinLabel {
+  font-size: rem(10px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+  transition: color $duration-fast linear;
 }
 
 // -------------------------------------------------------------- agenda view
@@ -1010,6 +1135,297 @@ $kind-tones: (
   border-left: 2px solid var(--ch-crimson-500);
   padding-left: space(2);
   line-height: 1.5;
+}
+
+// ------------------------------------------- attachments and checklist
+
+// Two fields the primitives have no shape for, labelled the way the
+// primitives label theirs (Input.module.scss), so they read as more of the
+// same form rather than a panel dropped into it.
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  min-width: 0;
+}
+
+.fieldHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+}
+
+.fieldLabel {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-muted);
+}
+
+.fieldCount {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.fieldEmpty {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.5;
+}
+
+// Ruled rows, the same hairlines as the day sheet's.
+.pinList {
+  display: flex;
+  flex-direction: column;
+  @include hairline(top, 0.06);
+}
+
+.pinRow {
+  display: grid;
+  grid-template-columns: rem(52px) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) 0;
+  @include hairline(bottom, 0.06);
+}
+
+.pinKind {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.pinLabel {
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+}
+
+.pinOpen {
+  @include label(8px, 0.18em);
+  color: var(--ch-gold-400);
+  padding: space(1) space(2);
+  transition: color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-gold-200);
+  }
+
+  &:disabled {
+    color: var(--ch-text-faint);
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    @include focus-ring(-1px);
+  }
+}
+
+// The same × as a tag chip's (Input.module.scss).
+.pinRemove {
+  @include readout(13px);
+  line-height: 1;
+  color: var(--ch-text-muted);
+  padding: 0 space(1);
+  transition: color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-accent-bright);
+  }
+
+  &:disabled {
+    color: var(--ch-text-faint);
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.pinAdd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+// The add button whose panel is open stays lit, so it reads as the one that
+// opened it and as the way to close it.
+.pinAddToggle[data-active] {
+  color: var(--ch-text-primary);
+  border-color: var(--ch-line-strong);
+  background: rgba(182, 158, 124, 0.07);
+}
+
+// The project search and the link entry: sunk into the form, as the date
+// picker's month is, because both are a step on the way to a row above.
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding: space(3) space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+}
+
+.pickerList {
+  display: flex;
+  flex-direction: column;
+  max-height: rem(196px);
+  overflow-y: auto;
+}
+
+.pickerItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+  width: 100%;
+  padding: space(2);
+  text-align: left;
+  transition: background-color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    background: rgba(182, 158, 124, 0.07);
+
+    .pickerName {
+      color: var(--ch-text-primary);
+    }
+  }
+
+  &:disabled {
+    cursor: default;
+
+    .pickerName {
+      color: var(--ch-text-faint);
+    }
+  }
+
+  &:focus-visible {
+    @include focus-ring(-1px);
+  }
+}
+
+.pickerName {
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+  transition: color $duration-fast linear;
+}
+
+.pickerNote {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.pickerFoot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: space(2);
+
+  .pickerNote {
+    margin-right: auto;
+  }
+}
+
+.stepList {
+  display: flex;
+  flex-direction: column;
+}
+
+.stepRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(3);
+
+  // A ticked step dims and is struck, as a discharged entry is.
+  &[data-done] .stepText {
+    color: var(--ch-text-muted);
+    text-decoration: line-through;
+  }
+
+  // The line for the next step has no × to balance; it takes the room.
+  &[data-draft] {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+// The Checkbox primitive's stamped square, at the scale of a row.
+.stepMark {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.18);
+  transition: border-color $duration-fast linear;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: transparent;
+    transition: background-color $duration-fast linear;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--ch-line-strong);
+  }
+
+  &[data-done] {
+    border-color: var(--ch-accent);
+
+    &::after {
+      background: var(--ch-accent-bright);
+    }
+  }
+
+  // The next step's mark is only a place: dashed, and nothing to press.
+  &[data-draft] {
+    background: transparent;
+    border-style: dashed;
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+// Ruled only when touched: a list of steps with a rule under every one would
+// be a stack of form fields, and this is a list.
+.stepText {
+  width: 100%;
+  min-width: 0;
+  background: none;
+  border: 0;
+  border-bottom: $hairline solid transparent;
+  border-radius: 0;
+  padding: space(1) 0;
+  color: var(--ch-text-primary);
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  line-height: 1.5;
+  transition:
+    border-color $duration-fast linear,
+    color $duration-fast linear;
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:hover:not(:disabled) {
+    border-bottom-color: var(--ch-line);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-bottom-color: var(--ch-accent);
+  }
+
+  &:disabled {
+    color: var(--ch-text-muted);
+  }
 }
 
 .dialogFoot {

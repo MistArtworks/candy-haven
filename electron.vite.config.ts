@@ -80,6 +80,9 @@ export default defineConfig({
            * into the one window whose whole job is being up before them.
            */
           vestibule: resolve('src/renderer/vestibule.html'),
+          // THE QUICK STRIP and its popup: their own small document, for the
+          // same reason as the vestibule's (main/app/strip.ts).
+          strip: resolve('src/renderer/strip.html'),
           /*
            * A contact sheet of the NEXUS landing fields.
            *

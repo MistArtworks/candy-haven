@@ -15,8 +15,11 @@ import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from '../CalendarPage.module.scss'
 
 import type { CalendarRelease } from '@shared/domain/calendar'
+import type { Pin } from '@shared/domain/strip'
 import { anniversariesBetween } from '../anniversaries'
 import { AnniversaryMark } from './AnniversaryMark'
+import { AttachmentLinks } from './AttachmentLinks'
+import { EntryHints } from './EntryHints'
 import { ReleaseMark } from './ReleaseMark'
 
 export interface AgendaViewProps {
@@ -33,6 +36,8 @@ export interface AgendaViewProps {
   onOpenEntry: (entry: CalendarEntry) => void
   onToggleDone: (entry: CalendarEntry) => void
   onInspectDate: (date: string) => void
+  /** Opens one of an entry's attachments, listed under it. */
+  onOpenAttachment: (pin: Pin) => void
 }
 
 /**
@@ -53,7 +58,8 @@ export function AgendaView({
   releases,
   onOpenEntry,
   onToggleDone,
-  onInspectDate
+  onInspectDate,
+  onOpenAttachment
 }: AgendaViewProps): ReactNode {
   const today = todayIso()
 
@@ -201,21 +207,27 @@ export function AgendaView({
                       {span ? formatMinute(span.start) : '—'}
                     </span>
 
-                    <button
-                      type="button"
-                      className={styles.agendaBody}
-                      onClick={() => onOpenEntry(entry)}
-                    >
-                      <span className={styles.agendaTitleRow}>
-                        <span className={styles.agendaKind} data-tone={kind.tone}>
-                          {kind.label}
+                    {/* The attachments sit outside the body's button, which
+                        opens the entry: a button cannot hold another. */}
+                    <div className={styles.agendaMain}>
+                      <button
+                        type="button"
+                        className={styles.agendaBody}
+                        onClick={() => onOpenEntry(entry)}
+                      >
+                        <span className={styles.agendaTitleRow}>
+                          <span className={styles.agendaKind} data-tone={kind.tone}>
+                            {kind.label}
+                          </span>
+                          <span className={styles.agendaTitle}>{entry.title}</span>
+                          <EntryHints entry={entry} clip={false} />
                         </span>
-                        <span className={styles.agendaTitle}>{entry.title}</span>
-                      </span>
-                      {entry.notes ? (
-                        <span className={styles.agendaNotes}>{entry.notes}</span>
-                      ) : null}
-                    </button>
+                        {entry.notes ? (
+                          <span className={styles.agendaNotes}>{entry.notes}</span>
+                        ) : null}
+                      </button>
+                      <AttachmentLinks pins={entry.attachments} onOpen={onOpenAttachment} />
+                    </div>
 
                     <span className={styles.agendaSpan}>
                       {span ? `${entry.durationMinutes}m` : 'ALL DAY'}

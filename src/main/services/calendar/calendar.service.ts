@@ -151,6 +151,8 @@ export class CalendarService extends TypedEmitter<CalendarEvents> {
       durationMinutes: draft.durationMinutes,
       notes: draft.notes.trim(),
       done: false,
+      attachments: draft.attachments,
+      checklist: draft.checklist,
       createdAt: now,
       updatedAt: now
     }

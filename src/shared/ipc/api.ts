@@ -88,6 +88,7 @@ import type {
   SavePlanetInput
 } from '../domain/lore'
 import type { ReleasesState, StageInput, StageResult } from '../domain/releases'
+import type { FolderListing, StripPopup, Target } from '../domain/strip'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -583,6 +584,23 @@ export interface CandyHavenApi {
     close(): Promise<void>
   }
   /** THE VESTIBULE — the startup window, and the two ways out of it. */
+  /** THE QUICK STRIP and its popup. See `strip:*` in the contract. */
+  readonly strip: {
+    openTarget(target: Target): Promise<void>
+    popup(popup: StripPopup): Promise<void>
+    closePopup(): Promise<void>
+    fit(width: number, height: number): Promise<void>
+    listFolder(path: string): Promise<FolderListing>
+    inspect(path: string): Promise<'file' | 'folder' | null>
+    pick(kind: 'file' | 'folder'): Promise<string | null>
+    hide(): Promise<void>
+    quit(): Promise<void>
+    /** The path of a file dropped from Explorer. */
+    pathOf(file: File): string
+    onPopup(listener: (popup: StripPopup) => void): Unsubscribe
+    /** Settings as they change, wherever they were changed. */
+    onSettings(listener: (settings: Settings) => void): Unsubscribe
+  }
   readonly vestibule: {
     minimize(): Promise<void>
     close(): Promise<void>

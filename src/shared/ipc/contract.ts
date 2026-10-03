@@ -117,6 +117,7 @@ import {
   StageInputSchema,
   StageResultSchema
 } from '../domain/releases'
+import { FolderListingSchema, StripPopupSchema, TargetSchema } from '../domain/strip'
 /**
  * The IPC contract is declared once, here, and consumed by:
  *   - the main-process router, which validates inputs and outputs at runtime
@@ -966,6 +967,44 @@ export const IPC_INVOKE = {
    */
   'vestibule:handoff': { input: z.object({ id: z.string() }), output: z.void() },
 
+  // ------------------------------------------------------------- quick strip
+
+  /*
+   * THE QUICK STRIP: the small window on top of everything (main/app/strip.ts).
+   * Its pins and settings live in `settings.strip`; these are what it does.
+   */
+  /** Opens a pin's or an attachment's target: a page, a file, a project, a link. */
+  'strip:open-target': { input: z.object({ target: TargetSchema }), output: z.void() },
+  /** Opens the popup beside the strip, showing this. */
+  'strip:popup': { input: StripPopupSchema, output: z.void() },
+  'strip:close-popup': { input: z.void(), output: z.void() },
+  /** The sender's measured size: the strip or its popup grows or shrinks to it. */
+  'strip:fit': {
+    input: z.object({
+      width: z.number().positive().max(4000),
+      height: z.number().positive().max(4000)
+    }),
+    output: z.void()
+  },
+  'strip:list-folder': {
+    input: z.object({ path: z.string().min(1) }),
+    output: FolderListingSchema
+  },
+  /** A dropped path: a file, a folder, or nothing there. */
+  'strip:inspect': {
+    input: z.object({ path: z.string().min(1) }),
+    output: z.enum(['file', 'folder']).nullable()
+  },
+  /** A file or folder to pin or attach, picked without the popup closing behind the dialog. */
+  'strip:pick': {
+    input: z.object({ kind: z.enum(['file', 'folder']) }),
+    output: z.string().nullable()
+  },
+  /** Hides the strip until REGULATION or the tray shows it again. */
+  'strip:hide': { input: z.void(), output: z.void() },
+  /** Quits Haven, from the strip's menu. */
+  'strip:quit': { input: z.void(), output: z.void() },
+
   'shell:open-external': { input: z.object({ url: z.string() }), output: z.void() },
   'shell:reveal': { input: z.object({ path: z.string() }), output: z.void() },
   /** Opens a file with whatever the OS has registered for it. */
@@ -1039,6 +1078,14 @@ export const IPC_EVENT = {
   'inbox:state': InboxStateSchema,
   'lore:state': LoreStateSchema,
   'releases:state': ReleasesStateSchema,
+  /** To the strip's popup: what to show. */
+  'strip:popup': StripPopupSchema,
+  /**
+   * Every settings change, for windows that don't make them: the strip
+   * follows what REGULATION sets in the console. The console itself doesn't
+   * listen; it applies its own writes (see useApplySettings).
+   */
+  'settings:changed': SettingsSchema,
   /** Releases whose status changed on their own, on their day. */
   'discography:settled': z.object({ ids: z.array(z.string()) }),
   /** A clicked notification, asking the console to open a department. */

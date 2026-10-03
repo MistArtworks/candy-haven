@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { IsoDateSchema } from './dates'
 import { CALENDAR_KINDS } from './calendar.constants'
+import { PinSchema } from './strip'
 
 /**
  * CALENDAR — the dated register.
@@ -31,6 +32,14 @@ export { IsoDateSchema } from './dates'
 /** Minutes from local midnight, 0..1439. */
 export const MinuteOfDaySchema = z.number().int().min(0).max(1439)
 
+/** One step of an entry's checklist. */
+export const ChecklistItemSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1).max(200),
+  done: z.boolean().default(false)
+})
+export type ChecklistItem = z.infer<typeof ChecklistItemSchema>
+
 export const CalendarEntrySchema = z.object({
   id: z.string(),
   title: z.string().min(1).max(160),
@@ -50,6 +59,14 @@ export const CalendarEntrySchema = z.object({
   notes: z.string().max(2000).default(''),
   /** Struck through and dimmed rather than deleted, so the record survives. */
   done: z.boolean().default(false),
+  /**
+   * What the entry is about, opened from it in one click: a project, a file
+   * or folder on this PC, a page, a link. The same shape as the quick strip's
+   * pins (domain/strip.ts).
+   */
+  attachments: z.array(PinSchema).max(12).default([]),
+  /** Steps within it, ticked off one by one. */
+  checklist: z.array(ChecklistItemSchema).max(40).default([]),
   createdAt: z.number(),
   updatedAt: z.number()
 })
@@ -61,7 +78,9 @@ export const CalendarDraftSchema = z.object({
   date: IsoDateSchema,
   startMinute: MinuteOfDaySchema.nullable().default(null),
   durationMinutes: z.number().int().min(5).max(1440).default(60),
-  notes: z.string().max(2000).default('')
+  notes: z.string().max(2000).default(''),
+  attachments: z.array(PinSchema).max(12).default([]),
+  checklist: z.array(ChecklistItemSchema).max(40).default([])
 })
 export type CalendarDraft = z.infer<typeof CalendarDraftSchema>
 
@@ -77,7 +96,9 @@ export const CalendarPatchSchema = z.object({
   startMinute: MinuteOfDaySchema.nullable().optional(),
   durationMinutes: z.number().int().min(5).max(1440).optional(),
   notes: z.string().max(2000).optional(),
-  done: z.boolean().optional()
+  done: z.boolean().optional(),
+  attachments: z.array(PinSchema).max(12).optional(),
+  checklist: z.array(ChecklistItemSchema).max(40).optional()
 })
 export type CalendarPatch = z.infer<typeof CalendarPatchSchema>
 

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webFrame, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webFrame, webUtils, type IpcRendererEvent } from 'electron'
 import type { CandyHavenApi, Unsubscribe } from '@shared/ipc/api'
 import {
   EVENT_CHANNELS,
@@ -352,6 +352,20 @@ const api: CandyHavenApi = {
   popout: {
     minimize: () => invoke('popout:minimize'),
     close: () => invoke('popout:close')
+  },
+  strip: {
+    openTarget: (target) => invoke('strip:open-target', { target }),
+    popup: (popup) => invoke('strip:popup', popup),
+    closePopup: () => invoke('strip:close-popup'),
+    fit: (width, height) => invoke('strip:fit', { width, height }),
+    listFolder: (path) => invoke('strip:list-folder', { path }),
+    inspect: (path) => invoke('strip:inspect', { path }),
+    pick: (kind) => invoke('strip:pick', { kind }),
+    hide: () => invoke('strip:hide'),
+    quit: () => invoke('strip:quit'),
+    pathOf: (file) => webUtils.getPathForFile(file),
+    onPopup: (listener) => subscribe('strip:popup', listener),
+    onSettings: (listener) => subscribe('settings:changed', listener)
   },
   vestibule: {
     minimize: () => invoke('vestibule:minimize'),

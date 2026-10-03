@@ -14,6 +14,8 @@ export interface TrayActions {
   checkForUpdates: () => void
   /** End the session, running the full shutdown. */
   quit: () => void
+  /** Shows THE QUICK STRIP again, switched back on. */
+  showStrip: () => void
 }
 
 /**
@@ -126,6 +128,10 @@ export class TrayController {
       {
         label: this.windowVisible ? 'Show Console' : 'Open Console',
         click: () => this.actions.reveal()
+      },
+      {
+        label: 'Show the Quick Strip',
+        click: () => this.actions.showStrip()
       },
       { type: 'separator' },
       {

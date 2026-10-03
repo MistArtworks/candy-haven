@@ -1,0 +1,994 @@
+@use 'abstracts' as *;
+
+// THE QUICK STRIP and its popup. The windows are transparent, so these are
+// everything on screen: an obsidian card with a hairline, a faint shadow
+// inside the window's own margin, and the console's type and colours.
+
+$card: linear-gradient(180deg, #171417, #100e10);
+
+.frame {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: space(1);
+  // Room for the card's shadow inside the transparent window.
+  padding: 6px;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.strip {
+  display: flex;
+  background: $card;
+  border: $hairline solid var(--ch-line-strong);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  color: var(--ch-text-primary);
+
+  button,
+  input {
+    -webkit-app-region: no-drag;
+  }
+
+  &[data-look='panel'] {
+    flex-direction: column;
+    width: rem(352px);
+  }
+
+  &[data-look='horizontal'] {
+    align-items: center;
+    gap: space(1);
+    height: rem(52px);
+    padding: 0 space(2) 0 space(3);
+  }
+
+  &[data-look='vertical'] {
+    flex-direction: column;
+    align-items: center;
+    gap: space(1);
+    width: rem(54px);
+    padding: space(3) 0 space(2);
+  }
+}
+
+.notice {
+  @include readout(11px);
+  max-width: rem(340px);
+  padding: space(1) space(3);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-gold);
+}
+
+// ------------------------------------------------------------------- pins
+
+.pins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+
+  .strip[data-look='panel'] & {
+    padding: space(2) space(2);
+    @include hairline(bottom, 0.1);
+  }
+
+  .strip[data-look='horizontal'] & {
+    flex-wrap: nowrap;
+    max-width: 60vw;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .strip[data-look='vertical'] & {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    max-height: 60vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  &[data-dropping] {
+    outline: 1px dashed var(--ch-line-gold);
+    outline-offset: -2px;
+    background: rgba(151, 107, 48, 0.08);
+  }
+}
+
+.pin,
+.tool {
+  width: rem(38px);
+  height: rem(38px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ch-text-secondary);
+  background: none;
+  border: $hairline solid transparent;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-gold-200);
+    background: rgba(182, 158, 124, 0.08);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.tool {
+  width: rem(32px);
+  height: rem(32px);
+}
+
+.empty {
+  @include readout(11px);
+  padding: space(2) space(3);
+  color: var(--ch-text-muted);
+}
+
+.tools {
+  display: inline-flex;
+  gap: 2px;
+
+  .strip[data-look='vertical'] & {
+    flex-direction: column;
+  }
+}
+
+.mark {
+  display: inline-flex;
+  color: var(--ch-gold-300);
+}
+
+.rule {
+  flex: none;
+  background: var(--ch-line);
+
+  .strip[data-look='horizontal'] & {
+    width: 1px;
+    height: rem(26px);
+    margin: 0 space(1);
+  }
+
+  .strip[data-look='vertical'] & {
+    width: rem(26px);
+    height: 1px;
+    margin: space(1) 0;
+  }
+}
+
+.lineName {
+  @include label(10px, 0.14em);
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  color: var(--ch-text-secondary);
+  white-space: nowrap;
+
+  .strip[data-look='vertical'] & {
+    gap: 4px;
+    font-size: rem(8px);
+  }
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ch-text-faint);
+  flex: none;
+
+  &[data-online] {
+    background: #5bb37a;
+  }
+}
+
+.count {
+  @include readout(10px);
+  min-width: rem(18px);
+  height: rem(18px);
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ch-accent-bright);
+  background: var(--ch-accent-dim);
+  border: $hairline solid var(--ch-accent);
+}
+
+// ------------------------------------------------------------------ today
+
+.today {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: space(3);
+  align-items: center;
+  padding: space(3) space(3) space(3) space(4);
+  text-align: left;
+  color: var(--ch-text-secondary);
+  background: none;
+  border: 0;
+  @include hairline(bottom, 0.1);
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.05);
+  }
+}
+
+.todayIcon {
+  width: rem(36px);
+  height: rem(36px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ch-gold-300);
+  background: rgba(151, 107, 48, 0.08);
+  border: $hairline solid var(--ch-line-gold);
+}
+
+.todayText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.todayHead {
+  @include label(10px, 0.16em);
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  color: var(--ch-gold-200);
+}
+
+.overdueMark {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+}
+
+.next {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.time {
+  @include readout(12px);
+  color: var(--ch-gold-300);
+  margin-right: space(2);
+}
+
+.then {
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+}
+
+.todayChip {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  height: rem(36px);
+  padding: 0 space(2);
+  color: var(--ch-gold-300);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ch-line-gold);
+  }
+
+  .strip[data-look='vertical'] & {
+    position: relative;
+    width: rem(38px);
+    justify-content: center;
+    padding: 0;
+
+    .count {
+      position: absolute;
+      top: -6px;
+      right: -8px;
+    }
+  }
+}
+
+.todayChipText {
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-primary);
+  max-width: rem(170px);
+  @include truncate;
+}
+
+// ------------------------------------------------------------------- who
+
+.who {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: space(3);
+  align-items: center;
+  padding: space(2) space(2) space(2) space(3);
+}
+
+.avatar {
+  position: relative;
+  width: rem(40px);
+  height: rem(40px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-gold);
+
+  .dot {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 9px;
+    height: 9px;
+    box-shadow: 0 0 0 2px #100e10;
+  }
+}
+
+.whoText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  @include label(14px, 0.08em);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.state {
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+}
+
+// ---------------------------------------------------------------- popups
+
+.popupFrame {
+  display: inline-block;
+  padding: 6px;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  background: $card;
+  border: $hairline solid var(--ch-line-gold);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  color: var(--ch-text-primary);
+}
+
+.popupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+  padding: space(3) space(3) space(2) space(4);
+  @include hairline(bottom, 0.1);
+}
+
+.popupTitle {
+  @include label(10px, 0.16em);
+  color: var(--ch-gold-200);
+  @include truncate;
+}
+
+.close {
+  width: rem(24px);
+  height: rem(24px);
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  font-size: rem(16px);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+}
+
+.popupActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: space(2);
+  padding: space(2) space(3) space(3);
+  @include hairline(top, 0.08);
+}
+
+.popupNotice {
+  @include readout(11px);
+  margin: 0;
+  padding: space(2) space(4) 0;
+  color: var(--ch-crimson-400);
+}
+
+.keys {
+  @include readout(10px);
+  margin-right: auto;
+  color: var(--ch-text-muted);
+}
+
+.textButton,
+.primaryButton {
+  @include label(9px, 0.16em);
+  height: rem(28px);
+  padding: 0 space(3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ch-text-secondary);
+  background: none;
+  border: $hairline solid var(--ch-line-strong);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.primaryButton {
+  color: var(--ch-text-primary);
+  background: color-mix(in srgb, var(--ch-accent) 28%, transparent);
+  border-color: var(--ch-accent);
+}
+
+.quiet {
+  margin: 0;
+  padding: space(2) 0;
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-muted);
+  line-height: 1.5;
+}
+
+// New project: the vestibule's form, in a narrower room.
+.newProject {
+  width: rem(380px);
+  max-height: rem(560px);
+  display: flex;
+  flex-direction: column;
+
+  > :not(:first-child) {
+    padding: space(3) space(4) space(3);
+  }
+}
+
+// Today.
+.todayPopup {
+  width: rem(372px);
+}
+
+.todayList {
+  max-height: rem(440px);
+  overflow-y: auto;
+  padding: space(2) space(3);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: space(1) 0 space(2);
+}
+
+.groupLabel {
+  @include label(9px, 0.18em);
+  padding: space(1) space(1);
+  color: var(--ch-text-faint);
+
+  &[data-tone='late'] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.entry {
+  border: $hairline solid transparent;
+
+  &[data-open] {
+    border-color: var(--ch-line);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &[data-done] .entryTitle {
+    color: var(--ch-text-muted);
+    text-decoration: line-through;
+  }
+}
+
+.entryLine {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: space(2);
+  padding: 2px space(1);
+}
+
+.tick,
+.stepBox {
+  width: rem(18px);
+  height: rem(18px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ch-gold-200);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-strong);
+  cursor: pointer;
+
+  &[data-on] {
+    border-color: var(--ch-line-gold);
+  }
+}
+
+.entryMain {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(1);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.entryWhen {
+  @include readout(12px);
+  min-width: rem(46px);
+  color: var(--ch-gold-300);
+
+  &[data-late] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.entryTitle {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.entryMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.attachCount,
+.steps {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.attachCount::before {
+  content: '⌁ ';
+  color: var(--ch-gold-300);
+}
+
+.kind {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+}
+
+.entryBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: 0 space(3) space(3) rem(34px);
+}
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(1);
+}
+
+.attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px space(2);
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line-gold);
+  cursor: pointer;
+
+  span {
+    @include truncate;
+  }
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+}
+
+.unattach {
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  font-family: var(--ch-font-body);
+  font-size: rem(12.5px);
+  color: var(--ch-text-primary);
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  cursor: pointer;
+  text-align: left;
+
+  &[data-on] {
+    color: var(--ch-text-muted);
+    text-decoration: line-through;
+  }
+}
+
+.notes {
+  margin: 0;
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.entryActions {
+  display: flex;
+  gap: space(2);
+}
+
+.marker {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  margin: 0;
+  padding: space(1);
+  font-family: var(--ch-font-body);
+  font-size: rem(12.5px);
+  color: var(--ch-gold-200);
+}
+
+// Quick add.
+.addPopup {
+  width: rem(380px);
+
+  > :not(:first-child):not(.popupActions) {
+    margin: space(3) space(4) 0;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-secondary);
+}
+
+.input {
+  height: rem(34px);
+  padding: 0 space(3);
+  font-family: var(--ch-font-body);
+  font-size: rem(14px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-strong);
+  outline: none;
+
+  &:focus {
+    border-color: var(--ch-line-gold);
+  }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  @include label(8px, 0.14em);
+  padding: 6px space(2);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  cursor: pointer;
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+    background: var(--ch-surface-raised);
+  }
+}
+
+.whenRow {
+  display: grid;
+  grid-template-columns: rem(110px) 1fr;
+  gap: space(3);
+  align-items: end;
+}
+
+.pickRow {
+  display: flex;
+  gap: space(2);
+}
+
+// A pinned folder.
+.folderPopup {
+  width: rem(360px);
+}
+
+.folderList {
+  max-height: rem(420px);
+  overflow-y: auto;
+  padding: space(2);
+}
+
+.folderItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(2);
+  width: 100%;
+  padding: 6px space(2);
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  text-align: left;
+  color: var(--ch-text-primary);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  svg {
+    color: var(--ch-text-secondary);
+  }
+
+  &[data-folder] svg {
+    color: var(--ch-gold-300);
+  }
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.07);
+  }
+}
+
+.folderBack {
+  color: var(--ch-text-muted);
+}
+
+.folderName {
+  @include truncate;
+}
+
+// A pin's options, and the strip's menu.
+.pinPopup {
+  width: rem(300px);
+}
+
+.pinHead {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: space(2);
+  align-items: center;
+  padding: space(3) space(4) 0;
+  color: var(--ch-gold-300);
+}
+
+.where {
+  @include readout(10px);
+  margin: 0;
+  padding: space(2) space(4) 0;
+  color: var(--ch-text-muted);
+  word-break: break-all;
+
+  &[data-gone] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+// What a click on a stack or a project pin does: ask, or one way.
+.onClick {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: space(3) space(4) 0;
+}
+
+// A stack or a project not told how to open: one row a way.
+.choosePopup {
+  width: rem(320px);
+}
+
+.ways {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: space(2);
+}
+
+.way {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: space(3);
+  width: 100%;
+  padding: space(2) space(3);
+  text-align: left;
+  color: var(--ch-text-primary);
+  background: none;
+  border: $hairline solid transparent;
+  cursor: pointer;
+
+  svg {
+    color: var(--ch-gold-300);
+  }
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.08);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.wayText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wayLabel {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+}
+
+.wayHint {
+  @include readout(10px);
+  color: var(--ch-text-muted);
+  @include truncate;
+}
+
+.always {
+  @include readout(10px);
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(4) space(3);
+  color: var(--ch-text-secondary);
+  cursor: pointer;
+  @include hairline(top, 0.08);
+
+  input {
+    margin: 0;
+    accent-color: var(--ch-gold-300);
+  }
+}
+
+.menuPopup {
+  width: rem(220px);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  padding: space(2);
+}
+
+.menuItem {
+  padding: space(2) space(3);
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  text-align: left;
+  color: var(--ch-text-primary);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: rgba(182, 158, 124, 0.08);
+  }
+
+  &:disabled {
+    color: var(--ch-text-muted);
+    cursor: default;
+  }
+
+  &[data-danger] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.menuRule {
+  height: 1px;
+  margin: space(1) space(2);
+  background: var(--ch-line);
+}
+
+// ----------------------------------------------------------------- folded
+
+// The logo, as a button: folds the strip down to itself and opens it again.
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: rem(34px);
+  min-height: rem(30px);
+  padding: 0;
+  color: var(--ch-gold-300);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// Folded: the logo alone, in a thin frame that is the handle it's dragged by.
+.folded {
+  display: inline-flex;
+  padding: 5px;
+  background: $card;
+  border: $hairline solid var(--ch-line-strong);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+
+  .logo {
+    width: rem(44px);
+    height: rem(44px);
+    -webkit-app-region: no-drag;
+    background: var(--ch-surface-sunken);
+    border: $hairline solid var(--ch-line-gold);
+  }
+}

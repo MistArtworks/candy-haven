@@ -7,6 +7,9 @@ import { WindowManager } from './app/window-manager'
 import { TrayController } from './app/tray'
 import { PopoutManager } from './app/popout'
 import { VestibuleManager } from './app/vestibule'
+import { StripManager } from './app/strip'
+import { Reminders } from './app/reminders'
+import type { TargetHost } from './app/targets'
 import { applyLaunchAtStartup, launchedHidden } from './app/startup'
 import { IpcRouter } from './ipc/router'
 import { registerEventBridges, registerIpcHandlers } from './ipc/register-handlers'
@@ -31,6 +34,13 @@ async function start(): Promise<void> {
   const vestibule = new VestibuleManager()
   const boot = new BootSequence(services)
   const router = new IpcRouter()
+  const strip = new StripManager({
+    savePosition: (position) => {
+      void services.settings.update({ strip: { position } }).catch((error) => {
+        logger.warn('Could not keep where the strip was left', error)
+      })
+    }
+  })
 
   let shuttingDown = false
 
@@ -85,6 +95,10 @@ async function start(): Promise<void> {
     quit: () => {
       logger.info('Quit requested from the tray')
       app.quit()
+    },
+    showStrip: () => {
+      // Switched back on in settings, which opens it (see below).
+      void services.settings.update({ strip: { enabled: true } })
     }
   })
 
@@ -186,6 +200,36 @@ async function start(): Promise<void> {
     logger.info('Retired to the tray')
   }
 
+  /**
+   * The console, brought up from the QUICK STRIP, at a department when one is
+   * named: made if it isn't there (past the boot screen once boot is done),
+   * else brought forward and sent there. While the vestibule is up the
+   * console takes over from it, made first so the session never has no
+   * window (see `vestibule:console`).
+   */
+  const openConsole = async (route: string | null): Promise<void> => {
+    if (!windows.hasWindow()) {
+      await windows.create({ entered: boot.current.phase === 'ready', route })
+      vestibule.close()
+      return
+    }
+    await windows.reveal()
+    // The console's InboxCues navigates on this, as for a clicked notification.
+    if (route) router.broadcast('inbox:open', { path: route })
+  }
+
+  const targets: TargetHost = {
+    openConsole,
+    openVestibule: async () => {
+      await vestibule.open(services.settings.snapshot.appearance.uiScale)
+    },
+    openProject: async (projectId) => {
+      await services.projects.openInLive(projectId)
+    },
+    stack: (folderId) => services.stacks.getFolder(folderId),
+    project: (projectId) => services.projects.get(projectId)
+  }
+
   registerIpcHandlers({
     router,
     services,
@@ -197,7 +241,9 @@ async function start(): Promise<void> {
     onBootEntered: () => {
       logger.info('Operator entered the console')
       scanOnLaunch()
-    }
+    },
+    strip,
+    targets
   })
   registerEventBridges({ router, services, boot, windows })
 
@@ -225,15 +271,55 @@ async function start(): Promise<void> {
    * face, and a launcher asking them to choose something every morning is the
    * exact opposite of that.
    */
-  const { system, appearance } = await services.settings.load()
-  const openVestibule = system.showVestibule && !hiddenLaunch
+  const { system, appearance, strip: stripSettings } = await services.settings.load()
 
-  if (openVestibule) {
+  /*
+   * THE QUICK STRIP is up at every launch while it's switched on, the
+   * sign-in one included: being on screen from the moment the PC starts is
+   * the point of it. Beside it, whatever REGULATION says opens at launch; the
+   * strip alone is the default.
+   */
+  if (stripSettings.enabled || system.launchWith === 'strip') {
+    await strip.open(stripSettings, appearance.uiScale)
+  }
+  if (system.launchWith === 'vestibule' && !hiddenLaunch) {
     // The scale has to be known before the frame is made; see `fitScale`.
     await vestibule.open(appearance.uiScale)
-  } else {
+  } else if (system.launchWith === 'console') {
     await windows.create({ hidden: hiddenLaunch })
   }
+
+  // The strip follows REGULATION as it changes: shown, hidden, on top or not.
+  services.settings.on('changed', (settings) => {
+    router.broadcast('settings:changed', settings)
+    strip.apply(settings.strip)
+    if (settings.strip.enabled && !strip.isOpen()) {
+      void strip.open(settings.strip, settings.appearance.uiScale)
+    }
+  })
+
+  // The strip stands aside while the console is on screen.
+  windows.onPresence((open) => strip.standAside(open))
+
+  // CALENDAR's reminders, clicked open on the strip, or in the console's
+  // CALENDAR while the console is up and the strip stands aside for it.
+  const reminders = new Reminders({
+    entries: async () => (await services.calendar.snapshot()).entries,
+    lead: () => services.settings.snapshot.strip.reminderMinutes,
+    open: (entryId) => {
+      if (windows.isPresent()) {
+        void openConsole('/calendar')
+        return
+      }
+      if (!strip.isOpen()) {
+        void strip
+          .open(services.settings.snapshot.strip, services.settings.snapshot.appearance.uiScale)
+          .then(() => strip.openPopup({ kind: 'today', entryId }))
+        return
+      }
+      strip.openPopup({ kind: 'today', entryId })
+    }
+  })
 
   // The boot sequence runs alongside window creation: the renderer paints the
   // boot screen immediately and subscribes to progress already in flight.
@@ -248,6 +334,8 @@ async function start(): Promise<void> {
     const system = services.settings.snapshot.system
     applyLaunchAtStartup(system.launchAtStartup, system.startMinimised)
     tray.setArchiveState(services.archive.status.state)
+    // Reminders read the register, which is there once the archive is.
+    reminders.start()
   })
 
   app.on('activate', () => {
@@ -290,6 +378,8 @@ async function start(): Promise<void> {
       try {
         await windows.persistState()
         popouts.dispose()
+        reminders.dispose()
+        strip.dispose()
         vestibule.dispose()
         tray.dispose()
         boot.dispose()

@@ -13,6 +13,7 @@
 export const REGULATION_CATEGORIES = [
   'presentation',
   'startup',
+  'strip',
   'archive',
   'integrations',
   'board',
@@ -41,6 +42,11 @@ export const REGULATION_CATEGORY: Record<RegulationCategory, RegulationCategoryD
     id: 'startup',
     label: 'STARTUP',
     purpose: 'Whether this console starts with the machine, and what closing it means.'
+  },
+  strip: {
+    id: 'strip',
+    label: 'QUICK STRIP',
+    purpose: 'The small window on top of everything: its look, its pins, and today on it.'
   },
   archive: {
     id: 'archive',

@@ -109,6 +109,29 @@ export class WindowManager {
     this.onStateChange = listener
   }
 
+  private readonly presenceListeners = new Set<(open: boolean) => void>()
+
+  /**
+   * Told whether the console is on screen: shown and not minimised. THE
+   * QUICK STRIP stands aside while it is, and comes back when it is closed,
+   * retired to the tray or minimised.
+   */
+  onPresence(listener: (open: boolean) => void): () => void {
+    this.presenceListeners.add(listener)
+    return () => this.presenceListeners.delete(listener)
+  }
+
+  /** Whether the console is on screen now. */
+  isPresent(): boolean {
+    const window = this.window
+    return window !== null && !window.isDestroyed() && window.isVisible() && !window.isMinimized()
+  }
+
+  private emitPresence(): void {
+    const open = this.isPresent()
+    for (const listener of this.presenceListeners) listener(open)
+  }
+
   /** Notified whenever the window is shown or hidden, for the tray's menu. */
   subscribeVisibility(listener: (visible: boolean) => void): void {
     this.onVisibilityChange = listener
@@ -234,11 +257,15 @@ export class WindowManager {
 
     window.on('show', () => this.emitVisibility(true))
     window.on('hide', () => this.emitVisibility(false))
+    for (const event of ['show', 'hide', 'minimize', 'restore'] as const) {
+      window.on(event as 'show', () => this.emitPresence())
+    }
 
     window.on('resize', () => this.scheduleSave())
     window.on('move', () => this.scheduleSave())
     window.on('closed', () => {
       this.window = null
+      this.emitPresence()
     })
 
     await this.load(window)
@@ -335,6 +362,11 @@ export class WindowManager {
     const window = this.window
     if (!window || window.isDestroyed() || !window.isVisible()) return
     window.hide()
+  }
+
+  /** Whether the console exists at all, shown or not. */
+  hasWindow(): boolean {
+    return this.window !== null && !this.window.isDestroyed()
   }
 
   isVisible(): boolean {

@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { useSystemStore } from '@renderer/app/store/system.store'
+import { diffSettings } from '@shared/domain/settings.merge'
 
 type Channel = 'boot' | 'archive' | 'update' | 'window'
 
@@ -33,7 +34,23 @@ export function SystemBridge({ children }: { children: ReactNode }): ReactNode {
       window.candy.boot.onProgress(claim('boot', setBoot)),
       window.candy.archive.onStatus(claim('archive', setArchive)),
       window.candy.updates.onStatus(claim('update', setUpdate)),
-      window.candy.window.onState(claim('window', setWindow))
+      window.candy.window.onState(claim('window', setWindow)),
+      /*
+       * Settings changed in another window: the quick strip's pins, the
+       * tray's Show the Quick Strip, the console's own save. Taken in, unless
+       * this window holds changes not yet filed, which are never overwritten;
+       * filing them sends only what was changed here.
+       */
+      window.candy.strip.onSettings((next) => {
+        const { settings, settingsBaseline } = useSystemStore.getState()
+        const unfiled =
+          settings && settingsBaseline
+            ? Object.keys(diffSettings(settingsBaseline, settings)).length > 0
+            : false
+        if (unfiled) return
+        setSettings(next)
+        setSettingsBaseline(next)
+      })
     ]
 
     let cancelled = false

@@ -11,7 +11,9 @@ import {
 } from '@shared/domain/calendar.constants'
 import { todayIso } from '@renderer/lib/format'
 import { tooltipTrigger } from '@renderer/lib/tooltip'
+import { describeCarried } from '../attachments'
 import { EntryChip } from './EntryChip'
+import { EntryHints } from './EntryHints'
 import styles from '../CalendarPage.module.scss'
 
 import type { CalendarRelease } from '@shared/domain/calendar'
@@ -252,12 +254,17 @@ export function TimeGrid({
                       width: `${100 / lanes}%`
                     }}
                     onClick={() => onOpenEntry(entry)}
-                    {...tooltipTrigger(`${kind.label} — ${entry.title}`)}
+                    {...tooltipTrigger(
+                      [`${kind.label} — ${entry.title}`, describeCarried(entry)]
+                        .filter(Boolean)
+                        .join(' · ')
+                    )}
                   >
                     <span className={styles.timeEntryBar} aria-hidden="true" />
                     <span className={styles.timeEntryBody}>
                       <span className={styles.timeEntryClock}>
                         {formatMinute(start)}–{formatMinute(end % 1440)}
+                        <EntryHints entry={entry} />
                       </span>
                       <span className={styles.timeEntryTitle}>{entry.title}</span>
                     </span>

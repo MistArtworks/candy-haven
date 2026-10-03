@@ -414,3 +414,224 @@
     color: var(--ch-accent-bright);
   }
 }
+
+// ------------------------------------------------------------- quick strip
+
+// The strip's pins, in order: a row each, renamed in place, moved by its
+// handle. Files and folders dropped on the list are pinned where they land.
+.pinList {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  outline: 1px dashed transparent;
+  outline-offset: space(2);
+
+  &[data-dropping] {
+    outline-color: var(--ch-line-gold);
+  }
+}
+
+.pinEmpty {
+  margin: 0;
+  padding: space(4);
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-muted);
+  text-align: center;
+  border: $hairline dashed var(--ch-line);
+}
+
+.pinRows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pinRow {
+  display: grid;
+  grid-template-columns:
+    auto auto minmax(rem(140px), rem(220px)) rem(70px) minmax(0, 1fr)
+    rem(170px) auto;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3) space(2) space(2);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+
+  // Lifted: what's being moved stays faintly where it was.
+  &[data-dragging] {
+    opacity: 0.4;
+  }
+
+  // Where it would land: a gold line in the gap above or below.
+  &[data-drop='before'] {
+    box-shadow: 0 -3px 0 -1px var(--ch-gold-300);
+  }
+
+  &[data-drop='after'] {
+    box-shadow: 0 3px 0 -1px var(--ch-gold-300);
+  }
+}
+
+.pinHandle {
+  display: inline-flex;
+  padding: 4px 2px;
+  color: var(--ch-text-muted);
+  cursor: grab;
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.pinGlyph {
+  display: inline-flex;
+  color: var(--ch-gold-300);
+}
+
+.pinName,
+.pinLink,
+.pinSelect {
+  height: rem(30px);
+  padding: 0 space(2);
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  outline: none;
+
+  &:focus {
+    border-color: var(--ch-line-gold);
+  }
+}
+
+.pinKind {
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+}
+
+.pinWhere {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+
+  &[data-gone] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.pinTools {
+  display: inline-flex;
+  gap: 2px;
+
+  button {
+    width: rem(26px);
+    height: rem(26px);
+    color: var(--ch-text-secondary);
+    background: none;
+    border: $hairline solid var(--ch-line);
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      color: var(--ch-text-primary);
+      border-color: var(--ch-line-gold);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+  }
+}
+
+.pinAdd {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.pinAddRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: space(2);
+}
+
+.pinLink {
+  min-width: rem(260px);
+}
+
+// A stack or a project from the ARCHIVE, to pin.
+.pinPicker {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: rem(560px);
+  padding: space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+}
+
+.pinPickerList {
+  display: flex;
+  flex-direction: column;
+  max-height: rem(300px);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.pinPickerItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(3);
+  width: 100%;
+  padding: 6px space(2) 6px calc(#{space(2)} + var(--depth, 0) * #{space(5)});
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  text-align: left;
+  color: var(--ch-text-primary);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: rgba(182, 158, 124, 0.08);
+  }
+
+  &:disabled {
+    color: var(--ch-text-muted);
+    cursor: default;
+  }
+}
+
+.pinPickerChip {
+  width: rem(8px);
+  height: rem(8px);
+}
+
+.pinPickerName {
+  @include truncate;
+}
+
+.pinPickerNote {
+  @include readout(10px);
+  color: var(--ch-text-muted);
+}
+
+.pinPickerFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(2);
+}

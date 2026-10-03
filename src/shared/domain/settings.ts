@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { sparseShape } from './patch'
 import { DEFAULT_ARCHIVE_PORT, DEFAULT_OVERLAY_PORT } from '../constants'
+import { LAUNCH_WITH, StripSettingsSchema } from './strip'
 
 /**
  * Persisted operator settings. Every field carries a default so a missing or
@@ -216,18 +217,19 @@ export const SystemSettingsSchema = z.object({
    */
   closeToTray: z.boolean().default(true),
   /**
-   * Open THE VESTIBULE ahead of the console.
+   * What opens when Haven starts: the QUICK STRIP alone, THE VESTIBULE, or
+   * the console.
    *
-   * The small window that asks whether this launch is a new project or the
-   * console proper. On by default, because most launches are the former and
-   * the console is a ten-department station standing in front of four fields.
+   * Replaced `showVestibule` (on: vestibule, off: console). The strip is the
+   * default, because it is on screen at every launch anyway, the sign-in
+   * one included, and most launches want one thing from it.
    *
    * Sited in `system` rather than `workspace` because it describes how the
-   * application *starts*, alongside the login item and the tray policy — not
-   * how the operator's filing behaves. Always skipped on a sign-in launch
-   * whatever this says; see app/vestibule.ts.
+   * application *starts*, alongside the login item and the tray policy. A
+   * sign-in launch never opens the vestibule whatever this says; see
+   * main/index.ts.
    */
-  showVestibule: z.boolean().default(true)
+  launchWith: z.enum(LAUNCH_WITH).default('strip')
 })
 export type SystemSettings = z.infer<typeof SystemSettingsSchema>
 
@@ -302,7 +304,8 @@ export const SettingsSchema = z.object({
   system: SystemSettingsSchema.prefault({}),
   archive: ArchiveSettingsSchema.prefault({}),
   updates: UpdateSettingsSchema.prefault({}),
-  integrations: IntegrationSettingsSchema.prefault({})
+  integrations: IntegrationSettingsSchema.prefault({}),
+  strip: StripSettingsSchema.prefault({})
 })
 export type Settings = z.infer<typeof SettingsSchema>
 
@@ -322,7 +325,8 @@ export const SettingsPatchSchema = z.object({
   system: z.object(sparseShape(SystemSettingsSchema.shape)).optional(),
   archive: z.object(sparseShape(ArchiveSettingsSchema.shape)).optional(),
   updates: z.object(sparseShape(UpdateSettingsSchema.shape)).optional(),
-  integrations: z.object(sparseShape(IntegrationSettingsSchema.shape)).optional()
+  integrations: z.object(sparseShape(IntegrationSettingsSchema.shape)).optional(),
+  strip: z.object(sparseShape(StripSettingsSchema.shape)).optional()
 })
 
 /**

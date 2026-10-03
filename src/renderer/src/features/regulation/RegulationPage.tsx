@@ -11,6 +11,8 @@ import { ScaleDialog } from './components/ScaleDialog'
 import { SettingsNav } from './components/SettingsNav'
 import { BoardPanel } from './components/BoardPanel'
 import { FilingPanel } from './components/FilingPanel'
+import { StripPanels } from './components/StripPanels'
+import { LAUNCH_WITH, LAUNCH_WITH_LABEL } from '@shared/domain/strip'
 import { REGULATION_CATEGORY, isRegulationCategory, type RegulationCategory } from './categories'
 import { useDispatch } from '@renderer/hooks/useDispatch'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
@@ -522,22 +524,24 @@ export function RegulationPage(): ReactNode {
               <Panel label="Startup" index="01">
                 <div className={styles.controls}>
                   <div className={styles.control}>
-                    <span className={styles.controlLabel}>Open the vestibule first</span>
-                    <Toggle
-                      label="Open the vestibule first"
-                      checked={system?.showVestibule ?? true}
-                      onChange={() =>
-                        applySettings({
-                          system: { showVestibule: !(system?.showVestibule ?? true) }
-                        })
-                      }
-                    />
+                    <span className={styles.controlLabel}>At launch</span>
+                    <div className={styles.segmented} role="group" aria-label="At launch">
+                      {LAUNCH_WITH.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          className={styles.segment}
+                          data-selected={(system?.launchWith ?? 'strip') === option || undefined}
+                          onClick={() => applySettings({ system: { launchWith: option } })}
+                        >
+                          {LAUNCH_WITH_LABEL[option].toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
                     <p className={styles.controlHint}>
-                      A small window opens ahead of the console offering two things: a new project,
-                      or the console proper. Creating one there files it, copies your template set
-                      and opens it in Ableton without the console ever loading. Turn this off and
-                      launching goes straight to the console, as it used to. A sign-in launch never
-                      shows it either way.
+                      What opens when Haven starts. The quick strip alone is the default: it is on
+                      screen anyway, and the console is one click from it. The vestibule offers a
+                      new project or the console, and never shows on a sign-in launch.
                     </p>
                   </div>
 
@@ -597,6 +601,10 @@ export function RegulationPage(): ReactNode {
                   </div>
                 </div>
               </Panel>
+            ) : null}
+
+            {category === 'strip' ? (
+              <StripPanels settings={settings} apply={applySettings} />
             ) : null}
 
             {category === 'archive' ? <FilingPanel index="01" /> : null}

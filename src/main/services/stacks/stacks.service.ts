@@ -365,6 +365,22 @@ export class StacksService {
     }
   }
 
+  /**
+   * One live folder, for a QUICK STRIP pin that opens it. Refused in words the
+   * strip can show when it has been binned or is gone.
+   */
+  async getFolder(id: string): Promise<ArchiveFolder> {
+    const folder = await this.repository.findById(id)
+    if (!folder || folder.trashedAt !== null) {
+      throw new AppError('That stack is no longer in the ARCHIVE.', {
+        code: ErrorCode.NotFound,
+        hint: 'It may have been deleted. Pin it again from REGULATION.',
+        recoverable: true
+      })
+    }
+    return folder
+  }
+
   // ------------------------------------------------------- creating projects
 
   /**
