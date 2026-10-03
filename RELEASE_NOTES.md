@@ -1,41 +1,57 @@
-A new department that puts DISCOGRAPHY on the website, with covers and tapes, and release statuses that follow the release date.
+A small window that stays on top of everything from the moment the PC starts, with today's agenda, your pins and the console one click away. It now opens at launch instead of the vestibule.
 
-## RELEASES
+## THE QUICK STRIP
 
-A new department under PUBLICATION, after LORE. It shows every release in DISCOGRAPHY as the website has it: whether visitors see it, whether it is on the home page shelf, and whether anything is still to send.
+A small card in the bottom right of the screen, above every other window, Ableton's included. It holds the logo, today's agenda, your pins, who is signed in (CANDY or MIST), the gear for its settings and a More menu. Drag it anywhere, on any screen: it lines up with the edges and stays where you leave it.
 
-Publish everything sends every release once and switches the website from its own releases to yours. Before it does, it lists what will show, which drafts stay hidden, and anything that can't go yet, with why.
+It steps aside while the console is open, and comes back when you close the console, retire it to the tray or minimise it. Click the logo to fold the strip down to the logo alone, and click it again to open it.
 
-After that, a release goes to the website when you press Done on its sheet in DISCOGRAPHY, with only what changed. If the website can't be reached it waits, and goes with Sync now.
+It comes in three looks, chosen in REGULATION: Panel, Horizontal and Vertical.
 
-## PICK, THEN UPDATE
+## PINS
 
-Tick releases and choose Show, Hide, Add to shelf, Remove from shelf or Send. Each row also has its own menu. Nothing is sent straight away: every row shows what will change, and the Update bar sends it all in one request. Discard drops it.
+Pin as many things as you like, in any order: a stack or a project from the ARCHIVE, a folder, a file, a department, a link, or an action (New project, Add to today, the console, the vestibule).
 
-## THE HOME PAGE SHELF
+Clicking a stack asks whether to open it in the ARCHIVE or in Explorer. Clicking a project asks whether to open it in Ableton, open its dossier in the ARCHIVE, or open its folder. Tick Always do this for this pin and later clicks go straight there.
 
-Up to eight releases, in the order you set. Only releases visitors can see go on it, and hiding one takes it off. With none picked, the website shows the newest eight.
+A pinned folder lists what's in it beside the strip; click a set and it opens in Ableton. Drop files and folders on the strip to pin them, and right-click a pin to rename it, move it, open it another way or remove it.
 
-## COVERS AND TAPES
+## TODAY
 
-Each release's cover goes to the website, shrunk here and compressed there to a small 750 by 750 image. The website also makes the release's tape for the shelf, with the cover printed on it. A changed cover goes again on its own.
+The strip's top row is today's agenda from CALENDAR: what's next, what follows, how many entries are left and how many are overdue. Releases out today and release anniversaries show there too.
 
-Covers go one at a time in the background, and a strip at the top of the page shows what is being sent and how far it has got.
+Click it for the list, where you can:
 
-## DRAFT, SCHEDULED, RELEASED
+- tick entries off
+- open what an entry is about
+- tick off its steps
+- move it an hour later, to today or to tomorrow
 
-Releases now have three statuses. A draft is hidden on the website until its day. Scheduled shows it before its day, with its pre-save links, and needs a date. Released is set by itself on the release day, and can't be set before it.
+Add files a new entry from there.
 
-Releases that were scheduled and not out yet are drafts now, so nothing new appears on the website until you schedule it.
+A Windows notification comes 10 minutes before a timed entry starts; REGULATION changes how long, or turns it off. Click the notification and the entry opens on the strip.
 
-## THE RELEASE SHEET
+## NEW PROJECT
 
-Edit and Done are at the foot of the sheet. Ready to publish is now Save local bundle, at the top.
+New project on the strip opens the vestibule's form beside it: a name, a shelf and a colour. Create files the project, copies your template set into it and opens it in Ableton.
 
-## THE MANUAL
+## CALENDAR
 
-RELEASES has a CATECHISM chapter and a quick guide, and the DISCOGRAPHY chapter explains the new statuses.
+Entries can carry attachments and checklists. Attach a project, a file, a folder or a link, then open it from the entry in one click. A checklist holds the steps within an entry; tick them off in CALENDAR or on the strip.
 
-## THE RAIL
+## REGULATION
 
-RELEASES is 14, so TELEMETRY, DISPATCH, REGULATION and CATECHISM move to 15 to 18. Their shortcuts have not changed.
+A new QUICK STRIP section covers:
+
+- showing the strip, and its look
+- whether it stays on top
+- Today, and reminders
+- moving it back to the bottom right
+
+Its pin list adds stacks, projects, files, folders, departments, links and actions. Drag a pin by its handle to move it, and drop files and folders on the list to pin them.
+
+Under STARTUP, At launch sets what opens when Haven starts: the quick strip alone (now the default), the vestibule, or the console. It replaces Open the vestibule first; to keep the vestibule, set At launch to Vestibule.
+
+## THE TRAY
+
+The tray icon's menu has Show the Quick Strip, which brings the strip back after Hide the strip.
