@@ -1,42 +1,35 @@
-Rename a project from the ARCHIVE, gather pins into groups on the quick strip, and open any website from it.
+Keep track of the people you want to work with in ARTISTS, see a day before filing on it in CALENDAR, and quit Candy Haven from the quick strip. The handbook now covers all of it, with new pictures.
 
-## RENAMING PROJECTS
+## LEADS AND OPPORTUNITIES
 
-A project can be renamed after it's made. Click the pencil beside its name in its record, or right-click it in the ARCHIVE and choose Rename.
+ARTISTS has two new lenses beside the roster: LEADS, for the people you're getting to know, and OPPORTUNITIES, for the work that comes of them.
 
-The dialog shows what changes on disk before anything does: the project's folder (Vortex Project becomes Nova Project) and every set named after it (Vortex.als becomes Nova.als, and Vortex 2.als becomes Nova 2.als). Backups and bounces keep their names.
+Each lead wears an orb showing how warm the relationship is, from frozen to supernova. Log what happens, a reply, a call, a meeting, by typing it with its points and pressing Enter, and the temperature works itself out, cooling a little each quiet week. Or set it yourself on the slider, or as steps.
 
-Everything that points into the project follows it: its final master, the release track that ships it, calendar attachments and pins on the quick strip.
+Follow-ups say what to do next, and when. A new lead comes with its first one. Tick them done, snooze them, or dismiss their reminders, from the lead, the quick strip, NEXUS or CALENDAR.
 
-Close the set in Ableton Live first. If Live still holds the project open, nothing is renamed and the dialog says why.
+When something concrete comes of a lead, make it an opportunity, with its kind and value, and move it from Open through In talks, Negotiating, Agreed and In progress to Won or Lost. The lead stays as it was.
 
-## GROUPS ON THE QUICK STRIP
+Windows reminds you of each follow-up as it comes due, and says what is overdue when Candy Haven opens. Click a reminder to log and complete it, snooze it or dismiss it right there.
 
-A group is one icon on the strip that drops down the pins inside it. Each group wears an icon you choose, with a small gold corner that says it opens more.
+REGULATION has a new LEADS category: the suggestions you log with and their points, how fast a quiet lead cools, and whether follow-ups remind you.
 
-Click it to see its pins as icons, with the name of the one under the pointer below them. Each opens as it would from the strip.
+## CALENDAR
 
-To fill a group:
+Clicking a day now shows everything on it first, with Add an entry beneath, instead of opening a new entry straight away. Clicking an hour in Week or Day still files one at that time.
 
-- press + in its dropdown to add a website, a file or a folder
-- drop files, folders or links on its icon
-- right-click any pin and choose Into a group, or Into a new group
-- in REGULATION, drag pins in and out, or choose the group under Add
+Follow-ups appear on their days, at their times, in every view: red when overdue, struck through when done.
 
-Right-click a group to rename it, change its icon, ungroup it or remove it.
+## THE QUICK STRIP
 
-## OPEN A WEBSITE
+Overdue follow-ups lead the strip in red, and Today lists every follow-up due first.
 
-Open a website takes any address, on the strip's More menu or as a pin of its own: youtube.com works, as https:// is added for you. Open it in your browser, or pin it to the strip or into a group.
+A Quit button sits at the end of the strip in every look, and quits Candy Haven. Press it twice: the first press arms it, so a stray click can't.
 
-Links dragged from your browser onto the strip are pinned too.
+## NEXUS
 
-Pinned websites show the site's own icon, fetched once from the site, and take the name the site gives itself. Right-click one to look for its icon again.
+When follow-ups are due, a small card in the landing's top right corner lists them. Fold it away with the dash; a new one brings it back.
 
-## REGULATION
+## THE HANDBOOK
 
-The pin list shows each group with its pins under it. Drag a pin by its handle into a group or out of one, choose where Add puts things, and click a group's icon to change it.
-
-## FIXES
-
-Moving a project to another shelf takes its final master with it, so its release still finds the file. Its calendar attachments and strip pins follow it too.
+CATECHISM has new chapters for THE QUICK STRIP and LEADS, a section on renaming projects in ARCHIVE, and updated chapters and quick guides across the console, with new pictures throughout.
