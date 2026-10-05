@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
 import type { CalendarEntry, CalendarRelease } from '@shared/domain/calendar'
 import { localIsoDate } from '@shared/domain/discography.constants'
-import type { Pin, StripSettings } from '@shared/domain/strip'
-import { StripSettingsSchema, baseName } from '@shared/domain/strip'
+import type { Pin, StripAnchor, StripPin, StripSettings } from '@shared/domain/strip'
+import { StripSettingsSchema, baseName, normalizeAddress, siteNameOf } from '@shared/domain/strip'
 import { selectSettings, useSystemStore } from '@renderer/app/store/system.store'
 import { useCalendar } from '@renderer/hooks/useCalendar'
 import {
@@ -22,14 +22,22 @@ export async function saveStrip(patch: Partial<StripSettings>): Promise<void> {
   await window.candy.settings.update({ strip: patch })
 }
 
-export async function savePins(pins: Pin[]): Promise<void> {
+export async function savePins(pins: StripPin[]): Promise<void> {
   await saveStrip({ pins })
 }
 
-/** Pins for the files and folders dropped from Explorer; anything else is left out. */
-export async function pinsFromDrop(files: FileList): Promise<Pin[]> {
+/** Whether a drag carries what a drop makes pins of: files and folders, or links. */
+export function carriesPins(data: DataTransfer): boolean {
+  return data.types.includes('Files') || data.types.includes('text/uri-list')
+}
+
+/**
+ * Pins for what was dropped: files and folders from Explorer, or links from
+ * a browser (its address bar, or a link on a page). Anything else is left out.
+ */
+export async function pinsFromDrop(data: DataTransfer): Promise<Pin[]> {
   const pins: Pin[] = []
-  for (const file of Array.from(files)) {
+  for (const file of Array.from(data.files)) {
     const path = window.candy.strip.pathOf(file)
     if (!path) continue
     const kind = await window.candy.strip.inspect(path)
@@ -40,7 +48,32 @@ export async function pinsFromDrop(files: FileList): Promise<Pin[]> {
       target: { kind, path }
     })
   }
+  if (pins.length) return pins
+  // A uri-list is one address a line; lines starting with # are comments.
+  const links = data
+    .getData('text/uri-list')
+    .split(/\r?\n/)
+    .filter((line) => line && !line.startsWith('#'))
+  for (const line of links) {
+    const url = normalizeAddress(line)
+    if (url)
+      pins.push({ id: crypto.randomUUID(), label: siteNameOf(url), target: { kind: 'link', url } })
+  }
   return pins
+}
+
+/**
+ * Where an icon is in this window, in the window's own pixels (the page is
+ * zoomed by `scale`): what a group's popup drops down from.
+ */
+export function anchorOf(element: Element, scale: number): StripAnchor {
+  const box = element.getBoundingClientRect()
+  return {
+    x: Math.round(box.left * scale),
+    y: Math.round(box.top * scale),
+    width: Math.round(box.width * scale),
+    height: Math.round(box.height * scale)
+  }
 }
 
 /**

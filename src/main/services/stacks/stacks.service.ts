@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { basename, dirname, join, resolve } from 'node:path'
 import { app, shell } from 'electron'
 import type { ProjectDraft, ProjectRecord } from '@shared/domain/projects'
+import { renamedFolder, renamedSet } from '@shared/domain/projects.constants'
 import type {
   ArchiveFolder,
   ArchiveSetupDraft,
@@ -44,11 +45,20 @@ import {
   freePath,
   moveDirectory,
   pathExists,
+  renameInPlace,
   rewritePath,
-  samePath
+  samePath,
+  type PathMove
 } from './filesystem'
 
 const logger = getLogger('stacks')
+
+/**
+ * Told when a project's files move under the things that point into them:
+ * a release's masters, a calendar entry's attachments, the strip's pins.
+ * Wired in the composition root, which is the one place that sees all three.
+ */
+export type PathsListener = (moves: readonly PathMove[]) => Promise<void>
 
 /** What a bulk filing actually managed to do. See `fileMany`. */
 export interface BulkFilingResult {
@@ -90,11 +100,32 @@ function describe(error: unknown): string {
  * arrangement TRANSMISSIONS uses.
  */
 export class StacksService {
+  private pathsListener: PathsListener | null = null
+
   constructor(
     private readonly archive: ArchiveService,
     private readonly projects: ProjectsService,
     private readonly settings: SettingsService
   ) {}
+
+  /** Wired by the container. See `PathsListener`. */
+  setPathsListener(listener: PathsListener): void {
+    this.pathsListener = listener
+  }
+
+  /**
+   * Tells what points into moved files where they are now. Never throws: the
+   * move has happened and been recorded, and a stale pin is a smaller harm
+   * than reporting a rename that worked as a failure.
+   */
+  private async pathsMoved(moves: readonly PathMove[]): Promise<void> {
+    if (!moves.length || !this.pathsListener) return
+    try {
+      await this.pathsListener(moves)
+    } catch (error) {
+      logger.warn('Could not re-point what pointed into a moved project', error)
+    }
+  }
 
   private get repository(): StacksRepository {
     return new StacksRepository(this.archive.getDb())
@@ -602,6 +633,7 @@ export class StacksService {
 
     await this.repository.replaceMany(descendants)
     await this.projects.rewritePathsUnder(from, to)
+    await this.pathsMoved([{ from, to }])
   }
 
   // --------------------------------------------------------------- deleting
@@ -858,11 +890,105 @@ export class StacksService {
       await stampProjectIcon(destination, [record.path])
     }
 
-    return this.projects.applyFiling(projectId, {
+    const filed = await this.projects.applyFiling(projectId, {
       folderId,
       from: record.path,
       to: destination
     })
+    if (!samePath(destination, record.path)) {
+      await this.pathsMoved([{ from: record.path, to: destination }])
+    }
+    return filed
+  }
+
+  /**
+   * Renames a project: its folder, the sets named after it, and its record,
+   * as one operation.
+   *
+   * A project's name is in three places at once: its folder (`Vortex
+   * Project`, as Live names its own), the set inside it (`Vortex.als`), and
+   * the register, which reads the name off the folder. So a rename is those
+   * three, in that order. Every set at the top of the folder named after the
+   * project follows it (`Vortex 2.als` too); backups keep the names they were
+   * saved under, and bounces keep the names the operator gave them.
+   *
+   * Disk first, as everywhere here, and every new name is checked free before
+   * anything moves. A set that can't be renamed undoes the folder too, so a
+   * refusal leaves the project exactly as it was. The usual refusal is Live
+   * holding the project open, and the message says so.
+   */
+  async renameProject(projectId: string, name: string): Promise<ProjectRecord> {
+    this.refuseDuringScan()
+
+    const record = await this.projects.get(projectId)
+    if (record.trashedAt !== null) {
+      throw new AppError('That project is in the bin.', {
+        code: ErrorCode.Validation,
+        hint: 'Restore it first, then rename it.',
+        recoverable: false
+      })
+    }
+    if (record.missing) {
+      throw new AppError('That project folder is no longer on disk.', {
+        code: ErrorCode.Validation,
+        hint: 'Run a scan, or remove the record from the register.',
+        recoverable: false
+      })
+    }
+
+    const next = this.requireValidName(name)
+    if (next === record.name) return record
+
+    const folderName = renamedFolder(record.folderName, next)
+    const destination = join(dirname(record.path), folderName)
+    const sets = record.sets.flatMap((set) => {
+      const fileName = samePath(dirname(set.path), record.path)
+        ? renamedSet(set.fileName, record.name, next)
+        : null
+      return fileName ? [{ from: set.fileName, to: fileName }] : []
+    })
+
+    if (!samePath(destination, record.path) && (await pathExists(destination))) {
+      throw new AppError(`Something called “${folderName}” is already on that shelf.`, {
+        code: ErrorCode.Validation,
+        hint: 'Choose another name, or rename the other one first.',
+        recoverable: false
+      })
+    }
+    for (const set of sets) {
+      const target = join(record.path, set.to)
+      if (!samePath(target, join(record.path, set.from)) && (await pathExists(target))) {
+        throw new AppError(`This project already has a set called “${set.to}”.`, {
+          code: ErrorCode.Validation,
+          hint: 'Choose another name, or rename that set in Ableton first.',
+          recoverable: false
+        })
+      }
+    }
+
+    await renameInPlace(record.path, destination)
+    const moves: PathMove[] = [{ from: record.path, to: destination }]
+    try {
+      for (const set of sets) {
+        const move = { from: join(destination, set.from), to: join(destination, set.to) }
+        await renameInPlace(move.from, move.to)
+        moves.push(move)
+      }
+    } catch (error) {
+      // Put back what moved, the last first, so the project is as it was.
+      for (const move of moves.slice(1).reverse()) {
+        await renameInPlace(move.to, move.from).catch(() => undefined)
+      }
+      await renameInPlace(destination, record.path).catch((undo: unknown) =>
+        logger.error(`Could not put ${destination} back to ${record.path}`, undo)
+      )
+      throw error
+    }
+    logger.info(`Renamed project ${record.path} -> ${destination}`)
+
+    const renamed = await this.projects.applyRename(projectId, moves)
+    await this.pathsMoved(moves)
+    return renamed
   }
 
   /**

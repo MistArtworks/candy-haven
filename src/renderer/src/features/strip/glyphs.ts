@@ -1,4 +1,4 @@
-import type { Target } from '@shared/domain/strip'
+import { GROUP_ICONS, type Target } from '@shared/domain/strip'
 
 /** Every glyph the strip draws (icons.tsx). */
 export type Glyph =
@@ -18,12 +18,20 @@ export type Glyph =
   | 'audio'
   | 'image'
   | 'link'
+  | 'globe'
   | 'page'
   | 'door'
   | 'more'
   | 'open'
   | 'add'
   | 'check'
+  | 'collection'
+  | 'mic'
+  | 'star'
+  | 'bolt'
+
+/** A group wears one of the strip's own glyphs; this fails to compile if one isn't. */
+export const GROUP_GLYPHS: readonly Glyph[] = GROUP_ICONS
 
 const PAGE_GLYPH: Record<string, Glyph> = {
   '/archive': 'archive',
@@ -55,6 +63,7 @@ export function targetGlyph(target: Target): Glyph {
     case 'action':
       if (target.action === 'new-project') return 'new'
       if (target.action === 'add-to-today') return 'calendar'
+      if (target.action === 'open-link') return 'globe'
       if (target.action === 'vestibule') return 'door'
       return 'console'
     case 'file':

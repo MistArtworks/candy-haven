@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react'
 import styles from '../Strip.module.scss'
 
-/** The strip's menu: the console, the vestibule, its settings, hiding, quitting. */
+/**
+ * The strip's menu: any website, the console, the vestibule, its settings,
+ * hiding, quitting.
+ */
 export function MenuPopup({ onClose }: { onClose: () => void }): ReactNode {
   const go = (work: () => Promise<void>): void => {
     void work()
@@ -10,6 +13,14 @@ export function MenuPopup({ onClose }: { onClose: () => void }): ReactNode {
   return (
     <div className={styles.menuPopup}>
       <div className={styles.menu}>
+        <button
+          type="button"
+          className={styles.menuItem}
+          onClick={() => void window.candy.strip.popup({ kind: 'website' })}
+        >
+          Open a website…
+        </button>
+        <span className={styles.menuRule} />
         <button
           type="button"
           className={styles.menuItem}

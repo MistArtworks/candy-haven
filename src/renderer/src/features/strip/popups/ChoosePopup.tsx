@@ -1,5 +1,14 @@
 import { useState, type ReactNode } from 'react'
-import { openedIn, opensInLabel, waysToOpen, type OpensIn, type Target } from '@shared/domain/strip'
+import {
+  findPin,
+  isGroup,
+  openedIn,
+  opensInLabel,
+  updatePin,
+  waysToOpen,
+  type OpensIn,
+  type Target
+} from '@shared/domain/strip'
 import { Icon } from '../icons'
 import type { Glyph } from '../glyphs'
 import { savePins, useNotice, useStripSettings } from '../useStrip'
@@ -29,7 +38,9 @@ function wayHint(target: Target, way: OpensIn, path: string | null): string {
  */
 export function ChoosePopup({ pinId, onClose }: { pinId: string; onClose: () => void }): ReactNode {
   const settings = useStripSettings()
-  const pin = settings.pins.find((one) => one.id === pinId)
+  // On the strip, or in one of its groups.
+  const found = findPin(settings.pins, pinId)?.pin
+  const pin = found && !isGroup(found) ? found : null
   const archive = usePinnedArchive(pin?.target ?? null)
   const [always, setAlways] = useState(false)
   const [notice, say] = useNotice()
@@ -42,7 +53,9 @@ export function ChoosePopup({ pinId, onClose }: { pinId: string; onClose: () => 
       .openTarget(target)
       .then(() =>
         always
-          ? savePins(settings.pins.map((one) => (one.id === pin.id ? { ...one, target } : one)))
+          ? savePins(
+              updatePin(settings.pins, pin.id, (one) => (isGroup(one) ? one : { ...one, target }))
+            )
           : undefined
       )
       .catch((cause: Error) => say(cause.message))

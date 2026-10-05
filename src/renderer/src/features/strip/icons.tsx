@@ -121,6 +121,33 @@ const PATHS: Record<Glyph, ReactNode> = {
       <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
     </>
   ),
+  // Any website: Open a website, on the strip and in its menu.
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <ellipse cx="12" cy="12" rx="3.6" ry="8.5" />
+      <line x1="3.5" y1="12" x2="20.5" y2="12" />
+      <path d="M5.3 7.5h13.4M5.3 16.5h13.4" opacity="0.6" />
+    </>
+  ),
+  // A group's own: cards gathered, one before the other.
+  collection: (
+    <>
+      <rect x="8" y="8" width="12" height="12" />
+      <path d="M4 16V4h12" />
+      <path d="M6 18V6h12" opacity="0.6" />
+    </>
+  ),
+  mic: (
+    <>
+      <rect x="9" y="3.5" width="6" height="11" rx="3" />
+      <path d="M6 11.5a6 6 0 0 0 12 0" />
+      <line x1="12" y1="17.5" x2="12" y2="20.5" />
+      <line x1="9" y1="20.5" x2="15" y2="20.5" />
+    </>
+  ),
+  star: <path d="M12 3.8l2.5 5.3 5.7.7-4.2 3.9 1.1 5.7L12 16.6l-5.1 2.8 1.1-5.7-4.2-3.9 5.7-.7z" />,
+  bolt: <path d="M13 3L5.5 13.5H12L11 21l7.5-10.5H12z" />,
   page: (
     <>
       <rect x="4" y="4" width="16" height="16" />

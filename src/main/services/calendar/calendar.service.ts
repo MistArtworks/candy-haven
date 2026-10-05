@@ -7,6 +7,7 @@ import type {
   CalendarState
 } from '@shared/domain/calendar'
 import { compareEntries } from '@shared/domain/calendar.constants'
+import { relocatedPin } from '@shared/domain/strip'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import { TypedEmitter } from '@main/core/emitter'
@@ -201,6 +202,34 @@ export class CalendarService extends TypedEmitter<CalendarEvents> {
     await this.repository.remove(id)
     this.entries = this.entries.filter((entry) => entry.id !== id)
     await this.publish()
+  }
+
+  /**
+   * Re-points attachments at files and folders that moved: a project renamed
+   * or filed elsewhere takes the sets and folders attached to entries with
+   * it. Says how many entries changed.
+   */
+  async relocate(move: (path: string) => string): Promise<number> {
+    if (!this.repository.attached) return 0
+    await this.hydrate()
+
+    let changed = 0
+    for (const [index, entry] of this.entries.entries()) {
+      let moved = false
+      const attachments = entry.attachments.map((pin) => {
+        const next = relocatedPin(pin, move)
+        if (next) moved = true
+        return next ?? pin
+      })
+      if (!moved) continue
+      const next: CalendarEntry = { ...entry, attachments, updatedAt: Date.now() }
+      await this.repository.put(next)
+      this.entries[index] = next
+      changed += 1
+    }
+
+    if (changed) await this.publish()
+    return changed
   }
 
   private async publish(): Promise<void> {

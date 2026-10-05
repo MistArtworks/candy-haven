@@ -1,11 +1,22 @@
 import { useRef, useState, type DragEvent, type ReactNode } from 'react'
-import { asksHowToOpen, type Pin, type StripSettings } from '@shared/domain/strip'
+import {
+  GROUP_SIZE,
+  insertPins,
+  isGroup,
+  type GroupPin,
+  type StripPin,
+  type StripSettings
+} from '@shared/domain/strip'
 import { selectArchive, useSystemStore } from '@renderer/app/store/system.store'
 import { useDispatch } from '@renderer/hooks/useDispatch'
 import { Logomark } from '@renderer/components/sigil/Logomark'
 import { Icon } from './icons'
-import { targetGlyph } from './glyphs'
+import { PinFace } from './PinFace'
+import { openPin } from './openPin'
+import { useSiteIcons } from './siteIcon'
 import {
+  anchorOf,
+  carriesPins,
   clock,
   pinsFromDrop,
   savePins,
@@ -23,53 +34,55 @@ import styles from './Strip.module.scss'
  * signed in, and the gear. Drawn one of three ways (REGULATION, Look).
  *
  * Moved by any empty part of it (the drag region is the strip itself; every
- * control opts out). Files and folders dropped on the pins become pins.
+ * control opts out). Files, folders and links dropped on the pins become
+ * pins; dropped on a group's icon, they go into the group.
  */
 export function StripBar({ scale }: { scale: number }): ReactNode {
   const settings = useStripSettings()
   const today = useToday()
   const ref = useRef<HTMLDivElement>(null)
   const [notice, say] = useNotice()
-  const [dropping, setDropping] = useState(false)
+  /** What a drag is over: the pins (null), or a group's icon (its id). */
+  const [dropping, setDropping] = useState<{ group: string | null } | null>(null)
   useFit(ref, scale, settings.enabled)
+  useSiteIcons(settings.pins, settings.enabled)
 
-  const open = (pin: Pin): void => {
-    const { target } = pin
-    if (target.kind === 'action' && target.action === 'new-project') {
-      void window.candy.strip.popup({ kind: 'new-project' })
-    } else if (target.kind === 'action' && target.action === 'add-to-today') {
-      void window.candy.strip.popup({ kind: 'add' })
-    } else if (target.kind === 'folder') {
-      void window.candy.strip.popup({ kind: 'folder', path: target.path, label: pin.label })
-    } else if (asksHowToOpen(target)) {
-      // A stack or a project not told how to open: the ways it can, beside the strip.
-      void window.candy.strip.popup({ kind: 'choose', pinId: pin.id })
-    } else {
-      window.candy.strip.openTarget(target).catch((cause: Error) => say(cause.message))
-    }
-  }
-
-  const options = (pin: Pin): void => {
+  const options = (pin: StripPin): void => {
     void window.candy.strip.popup({ kind: 'pin', pinId: pin.id })
   }
 
-  const drop = async (event: DragEvent<HTMLElement>): Promise<void> => {
+  const over = (event: DragEvent<HTMLElement>, group: string | null): void => {
+    if (!carriesPins(event.dataTransfer)) return
     event.preventDefault()
-    setDropping(false)
-    const added = await pinsFromDrop(event.dataTransfer.files)
-    if (!added.length) return
-    await savePins([...settings.pins, ...added])
-    say(added.length === 1 ? `Pinned ${added[0].label}` : `Pinned ${added.length}`)
+    event.stopPropagation()
+    event.dataTransfer.dropEffect = 'copy'
+    setDropping((was) => (was?.group === group ? was : { group }))
   }
 
-  const dropZone = {
-    onDragOver: (event: DragEvent<HTMLElement>) => {
-      if (!event.dataTransfer.types.includes('Files')) return
-      event.preventDefault()
-      setDropping(true)
-    },
-    onDragLeave: () => setDropping(false),
-    onDrop: (event: DragEvent<HTMLElement>) => void drop(event)
+  /** Dropped on the pins, they go at the end; on a group's icon, into the group. */
+  const drop = async (event: DragEvent<HTMLElement>, group: GroupPin | null): Promise<void> => {
+    event.preventDefault()
+    event.stopPropagation()
+    setDropping(null)
+    const added = await pinsFromDrop(event.dataTransfer)
+    if (!added.length) return
+    const room = group ? GROUP_SIZE - group.group.items.length : added.length
+    if (room <= 0) {
+      say(`${group?.label ?? 'That group'} is full`)
+      return
+    }
+    const taken = added.slice(0, room)
+    await savePins(
+      insertPins(
+        settings.pins,
+        taken,
+        group
+          ? { group: group.id, index: group.group.items.length }
+          : { group: null, index: settings.pins.length }
+      )
+    )
+    const what = taken.length === 1 ? taken[0].label : `${taken.length}`
+    say(group ? `Put ${what} in ${group.label}` : `Pinned ${what}`)
   }
 
   if (!settings.enabled) return null
@@ -86,25 +99,43 @@ export function StripBar({ scale }: { scale: number }): ReactNode {
   }
 
   const pins = (
-    <div className={styles.pins} data-dropping={dropping || undefined} {...dropZone}>
-      {settings.pins.map((pin) => (
-        <button
-          key={pin.id}
-          type="button"
-          className={styles.pin}
-          title={pin.label}
-          aria-label={pin.label}
-          onClick={() => open(pin)}
-          onContextMenu={(event) => {
-            event.preventDefault()
-            options(pin)
-          }}
-        >
-          <Icon glyph={targetGlyph(pin.target)} />
-        </button>
-      ))}
+    <div
+      className={styles.pins}
+      data-dropping={dropping?.group === null || undefined}
+      onDragOver={(event) => over(event, null)}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropping(null)
+      }}
+      onDrop={(event) => void drop(event, null)}
+    >
+      {settings.pins.map((pin) => {
+        const group = isGroup(pin) ? pin : null
+        return (
+          <button
+            key={pin.id}
+            type="button"
+            className={styles.pin}
+            data-group={group ? true : undefined}
+            data-dropping={(group && dropping?.group === group.id) || undefined}
+            title={group ? `${group.label} · ${group.group.items.length}` : pin.label}
+            aria-label={pin.label}
+            aria-haspopup={group ? 'true' : undefined}
+            onClick={(event) =>
+              openPin(pin, say, group ? anchorOf(event.currentTarget, scale) : null)
+            }
+            onContextMenu={(event) => {
+              event.preventDefault()
+              options(pin)
+            }}
+            onDragOver={group ? (event) => over(event, group.id) : undefined}
+            onDrop={group ? (event) => void drop(event, group) : undefined}
+          >
+            <PinFace pin={pin} />
+          </button>
+        )
+      })}
       {settings.pins.length === 0 ? (
-        <span className={styles.empty}>Drop files or folders here</span>
+        <span className={styles.empty}>Drop files, folders or links here</span>
       ) : null}
     </div>
   )

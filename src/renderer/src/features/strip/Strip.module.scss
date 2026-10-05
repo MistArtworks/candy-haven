@@ -122,6 +122,36 @@ $card: linear-gradient(180deg, #171417, #100e10);
   height: rem(32px);
 }
 
+// A group: its own icon, and a gold corner saying it drops down more.
+.pin[data-group] {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    border-style: solid;
+    border-width: 0 0 6px 6px;
+    border-color: transparent transparent var(--ch-gold-300);
+    opacity: 0.85;
+    pointer-events: none;
+  }
+}
+
+// A drag over a group's icon: what's dropped goes into it.
+.pin[data-dropping] {
+  color: var(--ch-gold-200);
+  background: rgba(151, 107, 48, 0.16);
+  border-color: var(--ch-line-gold);
+}
+
+// A website's own icon, where its glyph would be.
+.siteIcon {
+  display: block;
+  object-fit: contain;
+}
+
 .empty {
   @include readout(11px);
   padding: space(2) space(3);
@@ -415,6 +445,12 @@ $card: linear-gradient(180deg, #171417, #100e10);
   margin: 0;
   padding: space(2) space(4) 0;
   color: var(--ch-crimson-400);
+
+  // Word of how something is going, not of something wrong.
+  &[data-tone='quiet'] {
+    padding-bottom: space(3);
+    color: var(--ch-text-secondary);
+  }
 }
 
 .keys {
@@ -907,6 +943,143 @@ $card: linear-gradient(180deg, #171417, #100e10);
   input {
     margin: 0;
     accent-color: var(--ch-gold-300);
+  }
+}
+
+// A group's icon, picked from the strip's own.
+.iconChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.iconChoice {
+  width: rem(30px);
+  height: rem(30px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+
+  &[data-on] {
+    color: var(--ch-gold-200);
+    background: var(--ch-surface-raised);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// A group's pins, dropped down from its icon: the icons alone, and the name
+// of the one under the pointer beneath them.
+.groupPopup {
+  min-width: rem(208px);
+  max-width: rem(272px);
+}
+
+.groupIcons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: space(2);
+
+  &[data-dropping] {
+    outline: 1px dashed var(--ch-line-gold);
+    outline-offset: -2px;
+    background: rgba(151, 107, 48, 0.08);
+  }
+
+  .pin[data-add] {
+    color: var(--ch-text-muted);
+    border: $hairline dashed var(--ch-line);
+
+    &:hover:not(:disabled) {
+      color: var(--ch-gold-200);
+      border-color: var(--ch-line-gold);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  }
+}
+
+.groupName {
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+  min-height: rem(32px);
+  margin: 0;
+  padding: space(2) space(3) space(2) space(4);
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  @include hairline(top, 0.08);
+}
+
+.groupNameText {
+  min-width: 0;
+  @include truncate;
+}
+
+.groupKind {
+  @include label(8px, 0.14em);
+  flex: none;
+  color: var(--ch-text-muted);
+}
+
+.groupHint {
+  font-size: rem(12px);
+  color: var(--ch-text-muted);
+}
+
+.groupAdd {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(3);
+  @include hairline(top, 0.08);
+
+  .quiet {
+    padding: 0;
+  }
+}
+
+// Open a website.
+.websitePopup {
+  width: rem(360px);
+
+  > :not(:first-child):not(.popupActions) {
+    margin: space(3) space(4) 0;
+  }
+
+  > .addressLine {
+    margin-top: space(2);
+  }
+
+  .popupActions {
+    margin-top: space(3);
+  }
+}
+
+.addressLine {
+  @include readout(10px);
+  color: var(--ch-text-muted);
+  word-break: break-all;
+
+  &[data-bad] {
+    color: var(--ch-crimson-400);
   }
 }
 

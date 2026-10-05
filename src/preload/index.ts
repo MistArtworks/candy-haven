@@ -30,10 +30,20 @@ class BridgeError extends Error {
   readonly recoverable: boolean
 
   constructor(error: SerializedError) {
-    super(error.message)
+    /*
+     * The hint rides in the message.
+     *
+     * The context bridge copies an Error into the page with its message and
+     * nothing else, so `hint` below never arrived: every refusal lost its
+     * "what to do about it" (close the set in Ableton, choose another name)
+     * on the way to the screen. In the message, it arrives wherever the
+     * message is shown, and `hint` is left empty so a page that joins the two
+     * itself has nothing to add twice.
+     */
+    super(error.hint ? `${error.message} ${error.hint}` : error.message)
     this.name = error.name || 'BridgeError'
     this.code = error.code
-    this.hint = error.hint
+    this.hint = null
     this.recoverable = error.recoverable
     if (error.stack) this.stack = error.stack
   }
@@ -149,6 +159,7 @@ const api: CandyHavenApi = {
     purge: (id) => invoke('projects:purge', { id }),
     thumbnail: (path, width) => invoke('projects:thumbnail', { path, width }),
     file: (id, folderId) => invoke('projects:file', { id, folderId }),
+    rename: (id, name) => invoke('projects:rename', { id, name }),
     onScan: (listener) => subscribe('projects:scan', listener)
   },
   stacks: {
@@ -361,6 +372,7 @@ const api: CandyHavenApi = {
     listFolder: (path) => invoke('strip:list-folder', { path }),
     inspect: (path) => invoke('strip:inspect', { path }),
     pick: (kind) => invoke('strip:pick', { kind }),
+    site: (url) => invoke('strip:site', { url }),
     hide: () => invoke('strip:hide'),
     quit: () => invoke('strip:quit'),
     pathOf: (file) => webUtils.getPathForFile(file),

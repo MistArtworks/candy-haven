@@ -7,6 +7,8 @@ import { AddPopup } from './popups/AddPopup'
 import { FolderPopup } from './popups/FolderPopup'
 import { PinPopup } from './popups/PinPopup'
 import { ChoosePopup } from './popups/ChoosePopup'
+import { GroupPopup } from './popups/GroupPopup'
+import { WebsitePopup } from './popups/WebsitePopup'
 import { MenuPopup } from './popups/MenuPopup'
 import styles from './Strip.module.scss'
 
@@ -57,6 +59,10 @@ export function StripPopupHost({ scale }: { scale: number }): ReactNode {
         {popup.spec.kind === 'choose' ? (
           <ChoosePopup pinId={popup.spec.pinId} onClose={close} />
         ) : null}
+        {popup.spec.kind === 'group' ? (
+          <GroupPopup pinId={popup.spec.pinId} onClose={close} />
+        ) : null}
+        {popup.spec.kind === 'website' ? <WebsitePopup onClose={close} /> : null}
         {popup.spec.kind === 'menu' ? <MenuPopup onClose={close} /> : null}
       </div>
     </div>

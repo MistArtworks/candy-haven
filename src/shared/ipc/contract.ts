@@ -69,6 +69,7 @@ import {
   ArchiveSetupStateSchema,
   FolderDraftSchema,
   FolderPatchSchema,
+  MAX_FOLDER_NAME_LENGTH,
   StacksTreeSchema
 } from '../domain/stacks'
 import { TagDraftSchema, TagPatchSchema, TagSummarySchema } from '../domain/tags'
@@ -117,7 +118,12 @@ import {
   StageInputSchema,
   StageResultSchema
 } from '../domain/releases'
-import { FolderListingSchema, StripPopupSchema, TargetSchema } from '../domain/strip'
+import {
+  FolderListingSchema,
+  SiteInfoSchema,
+  StripPopupSchema,
+  TargetSchema
+} from '../domain/strip'
 /**
  * The IPC contract is declared once, here, and consumed by:
  *   - the main-process router, which validates inputs and outputs at runtime
@@ -319,6 +325,15 @@ export const IPC_INVOKE = {
    */
   'projects:file': {
     input: z.object({ id: z.string(), folderId: z.string().nullable() }),
+    output: ProjectRecordSchema
+  },
+  /**
+   * Renames a project: its folder on disk, the sets named after it, and its
+   * record. Refused when Live holds it open, and undone if any part fails,
+   * so a refusal leaves everything as it was. See `StacksService.renameProject`.
+   */
+  'projects:rename': {
+    input: z.object({ id: z.string(), name: z.string().max(MAX_FOLDER_NAME_LENGTH) }),
     output: ProjectRecordSchema
   },
 
@@ -999,6 +1014,11 @@ export const IPC_INVOKE = {
   'strip:pick': {
     input: z.object({ kind: z.enum(['file', 'folder']) }),
     output: z.string().nullable()
+  },
+  /** A pinned website's name and icon, asked of the site itself. */
+  'strip:site': {
+    input: z.object({ url: z.string().url().max(2048) }),
+    output: SiteInfoSchema
   },
   /** Hides the strip until REGULATION or the tray shows it again. */
   'strip:hide': { input: z.void(), output: z.void() },

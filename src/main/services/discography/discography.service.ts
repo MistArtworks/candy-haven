@@ -1167,6 +1167,35 @@ export class DiscographyService {
   }
 
   /**
+   * Re-points the masters of tracks whose files moved.
+   *
+   * A master is referenced where it sits, inside its project's folder, so a
+   * project renamed or filed on another shelf takes its masters with it, and
+   * this follows them. Says how many releases changed.
+   */
+  async relocateMasters(move: (path: string) => string): Promise<number> {
+    const releases = await this.repository.listAll()
+    let touched = 0
+
+    for (const release of releases) {
+      let moved = false
+      const tracks = release.tracks.map((track) => {
+        if (!track.master) return track
+        const path = move(track.master.path)
+        if (path === track.master.path) return track
+        moved = true
+        return { ...track, master: { ...track.master, path } }
+      })
+      if (!moved) continue
+
+      await this.repository.replace({ ...release, tracks, updatedAt: Date.now() })
+      touched += 1
+    }
+
+    return touched
+  }
+
+  /**
    * Unlinks every track pointing at a project that has gone.
    *
    * The track itself survives. A released track does not stop having been

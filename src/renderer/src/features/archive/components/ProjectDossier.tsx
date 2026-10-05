@@ -11,6 +11,7 @@ import { useTagMutations, useTags } from '@renderer/hooks/useTags'
 import { DossierOverview } from './dossier/DossierOverview'
 import { DossierRecord } from './dossier/DossierRecord'
 import { DossierFiles } from './dossier/DossierFiles'
+import { RenameProjectDialog } from './dialogs/RenameProjectDialog'
 import { formatKey, formatLength, formatTempo } from '../lib/present'
 import styles from './ProjectDossier.module.scss'
 import { Skeleton, SkeletonRegion, SkeletonText } from '@renderer/components/primitives/Skeleton'
@@ -102,6 +103,8 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
   )
 
   const [tab, setTab] = useState<DossierTab>('overview')
+  /** The rename dialog, over the sheet. */
+  const [renaming, setRenaming] = useState(false)
 
   /*
    * Opening the project, two ways.
@@ -133,10 +136,12 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
     [project, projectId]
   )
 
-  // Escape closes, as it does for any modal layer in the shell.
+  // Escape closes, as it does for any modal layer in the shell; one a dialog
+  // over the sheet has already answered (the rename) leaves the sheet open.
+  // See `useDialogKeys`.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape' && !event.defaultPrevented) onClose()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -272,6 +277,25 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
                     </button>
 
                     <h2 className={styles.title}>{project.name}</h2>
+                    {/*
+                      Rename, beside the name it changes. It renames the folder
+                      and the sets named after the project too, so it says so
+                      in the dialog before anything moves.
+                    */}
+                    <button
+                      type="button"
+                      className={styles.rename}
+                      aria-label="Rename"
+                      disabled={project.missing}
+                      {...tooltipTrigger(
+                        project.missing
+                          ? 'The folder is not on disk'
+                          : 'Rename the project, its folder and its set'
+                      )}
+                      onClick={() => setRenaming(true)}
+                    >
+                      <ArchiveGlyph name="edit" className={styles.renameGlyph} />
+                    </button>
                     {project.missing ? (
                       <span className={styles.missing}>FOLDER MISSING</span>
                     ) : null}
@@ -471,6 +495,9 @@ export function ProjectDossier({ projectId, onClose }: ProjectDossierProps): Rea
             </>
           )}
         </motion.section>
+        {renaming && project ? (
+          <RenameProjectDialog projectId={projectId} onClose={() => setRenaming(false)} />
+        ) : null}
       </motion.div>
     </Portal>
   )

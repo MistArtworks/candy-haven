@@ -20,6 +20,7 @@ import type { VestibuleManager } from '@main/app/vestibule'
 import { applyLaunchAtStartup } from '@main/app/startup'
 import type { StripManager } from '@main/app/strip'
 import { kindOf, listFolder, openTarget, type TargetHost } from '@main/app/targets'
+import { siteInfo } from '@main/app/site'
 import type { IpcRouter } from './router'
 
 const logger = getLogger('ipc:handlers')
@@ -239,6 +240,7 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   // service — not the renderer — owns every guard: no overwrite, no recursive
   // delete, nothing moved while a scan is walking the same tree.
   router.handle('projects:file', ({ id, folderId }) => services.stacks.fileProject(id, folderId))
+  router.handle('projects:rename', ({ id, name }) => services.stacks.renameProject(id, name))
   router.handle('stacks:tree', () => services.stacks.getTree())
   router.handle('stacks:setup-state', () => services.stacks.getSetupState())
   router.handle('stacks:setup', (draft) => services.stacks.setup(draft))
@@ -705,6 +707,8 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
       return result.canceled ? null : (result.filePaths[0] ?? null)
     })
   )
+
+  router.handle('strip:site', ({ url }) => siteInfo(url))
 
   // Switched off, so REGULATION says so; the tray and REGULATION bring it back.
   router.handle('strip:hide', async () => {

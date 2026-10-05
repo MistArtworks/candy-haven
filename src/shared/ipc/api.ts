@@ -88,7 +88,7 @@ import type {
   SavePlanetInput
 } from '../domain/lore'
 import type { ReleasesState, StageInput, StageResult } from '../domain/releases'
-import type { FolderListing, StripPopup, Target } from '../domain/strip'
+import type { FolderListing, SiteInfo, StripPopup, Target } from '../domain/strip'
 
 /** Unsubscribe handle returned by every `on*` subscription. */
 export type Unsubscribe = () => void
@@ -210,6 +210,8 @@ export interface CandyHavenApi {
     thumbnail(path: string, width?: number): Promise<string | null>
     /** Moves the project's folder into a stacks folder, or out of the tree. */
     file(id: string, folderId: string | null): Promise<ProjectRecord>
+    /** Its folder, the sets named after it, and its record. */
+    rename(id: string, name: string): Promise<ProjectRecord>
     onScan(listener: (state: ScanState) => void): Unsubscribe
   }
   /**
@@ -593,6 +595,8 @@ export interface CandyHavenApi {
     listFolder(path: string): Promise<FolderListing>
     inspect(path: string): Promise<'file' | 'folder' | null>
     pick(kind: 'file' | 'folder'): Promise<string | null>
+    /** A website's name and icon, asked of the site itself. */
+    site(url: string): Promise<SiteInfo>
     hide(): Promise<void>
     quit(): Promise<void>
     /** The path of a file dropped from Explorer. */

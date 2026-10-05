@@ -1,7 +1,7 @@
 import { BrowserWindow, screen, shell, type Rectangle } from 'electron'
 import { join } from 'node:path'
 import { is } from '@electron-toolkit/utils'
-import type { StripPopup, StripSettings } from '@shared/domain/strip'
+import type { StripAnchor, StripPopup, StripSettings } from '@shared/domain/strip'
 import { getLogger } from '@main/core/logger'
 import { registerEditing } from './editing'
 
@@ -13,6 +13,8 @@ const MARGIN = 14
 const SNAP = 28
 /** Between the strip and a popup beside it. */
 const GAP = 8
+/** The transparent margin around a popup's card (Strip.module.scss, .popupFrame), in CSS pixels. */
+const FRAME_PAD = 6
 
 /** What the strip needs from the rest of the application. */
 export interface StripHost {
@@ -48,12 +50,17 @@ export class StripManager {
   private settings: StripSettings | null = null
   /** Set while the console is on screen: the strip stands aside for it. */
   private aside = false
+  /** The icon a group's popup drops down from, in the strip's own pixels. */
+  private anchor: StripAnchor | null = null
+  /** The scale the windows were made at: CSS pixels to screen pixels. */
+  private scale = 1
 
   constructor(private readonly host: StripHost) {}
 
   /** Opens the strip, or shows it again. */
   async open(settings: StripSettings, uiScale = 1): Promise<void> {
     this.settings = settings
+    this.scale = uiScale
     if (this.strip && !this.strip.isDestroyed()) {
       if (!this.aside) this.strip.showInactive()
       return
@@ -136,6 +143,7 @@ export class StripManager {
     const target = this.popup
     if (!target || target.isDestroyed() || !this.strip) return
     this.popupOpen = true
+    this.anchor = popup.kind === 'group' ? popup.anchor : null
     // Shown once it has measured itself and been placed; see fitPopup.
     target.webContents.send('strip:popup', popup)
   }
@@ -293,7 +301,11 @@ export class StripManager {
     }
   }
 
-  /** Above or below the strip, whichever has room, else beside it. */
+  /**
+   * Above or below the strip, whichever has room, else beside it. A group's
+   * popup drops down from its icon: in line with it above or below a Panel
+   * or a Horizontal strip, level with it beside a Vertical one.
+   */
   private placePopup(): void {
     const popup = this.popup
     const strip = this.strip
@@ -302,7 +314,31 @@ export class StripManager {
     const { width, height } = this.popupSize
     const area = screen.getDisplayMatching(s).workArea
     const onRight = s.x + s.width / 2 > area.x + area.width / 2
-    const x = onRight ? s.x + s.width - width : s.x
+    const anchor = this.anchor
+    const pad = FRAME_PAD * this.scale
+
+    if (anchor && this.settings?.look === 'vertical') {
+      const left = s.x - width - GAP
+      const right = s.x + s.width + GAP
+      popup.setBounds(
+        clampInto(
+          {
+            x: onRight && left >= area.x ? left : right,
+            y: Math.round(s.y + anchor.y - pad),
+            width,
+            height
+          },
+          area
+        )
+      )
+      return
+    }
+
+    const x = anchor
+      ? Math.round(onRight ? s.x + anchor.x + anchor.width + pad - width : s.x + anchor.x - pad)
+      : onRight
+        ? s.x + s.width - width
+        : s.x
     const above = s.y - height - GAP
     const below = s.y + s.height + GAP
     let bounds: Rectangle

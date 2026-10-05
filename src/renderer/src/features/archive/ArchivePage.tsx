@@ -55,6 +55,7 @@ import { FolderTrail } from './components/stacks/FolderTrail'
 import { FolderDialog } from './components/stacks/FolderDialog'
 import { ConfirmDialog } from './components/stacks/ConfirmDialog'
 import { ProjectDialog } from './components/dialogs/ProjectDialog'
+import { RenameProjectDialog } from './components/dialogs/RenameProjectDialog'
 import { UnfiledPanel } from './components/panels/UnfiledPanel'
 import { ContextMenu, type MenuTarget } from './components/menu/ContextMenu'
 import {
@@ -85,6 +86,9 @@ const INITIAL_FILTERS: RegisterFilters = {
 
 type FolderDialogState =
   { mode: 'create'; parentId: string | null } | { mode: 'rename'; folder: ArchiveFolder }
+
+/** A dialog open over the page or the dossier: anything modal but the dossier itself. */
+const DIALOG_OVER_PAGE = '[role="dialog"][aria-modal="true"]:not([aria-label="Project record"])'
 
 /** A destructive action awaiting confirmation. */
 type ConfirmState =
@@ -144,6 +148,8 @@ export function ArchivePage(): ReactNode {
   const [view, setView] = useState<ProjectViewMode>('grid')
   const [managingTags, setManagingTags] = useState(false)
   const [folderDialog, setFolderDialog] = useState<FolderDialogState | null>(null)
+  /** The project being renamed, from its right-click menu. */
+  const [renaming, setRenaming] = useState<string | null>(null)
   const [projectDialog, setProjectDialog] = useState<ArchiveFolder | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
   const [menu, setMenu] = useState<MenuTarget | null>(null)
@@ -994,6 +1000,10 @@ export function ArchivePage(): ReactNode {
          * merely deselecting a tile would be the expensive mistake of the two.
          */
         run: () => {
+          // A dialog over the page (a rename, a new folder) answers Escape
+          // itself, through `useDialogKeys`; the page waits its turn rather
+          // than closing what is under it as well.
+          if (document.querySelector(DIALOG_OVER_PAGE)) return
           if (menu !== null) {
             setMenu(null)
             return
@@ -1755,6 +1765,10 @@ export function ArchivePage(): ReactNode {
                 notify.refuse(cause, { label: 'Could not open that in Ableton' })
               )
           }}
+          onRenameProject={(project) => {
+            setMenu(null)
+            setRenaming(project.id)
+          }}
           onForgetProject={(project) => {
             setMenu(null)
             setConfirm({ kind: 'forget', project })
@@ -1774,6 +1788,10 @@ export function ArchivePage(): ReactNode {
             shell.reveal(path)
           }}
         />
+      ) : null}
+
+      {renaming ? (
+        <RenameProjectDialog projectId={renaming} onClose={() => setRenaming(null)} />
       ) : null}
 
       {folderDialog ? (

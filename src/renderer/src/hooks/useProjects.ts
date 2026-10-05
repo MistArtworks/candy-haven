@@ -169,8 +169,15 @@ export function useProjectMutations(): {
   trash: UseMutationResult<ProjectRecord, Error, string>
   restore: UseMutationResult<ProjectRecord, Error, string>
   purge: UseMutationResult<void, Error, string>
+  /**
+   * Its folder, the sets named after it, and its record. The DISCOGRAPHY's
+   * masters follow the files, so the catalogue is refetched along with the
+   * register.
+   */
+  rename: UseMutationResult<ProjectRecord, Error, { id: string; name: string }>
 } {
   const invalidate = useInvalidateProjects()
+  const queryClient = useQueryClient()
   const onSuccess = (): Promise<void> => invalidate()
 
   return {
@@ -215,6 +222,15 @@ export function useProjectMutations(): {
     purge: useMutation({
       mutationFn: (id: string) => window.candy.projects.purge(id),
       onSuccess
+    }),
+    rename: useMutation({
+      mutationFn: ({ id, name }) => window.candy.projects.rename(id, name),
+      // Raised from the rename dialog, which reports its own refusals.
+      meta: { notify: false },
+      onSuccess: async () => {
+        await invalidate()
+        await queryClient.invalidateQueries({ queryKey: ['discography'] })
+      }
     })
   }
 }

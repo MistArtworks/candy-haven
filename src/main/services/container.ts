@@ -4,6 +4,8 @@ import { UpdateService } from './update/update.service'
 import { TelemetryService } from './telemetry/telemetry.service'
 import { ProjectsService } from './projects/projects.service'
 import { StacksService } from './stacks/stacks.service'
+import { relocate } from './stacks/filesystem'
+import { relocatePins } from '@shared/domain/strip'
 import { TagsService } from './tags/tags.service'
 import { ArtistsService } from './artists/artists.service'
 import { DiscographyService } from './discography/discography.service'
@@ -191,6 +193,20 @@ export function createServiceContainer(): ServiceContainer {
   // And back the other way, so a date moved in the catalogue reaches the
   // register without the calendar holding a copy of it. See `CatalogueListener`.
   discography.setCatalogueListener(() => calendar.refresh())
+
+  /*
+   * A project's files moving under what points into them: renamed, filed on
+   * another shelf, or carried along with a folder. A release's masters, a
+   * calendar entry's attachments and the strip's pins follow, so none of
+   * them is left pointing at a folder that has gone. See `PathsListener`.
+   */
+  stacks.setPathsListener(async (moves) => {
+    const move = (path: string): string => relocate(path, moves)
+    await discography.relocateMasters(move)
+    await calendar.relocate(move)
+    const pins = relocatePins(settings.snapshot.strip.pins, move)
+    if (pins) await settings.update({ strip: { pins } })
+  })
 
   /*
    * Hoisted out of the literal because THE MUSTER holds both.

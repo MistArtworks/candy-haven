@@ -415,6 +415,52 @@ export async function moveFile(from: string, to: string): Promise<void> {
   await rm(from, { force: true })
 }
 
+/**
+ * Renames a file or folder where it is, refusing rather than overwriting.
+ *
+ * A change of case alone (`vortex` to `Vortex`) is a new name to the operator
+ * and the same path to Windows, so it goes through a passing name rather than
+ * being refused as already there.
+ */
+export async function renameInPlace(from: string, to: string): Promise<void> {
+  if (from === to) return
+
+  if (!(await pathExists(from))) {
+    throw new AppError('That is no longer on disk.', {
+      code: ErrorCode.NotFound,
+      hint: 'Run a scan to bring the register back in step with the filesystem.',
+      recoverable: true
+    })
+  }
+
+  const caseOnly = samePath(from, to)
+  if (!caseOnly && (await pathExists(to))) {
+    throw new AppError(`Something called “${basenameOf(to)}” is already there.`, {
+      code: ErrorCode.Validation,
+      hint: 'Choose another name — nothing is overwritten automatically.',
+      recoverable: false
+    })
+  }
+
+  try {
+    if (caseOnly) {
+      const passing = `${from}.renaming-${Date.now()}`
+      await rename(from, passing)
+      try {
+        await rename(passing, to)
+      } catch (error) {
+        // Back to where it was, rather than left under the passing name.
+        await rename(passing, from).catch(() => undefined)
+        throw error
+      }
+    } else {
+      await rename(from, to)
+    }
+  } catch (error) {
+    throw translate(error, from)
+  }
+}
+
 export async function removeEmptyDirectory(path: string): Promise<void> {
   try {
     await rmdir(path)
@@ -476,6 +522,21 @@ export function isAtOrUnder(value: string, root: string): boolean {
   const target = comparable(value)
   const base = comparable(root)
   return target === base || target.startsWith(asPrefix(base))
+}
+
+/** A file or folder that has moved: everything at or under `from` is now under `to`. */
+export interface PathMove {
+  from: string
+  to: string
+}
+
+/**
+ * Where a path is after a run of moves, applied in order: a project's folder
+ * renamed, then the set inside it, takes `…\Vortex Project\Vortex.als` to
+ * `…\Nova Project\Nova.als`. A path none of them touch comes back as it was.
+ */
+export function relocate(value: string, moves: readonly PathMove[]): string {
+  return moves.reduce((path, move) => rewritePath(path, move.from, move.to), value)
 }
 
 // ------------------------------------------------------------------- errors

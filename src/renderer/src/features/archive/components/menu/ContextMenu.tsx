@@ -30,6 +30,7 @@ export interface ContextMenuProps {
 
   onOpenProject: (id: string) => void
   onOpenInLive: (id: string) => void
+  onRenameProject: (project: ProjectSummary) => void
   onFileProject: (projectId: string, folderId: string | null) => void
   onForgetProject: (project: ProjectSummary) => void
   onTrashProject: (project: ProjectSummary) => void
@@ -190,6 +191,7 @@ function ProjectItems({
   filingTargets,
   onOpenProject,
   onOpenInLive,
+  onRenameProject,
   onFileProject,
   onForgetProject,
   onTrashProject,
@@ -226,6 +228,7 @@ function ProjectItems({
 
       <Item label="Open in Ableton" onClick={() => onOpenInLive(project.id)} />
       <Item label="Open record" onClick={() => onOpenProject(project.id)} />
+      <Item label="Rename" disabled={project.missing} onClick={() => onRenameProject(project)} />
       <Item
         label={project.favourite ? 'Remove favourite' : 'Favourite'}
         onClick={() => onToggleFavourite({ kind: 'project', project, x: 0, y: 0 })}

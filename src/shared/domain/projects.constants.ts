@@ -357,6 +357,35 @@ export const SCAN_IGNORED_DIRECTORIES = [
 /** Guards against a mis-selected root (a drive letter) walking the whole disk. */
 export const SCAN_MAX_DEPTH = 10
 
+// ----------------------------------------------------------------- renaming
+
+/**
+ * A project's folder under a new name. Live's own convention is kept when the
+ * folder follows it (`Vortex Project` becomes `Nova Project`); a folder named
+ * otherwise takes the bare name.
+ */
+export function renamedFolder(folderName: string, name: string): string {
+  return /\s+project$/i.test(folderName) ? `${name} Project` : name
+}
+
+/**
+ * A set's name after its project is renamed, or null when it isn't named
+ * after the project. `Vortex.als` and `Vortex 2.als` follow `Vortex` to
+ * `Nova.als` and `Nova 2.als`; `Untitled.als` and `Vortexed.als` stay as
+ * they are. The main process renames by this, and the rename dialog shows it.
+ */
+export function renamedSet(fileName: string, from: string, to: string): string | null {
+  const dot = fileName.lastIndexOf('.')
+  const extension = dot > 0 ? fileName.slice(dot) : ''
+  const stem = fileName.slice(0, fileName.length - extension.length)
+  if (stem.toLowerCase() === from.toLowerCase()) return `${to}${extension}`
+  const rest = stem.slice(from.length)
+  if (stem.toLowerCase().startsWith(from.toLowerCase()) && /^[^\p{L}\p{N}]/u.test(rest)) {
+    return `${to}${rest}${extension}`
+  }
+  return null
+}
+
 /** Decompressed `.als` XML above this size is indexed by name only. */
 export const ALS_MAX_DECOMPRESSED_BYTES = 192 * 1024 * 1024
 

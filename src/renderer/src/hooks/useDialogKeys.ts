@@ -42,6 +42,11 @@ export function useDialogKeys(keys: DialogKeys): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
+        // Marked as answered, so a sheet underneath that also closes on
+        // Escape (the project dossier) leaves itself open. Checking its own
+        // state isn't enough: React re-renders between this document listener
+        // and a window one, so by then the dialog already reads as closed.
+        event.preventDefault()
         latest.current.onCancel()
         return
       }

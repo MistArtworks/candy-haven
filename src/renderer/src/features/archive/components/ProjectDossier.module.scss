@@ -213,6 +213,42 @@
   }
 }
 
+// Rename, beside the title: quiet until pointed at, like the favourite.
+.rename {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: rem(24px);
+  height: rem(24px);
+  flex-shrink: 0;
+  color: var(--ch-text-faint);
+  background: none;
+  border: $hairline solid transparent;
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-gold-300);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.renameGlyph {
+  width: rem(12px);
+  height: rem(12px);
+}
+
 // Hollow until the project is a favourite, then filled. The state has to be
 // readable without comparing it to another button, so it changes shape and
 // not only colour.

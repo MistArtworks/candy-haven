@@ -33,7 +33,7 @@ import { AppError, ErrorCode } from '@main/core/errors'
 import { TypedEmitter } from '@main/core/emitter'
 import { getLogger } from '@main/core/logger'
 import type { ArchiveService } from '@main/services/archive/archive.service'
-import { isAtOrUnder, rewritePath } from '@main/services/stacks/filesystem'
+import { isAtOrUnder, rewritePath, type PathMove } from '@main/services/stacks/filesystem'
 import { ProjectsRepository, type ProjectDocument } from './projects.repository'
 import { cleanProjectName, scanRoots, type ScannedProject } from './scanner'
 import { hasProjectIcon, stampProjectIcon } from './project-icon'
@@ -849,6 +849,35 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   }
 
   /**
+   * Records a project's rename: its folder, and the sets named after it.
+   *
+   * Bookkeeping after the fact, like `applyFiling`: the stacks service has
+   * already renamed them on disk (`StacksService.renameProject`). The moves
+   * are applied in order, the folder first and then each set inside it, and
+   * the name is read off the new folder by the scanner's own rule, so it is
+   * spelled exactly as the next scan will spell it.
+   */
+  async applyRename(id: string, moves: readonly PathMove[]): Promise<ProjectRecord> {
+    const current = await this.get(id)
+    const moved = moves.reduce(
+      (record, move) => rewriteRecordPaths(record, move.from, move.to),
+      current
+    )
+    const folderName = basename(moved.path)
+
+    const next: ProjectRecord = {
+      ...moved,
+      folderName,
+      name: cleanProjectName(folderName),
+      sets: moved.sets.map((set) => ({ ...set, fileName: basename(set.path) })),
+      updatedAt: Date.now()
+    }
+
+    await this.repository.replace(next)
+    return next
+  }
+
+  /**
    * Re-points every record beneath a directory that has just been moved.
    *
    * The folder-rename counterpart to `applyFiling`: renaming `Hip Hop` leaves
@@ -1416,10 +1445,14 @@ function rewriteRecordPaths(record: ProjectRecord, from: string, to: string): Pr
       wips: record.masters.wips.map(move),
       mixes: record.masters.mixes.map(move),
       masters: record.masters.masters.map(move),
-      // Deliberately not moved. The final lives in Release Mastered Tracks,
-      // outside the project folder entirely, so a project moving on disk does
-      // not move it and rewriting this path would break the reference.
-      final: record.masters.final
+      /*
+       * Moved with the rest. The final is referenced where it sits, beside
+       * its set, so it moves when the folder does; leaving it behind broke
+       * the reference on every filing and rename. A legacy final still in
+       * Release Mastered Tracks is outside the folder, and `rewritePath`
+       * leaves anything outside the folder exactly as it was.
+       */
+      final: record.masters.final === null ? null : move(record.masters.final)
     }
   }
 }

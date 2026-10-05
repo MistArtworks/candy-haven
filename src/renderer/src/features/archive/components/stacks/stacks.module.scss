@@ -627,6 +627,39 @@
   padding-left: space(2);
 }
 
+// A project's rename, as it will happen on disk: the folder, then each set.
+.renameChanges {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+}
+
+.renameChange {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: space(3);
+  margin: 0;
+  @include readout(11px);
+}
+
+.renameFrom {
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.renameArrow {
+  color: var(--ch-gold-300);
+}
+
+.renameTo {
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
 .confirmMessage {
   @include readout(11px);
   color: var(--ch-text-primary);
