@@ -1,25 +1,13 @@
 import type { ReactNode } from 'react'
 import type { CalendarEntry } from '@shared/domain/calendar'
-import {
-  CALENDAR_KIND,
-  WEEKDAY_LABELS,
-  entriesOn,
-  entrySpan,
-  formatMinute,
-  weekdayIndex
-} from '@shared/domain/calendar.constants'
+import { WEEKDAY_LABELS, weekdayIndex } from '@shared/domain/calendar.constants'
 import { formatIsoDate, formatCountdown, todayIso } from '@renderer/lib/format'
-import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { TimeGrid } from './TimeGrid'
 import styles from '../CalendarPage.module.scss'
 
-import type { CalendarRelease } from '@shared/domain/calendar'
+import type { CalendarFollowUp, CalendarRelease } from '@shared/domain/calendar'
 import type { Pin } from '@shared/domain/strip'
-import { anniversariesOn } from '../anniversaries'
-import { AnniversaryMark } from './AnniversaryMark'
-import { AttachmentLinks } from './AttachmentLinks'
-import { EntryHints } from './EntryHints'
-import { ReleaseMark } from './ReleaseMark'
+import { DayList } from './DayList'
 
 export interface DayViewProps {
   date: string
@@ -31,6 +19,11 @@ export interface DayViewProps {
    * treat one as editable.
    */
   releases: readonly CalendarRelease[]
+  /**
+   * Follow-ups from ARTISTS' leads and opportunities, read the same way as
+   * `releases` and kept apart from `entries` for the same reason.
+   */
+  followUps: readonly CalendarFollowUp[]
   onOpenEntry: (entry: CalendarEntry) => void
   onOpenSlot: (date: string, startMinute: number) => void
   onToggleDone: (entry: CalendarEntry) => void
@@ -45,19 +38,20 @@ export interface DayViewProps {
  * and the sheet is where an entry's notes are actually readable, which a
  * 40-minute block in a time grid never is. Both are views of the same array, so
  * they cannot disagree.
+ *
+ * The sheet's list is `DayList`, the same one a month cell opens over the
+ * page, so a day reads the same wherever it is read.
  */
 export function DayView({
   date,
   entries,
   releases,
+  followUps,
   onOpenEntry,
   onOpenSlot,
   onToggleDone,
   onOpenAttachment
 }: DayViewProps): ReactNode {
-  const filed = entriesOn(entries, date)
-  const out = releases.filter((release) => release.date === date)
-  const marked = anniversariesOn(releases, date)
   const isToday = date === todayIso()
 
   return (
@@ -66,6 +60,7 @@ export function DayView({
         dates={[date]}
         entries={entries}
         releases={releases}
+        followUps={followUps}
         onOpenEntry={onOpenEntry}
         onOpenSlot={onOpenSlot}
         onInspectDate={() => undefined}
@@ -80,82 +75,16 @@ export function DayView({
           </span>
         </header>
 
-        {/*
-          A release out today is business, so the day is not clear — and
-          neither is a day the catalogue is marking. Three conditions rather
-          than one ternary because the sheet can hold any of the lists, all
-          of them, or none.
-        */}
-        {filed.length === 0 && out.length === 0 && marked.length === 0 ? (
-          <p className={styles.sheetEmpty}>THE DAY IS CLEAR.</p>
-        ) : null}
-
-        {out.length > 0 || marked.length > 0 ? (
-          <ul className={styles.sheetReleases}>
-            {out.map((release) => (
-              <li key={release.releaseId}>
-                <ReleaseMark release={release} />
-              </li>
-            ))}
-            {marked.map((anniversary) => (
-              <li key={`${anniversary.releaseId}-${anniversary.years}`}>
-                <AnniversaryMark anniversary={anniversary} />
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {filed.length > 0 ? (
-          <ul className={styles.sheetList}>
-            {filed.map((entry) => {
-              const kind = CALENDAR_KIND[entry.kind]
-              const span = entrySpan(entry)
-
-              return (
-                <li key={entry.id} className={styles.sheetRow} data-done={entry.done || undefined}>
-                  <button
-                    type="button"
-                    className={styles.sheetMark}
-                    data-tone={kind.tone}
-                    data-done={entry.done || undefined}
-                    role="checkbox"
-                    aria-checked={entry.done}
-                    onClick={() => onToggleDone(entry)}
-                    {...tooltipTrigger(
-                      entry.done ? 'Reopen this entry' : 'Mark this entry discharged'
-                    )}
-                  />
-
-                  {/* Beside the body's button rather than in it, as in AGENDA. */}
-                  <div className={styles.sheetMain}>
-                    <button
-                      type="button"
-                      className={styles.sheetBody}
-                      onClick={() => onOpenEntry(entry)}
-                    >
-                      <span className={styles.sheetMeta}>
-                        <span className={styles.sheetKind} data-tone={kind.tone}>
-                          {kind.label}
-                        </span>
-                        <span className={styles.sheetClock}>
-                          {span
-                            ? `${formatMinute(span.start)}–${formatMinute(span.end % 1440)}`
-                            : 'ALL DAY'}
-                        </span>
-                        <EntryHints entry={entry} clip={false} />
-                      </span>
-                      <span className={styles.sheetTitle}>{entry.title}</span>
-                      {entry.notes ? (
-                        <span className={styles.sheetNotes}>{entry.notes}</span>
-                      ) : null}
-                    </button>
-                    <AttachmentLinks pins={entry.attachments} onOpen={onOpenAttachment} />
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        ) : null}
+        <DayList
+          date={date}
+          entries={entries}
+          releases={releases}
+          followUps={followUps}
+          onOpenEntry={onOpenEntry}
+          onToggleDone={onToggleDone}
+          onOpenAttachment={onOpenAttachment}
+          emptyLabel="THE DAY IS CLEAR."
+        />
       </aside>
     </div>
   )

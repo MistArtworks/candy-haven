@@ -16,9 +16,11 @@ import { EntryChip } from './EntryChip'
 import { EntryHints } from './EntryHints'
 import styles from '../CalendarPage.module.scss'
 
-import type { CalendarRelease } from '@shared/domain/calendar'
+import type { CalendarFollowUp, CalendarRelease } from '@shared/domain/calendar'
 import { anniversariesOn } from '../anniversaries'
+import { entryItem, followUpItem, followUpSpan, followUpsOn, type DayItem } from '../followUps'
 import { AnniversaryMark } from './AnniversaryMark'
+import { FollowUpMark } from './FollowUpMark'
 import { ReleaseMark } from './ReleaseMark'
 
 export interface TimeGridProps {
@@ -32,6 +34,12 @@ export interface TimeGridProps {
    * treat one as editable.
    */
   releases: readonly CalendarRelease[]
+  /**
+   * Follow-ups from ARTISTS' leads and opportunities, read the same way as
+   * `releases` and kept apart from `entries` for the same reason. Each has a
+   * minute, so it goes on the clock rather than in the all-day band.
+   */
+  followUps: readonly CalendarFollowUp[]
   onOpenEntry: (entry: CalendarEntry) => void
   /** Files a new entry on a date, at the hour that was clicked. */
   onOpenSlot: (date: string, startMinute: number) => void
@@ -43,62 +51,90 @@ const HOURS = Array.from({ length: 24 }, (_, hour) => hour)
 /** Where the grid is scrolled on arrival — a working day, not midnight. */
 const OPENING_HOUR = 7
 
-interface PlacedEntry {
-  entry: CalendarEntry
+/** Something on the clock, and the minutes it covers there. */
+interface ClockItem {
+  item: DayItem
   start: number
   end: number
-  /** Which of the overlapping columns this entry occupies. */
+}
+
+interface PlacedItem extends ClockItem {
+  /** Which of the overlapping columns this item occupies. */
   lane: number
   /** How many columns the cluster it belongs to was split into. */
   lanes: number
 }
 
 /**
- * Lays out one day's timed entries, splitting overlaps into columns.
+ * One day's clock: its timed entries, and its follow-ups at their minutes.
  *
- * A cluster is a run of entries that transitively overlap; every entry in one
- * is drawn at the same width, so two appointments at the same hour each take
+ * A follow-up joins the layout with the room its mark needs rather than with
+ * a duration it does not have (see `FOLLOW_UP_FOOTPRINT`), so an entry that
+ * starts beside it shares the column instead of being drawn over it.
+ */
+function clockItems(
+  entries: readonly CalendarEntry[],
+  followUps: readonly CalendarFollowUp[],
+  date: string
+): ClockItem[] {
+  const items: ClockItem[] = []
+
+  for (const entry of entriesOn(entries, date)) {
+    const span = entrySpan(entry)
+    if (span) items.push({ item: entryItem(entry), ...span })
+  }
+  for (const followUp of followUpsOn(followUps, date)) {
+    items.push({ item: followUpItem(followUp), ...followUpSpan(followUp) })
+  }
+
+  return items
+}
+
+/**
+ * Lays out one day's clock, splitting overlaps into columns.
+ *
+ * A cluster is a run of items that transitively overlap; every item in one is
+ * drawn at the same width, so two appointments at the same hour each take
  * half the column rather than one hiding the other. Clusters are resolved
  * independently, which is what stops a single long entry in the morning from
  * narrowing the whole day.
  */
-function layoutDay(entries: readonly CalendarEntry[]): PlacedEntry[] {
-  const timed = entries
-    .map((entry) => ({ entry, span: entrySpan(entry) }))
-    .filter((item): item is { entry: CalendarEntry; span: { start: number; end: number } } =>
-      Boolean(item.span)
-    )
-    .sort((a, b) => a.span.start - b.span.start || a.span.end - b.span.end)
+function layoutDay(items: readonly ClockItem[]): PlacedItem[] {
+  // On the same minute an entry goes ahead of a follow-up, as it does in the
+  // lists (`dayItems`), and so keeps the left of the column with the mark
+  // beside it. Between two entries nothing changes.
+  const rank = (clock: ClockItem): number => (clock.item.type === 'entry' ? 0 : 1)
+  const timed = [...items].sort((a, b) => a.start - b.start || rank(a) - rank(b) || a.end - b.end)
 
-  const placed: PlacedEntry[] = []
-  let cluster: PlacedEntry[] = []
+  const placed: PlacedItem[] = []
+  let cluster: PlacedItem[] = []
   let clusterEnd = -1
-  /** End time of the last entry in each open lane. */
+  /** End time of the last item in each open lane. */
   let laneEnds: number[] = []
 
   const closeCluster = (): void => {
     const lanes = laneEnds.length
-    for (const item of cluster) placed.push({ ...item, lanes })
+    for (const member of cluster) placed.push({ ...member, lanes })
     cluster = []
     laneEnds = []
     clusterEnd = -1
   }
 
-  for (const { entry, span } of timed) {
-    // A gap with nothing spanning it ends the cluster: entries after it are
+  for (const { item, start, end } of timed) {
+    // A gap with nothing spanning it ends the cluster: items after it are
     // free to use the full width again.
-    if (span.start >= clusterEnd && cluster.length > 0) closeCluster()
+    if (start >= clusterEnd && cluster.length > 0) closeCluster()
 
-    let lane = laneEnds.findIndex((end) => end <= span.start)
+    let lane = laneEnds.findIndex((laneEnd) => laneEnd <= start)
     if (lane === -1) {
       lane = laneEnds.length
-      laneEnds.push(span.end)
+      laneEnds.push(end)
     } else {
-      laneEnds[lane] = span.end
+      laneEnds[lane] = end
     }
 
-    cluster.push({ entry, start: span.start, end: span.end, lane, lanes: 1 })
-    clusterEnd = Math.max(clusterEnd, span.end)
+    cluster.push({ item, start, end, lane, lanes: 1 })
+    clusterEnd = Math.max(clusterEnd, end)
   }
 
   if (cluster.length > 0) closeCluster()
@@ -116,11 +152,16 @@ function layoutDay(entries: readonly CalendarEntry[]): PlacedEntry[] {
  * All-day entries are lifted into a band above the clock. A deadline that falls
  * "on the 14th" has no time, and drawing it at midnight would make it read as
  * an appointment nobody made.
+ *
+ * Follow-ups are the opposite case: due at a minute and lasting none, so they
+ * are drawn on the clock as a mark hung from that minute rather than as a
+ * block of time.
  */
 export function TimeGrid({
   dates,
   entries,
   releases,
+  followUps,
   onOpenEntry,
   onOpenSlot,
   onInspectDate
@@ -185,11 +226,7 @@ export function TimeGrid({
                   all-day entry can be moved, so the immovable thing
                   holds the top of the cell. */}
               {column.releases.map((release) => (
-                <ReleaseMark
-                  key={release.releaseId}
-                  release={release}
-                  terse={dates.length > 1}
-                />
+                <ReleaseMark key={release.releaseId} release={release} terse={dates.length > 1} />
               ))}
               {column.anniversaries.map((anniversary) => (
                 <AnniversaryMark
@@ -219,7 +256,7 @@ export function TimeGrid({
         </div>
 
         {dates.map((date) => {
-          const placed = layoutDay(entriesOn(entries, date))
+          const placed = layoutDay(clockItems(entries, followUps, date))
 
           return (
             <div
@@ -238,21 +275,35 @@ export function TimeGrid({
                 />
               ))}
 
-              {placed.map(({ entry, start, end, lane, lanes }) => {
+              {placed.map(({ item, start, end, lane, lanes }) => {
+                const box = {
+                  top: `${(start / 1440) * 100}%`,
+                  height: `${((end - start) / 1440) * 100}%`,
+                  left: `${(lane / lanes) * 100}%`,
+                  width: `${100 / lanes}%`
+                }
+
+                // Placed here, and drawn by the same mark a month cell uses.
+                // The clock never builds a button of its own for one, so
+                // nothing on it can open a follow-up as if it were an entry.
+                if (item.type === 'followUp') {
+                  return (
+                    <div key={item.key} className={styles.timeFollowUp} style={box}>
+                      <FollowUpMark followUp={item.followUp} terse={dates.length > 1} />
+                    </div>
+                  )
+                }
+
+                const { entry } = item
                 const kind = CALENDAR_KIND[entry.kind]
                 return (
                   <button
-                    key={entry.id}
+                    key={item.key}
                     type="button"
                     className={styles.timeEntry}
                     data-tone={kind.tone}
                     data-done={entry.done || undefined}
-                    style={{
-                      top: `${(start / 1440) * 100}%`,
-                      height: `${((end - start) / 1440) * 100}%`,
-                      left: `${(lane / lanes) * 100}%`,
-                      width: `${100 / lanes}%`
-                    }}
+                    style={box}
                     onClick={() => onOpenEntry(entry)}
                     {...tooltipTrigger(
                       [`${kind.label} — ${entry.title}`, describeCarried(entry)]

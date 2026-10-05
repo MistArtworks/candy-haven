@@ -12,6 +12,7 @@ import { SettingsNav } from './components/SettingsNav'
 import { BoardPanel } from './components/BoardPanel'
 import { FilingPanel } from './components/FilingPanel'
 import { StripPanels } from './components/StripPanels'
+import { LeadsPanels } from './components/LeadsPanels'
 import { LAUNCH_WITH, LAUNCH_WITH_LABEL } from '@shared/domain/strip'
 import { REGULATION_CATEGORY, isRegulationCategory, type RegulationCategory } from './categories'
 import { useDispatch } from '@renderer/hooks/useDispatch'
@@ -605,6 +606,10 @@ export function RegulationPage(): ReactNode {
 
             {category === 'strip' ? (
               <StripPanels settings={settings} apply={applySettings} />
+            ) : null}
+
+            {category === 'leads' ? (
+              <LeadsPanels settings={settings} apply={applySettings} />
             ) : null}
 
             {category === 'archive' ? <FilingPanel index="01" /> : null}

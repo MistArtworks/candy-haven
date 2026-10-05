@@ -269,6 +269,32 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   )
   router.handle('artists:delete', ({ id }) => services.artists.remove(id))
 
+  // -------------------------------------------------------------------- leads
+
+  router.handle('leads:state', () => services.leads.snapshot())
+  router.handle('leads:create', (draft) => services.leads.createLead(draft))
+  router.handle('leads:update', ({ id, patch }) => services.leads.updateLead(id, patch))
+  router.handle('leads:remove', ({ id }) => services.leads.removeLead(id))
+  router.handle('leads:temperature', ({ id, value }) => services.leads.setTemperature(id, value))
+  router.handle('leads:log', ({ leadId, interaction, complete }) =>
+    services.leads.logInteraction(leadId, interaction, complete)
+  )
+  router.handle('leads:unlog', ({ leadId, interactionId }) =>
+    services.leads.removeInteraction(leadId, interactionId)
+  )
+  router.handle('leads:task-add', ({ parentKind, parentId, task }) =>
+    services.leads.addTask(parentKind, parentId, task)
+  )
+  router.handle('leads:task-update', ({ ref, patch }) => services.leads.updateTask(ref, patch))
+  router.handle('leads:task-remove', (ref) => services.leads.removeTask(ref))
+  router.handle('leads:task-snooze', ({ ref, snooze }) => services.leads.snoozeTask(ref, snooze))
+  router.handle('leads:task-dismiss', (ref) => services.leads.dismissTask(ref))
+  router.handle('leads:convert', (draft) => services.leads.convert(draft))
+  router.handle('opportunities:update', ({ id, patch }) =>
+    services.leads.updateOpportunity(id, patch)
+  )
+  router.handle('opportunities:remove', ({ id }) => services.leads.removeOpportunity(id))
+
   // -------------------------------------------------------------- discography
 
   router.handle('discography:registry', () => services.discography.getRegistry())
@@ -900,6 +926,7 @@ export function registerEventBridges(deps: {
   services.muster.on('state', (state) => router.broadcast('muster:state', state))
   services.overlayServer.on('info', (info) => router.broadcast('overlay:info', info))
   services.calendar.on('changed', (state) => router.broadcast('calendar:state', state))
+  services.leads.on('changed', (state) => router.broadcast('leads:state', state))
   services.inbox.on('state', (state) => router.broadcast('inbox:state', state))
   services.lore.on('state', (state) => router.broadcast('lore:state', state))
   services.releases.on('state', (state) => router.broadcast('releases:state', state))

@@ -10,6 +10,7 @@ import { TagsService } from './tags/tags.service'
 import { ArtistsService } from './artists/artists.service'
 import { DiscographyService } from './discography/discography.service'
 import { CalendarService } from './calendar/calendar.service'
+import { LeadsService } from './leads/leads.service'
 import { ColophonService } from './colophon/colophon.service'
 import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
@@ -70,6 +71,11 @@ export interface ServiceContainer {
    * projection of a project or a release.
    */
   readonly calendar: CalendarService
+  /**
+   * LEADS and OPPORTUNITIES: ARTISTS' light CRM. Its own two collections;
+   * CALENDAR reads its follow-ups by projection, as it does release dates.
+   */
+  readonly leads: LeadsService
   /**
    * COLOPHON: the details the website carries. One record in a collection of
    * its own, and nothing else; it reads no other service and none reads it.
@@ -194,6 +200,12 @@ export function createServiceContainer(): ServiceContainer {
   // register without the calendar holding a copy of it. See `CatalogueListener`.
   discography.setCatalogueListener(() => calendar.refresh())
 
+  // Follow-ups, projected the same way: read on every snapshot, and the
+  // register told when one changes. See `CalendarFollowUpSchema`.
+  const leads = new LeadsService(archive)
+  calendar.setFollowUpReader(() => leads.followUps())
+  leads.setChangeListener(() => void calendar.refresh())
+
   /*
    * A project's files moving under what points into them: renamed, filed on
    * another shelf, or carried along with a folder. A release's masters, a
@@ -240,6 +252,7 @@ export function createServiceContainer(): ServiceContainer {
     artists,
     discography,
     calendar,
+    leads,
     colophon: new ColophonService(archive),
     overlayServer,
     chat,
@@ -295,6 +308,7 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
   }
 
   container.calendar.dispose()
+  container.leads.dispose()
   container.projects.dispose()
   container.telemetry.dispose()
   container.settings.clear()

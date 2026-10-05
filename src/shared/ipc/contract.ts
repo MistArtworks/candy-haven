@@ -81,6 +81,18 @@ import {
   ArtistSummarySchema
 } from '../domain/artists'
 import {
+  InteractionDraftSchema,
+  LeadDraftSchema,
+  LeadPatchSchema,
+  LeadsStateSchema,
+  OpportunityDraftSchema,
+  OpportunityPatchSchema,
+  SnoozeSchema,
+  TaskDraftSchema,
+  TaskPatchSchema,
+  TaskRefSchema
+} from '../domain/leads'
+import {
   DiscographyRegistrySchema,
   CanvasPayloadSchema,
   DiscographyReleaseSchema,
@@ -453,6 +465,68 @@ export const IPC_INVOKE = {
       releases: z.number().int().min(0)
     })
   },
+
+  /*
+   * LEADS and OPPORTUNITIES: ARTISTS' light CRM (services/leads).
+   *
+   * Every write answers with the whole state, and pushes it too
+   * (`leads:state`), because the strip shows the same follow-ups the console
+   * does and one change can touch a lead, its tasks and CALENDAR at once.
+   * Local to this PC, like the rest of the archive.
+   */
+  'leads:state': { input: z.void(), output: LeadsStateSchema },
+  /** A new lead, with its first-interaction follow-up made for it. */
+  'leads:create': { input: LeadDraftSchema, output: LeadsStateSchema },
+  'leads:update': {
+    input: z.object({ id: z.string(), patch: LeadPatchSchema }),
+    output: LeadsStateSchema
+  },
+  /** The lead, its history and the opportunities that came of it. */
+  'leads:remove': { input: z.object({ id: z.string() }), output: LeadsStateSchema },
+  /** Pinned by hand on the slider; null goes back to the interactions. */
+  'leads:temperature': {
+    input: z.object({ id: z.string(), value: z.number().min(0).max(100).nullable() }),
+    output: LeadsStateSchema
+  },
+  /** Logs an interaction, and can complete the follow-up it answers. */
+  'leads:log': {
+    input: z.object({
+      leadId: z.string(),
+      interaction: InteractionDraftSchema,
+      complete: TaskRefSchema.nullable().default(null)
+    }),
+    output: LeadsStateSchema
+  },
+  'leads:unlog': {
+    input: z.object({ leadId: z.string(), interactionId: z.string() }),
+    output: LeadsStateSchema
+  },
+  'leads:task-add': {
+    input: z.object({
+      parentKind: z.enum(['lead', 'opportunity']),
+      parentId: z.string(),
+      task: TaskDraftSchema
+    }),
+    output: LeadsStateSchema
+  },
+  'leads:task-update': {
+    input: z.object({ ref: TaskRefSchema, patch: TaskPatchSchema }),
+    output: LeadsStateSchema
+  },
+  'leads:task-remove': { input: TaskRefSchema, output: LeadsStateSchema },
+  'leads:task-snooze': {
+    input: z.object({ ref: TaskRefSchema, snooze: SnoozeSchema }),
+    output: LeadsStateSchema
+  },
+  /** Quiets its reminders for good. Never completes it. */
+  'leads:task-dismiss': { input: TaskRefSchema, output: LeadsStateSchema },
+  /** An opportunity from a lead, which keeps its contacts and history. */
+  'leads:convert': { input: OpportunityDraftSchema, output: LeadsStateSchema },
+  'opportunities:update': {
+    input: z.object({ id: z.string(), patch: OpportunityPatchSchema }),
+    output: LeadsStateSchema
+  },
+  'opportunities:remove': { input: z.object({ id: z.string() }), output: LeadsStateSchema },
 
   /**
    * DISCOGRAPHY — the public record of what shipped.
@@ -1098,6 +1172,7 @@ export const IPC_EVENT = {
   'inbox:state': InboxStateSchema,
   'lore:state': LoreStateSchema,
   'releases:state': ReleasesStateSchema,
+  'leads:state': LeadsStateSchema,
   /** To the strip's popup: what to show. */
   'strip:popup': StripPopupSchema,
   /**

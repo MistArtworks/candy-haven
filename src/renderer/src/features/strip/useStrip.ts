@@ -5,6 +5,8 @@ import type { Pin, StripAnchor, StripPin, StripSettings } from '@shared/domain/s
 import { StripSettingsSchema, baseName, normalizeAddress, siteNameOf } from '@shared/domain/strip'
 import { selectSettings, useSystemStore } from '@renderer/app/store/system.store'
 import { useCalendar } from '@renderer/hooks/useCalendar'
+import { useLeads, useNow } from '@renderer/hooks/useLeads'
+import { byUrgency, openTaskRows, type TaskRow } from '@renderer/features/artists/leads/model'
 import {
   anniversariesBetween,
   type CalendarAnniversary
@@ -126,7 +128,14 @@ export interface Today {
   anniversaries: CalendarAnniversary[]
   /** What's next: the first timed entry not done that hasn't ended, else an all-day one. */
   next: CalendarEntry | null
-  /** Not done today, overdue included. */
+  /**
+   * Follow-ups from ARTISTS' leads due by tonight, overdue first: the strip's
+   * priorities, drawn ahead of the calendar's entries.
+   */
+  followUps: TaskRow[]
+  /** How many of those are overdue. */
+  lateFollowUps: number
+  /** Not done today, overdue and follow-ups included. */
   open: number
 }
 
@@ -135,8 +144,15 @@ const MONTH_AGO = 31
 /** Today, as the strip shows it. */
 export function useToday(): Today {
   const { state, ready } = useCalendar()
+  const leads = useLeads()
+  const now = useNow(30_000, leads.state)
   const { today, minute } = useNowMinute()
   return useMemo(() => {
+    const tonight = new Date(now)
+    tonight.setHours(23, 59, 59, 999)
+    const followUps = openTaskRows(leads.state.leads, leads.state.opportunities, now)
+      .filter((row) => row.task.dueAt <= tonight.getTime())
+      .sort(byUrgency)
     const since = shiftDays(today, -MONTH_AGO)
     const entries = state.entries
       .filter((entry) => entry.date === today)
@@ -162,9 +178,11 @@ export function useToday(): Today {
       releases: state.releases.filter((release) => release.date === today),
       anniversaries: anniversariesBetween(state.releases, today, today),
       next,
-      open: entries.filter((entry) => !entry.done).length + overdue.length
+      followUps,
+      lateFollowUps: followUps.filter((row) => row.status === 'overdue').length,
+      open: entries.filter((entry) => !entry.done).length + overdue.length + followUps.length
     }
-  }, [state, ready, today, minute])
+  }, [state, ready, leads.state, now, today, minute])
 }
 
 /** `14:30`, from minutes since midnight. */

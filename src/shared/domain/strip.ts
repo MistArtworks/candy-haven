@@ -528,6 +528,17 @@ export const StripPopupSchema = z.discriminatedUnion('kind', [
   }),
   /** Any web address, to open, or to pin. */
   z.object({ kind: z.literal('website') }),
+  /**
+   * A follow-up from ARTISTS' leads, with what can be done about it: open the
+   * lead, log and complete, snooze, dismiss. Where a clicked reminder lands,
+   * since Windows notifications can't carry those buttons themselves.
+   */
+  z.object({
+    kind: z.literal('followup'),
+    parentKind: z.enum(['lead', 'opportunity']),
+    parentId: z.string(),
+    taskId: z.string()
+  }),
   /** The strip's menu: the console, the vestibule, hide, quit. */
   z.object({ kind: z.literal('menu') })
 ])

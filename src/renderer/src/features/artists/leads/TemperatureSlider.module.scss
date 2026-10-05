@@ -1,0 +1,245 @@
+@use 'abstracts' as *;
+
+// The temperature slider: a thick ramp, a tall thumb with the value riding
+// over it, the named stops under it, and the row that says where the value
+// came from.
+
+// The ramp, frozen to supernova, at the scale's named stops. Literal on
+// purpose: these are the temperature's own colours, not the console's.
+$frozen: #c8ecff;
+$cold: #63b3ea;
+$cool: #4c6c92;
+$neutral: #8a8071;
+$warm: #e0954b;
+$hot: #ff6a2e;
+$supernova: #fff0c6;
+
+.slider {
+  // The thumb's width. Everything placed along the track allows for it: the
+  // thumb's centre stops half a thumb short of either end, so the scale does.
+  --thumb: 20px;
+
+  // A size container, so the stop names answer to the slider's own width
+  // rather than the window's. It takes that width from its parent.
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+
+  &[data-disabled] {
+    opacity: 0.4;
+  }
+}
+
+// The track, with the bubble above it, the marker between and the stops below.
+.rail {
+  position: relative;
+  padding-top: 34px;
+}
+
+.bubble {
+  @include readout(11px);
+  position: absolute;
+  top: 0;
+  // Over the thumb, and held on the track at either end. `--half` is half the
+  // bubble's width, kept by TemperatureSlider as its text changes.
+  left: clamp(
+    var(--half, 0px),
+    calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)),
+    calc(100% - var(--half, 0px))
+  );
+  transform: translateX(-50%);
+  padding: 3px 9px;
+  // Set rather than inherited: the bubble has to clear the marker below it.
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-gold);
+  pointer-events: none;
+}
+
+// Where the interactions would put it, while it's pinned somewhere else.
+.ghost {
+  position: absolute;
+  top: 26px;
+  left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p));
+  width: 0;
+  height: 0;
+  border-inline: 6px solid transparent;
+  border-top: 7px solid var(--ch-text-secondary);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 46px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 24px;
+    background: linear-gradient(
+      90deg,
+      $frozen 0%,
+      $cold 17%,
+      $cool 33%,
+      $neutral 50%,
+      $warm 67%,
+      $hot 83%,
+      $supernova 100%
+    );
+    border: $hairline solid var(--ch-line-strong);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+  }
+
+  // Taller than the track, gold-edged, and glowing in the colour of where it
+  // stands (`--temp`, the orb's own glow).
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: var(--thumb);
+    height: 46px;
+    margin-top: -12px;
+    background: var(--ch-surface-sunken);
+    border: 2px solid var(--ch-gold-200);
+    box-shadow:
+      0 0 0 3px rgba(0, 0, 0, 0.55),
+      0 0 18px var(--temp);
+  }
+
+  // The ring goes round the thumb, not the whole input.
+  &:focus-visible {
+    outline: none;
+
+    &::-webkit-slider-thumb {
+      @include focus-ring(3px);
+    }
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+
+    &::-webkit-slider-thumb {
+      cursor: not-allowed;
+    }
+  }
+}
+
+.stops {
+  position: relative;
+  height: 34px;
+  margin-top: 4px;
+}
+
+.stop {
+  @include label(9px, 0.14em);
+  position: absolute;
+  top: 0;
+  left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  // The tick.
+  &::before {
+    content: '';
+    width: 1px;
+    height: 7px;
+    background: var(--ch-line-strong);
+  }
+
+  // The ends sit flush with the track's edges rather than centred on their
+  // point, so Frozen and Supernova never hang off it.
+  &:first-child {
+    transform: translateX(calc(var(--thumb) / -2));
+    align-items: flex-start;
+  }
+
+  &:last-child {
+    transform: translateX(calc(-100% + var(--thumb) / 2));
+    align-items: flex-end;
+  }
+
+  &:hover:not(:disabled),
+  &[aria-pressed='true'] {
+    color: var(--ch-gold-200);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+// Narrower than this, the names between would run into their neighbours. The
+// ticks stay, and each stop keeps its name for a screen reader.
+@container (max-width: 480px) {
+  .stop[data-minor] .stopLabel {
+    display: none;
+  }
+}
+
+// ------------------------------------------------------------------- source
+
+.source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: space(3);
+  padding-top: space(3);
+  @include hairline(top, 0.12);
+}
+
+.chip {
+  @include label(9px, 0.16em);
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: 5px 10px;
+  color: var(--ch-text-secondary);
+  border: $hairline solid var(--ch-line-strong);
+
+  &[data-manual] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+}
+
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ch-text-muted);
+
+  .chip[data-manual] & {
+    background: var(--ch-gold-300);
+  }
+}
+
+.textButton {
+  @include label(9px, 0.16em);
+  padding: 6px space(3);
+  color: var(--ch-text-primary);
+  background: none;
+  border: $hairline solid var(--ch-line-strong);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}

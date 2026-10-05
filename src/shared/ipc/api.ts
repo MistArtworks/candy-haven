@@ -57,6 +57,18 @@ import type {
   ArtistSummary
 } from '../domain/artists'
 import type {
+  InteractionDraft,
+  LeadDraft,
+  LeadPatch,
+  LeadsState,
+  OpportunityDraft,
+  OpportunityPatch,
+  TaskDraft,
+  TaskPatch,
+  TaskRef
+} from '../domain/leads'
+import type { Snooze } from '../domain/leads.constants'
+import type {
   DiscographyRegistry,
   DiscographyRelease,
   ReleaseAsset,
@@ -276,6 +288,43 @@ export interface CandyHavenApi {
     setPicture(id: string, sourcePath: string | null): Promise<ArtistRecord>
     /** Strips them from every project and release first, and reports both. */
     remove(id: string): Promise<{ projects: number; releases: number }>
+  }
+  /**
+   * LEADS and OPPORTUNITIES: ARTISTS' light CRM, local to this PC.
+   *
+   * Every call answers with the whole state, which is also pushed to every
+   * window (`onState`), so the strip's follow-ups keep up with the console's.
+   */
+  readonly leads: {
+    state(): Promise<LeadsState>
+    /** Makes its first-interaction follow-up with it. */
+    create(draft: LeadDraft): Promise<LeadsState>
+    update(id: string, patch: LeadPatch): Promise<LeadsState>
+    /** With its history and its opportunities. */
+    remove(id: string): Promise<LeadsState>
+    /** Pinned by hand; null follows the interactions again. */
+    setTemperature(id: string, value: number | null): Promise<LeadsState>
+    /** Can complete the follow-up the interaction answers, in the same step. */
+    log(
+      leadId: string,
+      interaction: InteractionDraft,
+      complete?: TaskRef | null
+    ): Promise<LeadsState>
+    unlog(leadId: string, interactionId: string): Promise<LeadsState>
+    addTask(
+      parentKind: TaskRef['parentKind'],
+      parentId: string,
+      task: TaskDraft
+    ): Promise<LeadsState>
+    updateTask(ref: TaskRef, patch: TaskPatch): Promise<LeadsState>
+    removeTask(ref: TaskRef): Promise<LeadsState>
+    snooze(ref: TaskRef, snooze: Snooze): Promise<LeadsState>
+    /** No more reminders for it; it stays open. */
+    dismiss(ref: TaskRef): Promise<LeadsState>
+    convert(draft: OpportunityDraft): Promise<LeadsState>
+    updateOpportunity(id: string, patch: OpportunityPatch): Promise<LeadsState>
+    removeOpportunity(id: string): Promise<LeadsState>
+    onState(listener: (state: LeadsState) => void): Unsubscribe
   }
   /**
    * DISCOGRAPHY — the public record of what shipped.

@@ -14,12 +14,20 @@ import { MONTHS, formatCountdown, todayIso } from '@renderer/lib/format'
 import { tooltipTrigger } from '@renderer/lib/tooltip'
 import styles from '../CalendarPage.module.scss'
 
-import type { CalendarRelease } from '@shared/domain/calendar'
+import type { CalendarFollowUp, CalendarRelease } from '@shared/domain/calendar'
 import type { Pin } from '@shared/domain/strip'
 import { anniversariesBetween } from '../anniversaries'
+import {
+  FOLLOW_UP_LABEL,
+  FOLLOW_UP_PARENT_LABEL,
+  dayItems,
+  describeFollowUp,
+  useOpenFollowUp
+} from '../followUps'
 import { AnniversaryMark } from './AnniversaryMark'
 import { AttachmentLinks } from './AttachmentLinks'
 import { EntryHints } from './EntryHints'
+import { FollowUpGlyph, FollowUpPriority } from './FollowUpMark'
 import { ReleaseMark } from './ReleaseMark'
 
 export interface AgendaViewProps {
@@ -33,6 +41,11 @@ export interface AgendaViewProps {
    * treat one as editable.
    */
   releases: readonly CalendarRelease[]
+  /**
+   * Follow-ups from ARTISTS' leads and opportunities, read the same way as
+   * `releases` and kept apart from `entries` for the same reason.
+   */
+  followUps: readonly CalendarFollowUp[]
   onOpenEntry: (entry: CalendarEntry) => void
   onToggleDone: (entry: CalendarEntry) => void
   onInspectDate: (date: string) => void
@@ -56,14 +69,16 @@ export function AgendaView({
   from,
   entries,
   releases,
+  followUps,
   onOpenEntry,
   onToggleDone,
   onInspectDate,
   onOpenAttachment
 }: AgendaViewProps): ReactNode {
   const today = todayIso()
+  const openFollowUp = useOpenFollowUp()
 
-  const { days, past } = useMemo(() => {
+  const { days, past, overdue } = useMemo(() => {
     const forward = entries.filter((entry) => entry.date >= from).sort(compareEntries)
     const grouped = new Map<string, CalendarEntry[]>()
 
@@ -101,11 +116,40 @@ export function AgendaView({
       if (!grouped.has(mark.date)) grouped.set(mark.date, [])
     }
 
+    /*
+     * And so does a follow-up, with no horizon. Unlike an anniversary it
+     * does not recur: there are only as many as ARTISTS holds tasks for,
+     * and each falls once.
+     */
+    const due = new Map<string, CalendarFollowUp[]>()
+    for (const followUp of followUps) {
+      if (followUp.date < from) continue
+      const bucket = due.get(followUp.date)
+      if (bucket) bucket.push(followUp)
+      else due.set(followUp.date, [followUp])
+      if (!grouped.has(followUp.date)) grouped.set(followUp.date, [])
+    }
+
+    /*
+     * Follow-ups left open before the date. Earlier entries are only
+     * counted, and these are named beside them, because the ledger would
+     * otherwise drop them without a word: an overdue follow-up is somebody
+     * still waiting to hear back, however far behind the page it falls.
+     * Pending ones are not late yet and completed ones are done, so neither
+     * is mentioned.
+     */
+    const leftOpen = followUps.filter(
+      (followUp) => followUp.status === 'overdue' && followUp.date < from
+    )
+
     return {
       days: [...grouped.entries()]
         .map(([date, filed]) => ({
           date,
-          filed,
+          // Entries and follow-ups in one run, by time: the ledger's
+          // question is what comes next, and a follow-up at ten comes
+          // before a session at two whichever department it is from.
+          items: dayItems(filed, due.get(date) ?? []),
           out: out.filter((release) => release.date === date),
           marked: marks.filter((mark) => mark.date === date)
         }))
@@ -113,9 +157,10 @@ export function AgendaView({
         // sorted entry list. A release can open a day in the middle of
         // it, so the order is now made rather than inherited.
         .sort((left, right) => left.date.localeCompare(right.date)),
-      past: entries.length - forward.length
+      past: entries.length - forward.length,
+      overdue: leftOpen.length
     }
-  }, [entries, releases, from])
+  }, [entries, releases, followUps, from])
 
   if (days.length === 0) {
     return (
@@ -126,19 +171,33 @@ export function AgendaView({
             ? `${past} ${past === 1 ? 'entry' : 'entries'} stand earlier in the register.`
             : 'File an entry to open the register.'}
         </p>
+        {overdue > 0 ? (
+          <p className={styles.emptyHint}>
+            <span className={styles.agendaOverdue}>
+              {overdue} {overdue === 1 ? 'follow-up is' : 'follow-ups are'} overdue before this
+              date.
+            </span>
+          </p>
+        ) : null}
       </div>
     )
   }
 
   return (
     <div className={styles.agenda}>
-      {past > 0 ? (
+      {past > 0 || overdue > 0 ? (
         <p className={styles.agendaPast}>
-          {past} {past === 1 ? 'ENTRY' : 'ENTRIES'} EARLIER IN THE REGISTER
+          {past > 0 ? `${past} ${past === 1 ? 'ENTRY' : 'ENTRIES'} EARLIER IN THE REGISTER` : null}
+          {past > 0 && overdue > 0 ? ' · ' : null}
+          {overdue > 0 ? (
+            <span className={styles.agendaOverdue}>
+              {overdue} {overdue === 1 ? 'FOLLOW-UP' : 'FOLLOW-UPS'} OVERDUE BEFORE THIS DATE
+            </span>
+          ) : null}
         </p>
       ) : null}
 
-      {days.map(({ date, filed, out, marked }) => {
+      {days.map(({ date, items, out, marked }) => {
         const { day, month } = parseIsoDate(date)
 
         return (
@@ -180,13 +239,61 @@ export function AgendaView({
                 </li>
               ))}
 
-              {filed.map((entry) => {
+              {items.map((item) => {
+                if (item.type === 'followUp') {
+                  const { followUp } = item
+                  const description = describeFollowUp(followUp)
+
+                  return (
+                    <li
+                      key={item.key}
+                      className={`${styles.agendaRow} ${styles.agendaFollowUp}`}
+                      data-status={followUp.status}
+                    >
+                      {/* The entry rows' own columns, so the clock lines up down
+                          the day. The arrow takes the discharge mark's slot;
+                          there is nothing here to tick. */}
+                      <FollowUpGlyph />
+
+                      <span className={styles.agendaClock}>
+                        {formatMinute(followUp.startMinute)}
+                      </span>
+
+                      <button
+                        type="button"
+                        className={styles.agendaBody}
+                        aria-label={description}
+                        onClick={() => openFollowUp(followUp)}
+                        {...tooltipTrigger(description)}
+                      >
+                        <span className={styles.agendaTitleRow}>
+                          <span className={styles.agendaKind}>{FOLLOW_UP_LABEL}</span>
+                          <span className={styles.agendaTitle}>
+                            {followUp.who || followUp.title}
+                          </span>
+                          <FollowUpPriority followUp={followUp} />
+                        </span>
+                        {followUp.who && followUp.title ? (
+                          <span className={styles.agendaNotes}>{followUp.title}</span>
+                        ) : null}
+                      </button>
+
+                      {/* Where pressing it leads, in the column an entry gives
+                          its length: a follow-up has none. */}
+                      <span className={styles.agendaSpan}>
+                        {FOLLOW_UP_PARENT_LABEL[followUp.parentKind]}
+                      </span>
+                    </li>
+                  )
+                }
+
+                const { entry } = item
                 const kind = CALENDAR_KIND[entry.kind]
                 const span = entrySpan(entry)
 
                 return (
                   <li
-                    key={entry.id}
+                    key={item.key}
                     className={styles.agendaRow}
                     data-done={entry.done || undefined}
                   >

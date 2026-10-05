@@ -70,6 +70,13 @@ const ACTIONS: readonly PaletteResult[] = [
     path: '/artists?new=artist'
   },
   {
+    id: 'action-lead',
+    title: 'New Lead',
+    subtitle: 'Artists',
+    verb: 'Add',
+    path: '/artists?lens=leads&new=lead'
+  },
+  {
     // Named after Dispatch's own hotkey for the same action ("File
     // something"), so the palette does not invent a second verb for one act.
     id: 'action-compose',

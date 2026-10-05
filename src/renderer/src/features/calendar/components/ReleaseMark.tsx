@@ -45,7 +45,12 @@ export function ReleaseMark({ release, terse = false }: ReleaseMarkProps): React
       className={styles.releaseMark}
       data-out={release.status === 'released' || undefined}
       {...tooltipTrigger(`${release.title} — ${kind}, open in DISCOGRAPHY`)}
-      onClick={() => navigate(`/discography?release=${release.releaseId}`)}
+      onClick={(event) => {
+        // A month cell opens its day sheet on a click. Leaving for the
+        // release must not open it on the way out.
+        event.stopPropagation()
+        navigate(`/discography?release=${release.releaseId}`)
+      }}
     >
       {/*
         The seal, in gold. Crimson is reserved for live state and this is a

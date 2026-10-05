@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { sparseShape } from './patch'
 import { DEFAULT_ARCHIVE_PORT, DEFAULT_OVERLAY_PORT } from '../constants'
 import { LAUNCH_WITH, StripSettingsSchema } from './strip'
+import { LeadsSettingsSchema } from './leads'
 
 /**
  * Persisted operator settings. Every field carries a default so a missing or
@@ -305,7 +306,8 @@ export const SettingsSchema = z.object({
   archive: ArchiveSettingsSchema.prefault({}),
   updates: UpdateSettingsSchema.prefault({}),
   integrations: IntegrationSettingsSchema.prefault({}),
-  strip: StripSettingsSchema.prefault({})
+  strip: StripSettingsSchema.prefault({}),
+  leads: LeadsSettingsSchema.prefault({})
 })
 export type Settings = z.infer<typeof SettingsSchema>
 
@@ -326,7 +328,8 @@ export const SettingsPatchSchema = z.object({
   archive: z.object(sparseShape(ArchiveSettingsSchema.shape)).optional(),
   updates: z.object(sparseShape(UpdateSettingsSchema.shape)).optional(),
   integrations: z.object(sparseShape(IntegrationSettingsSchema.shape)).optional(),
-  strip: z.object(sparseShape(StripSettingsSchema.shape)).optional()
+  strip: z.object(sparseShape(StripSettingsSchema.shape)).optional(),
+  leads: z.object(sparseShape(LeadsSettingsSchema.shape)).optional()
 })
 
 /**

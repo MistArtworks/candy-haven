@@ -187,6 +187,26 @@ const api: CandyHavenApi = {
     setPicture: (id, sourcePath) => invoke('artists:set-picture', { id, sourcePath }),
     remove: (id) => invoke('artists:delete', { id })
   },
+  leads: {
+    state: () => invoke('leads:state'),
+    create: (draft) => invoke('leads:create', draft),
+    update: (id, patch) => invoke('leads:update', { id, patch }),
+    remove: (id) => invoke('leads:remove', { id }),
+    setTemperature: (id, value) => invoke('leads:temperature', { id, value }),
+    log: (leadId, interaction, complete) =>
+      invoke('leads:log', { leadId, interaction, complete: complete ?? null }),
+    unlog: (leadId, interactionId) => invoke('leads:unlog', { leadId, interactionId }),
+    addTask: (parentKind, parentId, task) =>
+      invoke('leads:task-add', { parentKind, parentId, task }),
+    updateTask: (ref, patch) => invoke('leads:task-update', { ref, patch }),
+    removeTask: (ref) => invoke('leads:task-remove', ref),
+    snooze: (ref, snooze) => invoke('leads:task-snooze', { ref, snooze }),
+    dismiss: (ref) => invoke('leads:task-dismiss', ref),
+    convert: (draft) => invoke('leads:convert', draft),
+    updateOpportunity: (id, patch) => invoke('opportunities:update', { id, patch }),
+    removeOpportunity: (id) => invoke('opportunities:remove', { id }),
+    onState: (listener) => subscribe('leads:state', listener)
+  },
   discography: {
     registry: () => invoke('discography:registry'),
     get: (id) => invoke('discography:get', { id }),

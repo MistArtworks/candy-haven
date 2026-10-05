@@ -9,7 +9,9 @@ import { PopoutManager } from './app/popout'
 import { VestibuleManager } from './app/vestibule'
 import { StripManager } from './app/strip'
 import { Reminders } from './app/reminders'
+import { FollowUpReminders } from './app/follow-ups'
 import type { TargetHost } from './app/targets'
+import type { StripPopup } from '@shared/domain/strip'
 import { applyLaunchAtStartup, launchedHidden } from './app/startup'
 import { IpcRouter } from './ipc/router'
 import { registerEventBridges, registerIpcHandlers } from './ipc/register-handlers'
@@ -301,6 +303,18 @@ async function start(): Promise<void> {
   // The strip stands aside while the console is on screen.
   windows.onPresence((open) => strip.standAside(open))
 
+  // A clicked reminder's popup, on the strip, opening the strip first if
+  // it's off.
+  const onStrip = (popup: StripPopup): void => {
+    if (!strip.isOpen()) {
+      void strip
+        .open(services.settings.snapshot.strip, services.settings.snapshot.appearance.uiScale)
+        .then(() => strip.openPopup(popup))
+      return
+    }
+    strip.openPopup(popup)
+  }
+
   // CALENDAR's reminders, clicked open on the strip, or in the console's
   // CALENDAR while the console is up and the strip stands aside for it.
   const reminders = new Reminders({
@@ -311,14 +325,34 @@ async function start(): Promise<void> {
         void openConsole('/calendar')
         return
       }
-      if (!strip.isOpen()) {
-        void strip
-          .open(services.settings.snapshot.strip, services.settings.snapshot.appearance.uiScale)
-          .then(() => strip.openPopup({ kind: 'today', entryId }))
+      onStrip({ kind: 'today', entryId })
+    }
+  })
+
+  // ARTISTS' follow-ups, the same way: on the strip with what can be done
+  // about them, or at the lead in the console while the console is up.
+  const followUps = new FollowUpReminders({
+    tasks: async () => (services.archive.isConnected() ? services.leads.openTasks() : null),
+    enabled: () => services.settings.snapshot.leads.reminders,
+    open: (task) => {
+      if (windows.isPresent()) {
+        void openConsole(
+          task.ref.parentKind === 'lead'
+            ? `/artists?lens=leads&lead=${task.leadId}`
+            : `/artists?lens=opportunities&opportunity=${task.ref.parentId}`
+        )
         return
       }
-      strip.openPopup({ kind: 'today', entryId })
-    }
+      onStrip({ kind: 'followup', ...task.ref })
+    },
+    openAll: () => {
+      if (windows.isPresent()) {
+        void openConsole('/artists?lens=leads')
+        return
+      }
+      onStrip({ kind: 'today', entryId: null })
+    },
+    overdueChanged: () => void services.calendar.refresh()
   })
 
   // The boot sequence runs alongside window creation: the renderer paints the
@@ -336,6 +370,7 @@ async function start(): Promise<void> {
     tray.setArchiveState(services.archive.status.state)
     // Reminders read the register, which is there once the archive is.
     reminders.start()
+    followUps.start()
   })
 
   app.on('activate', () => {
@@ -379,6 +414,7 @@ async function start(): Promise<void> {
         await windows.persistState()
         popouts.dispose()
         reminders.dispose()
+        followUps.dispose()
         strip.dispose()
         vestibule.dispose()
         tray.dispose()

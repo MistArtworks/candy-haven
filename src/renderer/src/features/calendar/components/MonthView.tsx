@@ -12,9 +12,11 @@ import { todayIso } from '@renderer/lib/format'
 import { EntryChip } from './EntryChip'
 import styles from '../CalendarPage.module.scss'
 
-import type { CalendarRelease } from '@shared/domain/calendar'
+import type { CalendarFollowUp, CalendarRelease } from '@shared/domain/calendar'
 import { anniversariesOn } from '../anniversaries'
+import { dayItems, followUpsOn } from '../followUps'
 import { AnniversaryMark } from './AnniversaryMark'
+import { FollowUpMark } from './FollowUpMark'
 import { ReleaseMark } from './ReleaseMark'
 
 export interface MonthViewProps {
@@ -28,8 +30,14 @@ export interface MonthViewProps {
    * treat one as editable.
    */
   releases: readonly CalendarRelease[]
+  /**
+   * Follow-ups from ARTISTS' leads and opportunities, read the same way as
+   * `releases` and kept apart from `entries` for the same reason.
+   */
+  followUps: readonly CalendarFollowUp[]
   onOpenEntry: (entry: CalendarEntry) => void
-  onOpenDate: (date: string) => void
+  /** Opens a date's day sheet: what is on it, and a way to add to it. */
+  onOpenDay: (date: string) => void
   /** Jumps to the day view for a date. */
   onInspectDate: (date: string) => void
 }
@@ -49,8 +57,9 @@ export function MonthView({
   anchor,
   entries,
   releases,
+  followUps,
   onOpenEntry,
-  onOpenDate,
+  onOpenDay,
   onInspectDate
 }: MonthViewProps): ReactNode {
   const days = monthGrid(anchor)
@@ -69,10 +78,25 @@ export function MonthView({
       <div className={styles.monthGrid}>
         {days.map((date) => {
           const filed = entriesOn(entries, date)
+          const due = followUpsOn(followUps, date)
           const out = releases.filter((release) => release.date === date)
           const marked = anniversariesOn(releases, date)
-          const shown = filed.slice(0, CHIPS_PER_CELL)
-          const overflow = filed.length - shown.length
+          /*
+           * Entries claim the cell's chips first and follow-ups take the room
+           * they leave. An entry is the operator's own appointment; a
+           * follow-up is a reading from ARTISTS, and the day view lists every
+           * one of them. Whatever makes it in is then drawn in time order, so
+           * the cell reads the way the day runs.
+           *
+           * Unlike releases they are truncated with the rest: a lead can
+           * carry any number of tasks, so one day can hold more follow-ups
+           * than a cell has lines, where a catalogue puts out a handful of
+           * records on a date at most.
+           */
+          const keptEntries = filed.slice(0, CHIPS_PER_CELL)
+          const keptFollowUps = due.slice(0, CHIPS_PER_CELL - keptEntries.length)
+          const shown = dayItems(keptEntries, keptFollowUps)
+          const overflow = filed.length + due.length - shown.length
           const { day } = parseIsoDate(date)
 
           return (
@@ -82,9 +106,12 @@ export function MonthView({
               data-outside={!isSameMonth(date, anchor) || undefined}
               data-today={date === today || undefined}
               data-weekend={weekdayIndex(date) >= 5 || undefined}
-              // The cell files a new entry on its own date; the chips inside it
-              // stop the event so opening one never also creates one.
-              onClick={() => onOpenDate(date)}
+              // The cell opens its own day's sheet, which lists the day and
+              // offers a new entry on it. It used to file the entry outright,
+              // a dialog to cancel for anyone who only wanted to look. The
+              // chips and marks inside it stop the event, so opening one
+              // never also opens the sheet.
+              onClick={() => onOpenDay(date)}
               role="gridcell"
               tabIndex={-1}
             >
@@ -100,6 +127,8 @@ export function MonthView({
                 >
                   {String(day).padStart(2, '0')}
                 </button>
+                {/* What is filed here, and only that: a follow-up is filed in
+                    ARTISTS, so like a release it is drawn but not counted. */}
                 {filed.length > 0 ? (
                   <span className={styles.monthCount}>{filed.length}</span>
                 ) : null}
@@ -129,9 +158,15 @@ export function MonthView({
                     terse
                   />
                 ))}
-                {shown.map((entry) => (
-                  <EntryChip key={entry.id} entry={entry} onOpen={onOpenEntry} />
-                ))}
+                {shown.map((item) =>
+                  item.type === 'entry' ? (
+                    <EntryChip key={item.key} entry={item.entry} onOpen={onOpenEntry} />
+                  ) : (
+                    <FollowUpMark key={item.key} followUp={item.followUp} terse />
+                  )
+                )}
+                {/* Counts follow-ups as well as entries: it says what the
+                    cell had no room to draw, whichever kind that was. */}
                 {overflow > 0 ? (
                   <button
                     type="button"

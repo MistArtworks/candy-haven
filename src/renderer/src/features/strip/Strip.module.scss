@@ -336,6 +336,44 @@ $card: linear-gradient(180deg, #171417, #100e10);
   @include truncate;
 }
 
+// An overdue follow-up on the line: the strip's one priority, in the late
+// colour, so it's seen without opening anything.
+.todayChip[data-late] {
+  color: var(--ch-crimson-400);
+  border-color: rgba(163, 43, 35, 0.6);
+  box-shadow: inset 0 0 12px rgba(163, 43, 35, 0.18);
+
+  .todayChipText {
+    color: var(--ch-text-primary);
+  }
+}
+
+.priorityLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  @include truncate;
+
+  svg {
+    flex: none;
+    color: var(--ch-crimson-400);
+  }
+
+  b {
+    @include label(9px, 0.16em);
+    color: var(--ch-crimson-400);
+  }
+}
+
+.more {
+  @include readout(10px);
+  color: var(--ch-text-muted);
+}
+
 // ------------------------------------------------------------------- who
 
 .who {
@@ -1163,5 +1201,143 @@ $card: linear-gradient(180deg, #171417, #100e10);
     -webkit-app-region: no-drag;
     background: var(--ch-surface-sunken);
     border: $hairline solid var(--ch-line-gold);
+  }
+}
+
+// ------------------------------------------------------------- follow-ups
+
+// A follow-up in Today: who first, then what, as a reminder says it.
+.entry[data-follow] .entryMain {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.followText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.followTask {
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+}
+
+.followHigh {
+  @include label(7px, 0.18em);
+  color: var(--ch-accent-bright);
+  border: $hairline solid rgba(163, 43, 35, 0.5);
+  padding: 1px 4px;
+}
+
+// Its actions: whole buttons that wrap to a second row, never mid-label.
+.followActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: space(2);
+
+  .textButton,
+  .primaryButton {
+    white-space: nowrap;
+  }
+}
+
+.followLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-muted);
+}
+
+.followDue {
+  @include readout(11px);
+  margin: 0;
+  color: var(--ch-text-secondary);
+
+  &[data-late] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.logLine {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.logFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) rem(62px);
+  gap: space(2);
+}
+
+.points {
+  @include readout(13px);
+  height: rem(34px);
+  text-align: center;
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line-strong);
+  outline: none;
+  appearance: textfield;
+
+  &:focus {
+    border-color: var(--ch-line-gold);
+  }
+
+  &[data-sign='plus'] {
+    color: #e0954b;
+  }
+
+  &[data-sign='minus'] {
+    color: #63b3ea;
+  }
+}
+
+.logSuggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.logSuggestion {
+  font-family: var(--ch-font-body);
+  font-size: rem(11.5px);
+  padding: 3px space(2);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ch-line-gold);
+  }
+
+  span {
+    @include readout(10px);
+    color: var(--ch-text-muted);
+
+    &[data-sign='plus'] {
+      color: #e0954b;
+    }
+
+    &[data-sign='minus'] {
+      color: #63b3ea;
+    }
+  }
+}
+
+// ------------------------------------------------------------------- quit
+
+// Quiet until it's pressed once; then crimson, waiting for the second press.
+.tool[data-quit] {
+  &:hover {
+    color: var(--ch-crimson-400);
+  }
+
+  &[data-armed] {
+    color: var(--ch-accent-bright);
+    background: color-mix(in srgb, var(--ch-accent) 22%, transparent);
+    box-shadow: inset 0 0 0 1px var(--ch-accent);
   }
 }

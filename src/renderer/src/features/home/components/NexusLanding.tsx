@@ -8,6 +8,7 @@ import { formatDuration } from '@renderer/lib/format'
 import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { GenesisField, type PointerLean } from './GenesisField'
 import { MandalaRings } from './MandalaRings'
+import { FollowUpsBeacon } from './FollowUpsBeacon'
 import { GalaxyScene } from './scenes/GalaxyScene'
 import { VigilScene } from './scenes/VigilScene'
 import { GateScene } from './scenes/GateScene'
@@ -350,6 +351,12 @@ export function NexusLanding({
               <br />
               Art of consciousness
             </p>
+            {/*
+              Follow-ups due from ARTISTS, hung under this corner: the one
+              place on every field that is sky. Only while the archive is up,
+              since it reads from it.
+            */}
+            {archiveState === 'online' || archiveState === 'degraded' ? <FollowUpsBeacon /> : null}
           </div>
         </div>
 

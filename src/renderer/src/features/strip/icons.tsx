@@ -176,7 +176,21 @@ const PATHS: Record<Glyph, ReactNode> = {
       <line x1="6" y1="12" x2="18" y2="12" />
     </>
   ),
-  check: <path d="M5 12.5l4.5 4.5L19 7.5" />
+  check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  // Quit: the usual power mark.
+  power: (
+    <>
+      <path d="M12 3.8v7.4" />
+      <path d="M7.2 6.6a7.2 7.2 0 1 0 9.6 0" />
+    </>
+  ),
+  // A follow-up: somebody, waiting on a word from you.
+  person: (
+    <>
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M5 20c.8-3.8 3.6-6 7-6s6.2 2.2 7 6" />
+    </>
+  )
 }
 
 export function Icon({ glyph, size = 19 }: { glyph: Glyph; size?: number }): ReactNode {

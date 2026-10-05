@@ -129,6 +129,30 @@ export const CalendarReleaseSchema = z.object({
 })
 export type CalendarRelease = z.infer<typeof CalendarReleaseSchema>
 
+/**
+ * A follow-up from ARTISTS' leads and opportunities, projected onto the
+ * register the way a release date is: read from where it lives, never copied
+ * in. Moving its due time in the lead moves it here; completing it there
+ * strikes it here.
+ */
+export const CalendarFollowUpSchema = z.object({
+  taskId: z.string(),
+  /** Whose task it is: a lead's, or an opportunity's. */
+  parentKind: z.enum(['lead', 'opportunity']),
+  parentId: z.string(),
+  /** The lead behind it, either way, for opening it. */
+  leadId: z.string(),
+  title: z.string(),
+  /** The lead's name. */
+  who: z.string(),
+  /** Its due time, as a local day and minute. */
+  date: IsoDateSchema,
+  startMinute: MinuteOfDaySchema,
+  priority: z.enum(['low', 'normal', 'high']),
+  status: z.enum(['pending', 'overdue', 'complete'])
+})
+export type CalendarFollowUp = z.infer<typeof CalendarFollowUpSchema>
+
 export const CalendarStateSchema = z.object({
   /** Every entry held, sorted by date then start time. */
   entries: z.array(CalendarEntrySchema).default([]),
@@ -139,6 +163,8 @@ export const CalendarStateSchema = z.object({
    * of thing: these are read, those are written.
    */
   releases: z.array(CalendarReleaseSchema).default([]),
+  /** Follow-ups from ARTISTS' leads and opportunities, read the same way. */
+  followUps: z.array(CalendarFollowUpSchema).default([]),
   /**
    * Whether the register is backed by a connected archive.
    *
@@ -151,5 +177,5 @@ export const CalendarStateSchema = z.object({
 export type CalendarState = z.infer<typeof CalendarStateSchema>
 
 export function createCalendarState(): CalendarState {
-  return { entries: [], releases: [], attached: false }
+  return { entries: [], releases: [], followUps: [], attached: false }
 }

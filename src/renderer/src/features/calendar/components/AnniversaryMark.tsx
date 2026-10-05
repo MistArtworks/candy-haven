@@ -34,8 +34,7 @@ export interface AnniversaryMarkProps {
  */
 export function AnniversaryMark({ anniversary, terse = false }: AnniversaryMarkProps): ReactNode {
   const navigate = useNavigate()
-  const kind =
-    RELEASE_KIND_LABEL[anniversary.kind as ReleaseKind] ?? anniversary.kind.toUpperCase()
+  const kind = RELEASE_KIND_LABEL[anniversary.kind as ReleaseKind] ?? anniversary.kind.toUpperCase()
 
   return (
     <button
@@ -47,7 +46,11 @@ export function AnniversaryMark({ anniversary, terse = false }: AnniversaryMarkP
           anniversary.years === 1 ? 'year' : 'years'
         } ago today. Open in DISCOGRAPHY`
       )}
-      onClick={() => navigate(`/discography?release=${anniversary.releaseId}`)}
+      onClick={(event) => {
+        // As `ReleaseMark`: the month cell behind this opens its day sheet.
+        event.stopPropagation()
+        navigate(`/discography?release=${anniversary.releaseId}`)
+      }}
     >
       {/* Hollow, against the release mark's filled seal. The record went out
           on this day; it is not going out today. */}

@@ -1,0 +1,232 @@
+@use 'abstracts' as *;
+
+// Follow-ups on the NEXUS: hung under SONOALCHEMY, out of the picture's way.
+// Positioned absolutely so it never moves the chrome around it.
+
+.beacon {
+  position: absolute;
+  top: calc(100% + #{space(5)});
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  width: rem(300px);
+  text-align: left;
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+// A slow beat beside the label: crimson when something is late, gold when
+// it's only due today.
+.pulse {
+  position: relative;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ch-gold-500);
+
+  .beacon[data-late] & {
+    background: var(--ch-accent-bright);
+    box-shadow: 0 0 8px var(--ch-accent-glow);
+  }
+
+  @include motion-safe {
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -5px;
+      border-radius: 50%;
+      border: 1px solid currentColor;
+      color: var(--ch-gold-500);
+      animation: beat 2.4s ease-out infinite;
+    }
+  }
+}
+
+// Outside the motion block, which wraps its selector in the root's: the ring
+// only exists with motion on, so the colour alone is harmless without it.
+.beacon[data-late] .pulse::after {
+  color: var(--ch-accent-bright);
+}
+
+@keyframes beat {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+
+  70%,
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+.card {
+  width: 100%;
+  background: color-mix(in srgb, var(--ch-surface) 78%, transparent);
+  backdrop-filter: blur(6px);
+  @include hairline(all, 0.16);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+  .beacon[data-late] & {
+    box-shadow:
+      inset 2px 0 0 var(--ch-accent),
+      0 10px 30px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(2) space(2) space(3);
+  @include hairline(bottom, 0.1);
+}
+
+.title {
+  @include label(9px, 0.22em);
+  color: var(--ch-text-primary);
+}
+
+.summary {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  flex: 1;
+
+  .beacon[data-late] & {
+    color: var(--ch-accent-bright);
+  }
+}
+
+.hide {
+  width: rem(22px);
+  height: rem(22px);
+  display: grid;
+  place-items: center;
+  @include readout(13px);
+  color: var(--ch-text-muted);
+  background: none;
+  border: $hairline solid transparent;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: space(1) 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px space(3);
+  width: 100%;
+  padding: space(2) space(3);
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(210, 169, 97, 0.06);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+.who {
+  @include label(10px, 0.1em);
+  color: var(--ch-text-primary);
+  @include truncate;
+}
+
+.what {
+  grid-column: 1;
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+}
+
+.due {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+
+  &[data-late] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.more {
+  display: block;
+  width: 100%;
+  padding: space(2) space(3);
+  @include label(8px, 0.18em);
+  color: var(--ch-gold-300);
+  text-align: right;
+  background: none;
+  border: 0;
+  @include hairline(top, 0.08);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-gold-200);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+}
+
+// Folded: a mark in the corner, still beating.
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: space(2) space(3);
+  background: color-mix(in srgb, var(--ch-surface) 70%, transparent);
+  backdrop-filter: blur(6px);
+  @include hairline(all, 0.16);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.markLabel {
+  @include label(8px, 0.22em);
+  color: var(--ch-text-secondary);
+}
+
+.markCount {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+
+  .beacon[data-late] & {
+    color: var(--ch-accent-bright);
+  }
+}

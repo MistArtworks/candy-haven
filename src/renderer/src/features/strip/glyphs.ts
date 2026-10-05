@@ -29,6 +29,8 @@ export type Glyph =
   | 'mic'
   | 'star'
   | 'bolt'
+  | 'person'
+  | 'power'
 
 /** A group wears one of the strip's own glyphs; this fails to compile if one isn't. */
 export const GROUP_GLYPHS: readonly Glyph[] = GROUP_ICONS

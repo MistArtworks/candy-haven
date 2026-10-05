@@ -14,6 +14,7 @@ export const REGULATION_CATEGORIES = [
   'presentation',
   'startup',
   'strip',
+  'leads',
   'archive',
   'integrations',
   'board',
@@ -47,6 +48,11 @@ export const REGULATION_CATEGORY: Record<RegulationCategory, RegulationCategoryD
     id: 'strip',
     label: 'QUICK STRIP',
     purpose: 'The small window on top of everything: its look, its pins, and today on it.'
+  },
+  leads: {
+    id: 'leads',
+    label: 'LEADS',
+    purpose: "ARTISTS' follow-ups: what you log, how fast a lead cools, and the reminders."
   },
   archive: {
     id: 'archive',

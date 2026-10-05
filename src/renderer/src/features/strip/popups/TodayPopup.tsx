@@ -6,14 +6,20 @@ import { Icon } from '../icons'
 import { targetGlyph } from '../glyphs'
 import { clock, shiftDays, useNowMinute, useNotice, useToday } from '../useStrip'
 import { PopupHead } from '../StripPopupHost'
+import { useNow } from '@renderer/hooks/useLeads'
+import { FollowUpRow } from './FollowUps'
 import styles from '../Strip.module.scss'
 
 /**
- * Today, opened from the strip or from a reminder: what's overdue, today's
- * entries in order, and what's out or turns a year today. An entry opens in
- * place to show its notes, its checklist and its attachments, each one click
- * from opening; it can be ticked off, or moved later or to tomorrow, without
- * the console.
+ * Today, opened from the strip or from a reminder: the follow-ups due, what's
+ * overdue, today's entries in order, and what's out or turns a year today.
+ * An entry opens in place to show its notes, its checklist and its
+ * attachments, each one click from opening; it can be ticked off, or moved
+ * later or to tomorrow, without the console.
+ *
+ * Follow-ups lead: they're the strip's priorities, the one kind of thing
+ * here that keeps somebody else waiting. Each opens in place with what its
+ * reminder offers.
  */
 export function TodayPopup({
   focus,
@@ -23,7 +29,13 @@ export function TodayPopup({
   onClose: () => void
 }): ReactNode {
   const today = useToday()
-  const [open, setOpen] = useState<string | null>(focus ?? today.next?.id ?? null)
+  const now = useNow()
+  const [open, setOpen] = useState<string | null>(
+    focus ??
+      today.followUps.find((row) => row.status === 'overdue')?.task.id ??
+      today.next?.id ??
+      null
+  )
   const [notice, say] = useNotice()
 
   const patch = (id: string, change: CalendarPatch): void => {
@@ -34,6 +46,27 @@ export function TodayPopup({
     <div className={styles.todayPopup}>
       <PopupHead title="Today" onClose={onClose} />
       <div className={styles.todayList}>
+        {today.followUps.length ? (
+          <section className={styles.group}>
+            <span
+              className={styles.groupLabel}
+              data-tone={today.lateFollowUps ? 'late' : undefined}
+            >
+              Follow-ups{today.lateFollowUps ? ` · ${today.lateFollowUps} overdue` : ''}
+            </span>
+            {today.followUps.map((row) => (
+              <FollowUpRow
+                key={row.task.id}
+                row={row}
+                now={now}
+                open={open === row.task.id}
+                onToggle={() => setOpen(open === row.task.id ? null : row.task.id)}
+                onError={say}
+              />
+            ))}
+          </section>
+        ) : null}
+
         {today.overdue.length ? (
           <section className={styles.group}>
             <span className={styles.groupLabel} data-tone="late">

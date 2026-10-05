@@ -1,4 +1,4 @@
-import { useRef, useState, type DragEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import {
   GROUP_SIZE,
   insertPins,
@@ -234,11 +234,16 @@ function Line({
 }): ReactNode {
   const who = useWho()
   const vertical = settings.look === 'vertical'
-  const nextText = today.next
-    ? `${today.next.startMinute !== null ? `${clock(today.next.startMinute)} ` : ''}${today.next.title}`
-    : today.open
-      ? `${today.open} to do`
-      : 'Nothing today'
+  // An overdue follow-up comes first: it's the one thing here that waits on
+  // somebody else hearing back.
+  const late = today.lateFollowUps > 0 ? today.followUps[0] : null
+  const nextText = late
+    ? `Follow up: ${late.who}`
+    : today.next
+      ? `${today.next.startMinute !== null ? `${clock(today.next.startMinute)} ` : ''}${today.next.title}`
+      : today.open
+        ? `${today.open} to do`
+        : 'Nothing today'
   return (
     <>
       <span className={styles.mark}>
@@ -256,10 +261,11 @@ function Line({
           <button
             type="button"
             className={styles.todayChip}
+            data-late={late ? true : undefined}
             title={nextText}
             onClick={() => void window.candy.strip.popup({ kind: 'today', entryId: null })}
           >
-            <Icon glyph="calendar" size={17} />
+            <Icon glyph={late ? 'person' : 'calendar'} size={17} />
             {vertical ? null : <span className={styles.todayChipText}>{nextText}</span>}
             {today.open ? <span className={styles.count}>{today.open}</span> : null}
           </button>
@@ -273,6 +279,9 @@ function Line({
 
 function TodayRow({ today }: { today: Today }): ReactNode {
   const later = today.entries.filter((entry) => !entry.done && entry !== today.next).slice(0, 2)
+  // Overdue follow-ups lead the row: a priority, in the late colour.
+  const late = today.followUps.filter((row) => row.status === 'overdue')
+  const overdue = today.overdue.length + late.length
   const extra = [
     ...today.releases.map((release) => `${release.title} is out`),
     ...today.anniversaries.map((one) => `${one.title} turns ${one.years}`)
@@ -290,10 +299,16 @@ function TodayRow({ today }: { today: Today }): ReactNode {
         <span className={styles.todayHead}>
           TODAY
           {today.open ? <span className={styles.count}>{today.open}</span> : null}
-          {today.overdue.length ? (
-            <span className={styles.overdueMark}>{today.overdue.length} overdue</span>
-          ) : null}
+          {overdue ? <span className={styles.overdueMark}>{overdue} overdue</span> : null}
         </span>
+        {late.length ? (
+          <span className={styles.priorityLine}>
+            <Icon glyph="person" size={14} />
+            <b>Follow up</b>
+            {late[0].who}
+            {late.length > 1 ? <span className={styles.more}>+{late.length - 1}</span> : null}
+          </span>
+        ) : null}
         <span className={styles.next}>
           {today.next ? (
             <>
@@ -349,6 +364,51 @@ function Tools(): ReactNode {
       >
         <Icon glyph="more" size={18} />
       </button>
+      <QuitButton />
     </span>
+  )
+}
+
+/** How long a first press on Quit waits for the second. */
+const ARMED_MS = 3000
+
+/**
+ * Quitting Candy Haven, from the strip itself: always there, in every look,
+ * and not a pin, so it can't be moved, renamed or removed.
+ *
+ * Two presses, because one would be too easy to land by accident on a bar
+ * that's always on screen, and quitting takes the archive down with the app.
+ * The first arms it (crimson, "Press again to quit"); a second within three
+ * seconds quits; otherwise it settles back.
+ */
+function QuitButton(): ReactNode {
+  const [armed, setArmed] = useState(false)
+
+  useEffect(() => {
+    if (!armed) return
+    const timer = setTimeout(() => setArmed(false), ARMED_MS)
+    return () => clearTimeout(timer)
+  }, [armed])
+
+  const label = armed ? 'Press again to quit Candy Haven' : 'Quit Candy Haven'
+  return (
+    <button
+      type="button"
+      className={styles.tool}
+      data-quit
+      data-armed={armed || undefined}
+      title={label}
+      aria-label={label}
+      onClick={() => {
+        if (!armed) {
+          setArmed(true)
+          return
+        }
+        void window.candy.strip.quit()
+      }}
+      onBlur={() => setArmed(false)}
+    >
+      <Icon glyph="power" size={17} />
+    </button>
   )
 }

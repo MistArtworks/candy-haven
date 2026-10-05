@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { getSection } from '@shared/domain/navigation'
@@ -25,6 +25,7 @@ import { MonthView } from './components/MonthView'
 import { DayView } from './components/DayView'
 import { AgendaView } from './components/AgendaView'
 import { TimeGrid } from './components/TimeGrid'
+import { DaySheet } from './components/DaySheet'
 import { EntryDialog, type EntryDialogSubject, type EntryValues } from './components/EntryDialog'
 import styles from './CalendarPage.module.scss'
 
@@ -53,6 +54,12 @@ export function CalendarPage(): ReactNode {
 
   const [anchor, setAnchor] = useState(todayIso)
   const [subject, setSubject] = useState<EntryDialogSubject | null>(null)
+  /**
+   * The day whose sheet is open, if any. Held apart from `subject` because the
+   * two are open together: an entry opened from the sheet sits over it, and
+   * closing the entry goes back to the day rather than to the grid.
+   */
+  const [sheetDate, setSheetDate] = useState<string | null>(null)
 
   const selectView = (next: CalendarView): void => {
     setSearchParams({ view: next }, { replace: true })
@@ -85,6 +92,8 @@ export function CalendarPage(): ReactNode {
     }
   })()
 
+  // Entries only, as the label says. Release dates and follow-ups are drawn in
+  // every lens, but they are filed in DISCOGRAPHY and ARTISTS, not here.
   const inPeriod = useMemo(() => {
     switch (view) {
       case 'month':
@@ -113,6 +122,18 @@ export function CalendarPage(): ReactNode {
     setAnchor(date)
     selectView('day')
   }
+
+  const openDay = (date: string): void => {
+    // Cleared on the way in, as an entry's dialog clears it, so the sheet's
+    // footer only ever reports what went wrong on this day.
+    actions.clearError()
+    attachment.clear()
+    setSheetDate(date)
+  }
+
+  // Stable, because the sheet binds its Escape listener to it and would
+  // otherwise rebind on every render of the page.
+  const closeDay = useCallback(() => setSheetDate(null), [])
 
   /*
    * The department's chords.
@@ -163,7 +184,8 @@ export function CalendarPage(): ReactNode {
         // On the anchored date, which is the day the operator is looking at.
         // In MONTH that is the first of the month rather than today, and that
         // is the honest answer — the dialog opens on a date you can see.
-        run: () => openDate(anchor)
+        // With a day sheet open, the day being looked at is the sheet's.
+        run: () => openDate(sheetDate ?? anchor)
       },
       {
         chord: 'escape',
@@ -175,7 +197,7 @@ export function CalendarPage(): ReactNode {
       }
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [view, anchor, subject]
+    [view, anchor, subject, sheetDate]
   )
 
   useHotkeys(hotkeys)
@@ -330,8 +352,9 @@ export function CalendarPage(): ReactNode {
               anchor={anchor}
               entries={state.entries}
               releases={state.releases}
+              followUps={state.followUps}
               onOpenEntry={openEntry}
-              onOpenDate={(date) => openDate(date)}
+              onOpenDay={openDay}
               onInspectDate={inspectDate}
             />
           ) : null}
@@ -341,6 +364,7 @@ export function CalendarPage(): ReactNode {
               dates={week}
               entries={state.entries}
               releases={state.releases}
+              followUps={state.followUps}
               onOpenEntry={openEntry}
               onOpenSlot={(date, startMinute) => openDate(date, startMinute)}
               onInspectDate={inspectDate}
@@ -352,6 +376,7 @@ export function CalendarPage(): ReactNode {
               date={anchor}
               entries={state.entries}
               releases={state.releases}
+              followUps={state.followUps}
               onOpenEntry={openEntry}
               onOpenSlot={(date, startMinute) => openDate(date, startMinute)}
               onToggleDone={toggleDone}
@@ -364,6 +389,7 @@ export function CalendarPage(): ReactNode {
               from={anchor}
               entries={state.entries}
               releases={state.releases}
+              followUps={state.followUps}
               onOpenEntry={openEntry}
               onToggleDone={toggleDone}
               onInspectDate={inspectDate}
@@ -372,6 +398,26 @@ export function CalendarPage(): ReactNode {
           ) : null}
         </Panel>
       </motion.div>
+
+      {/*
+        Ahead of the entry dialog, so that when both are open the dialog is
+        portalled after the sheet and drawn over it. Add files on the sheet's
+        date exactly as a click on the date used to: the whole day, with the
+        dialog's usual start time once that is unticked.
+      */}
+      <DaySheet
+        date={sheetDate}
+        entries={state.entries}
+        releases={state.releases}
+        followUps={state.followUps}
+        canAdd={state.attached}
+        error={actions.error ?? attachment.problem}
+        onClose={closeDay}
+        onAdd={(date) => openDate(date)}
+        onOpenEntry={openEntry}
+        onToggleDone={toggleDone}
+        onOpenAttachment={attachment.open}
+      />
 
       <EntryDialog
         subject={subject}

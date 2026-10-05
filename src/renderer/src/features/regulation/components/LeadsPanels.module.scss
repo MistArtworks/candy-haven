@@ -1,0 +1,123 @@
+@use 'abstracts' as *;
+
+// REGULATION's LEADS section: the predefined interactions, as the approved
+// prototype lays them out. Points that warm a lead are written warm, points
+// that cool it cold: two stops of the temperature ramp.
+
+$t-cold: #63b3ea;
+$t-warm: #e0954b;
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  max-width: rem(760px);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) rem(84px) rem(36px);
+  gap: space(2);
+  align-items: center;
+  max-width: rem(760px);
+  margin: 0;
+}
+
+.name,
+.points {
+  min-width: 0;
+  height: rem(36px);
+  padding: 0 space(3);
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  border: $hairline solid var(--ch-line);
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--ch-line-gold);
+  }
+}
+
+.points {
+  @include readout(13px);
+  text-align: center;
+  appearance: textfield;
+
+  &[data-sign='plus'] {
+    color: $t-warm;
+  }
+
+  &[data-sign='minus'] {
+    color: $t-cold;
+  }
+}
+
+.remove,
+.add {
+  height: rem(36px);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.remove {
+  font-size: rem(15px);
+}
+
+.add {
+  @include label(9px, 0.16em);
+}
+
+.problem {
+  grid-column: 1 / -1;
+  margin: 0;
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+}
+
+.foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: space(4);
+  max-width: rem(760px);
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+}
+
+.cooling {
+  display: grid;
+  grid-template-columns: auto rem(84px);
+  align-items: center;
+  gap: space(2) space(4);
+
+  p {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+}

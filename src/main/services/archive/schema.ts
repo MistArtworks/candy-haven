@@ -71,6 +71,10 @@ export const Collections = {
    * statement of intent the operator made. See shared/domain/calendar.ts.
    */
   Calendar: 'calendar',
+  /** ARTISTS' light CRM: the people Candy is building relationships with. */
+  Leads: 'artists_leads',
+  /** Real work that came of a lead. */
+  Opportunities: 'artists_opportunities',
   /**
    * COLOPHON: the details the website carries (PUBLICATION division).
    *

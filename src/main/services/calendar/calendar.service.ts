@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type {
   CalendarDraft,
   CalendarEntry,
+  CalendarFollowUp,
   CalendarPatch,
   CalendarRelease,
   CalendarState
@@ -34,6 +35,19 @@ interface CalendarEvents {
 export type ReleaseDateReader = () => Promise<CalendarRelease[]>
 
 /**
+ * How follow-ups reach the register.
+ *
+ * The same inversion as `ReleaseDateReader`, for the same reason: the tasks
+ * live on ARTISTS' leads and opportunities, and the service that holds them is
+ * built after this one.
+ *
+ * Read on every snapshot rather than cached, so completing a follow-up in its
+ * lead, or moving its due time, cannot leave a stale marker on the calendar:
+ * there is no copy here for it to disagree with.
+ */
+export type FollowUpReader = () => Promise<CalendarFollowUp[]>
+
+/**
  * CALENDAR — the dated register.
  *
  * Holds the whole register in memory and mirrors every change to the archive.
@@ -57,6 +71,7 @@ export class CalendarService extends TypedEmitter<CalendarEvents> {
   private hydrating: Promise<void> | null = null
 
   private readReleaseDates: ReleaseDateReader | null = null
+  private readFollowUps: FollowUpReader | null = null
 
   constructor(private readonly archive: ArchiveService) {
     super()
@@ -68,6 +83,11 @@ export class CalendarService extends TypedEmitter<CalendarEvents> {
     this.readReleaseDates = reader
   }
 
+  /** Wired by the container once the leads service exists. */
+  setFollowUpReader(reader: FollowUpReader): void {
+    this.readFollowUps = reader
+  }
+
   /** The register, hydrating from the archive if this is the first read. */
   async snapshot(): Promise<CalendarState> {
     await this.hydrate()
@@ -75,11 +95,13 @@ export class CalendarService extends TypedEmitter<CalendarEvents> {
   }
 
   /**
-   * The register, including the release dates projected onto it.
+   * The register, including the release dates and follow-ups projected onto
+   * it.
    *
    * Async, and it has to be: the projection is read from the catalogue on
    * every build rather than cached, which is the whole of D20 — nothing here
    * holds a copy of a release date, so nothing here can disagree with one.
+   * Follow-ups are read from ARTISTS on the same terms.
    *
    * An earlier pass kept a synchronous `state()` for `publish()` to use, on
    * the reasoning that filing an entry should not wait on the catalogue. That
@@ -93,6 +115,7 @@ export class CalendarService extends TypedEmitter<CalendarEvents> {
     return {
       entries: [...this.entries].sort(compareEntries),
       releases: (await this.readReleaseDates?.()) ?? [],
+      followUps: (await this.readFollowUps?.()) ?? [],
       attached: this.archive.isOnline()
     }
   }
@@ -103,7 +126,8 @@ export class CalendarService extends TypedEmitter<CalendarEvents> {
    * Called by the discography service through a listener wired in the
    * composition root. A release date moving is not something this service can
    * see — it holds no copy of one — so it has to be told that its projection
-   * is stale, which is a different thing from being told what changed.
+   * is stale, which is a different thing from being told what changed. A
+   * follow-up added, moved or completed in ARTISTS arrives the same way.
    */
   async refresh(): Promise<void> {
     if (!this.hydrated) return

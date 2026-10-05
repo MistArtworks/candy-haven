@@ -515,8 +515,197 @@ $kind-tones: (
 
 // A release takes the whole width of a ledger row: it has no clock to sit
 // under, no mark to tick, and nothing to put in the other three columns.
-.agendaRelease {
+.agendaRow.agendaRelease {
   grid-template-columns: minmax(0, 1fr);
+}
+
+// ------------------------------------------------ follow-up markers
+
+// A follow-up from ARTISTS on the register. See `FollowUpMark`.
+//
+// The calendar's third kind of object, built so it cannot pass for either of
+// the other two. Not a chip: no tone bar, because it is not an entry and
+// nothing here can strike it or move it. Not a release mark: no seal and no
+// caps, because it is not a record in the catalogue. An arrow, a time and a
+// name, which is what a follow-up is: somebody to get back to, at a minute.
+//
+// The arrow is alabaster. Gold is the catalogue's, and crimson is kept for the
+// one state of a follow-up that is live, which is overdue.
+
+/// What a follow-up's status does to it, wherever it is drawn.
+///
+/// Each place that draws one (the mark in a month cell or on the clock, a row
+/// of the day sheet or of AGENDA) puts `data-status` on its outer element and
+/// includes this, naming its own parts. One rule for all of them, so they
+/// cannot come to disagree about what overdue looks like.
+///
+/// @param {String} $toned - The parts that turn crimson once it is overdue.
+/// @param {String} $struck - The parts struck through once it is complete.
+/// @param {Number} $dim - How far a complete one fades: as far as an entry
+///   discharged beside it, so the two read as the same kind of finished.
+@mixin follow-up-status($toned, $struck, $dim) {
+  // Overdue in crimson: the time to act has passed and nothing has been done,
+  // which is live state if anything on the register is.
+  &[data-status='overdue'] {
+    #{$toned} {
+      color: var(--ch-crimson-400);
+    }
+  }
+
+  // Complete, struck and dimmed rather than gone, as a discharged entry is:
+  // the register keeps the record of what was done on the day.
+  &[data-status='complete'] {
+    opacity: $dim;
+
+    #{$struck} {
+      text-decoration: line-through;
+    }
+  }
+}
+
+.followUpMark {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  width: 100%;
+  min-width: 0;
+  padding: 2px space(1) 2px 0;
+  text-align: left;
+  transition: background-color $duration-fast linear;
+
+  &:hover {
+    background: rgba(182, 158, 124, 0.07);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-1px);
+  }
+
+  @include follow-up-status(
+    '.followUpGlyph, .followUpLabel, .followUpClock, .followUpWho',
+    '.followUpWho, .followUpTitle',
+    0.4
+  );
+}
+
+// 7px in a mark. A row gives it the 8px of the discharge mark whose slot it
+// takes; see `.sheetFollowUp` below.
+.followUpGlyph {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  color: var(--ch-alabaster-500);
+}
+
+.followUpLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+  flex-shrink: 0;
+}
+
+.followUpClock {
+  @include readout(8px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+// The name keeps its width and the task gives way to it. Most follow-ups
+// carry one of a few titles ("First interaction"), so in a narrow cell the
+// name is the part worth keeping.
+.followUpWho {
+  flex: 0 1 auto;
+  font-size: rem(10px);
+  line-height: 1.3;
+  color: var(--ch-text-secondary);
+  @include truncate;
+}
+
+.followUpTitle {
+  flex: 1 1 0;
+  font-size: rem(10px);
+  line-height: 1.3;
+  color: var(--ch-text-muted);
+  @include truncate;
+}
+
+// Lead or opportunity, on the day sheet's meta line: where pressing it goes.
+.followUpParent {
+  @include label(7px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+// High priority: one figure at the far end, where an entry keeps its hints.
+// Gold rather than crimson, because it says how much the follow-up matters,
+// not that anything has gone wrong.
+.followUpPriority {
+  @include readout(9px);
+  line-height: 1;
+  color: var(--ch-gold-400);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+// On the clock a follow-up is a point, not a span: a rule at its minute, with
+// the mark hanging from it. The box the grid gives it is only the room the
+// words need (`FOLLOW_UP_FOOTPRINT`), so it has no surface and no frame, which
+// is what tells it from an entry's block at a glance.
+.timeFollowUp {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  // As wide as its words rather than its lane. A rule across a whole day
+  // column reads as the clock's "now" line, and an overdue one, in crimson,
+  // would be taken for it.
+  align-items: flex-start;
+  overflow: hidden;
+  // The room under the mark is reserved, not occupied. A click there still
+  // reaches the hour beneath and files an entry, as it would beside it.
+  pointer-events: none;
+
+  .followUpMark {
+    width: auto;
+    max-width: 100%;
+    pointer-events: auto;
+    padding: 2px space(2) 2px space(1);
+    border-top: 1px solid var(--ch-alabaster-600);
+
+    &[data-status='overdue'] {
+      border-top-color: var(--ch-crimson-400);
+    }
+  }
+}
+
+// The day sheet's rows and AGENDA's, made of the entry rows' own parts so a
+// follow-up keeps time with the entries around it.
+.sheetFollowUp,
+.agendaFollowUp {
+  .followUpGlyph {
+    width: 8px;
+    height: 8px;
+    margin-top: rem(4px);
+  }
+}
+
+.sheetFollowUp {
+  @include follow-up-status(
+    '.followUpGlyph, .sheetKind, .sheetClock, .sheetTitle',
+    '.sheetTitle, .sheetNotes',
+    0.45
+  );
+}
+
+.agendaFollowUp {
+  @include follow-up-status(
+    '.followUpGlyph, .agendaKind, .agendaClock, .agendaTitle',
+    '.agendaTitle, .agendaNotes',
+    0.45
+  );
+}
+
+// Follow-ups left open before the date AGENDA opens on, in the line that
+// counts what came earlier.
+.agendaOverdue {
+  color: var(--ch-crimson-400);
 }
 
 // ----------------------------------------------------------- time grid
@@ -1440,6 +1629,32 @@ $kind-tones: (
 .dialogActions {
   display: flex;
   gap: space(2);
+  // The buttons keep their width when a message shares the footer with them,
+  // as the day sheet's does; the message wraps instead.
+  flex-shrink: 0;
+}
+
+// ---------------------------------------------------------------- day sheet
+
+// The day a month cell opens (`DaySheet`): the entry dialog's own slab, holding
+// the DAY view's list instead of a form. The head is ruled off by itself
+// because there is no purpose line under it to carry the rule.
+.daySheetHead {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(4) space(5);
+  @include hairline(bottom, 0.1);
+}
+
+// Unpadded, so the list's rows run edge to edge as they do in DAY. It takes
+// whatever height the slab has left between the head and the foot, and
+// scrolls inside it, so Add is never pushed off the bottom of a busy day.
+.daySheetBody {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 // ------------------------------------------------------------------ narrow
