@@ -73,6 +73,9 @@ export function VestibulePage(): ReactNode {
     window.localStorage.getItem(LAST_SHELF_KEY)
   )
   const [error, setError] = useState<string | null>(null)
+  // A temporary project goes straight to the handoff, with no mutation to
+  // carry its pending state.
+  const [handingOff, setHandingOff] = useState(false)
 
   const archiveOnline = archive.state === 'online' || archive.state === 'degraded'
 
@@ -153,6 +156,21 @@ export function VestibulePage(): ReactNode {
     [mutations.create]
   )
 
+  /*
+   * A temporary project: made, opened and handed off in one call, since there
+   * is no record to make first. On success the window goes, so only a refusal
+   * needs the busy state put back.
+   */
+  const submitTemporary = useCallback((draft: { name?: string }) => {
+    setError(null)
+    setHandingOff(true)
+    window.candy.vestibule.handoffTemporary(draft).catch((cause: Error) => {
+      const hint = (cause as { hint?: string | null }).hint
+      setError(hint ? `${cause.message} ${hint}` : cause.message)
+      setHandingOff(false)
+    })
+  }, [])
+
   return (
     <div className={styles.vestibule} onPointerMove={onPointerMove}>
       <VestibuleField leanRef={leanRef} tone={archiveOnline ? 'nominal' : 'unstable'} />
@@ -180,9 +198,10 @@ export function VestibulePage(): ReactNode {
             folders={tree?.folders ?? []}
             shelfId={shelfId}
             onShelfChange={chooseShelf}
-            busy={mutations.create.isPending}
+            busy={mutations.create.isPending || handingOff}
             error={error}
             onSubmit={submit}
+            onSubmitTemporary={submitTemporary}
             onBack={() => {
               setMode('choose')
               setError(null)

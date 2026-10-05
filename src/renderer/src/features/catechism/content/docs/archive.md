@@ -61,13 +61,58 @@ Every shelf is a real directory under the filing root, created as you make it.
 
 ## How to start a project
 
+![archive-19-new-project.png](archive-19-new-project.png)
+
 1. Open the shelf it belongs on.
 2. Press **New project** (or `Ctrl`+`Shift`+`N`).
-3. Name it, choose its category (`SINGLE`, `EP`, `REMIX`...) and credit who it is
-   with, then press **Create**.
+3. Leave **FILED** chosen at the top. It is chosen every time the form opens.
+4. Name it, choose its category (`SINGLE`, `EP`, `REMIX`...) and a colour, then
+   press **Create**.
 
 The folder is made on the shelf with your template set copied into it, ready to
 open in Ableton from the dossier's **OPEN IN ABLETON**.
+
+## Temporary projects
+
+![archive-18-temporary.png](archive-18-temporary.png)
+
+For a quick job that doesn't need filing: audio edited for a video, a master
+rebalanced, a stem pulled out for someone. A temporary project is a set made
+from your template that opens in Ableton without being filed anywhere.
+
+1. Press **New project**: here on any shelf, on the quick strip, or in the
+   vestibule.
+2. Choose **TEMPORARY** at the top. The shelf, category and colour go away.
+3. Type a name, or leave it empty and it is named for when it was made, like
+   `Temporary 2026-10-05 14.32`.
+4. Press **Open in Live**.
+
+The set opens in Ableton straight away. Where it lives, and what the archive
+does with it:
+
+- It is made in **TEMPORARY PROJECTS**, a folder beside Projects inside the
+  archive's own folder (`Candy Haven\TEMPORARY PROJECTS`), as `Name Project`
+  with your template set inside.
+- It is never in the register. Scans skip that folder, so it doesn't show in
+  any lens, and it can't be filed, staged or linked to a release.
+- A name already used there gets a number: `Video edit (2)`.
+
+### When a temporary project goes
+
+A day after it was last saved, it is moved to the Windows **Recycle Bin**. Change
+how long in REGULATION, under ARCHIVE: **Keep temporary projects for** 1 day, 3
+days, a week, 30 days, or until removed.
+
+- The time counts from the last change to anything inside it, so saving it
+  again starts the time over.
+- The check runs when Haven starts and then every hour.
+- A set still open in Ableton Live is left alone and checked again an hour
+  later.
+- From the Recycle Bin it comes back like any deleted file.
+
+> To keep one, use **Save As** in Live to save it outside TEMPORARY PROJECTS,
+> in a folder INTAKE reads, then file it from INTAKE like any other set.
+> REGULATION's **Open the temporary folder** opens it in Explorer.
 
 ## How to review a project
 

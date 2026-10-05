@@ -20,6 +20,7 @@ import type {
 import type {
   DispatchCommentDraft,
   DispatchDraft,
+  DispatchNotice,
   DispatchRuling,
   DispatchSetup,
   DispatchState
@@ -46,7 +47,9 @@ import type {
   ArchiveSetupState,
   FolderDraft,
   FolderPatch,
-  StacksTree
+  StacksTree,
+  TemporaryProject,
+  TemporaryProjectDraft
 } from '../domain/stacks'
 import type { TagDraft, TagPatch, TagSummary } from '../domain/tags'
 import type {
@@ -210,6 +213,13 @@ export interface CandyHavenApi {
     create(draft: ProjectDraft): Promise<ProjectRecord>
     /** Opens the primary set in whatever the OS has registered for `.als`. */
     open(id: string): Promise<void>
+    /**
+     * Makes a temporary project and opens it in Live. Never filed; cleared
+     * out after the keep in REGULATION.
+     */
+    temporary(draft: TemporaryProjectDraft): Promise<TemporaryProject>
+    /** Opens the temporary projects folder in Explorer. */
+    temporaryFolder(): Promise<void>
     /** Drops the record. Files are left exactly where they are. */
     forget(id: string): Promise<void>
     /** Moves the project folder into the archive's recycle bin. Reversible. */
@@ -503,6 +513,8 @@ export interface CandyHavenApi {
     /** Removes the item and its discussion. Denying keeps both. */
     withdraw(id: string): Promise<DispatchState>
     onState(listener: (state: DispatchState) => void): Unsubscribe
+    /** What the other person did, as it arrives, for the console's notice. */
+    onNotice(listener: (notice: DispatchNotice) => void): Unsubscribe
   }
   readonly muster: {
     state(): Promise<MusterState>
@@ -666,6 +678,8 @@ export interface CandyHavenApi {
     console(route?: string | null): Promise<void>
     /** Opens the new set in Ableton and retires the application to the tray. */
     handoff(id: string): Promise<void>
+    /** Makes a temporary project, opens it in Ableton, and retires to the tray. */
+    handoffTemporary(draft: TemporaryProjectDraft): Promise<void>
   }
   readonly shell: {
     openExternal(url: string): Promise<void>

@@ -19,6 +19,8 @@ export interface ItemCardProps {
   unread: number
   /** True for an item the reader has never opened at all. */
   unseen: boolean
+  /** True when the other person changed its status since the reader last opened it. */
+  ruled: boolean
   onOpen: () => void
 }
 
@@ -35,8 +37,18 @@ export interface ItemCardProps {
  * sits where the eye lands rather than at the end of the row. NEW and a comment
  * count are separate marks: an item nobody has replied to yet is the one most
  * easily missed, precisely because it has no discussion to draw attention.
+ *
+ * A ruling since the reader last looked has a third, NOW RESOLVED and the
+ * like: the status at the row's end says what it is, this says it changed.
  */
-export function ItemCard({ item, selected, unread, unseen, onOpen }: ItemCardProps): ReactNode {
+export function ItemCard({
+  item,
+  selected,
+  unread,
+  unseen,
+  ruled,
+  onOpen
+}: ItemCardProps): ReactNode {
   const comments = Object.keys(item.comments).length
 
   return (
@@ -49,6 +61,14 @@ export function ItemCard({ item, selected, unread, unseen, onOpen }: ItemCardPro
     >
       <span className={styles.cardMarks}>
         {unseen ? <span className={styles.markNew}>NEW</span> : null}
+        {ruled ? (
+          <span
+            className={styles.markRuled}
+            {...tooltipTrigger('The status changed since you last opened it')}
+          >
+            NOW {DISPATCH_STATUS_LABEL[item.status]}
+          </span>
+        ) : null}
         {unread > 0 ? (
           <span className={styles.markUnread} {...tooltipTrigger(`${unread} unread`)}>
             {unread}

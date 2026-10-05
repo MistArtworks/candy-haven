@@ -3,12 +3,24 @@ import { notify } from '@renderer/components/feedback/notify'
 import type {
   DispatchCommentDraft,
   DispatchDraft,
-  DispatchItem,
   DispatchRuling,
   DispatchSetup,
   DispatchState
 } from '@shared/domain/dispatch'
 import { DISPATCH_ADJUDICATOR, type DispatchAuthor } from '@shared/domain/dispatch.constants'
+
+/*
+ * What is new on the board lives in the shared domain now, because the main
+ * process reads the same rules to raise DISPATCH's notices. Re-exported so the
+ * board's own imports stay where they were.
+ */
+export {
+  countWaiting,
+  hasNews,
+  isUnseen,
+  rulingUnseen,
+  unreadCount
+} from '@shared/domain/dispatch.unread'
 
 const EMPTY: DispatchState = {
   link: {
@@ -93,36 +105,6 @@ export function useIdentity(state: DispatchState): DispatchAuthor | null {
 /** Only one of them rules on items. The other files and comments. */
 export function canAdjudicate(identity: DispatchAuthor | null): boolean {
   return identity === DISPATCH_ADJUDICATOR
-}
-
-// -------------------------------------------------------------------- unread
-
-/**
- * Comments on an item that the reader has not seen.
- *
- * Their own are never counted, however old their `seen` stamp is: a person
- * cannot have unread mail they wrote. Everything else is compared against the
- * one timestamp, which is what keeps this a subtraction rather than a set.
- */
-export function unreadCount(item: DispatchItem, identity: DispatchAuthor | null): number {
-  if (!identity) return 0
-
-  const since = item.seen[identity] ?? 0
-  return Object.values(item.comments).filter(
-    (comment) => comment.author !== identity && comment.createdAt > since
-  ).length
-}
-
-/**
- * True for an item the reader has never opened, filed by the other person.
- *
- * Distinct from having unread comments, and worth its own mark: an item with no
- * discussion yet is exactly the one most likely to be missed, because there is
- * no comment count drawing the eye to it.
- */
-export function isUnseen(item: DispatchItem, identity: DispatchAuthor | null): boolean {
-  if (!identity) return false
-  return item.author !== identity && (item.seen[identity] ?? 0) === 0
 }
 
 // -------------------------------------------------------------------- actions

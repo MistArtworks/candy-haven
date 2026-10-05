@@ -74,6 +74,15 @@ export const DispatchItemSchema = z.object({
    */
   statusReason: z.string().max(DISPATCH_REASON_MAX).nullable().default(null),
   statusAt: z.number().nullable().default(null),
+  /**
+   * Who last changed the status, and when: resolved, denied, or put back to
+   * pending. `statusAt` can't say, being null while pending, and nothing said
+   * who. Read by the unread marks and the notices (`dispatch.unread.ts`), so
+   * the other person hears about a ruling and the one who made it doesn't.
+   * Null and 0 on items ruled before 1.26.0.
+   */
+  ruledBy: DispatchAuthorSchema.nullable().default(null),
+  ruledAt: z.number().default(0),
 
   /**
    * Keyed rather than an array.
@@ -112,6 +121,38 @@ export const DispatchStateSchema = z.object({
   revision: z.number().int().min(0).default(0)
 })
 export type DispatchState = z.infer<typeof DispatchStateSchema>
+
+// ------------------------------------------------------------------- notices
+
+/**
+ * One thing the other person did on the board, as it arrived: filed an item,
+ * commented, or changed a status. Worked out in the main process by comparing
+ * each frame from the database with what it held (`changesBetween`).
+ */
+export const DispatchActivitySchema = z.object({
+  itemId: z.string(),
+  title: z.string(),
+  kind: z.enum(['filed', 'comment', 'ruling']),
+  who: DispatchAuthorSchema,
+  itemKind: DispatchKindSchema,
+  /** The new status, for a ruling. */
+  status: DispatchStatusSchema.nullable(),
+  /** The body's, comment's or reason's first line. */
+  detail: z.string()
+})
+export type DispatchActivity = z.infer<typeof DispatchActivitySchema>
+
+/**
+ * A notice for the console: what just arrived, or, once per sitting on
+ * opening, how many items have something new (`waiting`, with no changes).
+ */
+export const DispatchNoticeSchema = z.object({
+  changes: z.array(DispatchActivitySchema),
+  waiting: z.number().int().min(0),
+  /** The one item the opening summary is about, when it is about one. */
+  itemId: z.string().nullable()
+})
+export type DispatchNotice = z.infer<typeof DispatchNoticeSchema>
 
 // -------------------------------------------------------------------- inputs
 

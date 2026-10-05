@@ -34,7 +34,9 @@ import { useHotkeys } from '@renderer/hotkeys/useHotkeys'
 import type { Hotkey } from '@renderer/hotkeys/registry'
 import {
   canAdjudicate,
+  countWaiting,
   isUnseen,
+  rulingUnseen,
   unreadCount,
   useDispatch,
   useDispatchActions,
@@ -62,11 +64,15 @@ const LINK_TONE: Record<string, StatusTone> = {
  * or denied with a reason — and both copies of the app see the same list within
  * a moment of each other, because the record lives in a database they share.
  *
- * There is no login and there will not be one. Identity is chosen on the page,
- * remembered per machine, and labels an item rather than authorising anything:
- * a password on a board two people share protects nothing and would be one more
- * thing to lose. The one rule that is enforced is that only mist rules on an
- * item, which is a division of labour rather than a permission.
+ * Each signs in with their own account, and identity is whichever account the
+ * credential resolved to (see `dispatch.constants.ts`). The one rule the
+ * interface keeps is that only mist rules on an item, which is a division of
+ * labour rather than a permission.
+ *
+ * What the other person did since the reader last looked is marked on the
+ * rows and counted on the rail (`dispatch.unread.ts`), and told as it arrives
+ * in a notice (`DispatchCues`, `main/app/board-notices.ts`) that opens the
+ * item here through `?item=`.
  */
 export function DispatchPage(): ReactNode {
   const section = getSection('dispatch')
@@ -74,7 +80,6 @@ export function DispatchPage(): ReactNode {
   const actions = useDispatchActions()
   const identity = useIdentity(state)
 
-  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<DispatchStatus | 'all'>('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<DispatchSort>('active')
@@ -91,6 +96,28 @@ export function DispatchPage(): ReactNode {
   const [searchParams, setSearchParams] = useSearchParams()
   const newIntent = searchParams.get('new')
   const showCompose = composing || newIntent === 'compose'
+
+  /*
+   * The open item lives in the address (`?item=`), so a notice, in the
+   * console or from Windows, opens straight at what it is about. Replaced
+   * rather than pushed: opening items one after another is not a history to
+   * step back through.
+   */
+  const selectedId = searchParams.get('item')
+  const setSelectedId = useCallback(
+    (id: string | null) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current)
+          if (id) next.set('item', id)
+          else next.delete('item')
+          return next
+        },
+        { replace: true }
+      )
+    },
+    [setSearchParams]
+  )
 
   const clearNewIntent = useCallback(() => {
     setSearchParams(
@@ -125,26 +152,23 @@ export function DispatchPage(): ReactNode {
   /*
    * Opening an item marks it read.
    *
-   * Keyed on the id and the comment count rather than on the item, so a reply
-   * that lands while the thread is *already open* is also marked — otherwise
-   * closing it would leave a mark for something that was read as it arrived.
+   * Keyed on the id, the comment count and the last ruling rather than on the
+   * item, so a reply or a ruling that lands while the thread is *already open*
+   * is also marked — otherwise closing it would leave a mark for something
+   * that was read as it arrived.
    */
   const commentCount = selected ? Object.keys(selected.comments).length : 0
+  const ruledAt = selected?.ruledAt ?? 0
   useEffect(() => {
     if (!selected || !identity) return
     void actions.markSeen(selected.id, identity)
     // `actions` is rebuilt whenever a request is in flight; depending on it
     // would re-mark on every keystroke of an unrelated action.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected?.id, commentCount, identity])
+  }, [selected?.id, commentCount, ruledAt, identity])
 
-  /** Items with something new on them, for the header count. */
-  const waiting = useMemo(
-    () =>
-      state.items.filter((item) => unreadCount(item, identity) > 0 || isUnseen(item, identity))
-        .length,
-    [state.items, identity]
-  )
+  /** Items with something new on them, for the header count. The rail counts the same. */
+  const waiting = useMemo(() => countWaiting(state.items, identity), [state.items, identity])
 
   const pending = state.items.filter((item) => item.status === 'pending').length
 
@@ -173,7 +197,7 @@ export function DispatchPage(): ReactNode {
         }
       }
     ],
-    [showCompose, newIntent, clearNewIntent, identity, selectedId, state.link.state]
+    [showCompose, newIntent, clearNewIntent, identity, selectedId, setSelectedId, state.link.state]
   )
 
   useHotkeys(hotkeys)
@@ -371,6 +395,7 @@ export function DispatchPage(): ReactNode {
                     selected={item.id === selectedId}
                     unread={unreadCount(item, identity)}
                     unseen={isUnseen(item, identity)}
+                    ruled={rulingUnseen(item, identity)}
                     onOpen={() => setSelectedId(item.id === selectedId ? null : item.id)}
                   />
                 </li>

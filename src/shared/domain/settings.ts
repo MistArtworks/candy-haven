@@ -3,6 +3,7 @@ import { sparseShape } from './patch'
 import { DEFAULT_ARCHIVE_PORT, DEFAULT_OVERLAY_PORT } from '../constants'
 import { LAUNCH_WITH, StripSettingsSchema } from './strip'
 import { LeadsSettingsSchema } from './leads'
+import { TEMPORARY_KEEPS } from './stacks.constants'
 
 /**
  * Persisted operator settings. Every field carries a default so a missing or
@@ -149,6 +150,12 @@ export const WorkspaceSettingsSchema = z.object({
    * folder is duplicated along with everything else.
    */
   intakeMode: z.enum(['move', 'copy']).default('move'),
+  /**
+   * How long a TEMPORARY project is kept after it was last saved, before it
+   * goes to the Recycle Bin. A day by default: a temporary set is for a quick
+   * job, and the point of it is that it doesn't pile up.
+   */
+  temporaryKeep: z.enum(TEMPORARY_KEEPS).default('day'),
   /** Directory watched for stream overlay assets. */
   overlayAssetPath: z.string().nullable().default(null),
   /**
@@ -294,7 +301,13 @@ export const IntegrationSettingsSchema = z.object({
    * development copy share this file, and one address stored here would point
    * the other at the wrong website. See `LIVE_WEBSITE_URL`.
    */
-  websiteUrl: z.string().max(256).default('')
+  websiteUrl: z.string().max(256).default(''),
+  /**
+   * DISPATCH's notices: a notice in the console, or a Windows notification
+   * when the console isn't in front, when the other person files an item,
+   * comments, or changes a status. The unread marks show either way.
+   */
+  boardNotices: z.boolean().default(true)
 })
 export type IntegrationSettings = z.infer<typeof IntegrationSettingsSchema>
 

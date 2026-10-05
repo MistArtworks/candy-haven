@@ -40,6 +40,7 @@ export {
   RELEASES_DIRECTORY_NAME,
   RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
   RESERVED_WRAPPER_DIRECTORIES,
+  TEMPORARY_DIRECTORY_NAME,
   UNWALKED_WRAPPER_DIRECTORIES,
   VALID_CHILD_KINDS,
   WRAPPER_DIRECTORY_NAME,
@@ -167,6 +168,11 @@ export const ArchiveSetupStateSchema = z.object({
   wrapperReady: z.boolean(),
   /** `<wrapper>/RECYCLE BIN`. Null whenever `filingRoot` is. */
   recycleBin: z.string().nullable(),
+  /**
+   * `<wrapper>/TEMPORARY PROJECTS`, where a temporary set goes. Null whenever
+   * `filingRoot` is. Made the first time one is, so it may not exist yet.
+   */
+  temporaryRoot: z.string().nullable(),
   /** The template `.als` copied into every new project. */
   templatePath: z.string().nullable(),
   /** True when the template is set and the file is actually present. */
@@ -186,6 +192,25 @@ export const ArchiveSetupStateSchema = z.object({
   ready: z.boolean()
 })
 export type ArchiveSetupState = z.infer<typeof ArchiveSetupStateSchema>
+
+/**
+ * A new temporary project: a set for a quick job, never filed.
+ *
+ * The name is optional, because a quick job rarely has one worth typing; left
+ * out, the set is named for when it was made (`temporaryName`).
+ */
+export const TemporaryProjectDraftSchema = z.object({
+  name: z.string().max(MAX_FOLDER_NAME_LENGTH).optional()
+})
+export type TemporaryProjectDraft = z.infer<typeof TemporaryProjectDraftSchema>
+
+/** A temporary project once made: its name, its folder and its set. */
+export const TemporaryProjectSchema = z.object({
+  name: z.string(),
+  path: z.string(),
+  setPath: z.string()
+})
+export type TemporaryProject = z.infer<typeof TemporaryProjectSchema>
 
 /**
  * What the setup gate submits.

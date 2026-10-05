@@ -10,6 +10,8 @@ import { VestibuleManager } from './app/vestibule'
 import { StripManager } from './app/strip'
 import { Reminders } from './app/reminders'
 import { FollowUpReminders } from './app/follow-ups'
+import { TemporarySweep } from './app/temporary-sweep'
+import { BoardNotices } from './app/board-notices'
 import type { TargetHost } from './app/targets'
 import type { StripPopup } from '@shared/domain/strip'
 import { applyLaunchAtStartup, launchedHidden } from './app/startup'
@@ -355,6 +357,20 @@ async function start(): Promise<void> {
     overdueChanged: () => void services.calendar.refresh()
   })
 
+  // Temporary projects past their keep go to the Recycle Bin.
+  const temporarySweep = new TemporarySweep(() => services.stacks.sweepTemporaryProjects())
+
+  // DISPATCH: what the other person did, in the console and, when the console
+  // isn't in front, as a Windows notice that opens the item. Listening before
+  // boot attaches the board, so the opening summary isn't missed.
+  const boardNotices = new BoardNotices({
+    enabled: () => services.settings.snapshot.integrations.boardNotices,
+    inFront: () => windows.isPresent() && windows.getState().isFocused,
+    toConsole: (notice) => router.broadcast('dispatch:notice', notice),
+    open: (itemId) => void openConsole(itemId ? `/dispatch?item=${itemId}` : '/dispatch')
+  })
+  const stopBoardNotices = services.dispatch.on('notice', (notice) => boardNotices.arrived(notice))
+
   // The boot sequence runs alongside window creation: the renderer paints the
   // boot screen immediately and subscribes to progress already in flight.
   void boot.run().then((snapshot) => {
@@ -371,6 +387,7 @@ async function start(): Promise<void> {
     // Reminders read the register, which is there once the archive is.
     reminders.start()
     followUps.start()
+    temporarySweep.start()
   })
 
   app.on('activate', () => {
@@ -415,6 +432,9 @@ async function start(): Promise<void> {
         popouts.dispose()
         reminders.dispose()
         followUps.dispose()
+        temporarySweep.dispose()
+        stopBoardNotices()
+        boardNotices.dispose()
         strip.dispose()
         vestibule.dispose()
         tray.dispose()

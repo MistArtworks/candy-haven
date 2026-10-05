@@ -45,6 +45,23 @@ and is usually set for you when the release goes out.
 `SHELVED` is off-pipeline — parked indefinitely, kept for parts rather than for
 release, and never moved by anything you do in the catalogue.
 
+## Temporary projects, for quick jobs
+
+![archive-18-temporary.png](archive-18-temporary.png)
+
+**New project** asks **FILED** or **TEMPORARY** first. FILED is the usual: on a
+shelf, and kept. TEMPORARY is for a quick job like audio for a video or a
+master rebalanced: the name is optional, nothing is filed, and **Open in Live**
+opens it straight away from the TEMPORARY PROJECTS folder.
+
+- A temporary project never appears in the register.
+- It goes to the Recycle Bin a day after it was last saved. REGULATION, under
+  ARCHIVE, changes that, up to keeping it until you remove it.
+- One still open in Live is never taken.
+
+> To keep one, **Save As** in Live somewhere INTAKE reads, and file it from
+> INTAKE.
+
 ## INTAKE files what is already on disk
 
 ![archive-03-intake.png](archive-03-intake.png)

@@ -153,6 +153,8 @@ const api: CandyHavenApi = {
     deleteNote: (id, noteId) => invoke('projects:note-delete', { id, noteId }),
     create: (draft) => invoke('projects:create', draft),
     open: (id) => invoke('projects:open', { id }),
+    temporary: (draft) => invoke('projects:temporary', draft),
+    temporaryFolder: () => invoke('projects:temporary-folder'),
     forget: (id) => invoke('projects:forget', { id }),
     trash: (id) => invoke('projects:trash', { id }),
     restore: (id) => invoke('projects:restore', { id }),
@@ -314,7 +316,8 @@ const api: CandyHavenApi = {
     rule: (ruling) => invoke('dispatch:rule', ruling),
     markSeen: (itemId, author) => invoke('dispatch:seen', { itemId, author }),
     withdraw: (id) => invoke('dispatch:withdraw', { id }),
-    onState: (listener) => subscribe('dispatch:state', listener)
+    onState: (listener) => subscribe('dispatch:state', listener),
+    onNotice: (listener) => subscribe('dispatch:notice', listener)
   },
   overlay: {
     info: () => invoke('overlay:info'),
@@ -403,7 +406,8 @@ const api: CandyHavenApi = {
     minimize: () => invoke('vestibule:minimize'),
     close: () => invoke('vestibule:close'),
     console: (route = null) => invoke('vestibule:console', { route }),
-    handoff: (id) => invoke('vestibule:handoff', { id })
+    handoff: (id) => invoke('vestibule:handoff', { id }),
+    handoffTemporary: (draft) => invoke('vestibule:handoff-temporary', draft)
   },
   shell: {
     openExternal: (url) => invoke('shell:open-external', { url }),

@@ -15,6 +15,7 @@ import type {
   ProjectRegistry,
   ScanState
 } from '@shared/domain/projects'
+import type { TemporaryProject, TemporaryProjectDraft } from '@shared/domain/stacks'
 import { createEmptyScanState } from '@shared/domain/projects.constants'
 
 /**
@@ -175,6 +176,11 @@ export function useProjectMutations(): {
    * register.
    */
   rename: UseMutationResult<ProjectRecord, Error, { id: string; name: string }>
+  /**
+   * A temporary project, made and opened in Live. Nothing to refetch: it
+   * never enters the register.
+   */
+  temporary: UseMutationResult<TemporaryProject, Error, TemporaryProjectDraft>
 } {
   const invalidate = useInvalidateProjects()
   const queryClient = useQueryClient()
@@ -190,6 +196,11 @@ export function useProjectMutations(): {
       // Raised from the new-project dialog, which reports its own refusals.
       meta: { notify: false },
       onSuccess
+    }),
+    temporary: useMutation({
+      mutationFn: (draft: TemporaryProjectDraft) => window.candy.projects.temporary(draft),
+      // The same forms, the same refusals.
+      meta: { notify: false }
     }),
     addNote: useMutation({
       mutationFn: ({ id, draft }) => window.candy.projects.addNote(id, draft),

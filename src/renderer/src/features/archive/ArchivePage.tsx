@@ -718,6 +718,21 @@ export function ArchivePage(): ReactNode {
     [projectDialog, mutations.create, selectProject, reportToDialog]
   )
 
+  // A temporary project opens in Live and leaves nothing here to select.
+  const submitTemporary = useCallback(
+    (draft: { name?: string }) => {
+      setDialogError(null)
+      mutations.temporary.mutate(draft, {
+        onSuccess: (made) => {
+          setProjectDialog(null)
+          notify.done(`Opened ${made.name}`, { detail: 'A temporary project. Nothing was filed.' })
+        },
+        onError: reportToDialog
+      })
+    },
+    [mutations.temporary, reportToDialog]
+  )
+
   // ------------------------------------------------------------ destructive
 
   /**
@@ -1836,9 +1851,11 @@ export function ArchivePage(): ReactNode {
       {projectDialog ? (
         <ProjectDialog
           where={projectDialog.path}
-          busy={mutations.create.isPending}
+          temporaryWhere={setup?.temporaryRoot ?? null}
+          busy={mutations.create.isPending || mutations.temporary.isPending}
           error={dialogError}
           onSubmit={submitProject}
+          onSubmitTemporary={submitTemporary}
           onCancel={() => {
             setProjectDialog(null)
             setDialogError(null)

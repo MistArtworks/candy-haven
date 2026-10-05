@@ -554,6 +554,14 @@
   @include truncate;
 }
 
+// What Create will do, said in full: unlike the path in the head, it is a
+// sentence to read, and a temporary project's says when it goes.
+.dialogNote {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+}
+
 .dialogBody {
   display: flex;
   flex-direction: column;

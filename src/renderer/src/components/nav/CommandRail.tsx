@@ -15,7 +15,29 @@ import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
 import { sheetResizeTransition } from '@renderer/motion/transitions'
 import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { useInbox } from '@renderer/hooks/useInbox'
+import { countWaiting, useDispatch } from '@renderer/hooks/useDispatch'
 import styles from './CommandRail.module.scss'
+
+/** What a department's count is of, for its tooltip and its division's dot. */
+const WAITING_WORDS: Partial<Record<SectionId, string>> = {
+  contact: 'waiting from the website',
+  services: 'waiting from the website',
+  dispatch: 'new on the board'
+}
+
+function capitalised(words: string | undefined): string {
+  if (!words) return 'Waiting'
+  return `${words[0].toUpperCase()}${words.slice(1)}`
+}
+
+/** A folded division's dot says what its count is of: the first department with one. */
+function groupWords(
+  sections: readonly { id: SectionId }[],
+  waiting: Partial<Record<SectionId, number>>
+): string {
+  const counted = sections.find((section) => (waiting[section.id] ?? 0) > 0)
+  return (counted && WAITING_WORDS[counted.id]) ?? 'waiting'
+}
 
 /**
  * Primary navigation.
@@ -81,9 +103,16 @@ export function CommandRail({ hidden = false, onToggleRail }: CommandRailProps):
    * has the machine, and a count of it would be showing it.
    */
   const inbox = useInbox()
+  /*
+   * DISPATCH counts the same way: items with something new from the other
+   * person since the reader last opened them. Zero while signed out, as the
+   * board itself is empty then.
+   */
+  const board = useDispatch()
   const waiting: Partial<Record<SectionId, number>> = {
     contact: inbox.waiting.messages,
-    services: inbox.waiting.enquiries
+    services: inbox.waiting.enquiries,
+    dispatch: countWaiting(board.items, board.link.identity)
   }
 
   /*
@@ -186,7 +215,7 @@ export function CommandRail({ hidden = false, onToggleRail }: CommandRailProps):
                     <span
                       className={styles.groupWaiting}
                       aria-label={`${groupWaiting} waiting`}
-                      {...tooltipTrigger(`${groupWaiting} waiting from the website`)}
+                      {...tooltipTrigger(`${groupWaiting} ${groupWords(group.sections, waiting)}`)}
                     />
                   ) : null}
                   <span className={styles.groupRule} aria-hidden="true" />
@@ -253,7 +282,7 @@ export function CommandRail({ hidden = false, onToggleRail }: CommandRailProps):
                                 {waiting[section.id] ? (
                                   <span
                                     className={styles.waiting}
-                                    {...tooltipTrigger('Waiting from the website')}
+                                    {...tooltipTrigger(capitalised(WAITING_WORDS[section.id]))}
                                   >
                                     {waiting[section.id]}
                                   </span>

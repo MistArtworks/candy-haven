@@ -101,8 +101,9 @@ Whether this console starts with the machine, and what closing it means.
   | `CONSOLE`     | The console as well                                                                              |
 
   The vestibule offers two things: a new project, or the console. Creating one
-  there files it, copies your template set and opens it in Ableton without the
-  console ever loading, then leaves the application in the tray. A sign-in
+  there files it (or, chosen **TEMPORARY**, makes it in TEMPORARY PROJECTS
+  without filing it), copies your template set and opens it in Ableton without
+  the console ever loading, then leaves the application in the tray. A sign-in
   launch never shows the vestibule or the console, whatever is chosen: the
   point of starting with the machine is that the archive and the overlay server
   are up, not that you are asked a question. The quick strip opens at every
@@ -199,13 +200,21 @@ on the strip, in NEXUS and in ARTISTS either way.
 Where projects are filed, and the local database that holds the register. Two
 panels: what you set, and what the daemon reports.
 
-| Setting                      | Effect                                                                     |
-| ---------------------------- | -------------------------------------------------------------------------- |
-| **Filing root**              | The directory your shelves live in. Reported here, not set                 |
-| **Project template**         | A folder copied when a new project is created                              |
-| **Other locations**          | Further directories to scan for work. Read only, nothing is filed into one |
-| **When taking a project in** | `MOVE` or `COPY`. See the ARCHIVE chapter                                  |
-| **Re-index on launch**       | Walks the filing root and every other location again at startup            |
+| Setting                         | Effect                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Filing root**                 | The directory your shelves live in. Reported here, not set                                 |
+| **Project template**            | A folder copied when a new project is created                                              |
+| **Other locations**             | Further directories to scan for work. Read only, nothing is filed into one                 |
+| **When taking a project in**    | `MOVE` or `COPY`. See the ARCHIVE chapter                                                  |
+| **Re-index on launch**          | Walks the filing root and every other location again at startup                            |
+| **Keep temporary projects for** | `1 DAY` (the default) to `UNTIL REMOVED`, counted from the last save. Then the Recycle Bin |
+
+![regulation-09-temporary.png](regulation-09-temporary.png)
+
+**Open the temporary folder**, under that setting, opens TEMPORARY PROJECTS in
+Explorer, for the temporary set that turns out to be worth keeping. A set still
+open in Ableton Live is never taken, whatever the setting; see the ARCHIVE
+chapter, under Temporary projects.
 
 The filing root is chosen once, at ARCHIVE's own setup gate — this page only
 reports it, and deliberately has no button that would change it: repointing
@@ -261,6 +270,14 @@ are what keep the board to its two accounts.
 
 There is no account to create inside Candy Haven. See the DISPATCH chapter for
 why identity works the way it does.
+
+![regulation-10-notify.png](regulation-10-notify.png)
+
+**Notify me** (on by default) is DISPATCH's notices: when the other operator
+files an item, comments or changes a status, a notice in the console, or a
+Windows notification when the console isn't in front, and one on opening for
+what happened while Haven was closed. The marks on the board and DISPATCH's
+count on the rail show either way.
 
 ## UPDATES
 

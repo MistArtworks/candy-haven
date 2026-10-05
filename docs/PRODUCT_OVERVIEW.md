@@ -98,6 +98,12 @@ projects**, and it enforces the rules (a project cannot be dumped at the top lev
 needs a shelf). These are genuine folders on disk, so his existing library works as-is
 and nothing is locked inside a proprietary store.
 
+**Temporary projects.** Not every set is worth filing: audio edited for a video, a
+master rebalanced. New project asks FILED or TEMPORARY first. A temporary set opens in
+Ableton from its own folder, is never in the register, and goes to the Windows Recycle
+Bin a day after it was last saved (or after 3 days, a week, 30 days, or never, as set
+in REGULATION). A set still open in Ableton is never taken.
+
 **Four ways to look at the register (lenses):**
 
 | Lens   | Shows                                                               |
@@ -357,7 +363,10 @@ The only part of the app whose records are not on the local machine. The artist 
 ideas, suggestions, requests and fault reports against a department, with a priority; the
 developer discusses them in a thread and then either resolves them (recording what was
 actually built) or denies them with a reason. Both endings stay visible permanently, so
-the same question doesn't get asked twice. Items changed since the last visit are marked.
+the same question doesn't get asked twice. Items changed since the last visit are marked
+(new, unread comments, a changed status) and counted on the navigation rail, and what the
+other person files, says or decides arrives as a notice: inside the console, or as a
+Windows notification when the console isn't in front, the way website messages do.
 Both installations see the same board within moments. Each person signs in with a real
 password, through Firebase Authentication — the two accounts are the only two the shared
 database will talk to at all, enforced by the database's own rules rather than by
@@ -371,9 +380,10 @@ grain, page transitions, custom pointer), **Startup** (what opens at launch, lau
 Windows, start minimised, close to tray, fast boot), **Quick strip** (shown or hidden,
 look, on top, today, reminder lead time, every pin and group), **Leads** (predefined
 interactions and their points, cooling per quiet week, follow-up reminders), **Archive** (filing root, additional folders to
-scan, new-project template, scan on launch, move-or-copy, database port),
+scan, new-project template, scan on launch, move-or-copy, how long temporary projects are
+kept, database port),
 **Integrations** (Spotify, Twitch channel, overlay port, overlay asset folder), **Board**
-(shared board configuration), **Updates** (channel, automatic check and download),
+(shared board configuration, board notices), **Updates** (channel, automatic check and download),
 **Rehearsal** (stream test mode), and **Diagnostics** (read-only: where everything lives,
 with real resolved paths, for when something goes wrong).
 

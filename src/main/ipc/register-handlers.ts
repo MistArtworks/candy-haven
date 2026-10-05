@@ -190,6 +190,8 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
    */
   router.handle('projects:create', (draft) => services.stacks.createProject(draft))
   router.handle('projects:open', ({ id }) => services.projects.openInLive(id))
+  router.handle('projects:temporary', (draft) => services.stacks.openTemporaryProject(draft))
+  router.handle('projects:temporary-folder', () => services.stacks.openTemporaryFolder())
 
   /*
    * Roots come from settings rather than the renderer so a compromised renderer
@@ -747,6 +749,11 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
     // The set opens before the window goes, so a failure to launch Ableton
     // surfaces in the pane that asked rather than against a closing window.
     await services.projects.openInLive(id)
+    retireToTray()
+  })
+
+  router.handle('vestibule:handoff-temporary', async (draft) => {
+    await services.stacks.openTemporaryProject(draft)
     retireToTray()
   })
 

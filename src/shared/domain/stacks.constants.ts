@@ -286,13 +286,94 @@ export const RELEASES_DIRECTORY_NAME = 'RELEASES'
  */
 export const RECYCLE_BIN_DIRECTORY_NAME = 'RECYCLE BIN'
 
+/**
+ * Where a TEMPORARY project goes: a set for a quick job (audio for a video, a
+ * master rebalanced) that is never filed.
+ *
+ * Inside the wrapper so it sits beside everything else the app made, on the
+ * same drive as the real work, and never walked, so the register never sees a
+ * temporary set. Emptied by itself, after as long as REGULATION says
+ * (`TEMPORARY_KEEPS`).
+ *
+ * Capitals and two words like the other folders the app keeps for itself,
+ * and for a reason: the scan skips these names at any depth, so a plain
+ * "Temporary" would also hide a shelf of the operator's that happened to be
+ * called that.
+ */
+export const TEMPORARY_DIRECTORY_NAME = 'TEMPORARY PROJECTS'
+
+/** How long a temporary project is kept after it was last saved. */
+export const TEMPORARY_KEEPS = ['day', 'three-days', 'week', 'month', 'forever'] as const
+export type TemporaryKeep = (typeof TEMPORARY_KEEPS)[number]
+
+export const TEMPORARY_KEEP_LABEL: Record<TemporaryKeep, string> = {
+  day: '1 day',
+  'three-days': '3 days',
+  week: 'A week',
+  month: '30 days',
+  forever: 'Until removed'
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Null for `forever`: nothing is ever cleared. */
+export const TEMPORARY_KEEP_MS: Record<TemporaryKeep, number | null> = {
+  day: DAY_MS,
+  'three-days': 3 * DAY_MS,
+  week: 7 * DAY_MS,
+  month: 30 * DAY_MS,
+  forever: null
+}
+
+/** The two kinds of new project: filed in the ARCHIVE, or temporary. */
+export const NEW_PROJECT_KINDS = ['filed', 'temporary'] as const
+export type NewProjectKind = (typeof NEW_PROJECT_KINDS)[number]
+
+export const NEW_PROJECT_KIND_LABEL: Record<NewProjectKind, string> = {
+  filed: 'Filed',
+  temporary: 'Temporary'
+}
+
+/** One line under each kind in the New project forms. */
+export const NEW_PROJECT_KIND_PURPOSE: Record<NewProjectKind, string> = {
+  filed: 'On a shelf, and kept',
+  temporary: 'A quick job, never filed'
+}
+
+const TEMPORARY_KEEP_AFTER: Record<Exclude<TemporaryKeep, 'forever'>, string> = {
+  day: 'a day',
+  'three-days': '3 days',
+  week: 'a week',
+  month: '30 days'
+}
+
+/**
+ * When a temporary project goes, as a sentence for the forms and REGULATION:
+ * "It goes to the Recycle Bin a day after it was last saved."
+ */
+export function temporaryKeepSentence(keep: TemporaryKeep): string {
+  if (keep === 'forever') return 'It stays until you remove it.'
+  return `It goes to the Recycle Bin ${TEMPORARY_KEEP_AFTER[keep]} after it was last saved.`
+}
+
+/**
+ * A temporary project's name when none is typed: when it was made, in a form
+ * a Windows folder name allows (no colon).
+ */
+export function temporaryName(at: Date): string {
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  const day = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`
+  return `Temporary ${day} ${pad(at.getHours())}.${pad(at.getMinutes())}`
+}
+
 /** Directories inside the wrapper that the app owns and a folder may not shadow. */
 export const RESERVED_WRAPPER_DIRECTORIES: readonly string[] = [
   PROJECTS_DIRECTORY_NAME,
   RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
   MEDIA_DIRECTORY_NAME,
   RELEASES_DIRECTORY_NAME,
-  RECYCLE_BIN_DIRECTORY_NAME
+  RECYCLE_BIN_DIRECTORY_NAME,
+  TEMPORARY_DIRECTORY_NAME
 ]
 
 /**
@@ -306,16 +387,18 @@ export const RESERVED_WRAPPER_DIRECTORIES: readonly string[] = [
  * invisible to the register, and worse, was then reported *missing*, because
  * its path sits under a walked root and the walk never reached it.
  *
- * `Projects` is reserved by name and always walked. The other three are
+ * `Projects` is reserved by name and always walked. The others here are
  * reserved and never walked: `RELEASES` and `Release Mastered Tracks` hold
- * copies of finished audio rather than projects, and `RECYCLE BIN` holds work
+ * copies of finished audio rather than projects, `RECYCLE BIN` holds work
  * the operator deliberately threw away — indexing that would resurrect every
- * deleted project as a live record on the next launch.
+ * deleted project as a live record on the next launch — and `TEMPORARY
+ * PROJECTS` holds sets made for quick jobs, which are never filed.
  */
 export const UNWALKED_WRAPPER_DIRECTORIES: readonly string[] = [
   RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
   RELEASES_DIRECTORY_NAME,
-  RECYCLE_BIN_DIRECTORY_NAME
+  RECYCLE_BIN_DIRECTORY_NAME,
+  TEMPORARY_DIRECTORY_NAME
 ]
 
 export const MAX_FOLDER_NAME_LENGTH = 64

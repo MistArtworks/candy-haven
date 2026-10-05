@@ -1,7 +1,7 @@
 # Screenshots
 
 Every image the CATECHISM references, listed from the Markdown itself: what it
-shows and where it is used. 113 files: 107 captures, 4 copies of one of
+shows and where it is used. 120 files: 114 captures, 4 copies of one of
 those under a second name for the orientation tour, and two supplied photographs.
 
 **Drop a file in this folder and it is available.** `lib/guide-assets.ts` globs
@@ -66,6 +66,8 @@ recovered from them.
 | `archive-15-rename-pencil.png`   | The pencil beside a project name in its dossier. Crop                     | `docs/archive.md`                                                                       |
 | `archive-16-project-menu.png`    | A project's right-click menu, Rename among it                             | `docs/archive.md`                                                                       |
 | `archive-17-renamed.png`         | The renamed project in the register                                       | `docs/archive.md`                                                                       |
+| `archive-18-temporary.png`       | New project, TEMPORARY chosen: no shelf, category or colour. Crop         | `docs/archive.md`, `guides/archive.md`                                                  |
+| `archive-19-new-project.png`     | New project as it opens, FILED chosen. Crop                               | `docs/archive.md`                                                                       |
 | `artists-01-roster.png`          | The roster, on ROSTER, with the lens rail above it                        | `docs/artists.md`, `guides/artists.md`                                                  |
 | `artists-02-add.png`             | Add an artist, with a name typed. Crop                                    | `docs/artists.md`, `guides/artists.md`                                                  |
 | `artists-03-record.png`          | An artist's record: releases, then projects. Crop                         | `docs/artists.md`, `guides/artists.md`                                                  |
@@ -92,6 +94,8 @@ recovered from them.
 | `dispatch-02-door.png`           | Signed out: the sign-in band across the page                              | `docs/dispatch.md`, `guides/dispatch.md`                                                |
 | `dispatch-03-thread.png`         | An item's thread and the ruling controls. Crop                            | `docs/dispatch.md`                                                                      |
 | `dispatch-04-file.png`           | Filing a new item. Crop                                                   | `docs/dispatch.md`, `guides/dispatch.md`                                                |
+| `dispatch-05-marks.png`          | Candy's view: NEW, a reply count, NOW RESOLVED, 3 on the rail             | `docs/dispatch.md`, `guides/dispatch.md`                                                |
+| `dispatch-06-notice.png`         | A notice in the console: Mist commented, with Open                        | `docs/dispatch.md`                                                                      |
 | `leads-01-list.png`              | LEADS: Follow-ups due, then the leads with their orbs                     | `docs/leads.md`, `guides/artists.md`, `guides/orientation.md`                           |
 | `leads-02-due.png`               | The Follow-ups due panel. Crop                                            | `docs/leads.md`                                                                         |
 | `leads-03-sheet.png`             | A lead's sheet: temperature, logging, history, follow-ups                 | `docs/leads.md`, `guides/artists.md`                                                    |
@@ -136,13 +140,15 @@ recovered from them.
 | `practice-01-altar.png`          | Supplied photograph, not a capture                                        | `guides/orientation.md`                                                                 |
 | `practice-02-vault.png`          | Supplied photograph, not a capture                                        | `docs/overview.md`                                                                      |
 | `regulation-01-categories.png`   | REGULATION on PRESENTATION                                                | `docs/regulation.md`, `guides/regulation.md`                                            |
-| `regulation-02-archive.png`      | REGULATION on ARCHIVE                                                     | `docs/regulation.md`                                                                    |
+| `regulation-02-archive.png`      | REGULATION on ARCHIVE, Keep temporary projects for at the foot            | `docs/regulation.md`                                                                    |
 | `regulation-03-integrations.png` | INTEGRATIONS, with no client id in it. Crop                               | `docs/regulation.md`                                                                    |
-| `regulation-04-board.png`        | REGULATION on BOARD                                                       | `docs/regulation.md`                                                                    |
+| `regulation-04-board.png`        | REGULATION on BOARD, with Notify me                                       | `docs/regulation.md`                                                                    |
 | `regulation-05-diagnostics.png`  | DIAGNOSTICS. Crop                                                         | `docs/regulation.md`                                                                    |
 | `regulation-06-strip.png`        | REGULATION on QUICK STRIP                                                 | `docs/regulation.md`, `docs/strip.md`, `guides/regulation.md`                           |
 | `regulation-07-startup.png`      | REGULATION on STARTUP, At launch on QUICK STRIP                           | `docs/regulation.md`, `docs/strip.md`                                                   |
 | `regulation-08-leads.png`        | REGULATION on LEADS                                                       | `docs/leads.md`, `docs/regulation.md`, `guides/regulation.md`                           |
+| `regulation-09-temporary.png`    | Keep temporary projects for, and Open the temporary folder. Crop          | `docs/regulation.md`                                                                    |
+| `regulation-10-notify.png`       | BOARD's Notify me. Crop                                                   | `docs/regulation.md`                                                                    |
 | `releases-01-list.png`           | RELEASES: every release as the website has it                             | `docs/releases.md`, `guides/releases.md`                                                |
 | `releases-02-covers.png`         | Covers and tapes, as sent to the website                                  | `docs/releases.md`, `guides/releases.md`                                                |
 | `services-01-enquiries.png`      | DJ enquiries, one open                                                    | `docs/services.md`, `guides/services.md`                                                |
@@ -158,6 +164,7 @@ recovered from them.
 | `strip-08-quit.png`              | Quit armed after one press                                                | `docs/overview.md`, `docs/strip.md`                                                     |
 | `strip-09-horizontal.png`        | The Horizontal look, a follow-up on its today chip                        | `docs/strip.md`                                                                         |
 | `strip-10-options.png`           | A pin's options, inside a group                                           | `docs/strip.md`                                                                         |
+| `strip-11-temporary.png`         | New project from the strip, TEMPORARY chosen                              | `docs/strip.md`                                                                         |
 | `telemetry-01-vitals.png`        | TELEMETRY                                                                 | `docs/telemetry.md`, `guides/telemetry.md`                                              |
 | `telemetry-02-cores.png`         | PER-CORE LOAD. Crop                                                       | `docs/telemetry.md`, `guides/telemetry.md`                                              |
 | `welcome-03-rail.png`            | Copy of `nexus-01-landing`                                                | `docs/overview.md`, `guides/orientation.md`                                             |

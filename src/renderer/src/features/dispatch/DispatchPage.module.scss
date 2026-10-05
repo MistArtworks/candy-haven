@@ -225,6 +225,15 @@
   padding: 1px space(2);
 }
 
+// A ruling since the reader last looked. Filled like the unread count, but
+// gold: news, not the accent, which stays the unread count's alone.
+.markRuled {
+  @include label(7px, 0.18em);
+  color: var(--ch-obsidian-900);
+  background: var(--ch-gold-300);
+  padding: 1px space(2);
+}
+
 // Filled rather than outlined, and the one place the accent appears on this
 // page. It is the answer to the only question the board has to settle at a
 // glance: has anything happened since I last looked.

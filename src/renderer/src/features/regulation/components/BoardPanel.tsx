@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { DISPATCH_AUTHOR_LABEL } from '@shared/domain/dispatch.constants'
+import { DISPATCH_AUTHORS, DISPATCH_AUTHOR_LABEL } from '@shared/domain/dispatch.constants'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Button } from '@renderer/components/primitives/Button'
+import { Toggle } from '@renderer/components/primitives/Toggle'
+import { useApplySettings, useSettings } from '@renderer/hooks/useSettings'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
 import { StatusDot, type StatusTone } from '@renderer/components/primitives/StatusDot'
 import { TextArea } from '@renderer/components/primitives/Input'
@@ -25,14 +27,23 @@ const LINK_TONE: Record<string, StatusTone> = {
  * business taking a third of the page every day afterwards. Signing *in* stays
  * on the board itself: that is a session, done at the start of a sitting, and
  * it belongs where the thing it unlocks is.
+ *
+ * **Notify me** is DISPATCH's notices, as CONTACT and SERVICES have theirs.
+ * It saves as it is switched, like the attach and sign-out beside it.
  */
 export function BoardPanel({ index }: { index: string }): ReactNode {
   const state = useDispatch()
   const setup = useDispatchSetup(state.revision)
   const actions = useDispatchActions()
+  const settings = useSettings()
+  const applySettings = useApplySettings()
   const [source, setSource] = useState('')
 
   const identity = state.link.identity
+  const notices = settings?.integrations.boardNotices ?? true
+  const other = identity
+    ? DISPATCH_AUTHOR_LABEL[DISPATCH_AUTHORS.find((author) => author !== identity) ?? identity]
+    : 'the other person'
 
   return (
     <Panel
@@ -117,6 +128,22 @@ export function BoardPanel({ index }: { index: string }): ReactNode {
         </div>
 
         {actions.error ? <p className={styles.warn}>{actions.error}</p> : null}
+
+        <div className={styles.control}>
+          <span className={styles.controlLabel}>Notify me</span>
+          <Toggle
+            label="Notify me of what is new on the board"
+            checked={notices}
+            onChange={() => applySettings({ integrations: { boardNotices: !notices } })}
+          />
+          <p className={styles.controlHint}>
+            When {other} files something, comments, or changes a status: a notice in the console,
+            and a Windows notification when the console isn&rsquo;t in front. Opening Haven says
+            once what happened while it was closed. Clicked, either opens the item. Your own actions
+            never notify you. DISPATCH&rsquo;s count on the rail and the marks on the board show
+            either way.
+          </p>
+        </div>
 
         <p className={styles.footnote}>
           A Firebase web config is not a secret — it ships inside every web app that uses one, and

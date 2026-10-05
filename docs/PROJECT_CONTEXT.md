@@ -1574,6 +1574,8 @@ Candy Haven\
       Solstice.wav  Cover Art.png  Spotify Canvas.mp4  Release Details.txt
   RECYCLE BIN\                  reserved; deleted projects, skipped by the scan
     Undertow Project\
+  TEMPORARY PROJECTS\           reserved; quick-job sets, skipped by the scan, emptied by itself
+    Temporary 2026-10-05 14.32 Project\
   Media\                       reserved; copied artist and release artwork
   Release Mastered Tracks\     reserved; legacy — see the note below
 ```
@@ -1585,11 +1587,35 @@ app owns outright, and the tree gains a root that is a real directory rather
 than an implied one, which is what lets a category be an ordinary folder
 record like every other node.
 
-`RESERVED_WRAPPER_DIRECTORIES` now holds five names — `Projects`,
-`RELEASES`, `RECYCLE BIN`, `Media`, and the legacy `Release Mastered Tracks`
-— refused as genre names and excluded from the scan walk. The bin **must**
-stay excluded: indexing it would resurrect every deleted project as a live
-record on the next launch.
+`RESERVED_WRAPPER_DIRECTORIES` now holds six names — `Projects`,
+`RELEASES`, `RECYCLE BIN`, `Media`, `TEMPORARY PROJECTS` and the legacy
+`Release Mastered Tracks` — refused as genre names and excluded from the scan
+walk. The bin **must** stay excluded: indexing it would resurrect every deleted
+project as a live record on the next launch.
+
+**Temporary projects** (1.26.0, from Candy's DISPATCH suggestion "Maybe not all
+project files need to be saved"). Every New project form (ARCHIVE's
+`ProjectDialog`, the vestibule's and the strip's `NewProjectForm`) asks FILED
+or TEMPORARY first (`ProjectKindChoice`); FILED is the default every time.
+
+- `projects:temporary` (and `vestibule:handoff-temporary`, which then retires
+  to the tray) runs `StacksService.openTemporaryProject`: the template copied
+  into `TEMPORARY PROJECTS` as `<Name> Project` by the same `provisionProject`,
+  opened with `shell.openPath`, and nothing written to the register. An empty
+  name becomes `temporaryName(now)` (`Temporary 2026-10-05 14.32`); a name
+  already there gets ` (2)`, ` (3)`.
+- `sweepTemporaryProjects` runs after boot and hourly (`main/app/temporary-sweep.ts`).
+  An entry whose newest modification time, four levels down (`lastTouched`), is
+  older than `settings.workspace.temporaryKeep` (`day` by default, then
+  `three-days`, `week`, `month`, `forever`) goes to the Windows Recycle Bin
+  (`shell.trashItem`). One whose name is in a running Live's window title
+  (`live-window.ts`, PowerShell's `Get-Process`, since `tasklist /v` took
+  minutes) is skipped; if the titles can't be read, nothing goes that pass.
+- The directory is named in capitals and two words because the scan's ignore
+  list matches names at **any** depth: a plain `Temporary` would also have hidden
+  an operator's shelf of that name.
+- `projects:temporary-folder` opens the folder from REGULATION → ARCHIVE, beside
+  the keep setting. `ArchiveSetupState.temporaryRoot` carries its path.
 
 `Release Mastered Tracks` is a relic of the pre-D10 final-master workflow
 (§10, "The pipeline meets the catalogue"), which **moved** a chosen bounce

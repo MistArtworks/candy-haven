@@ -1,0 +1,79 @@
+@use 'abstracts' as *;
+
+/*
+ * FILED / TEMPORARY. Two equal halves on one hairline, the chosen one lit from
+ * below in the accent, as REGULATION's segmented controls are; larger, with a
+ * line each, because it is the first question in the form.
+ */
+.kinds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  @include hairline(all, 0.14);
+}
+
+.kind {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  padding: space(3) space(4);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &:focus-visible {
+    @include focus-ring(-2px);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &[data-selected] {
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-accent);
+      box-shadow: 0 0 10px var(--ch-accent-glow);
+    }
+  }
+}
+
+.kindLabel {
+  @include label(10px, 0.18em);
+  color: var(--ch-text-muted);
+
+  .kind:hover & {
+    color: var(--ch-text-secondary);
+  }
+
+  .kind[data-selected] & {
+    color: var(--ch-text-primary);
+  }
+}
+
+.kindPurpose {
+  @include label(8px, 0.08em);
+  font-weight: 400;
+  color: var(--ch-text-faint);
+
+  .kind[data-selected] & {
+    color: var(--ch-text-muted);
+  }
+}

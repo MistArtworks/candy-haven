@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { readdir } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
 import { app, shell } from 'electron'
 import type { ProjectDraft, ProjectRecord } from '@shared/domain/projects'
@@ -10,7 +11,9 @@ import type {
   FolderDraft,
   FolderKind,
   FolderPatch,
-  StacksTree
+  StacksTree,
+  TemporaryProject,
+  TemporaryProjectDraft
 } from '@shared/domain/stacks'
 import {
   DEFAULT_FOLDER_COLOUR,
@@ -22,9 +25,12 @@ import {
   RELEASE_MASTERED_TRACKS_DIRECTORY_NAME,
   WRAPPER_DIRECTORY_NAME,
   RELEASES_DIRECTORY_NAME,
+  TEMPORARY_DIRECTORY_NAME,
+  TEMPORARY_KEEP_MS,
   isHexColour,
   isValidChildKind,
   normaliseHex,
+  temporaryName,
   validateFolderName
 } from '@shared/domain/stacks.constants'
 import { AppError, ErrorCode } from '@main/core/errors'
@@ -36,6 +42,7 @@ import { stampProjectIcon } from '@main/services/projects/project-icon'
 import type { ProjectsService } from '@main/services/projects/projects.service'
 import type { SettingsService } from '@main/services/settings/settings.service'
 import { StacksRepository } from './stacks.repository'
+import { liveWindowTitles } from './live-window'
 import {
   createDirectory,
   directoryExists,
@@ -43,6 +50,7 @@ import {
   isAtOrUnder,
   copyDirectory,
   freePath,
+  lastTouched,
   moveDirectory,
   pathExists,
   renameInPlace,
@@ -101,6 +109,8 @@ function describe(error: unknown): string {
  */
 export class StacksService {
   private pathsListener: PathsListener | null = null
+  /** A temporary clean-up in progress; a second one waits for the next pass. */
+  private sweeping = false
 
   constructor(
     private readonly archive: ArchiveService,
@@ -162,6 +172,12 @@ export class StacksService {
   resolveRecycleBin(): string | null {
     const wrapper = this.resolveWrapper()
     return wrapper ? join(wrapper, RECYCLE_BIN_DIRECTORY_NAME) : null
+  }
+
+  /** `<wrapper>/TEMPORARY PROJECTS`, where a temporary set goes. */
+  resolveTemporaryRoot(): string | null {
+    const wrapper = this.resolveWrapper()
+    return wrapper ? join(wrapper, TEMPORARY_DIRECTORY_NAME) : null
   }
 
   /** `<wrapper>/Projects`, the root of the filing tree. */
@@ -277,6 +293,7 @@ export class StacksService {
       wrapper,
       wrapperReady,
       recycleBin,
+      temporaryRoot: this.resolveTemporaryRoot(),
       templatePath: projectTemplatePath,
       templatePresent,
       satelliteRoots,
@@ -480,6 +497,164 @@ export class StacksService {
       artistIds: draft.artistIds,
       colour: this.resolveColour(draft.colour)
     })
+  }
+
+  // -------------------------------------------------------------- temporary
+
+  /**
+   * Makes a temporary project and opens it in Live.
+   *
+   * The same template and the same `<Name> Project` folder as a filed one, so
+   * a temporary set looks and behaves like any other in Live. What it skips is
+   * everything that makes a project part of the archive: no shelf, no record,
+   * no index. It goes to `TEMPORARY PROJECTS`, which the scan never walks, and
+   * `sweepTemporaryProjects` clears it out after the keep in REGULATION.
+   *
+   * No refusal during a scan, because nothing a scan reads is touched. A name
+   * already used there gets a number rather than a refusal: these are quick
+   * jobs, and making the operator invent a second name is the opposite of
+   * quick.
+   */
+  async openTemporaryProject(draft: TemporaryProjectDraft): Promise<TemporaryProject> {
+    const { templatePath, root } = await this.requireTemporaryRoot()
+
+    const typed = draft.name?.trim() ?? ''
+    const base = typed.length > 0 ? this.requireValidName(typed) : temporaryName(new Date())
+
+    let name: string | null = null
+    for (let suffix = 1; suffix <= 999 && name === null; suffix += 1) {
+      const candidate = suffix === 1 ? base : `${base} (${suffix})`
+      if (!(await pathExists(join(root, `${candidate} Project`)))) name = candidate
+    }
+    if (name === null) {
+      throw new AppError(`Could not find a free name for “${base}”.`, {
+        code: ErrorCode.Validation,
+        hint: 'Give it a different name.',
+        recoverable: false
+      })
+    }
+
+    const { path, setPath } = await provisionProject({
+      parentPath: root,
+      name,
+      templatePath,
+      iconSources: (await this.projects.listRecords()).map((record) => record.path)
+    })
+
+    const failure = await shell.openPath(setPath)
+    if (failure) {
+      throw new AppError(`Could not open ${basename(setPath)}.`, {
+        code: ErrorCode.Unknown,
+        hint: `It was made in ${root}. ${failure}`,
+        recoverable: true
+      })
+    }
+
+    logger.info(`Opened a temporary project: ${name}`)
+    return { name, path, setPath }
+  }
+
+  /** Opens `TEMPORARY PROJECTS` in Explorer, making it first if need be. */
+  async openTemporaryFolder(): Promise<void> {
+    const wrapper = this.resolveWrapper()
+    const root = this.resolveTemporaryRoot()
+    if (wrapper === null || root === null || !(await directoryExists(wrapper))) {
+      throw new AppError('The ARCHIVE is not set up yet.', {
+        code: ErrorCode.Validation,
+        hint: 'Choose the folder that holds your Ableton projects first.',
+        recoverable: false
+      })
+    }
+
+    await ensureDirectory(root)
+    const failure = await shell.openPath(root)
+    if (failure) {
+      throw new AppError('Could not open the temporary projects folder.', {
+        code: ErrorCode.Unknown,
+        hint: failure,
+        recoverable: true
+      })
+    }
+  }
+
+  /**
+   * Moves every temporary project untouched for longer than the keep in
+   * REGULATION to the Windows Recycle Bin. Answers how many went.
+   *
+   * Runs after boot and then every hour (`main/index.ts`).
+   *
+   * - **Untouched** is the newest change anywhere in it (`lastTouched`), so a
+   *   set saved this morning is kept however long ago it was made.
+   * - **The Recycle Bin**, not a delete, so a set cleared too soon can be
+   *   brought back from Windows.
+   * - **A set still open in Live is skipped**, read from Live's window title,
+   *   and tried again on the next pass. If Windows can't say what Live has
+   *   open, nothing goes this time: a clean-up that waits an hour costs
+   *   nothing, one that takes an open set costs the work in it.
+   */
+  async sweepTemporaryProjects(now = Date.now()): Promise<number> {
+    if (this.sweeping) return 0
+
+    const keep = TEMPORARY_KEEP_MS[this.settings.snapshot.workspace.temporaryKeep]
+    const root = this.resolveTemporaryRoot()
+    if (keep === null || root === null || !(await directoryExists(root))) return 0
+
+    this.sweeping = true
+    try {
+      const expired: { name: string; path: string }[] = []
+      for (const name of await readdir(root)) {
+        const path = join(root, name)
+        const touched = await lastTouched(path).catch(() => null)
+        if (touched !== null && now - touched > keep) expired.push({ name, path })
+      }
+      if (expired.length === 0) return 0
+
+      const titles = await liveWindowTitles()
+      if (titles === null) {
+        logger.warn('Left the temporary projects for now: could not tell what Live has open')
+        return 0
+      }
+
+      let removed = 0
+      for (const entry of expired) {
+        if (titles.some((title) => title.includes(entry.name))) continue
+        try {
+          await shell.trashItem(entry.path)
+          removed += 1
+        } catch (error) {
+          // Most often a file something else still has open; the next pass
+          // tries again.
+          logger.warn(`Could not move ${entry.name} to the Recycle Bin`, error)
+        }
+      }
+
+      if (removed > 0) {
+        logger.info(
+          `Moved ${removed} temporary project${removed === 1 ? '' : 's'} to the Recycle Bin`
+        )
+      }
+      return removed
+    } finally {
+      this.sweeping = false
+    }
+  }
+
+  /** The template and `TEMPORARY PROJECTS` (made if absent), or a refusal saying what is missing. */
+  private async requireTemporaryRoot(): Promise<{ templatePath: string; root: string }> {
+    const setup = await this.getSetupState()
+    const root = this.resolveTemporaryRoot()
+    if (!setup.ready || root === null) {
+      throw new AppError('The ARCHIVE is not set up yet.', {
+        code: ErrorCode.Validation,
+        hint: setup.templatePresent
+          ? 'Choose the folder that holds your Ableton projects first.'
+          : 'Choose a template set in the INDEXING panel first.',
+        recoverable: false
+      })
+    }
+
+    await ensureDirectory(root)
+    return { templatePath: setup.templatePath as string, root }
   }
 
   // --------------------------------------------------------------- creating

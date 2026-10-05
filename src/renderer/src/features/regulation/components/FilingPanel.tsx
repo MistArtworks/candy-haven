@@ -1,5 +1,12 @@
 import { useCallback, useState, type ReactNode } from 'react'
+import {
+  TEMPORARY_DIRECTORY_NAME,
+  TEMPORARY_KEEPS,
+  TEMPORARY_KEEP_LABEL,
+  temporaryKeepSentence
+} from '@shared/domain/stacks.constants'
 import { Panel } from '@renderer/components/primitives/Panel'
+import { notify } from '@renderer/components/feedback/notify'
 import { Button } from '@renderer/components/primitives/Button'
 import { Toggle } from '@renderer/components/primitives/Toggle'
 import { truncatePath } from '@renderer/lib/format'
@@ -30,6 +37,10 @@ import * as shell from '@renderer/lib/shell'
  * The filing root is reported rather than edited, as it was in INDEXING.
  * Repointing it would not move what is already filed, so it is chosen once at
  * the gate; a CHANGE button here would imply otherwise.
+ *
+ * **Temporary projects** close the panel: how long one is kept after it was
+ * last saved, and a way into the folder they wait in, for the set that turns
+ * out to be worth keeping.
  */
 export function FilingPanel({ index }: { index: string }): ReactNode {
   const settings = useSettings()
@@ -45,6 +56,7 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
   const intakeMode = settings?.workspace.intakeMode ?? 'move'
   const filingRoot = settings?.workspace.filingRoot ?? null
   const templatePath = settings?.workspace.projectTemplatePath ?? null
+  const temporaryKeep = settings?.workspace.temporaryKeep ?? 'day'
 
   const addSatellite = useCallback(async () => {
     setChoosing(true)
@@ -225,6 +237,46 @@ export function FilingPanel({ index }: { index: string }): ReactNode {
             An unchanged set is not decompressed again, so this costs a directory walk rather than
             seconds. Turn it off if the locations live on a slow or remote drive.
           </p>
+        </div>
+
+        <div className={styles.control}>
+          <span className={styles.controlLabel}>Keep temporary projects for</span>
+          <div className={styles.segmented}>
+            {TEMPORARY_KEEPS.map((keep) => (
+              <button
+                key={keep}
+                type="button"
+                className={styles.segment}
+                data-selected={temporaryKeep === keep || undefined}
+                aria-pressed={temporaryKeep === keep}
+                onClick={() => applySettings({ workspace: { temporaryKeep: keep } })}
+              >
+                {TEMPORARY_KEEP_LABEL[keep].toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <p className={styles.controlHint}>
+            A temporary project is one made with <strong>TEMPORARY</strong> in New project, for a
+            quick job: never filed, and never in the register.{' '}
+            {temporaryKeepSentence(temporaryKeep)} Counted from the last change to anything in it,
+            checked at launch and then every hour. One still open in Live is left alone. To keep
+            one, use Save As in Live to save it outside {TEMPORARY_DIRECTORY_NAME}, in a folder
+            INTAKE reads, and file it from INTAKE.
+          </p>
+          <div>
+            <Button
+              size="sm"
+              onClick={() =>
+                void window.candy.projects
+                  .temporaryFolder()
+                  .catch((cause: unknown) =>
+                    notify.refuse(cause, { label: 'Could not open the folder' })
+                  )
+              }
+            >
+              Open the temporary folder
+            </Button>
+          </div>
         </div>
       </div>
     </Panel>

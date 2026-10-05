@@ -198,9 +198,18 @@ these on and off.
 
 ## New project
 
-The strip's **New project** opens the vestibule's form beside it: a name, the
-shelf it's filed on, a colour. **Create** files it, copies your template set into
-it and opens it in Ableton.
+![strip-11-temporary.png](strip-11-temporary.png)
+
+The strip's **New project** opens the vestibule's form beside it, with
+**FILED** or **TEMPORARY** at the top.
+
+- **FILED** (the default): a name, the shelf it's filed on, a colour.
+  **Create** files it, copies your template set into it and opens it in
+  Ableton.
+- **TEMPORARY**: only a name, and that's optional. **Open in Live** copies your
+  template set into TEMPORARY PROJECTS and opens it, with nothing filed. It
+  goes to the Recycle Bin a day after it was last saved. See the ARCHIVE
+  chapter, under Temporary projects.
 
 ## The More menu
 

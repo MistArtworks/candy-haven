@@ -127,3 +127,22 @@ config is handed over directly rather than shipped.
 - **Unread is two timestamps**, one per person, rather than a read flag per
   comment. A comment counts as unread if it is newer than the reader's stamp and
   somebody else wrote it, which stays a subtraction however long a thread grows.
+- **What's new, and notices** (1.26.0). The rules are in
+  `src/shared/domain/dispatch.unread.ts`, shared by the console and the main
+  process: `isUnseen`, `unreadCount`, `rulingUnseen` (a ruling carries `ruledBy`
+  and `ruledAt` from 1.26.0; older rulings have neither and never mark),
+  `hasNews` and `countWaiting` (the rail's count and the board's "N new").
+  `DispatchService.tell` compares every stream frame with the board it held
+  (`changesBetween`) and emits `notice` for what the _other_ person did: an item
+  filed, a comment, a ruling. The first frame after signing in only sets the
+  starting point and gives the opening summary once (`waiting`); a reconnect's
+  whole-board frame is compared like any other, so what happened while the
+  stream was down is still told. `main/app/board-notices.ts` sends each notice
+  to the console (`dispatch:notice`, shown by `DispatchCues` unless DISPATCH is
+  the page) and, when the console isn't in front, raises a Windows notification
+  that opens `/dispatch?item=<id>` through `openConsole`. The open item lives in
+  the address for that reason. `settings.integrations.boardNotices` (REGULATION
+  → BOARD → Notify me) silences both; the marks and the rail's count stay.
+- **A patch key can be a path.** `comment` patches `seen/<author>` alongside
+  `updatedAt`, and `applyAt` sets such a key where it points rather than merging
+  it as a flat key the schema would drop.

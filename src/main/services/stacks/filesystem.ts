@@ -69,6 +69,35 @@ export async function listEntries(path: string): Promise<string[]> {
   }
 }
 
+/**
+ * When anything in a folder last changed: the newest modification time in
+ * it, a few levels down.
+ *
+ * A folder's own time only moves when an entry directly inside it is added
+ * or removed, so a bounce saved into `Samples/Processed` would leave the
+ * project folder looking untouched. Bounded in depth, because a project's
+ * structure is shallow and the answer only has to be good to the hour.
+ * Anything unreadable counts as untouched rather than failing the folder.
+ */
+export async function lastTouched(path: string, depth = 4): Promise<number> {
+  const info = await stat(path)
+  let newest = info.mtimeMs
+  if (!info.isDirectory() || depth === 0) return newest
+
+  let entries: string[] = []
+  try {
+    entries = await readdir(path)
+  } catch {
+    return newest
+  }
+
+  for (const entry of entries) {
+    const inner = await lastTouched(join(path, entry), depth - 1).catch(() => 0)
+    newest = Math.max(newest, inner)
+  }
+  return newest
+}
+
 // ------------------------------------------------------------------ creation
 
 export async function ensureDirectory(path: string): Promise<void> {

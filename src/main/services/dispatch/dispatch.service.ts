@@ -5,12 +5,14 @@ import {
   type DispatchDraft,
   type DispatchItem,
   type DispatchLink,
+  type DispatchNotice,
   type DispatchRuling,
   type DispatchSetup,
   type DispatchState,
   type FirebaseConfig
 } from '@shared/domain/dispatch'
 import { DISPATCH_ROOT_PATH, type DispatchAuthor } from '@shared/domain/dispatch.constants'
+import { changesBetween, hasNews } from '@shared/domain/dispatch.unread'
 import { AppError, ErrorCode } from '@main/core/errors'
 import { getLogger } from '@main/core/logger'
 import { TypedEmitter } from '@main/core/emitter'
@@ -28,6 +30,8 @@ const logger = getLogger('dispatch')
 
 interface DispatchEvents {
   state: DispatchState
+  /** What the other person did, as it arrived, or the opening summary. */
+  notice: DispatchNotice
 }
 
 /** Backoff between reconnection attempts. Capped so it keeps trying all day. */
@@ -75,6 +79,18 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
   private stop: (() => void) | null = null
   private retryTimer: NodeJS.Timeout | null = null
   private retryDelay = RETRY_MIN_MS
+  /**
+   * Whether the board held is a reading the next frame can be compared with.
+   *
+   * False until the first frame after signing in, which is the whole board
+   * and only sets the starting point: everything on it would otherwise be
+   * news. Not reset by a reconnect (the hourly token renewal, a dropped
+   * network), whose first frame is the whole board again and is compared
+   * with what was held, so what happened while it was away is still told.
+   */
+  private primed = false
+  /** The opening summary has been given for this sign-in. */
+  private announced = false
 
   get current(): DispatchState {
     return this.state
@@ -111,6 +127,8 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
     })
 
     this.detach()
+    this.primed = false
+    this.announced = false
     this.attach()
 
     return this.state
@@ -126,6 +144,7 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
   async signOut(): Promise<DispatchState> {
     this.detach()
     this.session = null
+    this.primed = false
     await this.tokens.clear()
 
     this.state = { ...this.state, items: [] }
@@ -272,6 +291,8 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
     this.auth = new IdentityAuth(parsed.apiKey)
 
     this.detach()
+    // Possibly another database altogether: nothing held compares with it.
+    this.primed = false
     if (this.session) this.attach()
     else this.patchLink({ state: 'signed-out', message: 'Sign in to see the board.' })
 
@@ -355,11 +376,15 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
       })
     }
 
+    const now = Date.now()
     await client.patch(`${DISPATCH_ROOT_PATH}/${ruling.itemId}`, {
       status: ruling.status,
       statusReason: ruling.status === 'pending' ? null : reason || null,
-      statusAt: ruling.status === 'pending' ? null : Date.now(),
-      updatedAt: Date.now()
+      statusAt: ruling.status === 'pending' ? null : now,
+      // Who changed it, for the other person's notice and mark.
+      ruledBy: this.session?.identity ?? null,
+      ruledAt: now,
+      updatedAt: now
     })
 
     return this.state
@@ -496,12 +521,14 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
    */
   private applyRemote(kind: 'put' | 'patch', path: string, data: unknown): void {
     const segments = path.split('/').filter(Boolean)
+    const previous = this.state.items
 
     // The whole board: the first frame, and any wholesale replacement.
     if (segments.length === 0) {
       this.state = { ...this.state, items: readBoard(data), revision: this.state.revision + 1 }
       this.touched()
       this.publish()
+      this.tell(previous)
       return
     }
 
@@ -519,6 +546,7 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
       }
       this.touched()
       this.publish()
+      this.tell(previous)
       return
     }
 
@@ -551,6 +579,37 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
     }
     this.touched()
     this.publish()
+    this.tell(previous)
+  }
+
+  /**
+   * Says what the other person did since `previous`, the board as held before
+   * this frame. The first frame after signing in only sets the starting point,
+   * and gives the opening summary once: how many items have something new
+   * since this person last looked, from what happened while the app was shut.
+   */
+  private tell(previous: readonly DispatchItem[]): void {
+    const identity = this.state.link.identity
+    if (!identity) return
+
+    if (!this.primed) {
+      this.primed = true
+      if (this.announced) return
+      this.announced = true
+
+      const news = this.state.items.filter((item) => hasNews(item, identity))
+      if (news.length > 0) {
+        this.emit('notice', {
+          changes: [],
+          waiting: news.length,
+          itemId: news.length === 1 ? news[0].id : null
+        })
+      }
+      return
+    }
+
+    const changes = changesBetween(previous, this.state.items, identity)
+    if (changes.length > 0) this.emit('notice', { changes, waiting: 0, itemId: null })
   }
 
   private patchLink(link: Partial<DispatchLink>): void {
@@ -614,6 +673,10 @@ function upsert(items: readonly DispatchItem[], next: DispatchItem): DispatchIte
  * A `put` replaces what is at the path; a `patch` merges its keys into it. Both
  * copy on the way down rather than mutating, so the item currently on screen is
  * never edited underneath the renderer.
+ *
+ * A patch key can itself be a path (`seen/candy`, as `comment` writes it), and
+ * is set where it points rather than merged as a flat key the schema would
+ * then drop.
  */
 function applyAt(
   target: Record<string, unknown>,
@@ -623,7 +686,12 @@ function applyAt(
 ): Record<string, unknown> {
   if (segments.length === 0) {
     if (kind === 'patch' && data && typeof data === 'object') {
-      return { ...target, ...(data as Record<string, unknown>) }
+      let merged = { ...target }
+      for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+        const path = key.split('/').filter(Boolean)
+        merged = path.length > 1 ? applyAt(merged, path, 'put', value) : { ...merged, [key]: value }
+      }
+      return merged
     }
     return (data ?? {}) as Record<string, unknown>
   }

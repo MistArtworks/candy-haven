@@ -33,8 +33,18 @@ than a permission. Setup lives in REGULATION → **BOARD**.
 3. The builder rules on it: **Resolve**, or **Deny** with a reason. Both stay
    on the board, and **Put back to pending** reopens either.
 
-**NEW** marks an item you've never opened; a crimson count marks comments since
-you last did. DISPATCH sends no notifications.
+## What's new, and notices
+
+![dispatch-05-marks.png](dispatch-05-marks.png)
+
+**NEW** marks an item you've never opened, a crimson count marks comments since
+you last did, and **NOW RESOLVED** or **NOW DENIED** marks a status that
+changed. DISPATCH in the rail counts the items with something new.
+
+When the other operator files, comments or rules, a notice says so in the
+console, or as a Windows notification when the console isn't in front; click
+it to open the item. Opening Haven says once what happened while it was
+closed. REGULATION → **BOARD** → **Notify me** turns the notices off.
 
 > Nothing is applied optimistically. A write goes to the shared database and
 > comes back, so what you see on the board is what the other copy sees.

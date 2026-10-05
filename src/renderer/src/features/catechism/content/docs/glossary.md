@@ -144,6 +144,14 @@ samples, bounces and backups. The unit everything in this department is about.
 **Set**: the Ableton `.als` file itself. A project can hold several; one is
 primary.
 
+**Filed**: the usual kind of new project: made on a shelf, in the register, and
+kept. The default in every New project form.
+
+**Temporary project**: a set for a quick job, made with **TEMPORARY** in New
+project. It lives in **TEMPORARY PROJECTS** beside Projects, is never in the
+register, and goes to the Recycle Bin after the keep set in REGULATION (a day
+after it was last saved, by default).
+
 **Dossier**: the full record for one project, opened as an overlay.
 
 **Stage**: where a project has got to in the pipeline. IDEA through RELEASED,
@@ -399,6 +407,11 @@ opposed to a viewer.
 **Item**: one entry on the DISPATCH board.
 
 **Ruling**: settling an item as RESOLVED or DENIED, with a reason.
+
+**News**, on the board: what the other operator did since you last opened an
+item, marked NEW, with a crimson comment count, or NOW RESOLVED and the like,
+and counted on DISPATCH in the rail. It also comes as a notice unless REGULATION
+→ BOARD → **Notify me** is off.
 
 **Accent**: the interactive colour, crimson or gold. Set in REGULATION.
 

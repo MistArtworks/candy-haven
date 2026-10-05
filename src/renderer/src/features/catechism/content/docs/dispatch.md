@@ -148,14 +148,44 @@ and its discussion; withdrawing it deletes both. The distinction is the point â€
 request that stays on the board is a record of a decision, and the same question
 does not get asked twice.
 
-Two marks tell you where to look when you come back:
+## What's new since you last looked
+
+![dispatch-05-marks.png](dispatch-05-marks.png)
+
+Three marks on the board tell you where to look when you come back:
 
 - **NEW** on an item the other operator filed that you have never opened.
 - **A crimson count** of the other operator's comments since you last opened it.
+- **NOW RESOLVED**, **NOW DENIED** or **NOW PENDING** when the other operator
+  changed the item's status since you last opened it.
 
-Opening an item clears both. Your own items and comments never mark, and a
-ruling alone doesn't either, so a ruling worth hearing about comes with a
-comment. DISPATCH sends no notifications: the board is where it is read.
+Opening an item clears its marks. Your own items, comments and rulings never
+mark. The board's header counts the items with something new (**3 new**), and
+so does DISPATCH in the rail, with a dot on its division's heading while that
+is folded away, the way CONTACT and SERVICES count what is waiting from the
+website.
+
+### Notices
+
+![dispatch-06-notice.png](dispatch-06-notice.png)
+
+When the other operator files an item, comments, or changes a status, you hear
+of it as it happens:
+
+- **In the console**, a notice with **Open**, which opens the item. Not while
+  DISPATCH is the page you're on: the board marks it there as it lands.
+- **As a Windows notification** when the console isn't in front: on the strip,
+  in the tray, or behind another window. Clicking it opens the console at the
+  item.
+- **On opening Haven**, one notice for what happened while it was closed:
+  "2 items have something new since you last looked".
+
+More than two things arriving at once (back from sleep, say) come as one notice,
+not a stack. Your own actions never notify you, even from another PC signed in
+as you.
+
+REGULATION, under **BOARD**, has **Notify me** to switch the notices off. The
+marks and the counts show either way.
 
 ## How the sync behaves
 

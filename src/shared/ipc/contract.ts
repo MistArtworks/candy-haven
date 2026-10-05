@@ -50,6 +50,7 @@ import {
 import {
   DispatchCommentDraftSchema,
   DispatchDraftSchema,
+  DispatchNoticeSchema,
   DispatchRulingSchema,
   DispatchSeenMarkSchema,
   DispatchSetupSchema,
@@ -70,7 +71,9 @@ import {
   FolderDraftSchema,
   FolderPatchSchema,
   MAX_FOLDER_NAME_LENGTH,
-  StacksTreeSchema
+  StacksTreeSchema,
+  TemporaryProjectDraftSchema,
+  TemporaryProjectSchema
 } from '../domain/stacks'
 import { TagDraftSchema, TagPatchSchema, TagSummarySchema } from '../domain/tags'
 import {
@@ -210,6 +213,14 @@ export const IPC_INVOKE = {
   'projects:create': { input: ProjectDraftSchema, output: ProjectRecordSchema },
   /** Opens the project's primary set in whatever handles `.als`. */
   'projects:open': { input: z.object({ id: z.string() }), output: z.void() },
+  /**
+   * Makes a temporary project and opens it in Live: the template copied into
+   * `TEMPORARY PROJECTS`, never filed, never in the register, and cleared out
+   * after the keep in REGULATION. Refused unless the department is set up.
+   */
+  'projects:temporary': { input: TemporaryProjectDraftSchema, output: TemporaryProjectSchema },
+  /** Opens `TEMPORARY PROJECTS` in Explorer, making it first if need be. */
+  'projects:temporary-folder': { input: z.void(), output: z.void() },
   /** `force` re-reads every set instead of reusing unchanged analyses. */
   'projects:scan': {
     input: z.object({ force: z.boolean().optional() }).optional(),
@@ -1055,6 +1066,8 @@ export const IPC_INVOKE = {
    * connected, so the next thing asked of it is immediate.
    */
   'vestibule:handoff': { input: z.object({ id: z.string() }), output: z.void() },
+  /** The same for a temporary project: made, opened in Live, and the vestibule gone. */
+  'vestibule:handoff-temporary': { input: TemporaryProjectDraftSchema, output: z.void() },
 
   // ------------------------------------------------------------- quick strip
 
@@ -1166,6 +1179,8 @@ export const IPC_EVENT = {
   'timer:state': TimerStateSchema,
   'nowplaying:state': NowPlayingStateSchema,
   'dispatch:state': DispatchStateSchema,
+  /** What the other person did on the board, for the console's notice. */
+  'dispatch:notice': DispatchNoticeSchema,
   'muster:state': MusterStateSchema,
   'overlay:info': OverlayServerInfoSchema,
   'calendar:state': CalendarStateSchema,

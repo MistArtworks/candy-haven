@@ -11,7 +11,8 @@ const LAST_SHELF_KEY = 'candy-haven.vestibule.shelf'
 
 /**
  * New project, from the strip: the vestibule's form (a name, a shelf, a
- * colour), and the set opens in Ableton as soon as it's made.
+ * colour, or TEMPORARY for a quick job), and the set opens in Ableton as soon
+ * as it's made.
  */
 export function NewProjectPopup({ onClose }: { onClose: () => void }): ReactNode {
   const archive = useSystemStore(selectArchive)
@@ -20,6 +21,11 @@ export function NewProjectPopup({ onClose }: { onClose: () => void }): ReactNode
   const { data: tree } = useStacksTree(online)
   const mutations = useProjectMutations()
   const [error, setError] = useState<string | null>(null)
+
+  const refused = (cause: Error): void => {
+    const hint = (cause as { hint?: string | null }).hint
+    setError(hint ? `${cause.message} ${hint}` : cause.message)
+  }
   const [shelfId, setShelfId] = useState<string | null>(() =>
     window.localStorage.getItem(LAST_SHELF_KEY)
   )
@@ -42,9 +48,13 @@ export function NewProjectPopup({ onClose }: { onClose: () => void }): ReactNode
           folders={tree?.folders ?? []}
           shelfId={shelf}
           onShelfChange={chooseShelf}
-          busy={mutations.create.isPending}
+          busy={mutations.create.isPending || mutations.temporary.isPending}
           error={error}
           onBack={onClose}
+          onSubmitTemporary={(draft) => {
+            setError(null)
+            mutations.temporary.mutate(draft, { onSuccess: onClose, onError: refused })
+          }}
           onSubmit={(draft) => {
             setError(null)
             mutations.create.mutate(
@@ -56,10 +66,7 @@ export function NewProjectPopup({ onClose }: { onClose: () => void }): ReactNode
                     .then(onClose)
                     .catch((cause: Error) => setError(cause.message))
                 },
-                onError: (cause: Error) => {
-                  const hint = (cause as { hint?: string | null }).hint
-                  setError(hint ? `${cause.message} ${hint}` : cause.message)
-                }
+                onError: refused
               }
             )
           }}
