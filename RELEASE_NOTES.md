@@ -1,57 +1,42 @@
-A small window that stays on top of everything from the moment the PC starts, with today's agenda, your pins and the console one click away. It now opens at launch instead of the vestibule.
+Rename a project from the ARCHIVE, gather pins into groups on the quick strip, and open any website from it.
 
-## THE QUICK STRIP
+## RENAMING PROJECTS
 
-A small card in the bottom right of the screen, above every other window, Ableton's included. It holds the logo, today's agenda, your pins, who is signed in (CANDY or MIST), the gear for its settings and a More menu. Drag it anywhere, on any screen: it lines up with the edges and stays where you leave it.
+A project can be renamed after it's made. Click the pencil beside its name in its record, or right-click it in the ARCHIVE and choose Rename.
 
-It steps aside while the console is open, and comes back when you close the console, retire it to the tray or minimise it. Click the logo to fold the strip down to the logo alone, and click it again to open it.
+The dialog shows what changes on disk before anything does: the project's folder (Vortex Project becomes Nova Project) and every set named after it (Vortex.als becomes Nova.als, and Vortex 2.als becomes Nova 2.als). Backups and bounces keep their names.
 
-It comes in three looks, chosen in REGULATION: Panel, Horizontal and Vertical.
+Everything that points into the project follows it: its final master, the release track that ships it, calendar attachments and pins on the quick strip.
 
-## PINS
+Close the set in Ableton Live first. If Live still holds the project open, nothing is renamed and the dialog says why.
 
-Pin as many things as you like, in any order: a stack or a project from the ARCHIVE, a folder, a file, a department, a link, or an action (New project, Add to today, the console, the vestibule).
+## GROUPS ON THE QUICK STRIP
 
-Clicking a stack asks whether to open it in the ARCHIVE or in Explorer. Clicking a project asks whether to open it in Ableton, open its dossier in the ARCHIVE, or open its folder. Tick Always do this for this pin and later clicks go straight there.
+A group is one icon on the strip that drops down the pins inside it. Each group wears an icon you choose, with a small gold corner that says it opens more.
 
-A pinned folder lists what's in it beside the strip; click a set and it opens in Ableton. Drop files and folders on the strip to pin them, and right-click a pin to rename it, move it, open it another way or remove it.
+Click it to see its pins as icons, with the name of the one under the pointer below them. Each opens as it would from the strip.
 
-## TODAY
+To fill a group:
 
-The strip's top row is today's agenda from CALENDAR: what's next, what follows, how many entries are left and how many are overdue. Releases out today and release anniversaries show there too.
+- press + in its dropdown to add a website, a file or a folder
+- drop files, folders or links on its icon
+- right-click any pin and choose Into a group, or Into a new group
+- in REGULATION, drag pins in and out, or choose the group under Add
 
-Click it for the list, where you can:
+Right-click a group to rename it, change its icon, ungroup it or remove it.
 
-- tick entries off
-- open what an entry is about
-- tick off its steps
-- move it an hour later, to today or to tomorrow
+## OPEN A WEBSITE
 
-Add files a new entry from there.
+Open a website takes any address, on the strip's More menu or as a pin of its own: youtube.com works, as https:// is added for you. Open it in your browser, or pin it to the strip or into a group.
 
-A Windows notification comes 10 minutes before a timed entry starts; REGULATION changes how long, or turns it off. Click the notification and the entry opens on the strip.
+Links dragged from your browser onto the strip are pinned too.
 
-## NEW PROJECT
-
-New project on the strip opens the vestibule's form beside it: a name, a shelf and a colour. Create files the project, copies your template set into it and opens it in Ableton.
-
-## CALENDAR
-
-Entries can carry attachments and checklists. Attach a project, a file, a folder or a link, then open it from the entry in one click. A checklist holds the steps within an entry; tick them off in CALENDAR or on the strip.
+Pinned websites show the site's own icon, fetched once from the site, and take the name the site gives itself. Right-click one to look for its icon again.
 
 ## REGULATION
 
-A new QUICK STRIP section covers:
+The pin list shows each group with its pins under it. Drag a pin by its handle into a group or out of one, choose where Add puts things, and click a group's icon to change it.
 
-- showing the strip, and its look
-- whether it stays on top
-- Today, and reminders
-- moving it back to the bottom right
+## FIXES
 
-Its pin list adds stacks, projects, files, folders, departments, links and actions. Drag a pin by its handle to move it, and drop files and folders on the list to pin them.
-
-Under STARTUP, At launch sets what opens when Haven starts: the quick strip alone (now the default), the vestibule, or the console. It replaces Open the vestibule first; to keep the vestibule, set At launch to Vestibule.
-
-## THE TRAY
-
-The tray icon's menu has Show the Quick Strip, which brings the strip back after Hide the strip.
+Moving a project to another shelf takes its final master with it, so its release still finds the file. Its calendar attachments and strip pins follow it too.
