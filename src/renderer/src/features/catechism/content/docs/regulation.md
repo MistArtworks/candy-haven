@@ -1,13 +1,17 @@
 # REGULATION
 
-Operator settings, grouped into eight categories. The category lives in the URL,
+Operator settings, grouped into ten categories. The category lives in the URL,
 so a link can point at one and the back gesture walks the groups rather than
 leaving the department.
 
 ![regulation-01-categories.png](regulation-01-categories.png)
 
 `Ctrl+,` opens this department from anywhere, as it does in every other
-application on the desktop.
+application on the desktop. The quick strip's gear opens it at QUICK STRIP.
+
+Changes here are a draft until you file them. A bar along the foot of the page
+says what is unsaved: **File changes** keeps it, **Discard** puts everything
+back as it was.
 
 ## PRESENTATION
 
@@ -86,13 +90,24 @@ there to draw from.
 
 Whether this console starts with the machine, and what closing it means.
 
-- **Open the vestibule first** — a small window opens ahead of the console
-  offering two things: a new project, or the console proper. Creating one there
-  files it, copies your template set and opens it in Ableton without the console
-  ever loading, then leaves the application in the tray. On by default. Turn it
-  off and launching goes straight to the console. A sign-in launch never shows
-  it either way — the point of starting with the machine is that the archive and
-  the overlay server are up, not that you are asked a question.
+![regulation-07-startup.png](regulation-07-startup.png)
+
+- **At launch** says what opens when Haven starts:
+
+  | Choice        | Opens                                                                                            |
+  | ------------- | ------------------------------------------------------------------------------------------------ |
+  | `QUICK STRIP` | The quick strip alone. The default: it is on screen anyway, and the console is one click from it |
+  | `VESTIBULE`   | The vestibule as well: a new project, or the console proper                                      |
+  | `CONSOLE`     | The console as well                                                                              |
+
+  The vestibule offers two things: a new project, or the console. Creating one
+  there files it, copies your template set and opens it in Ableton without the
+  console ever loading, then leaves the application in the tray. A sign-in
+  launch never shows the vestibule or the console, whatever is chosen: the
+  point of starting with the machine is that the archive and the overlay server
+  are up, not that you are asked a question. The quick strip opens at every
+  launch while it's switched on, under QUICK STRIP.
+
 - **Launch at sign-in** — registers the console to start when you sign in to
   Windows.
 - **Start in the tray** — a sign-in launch comes up in the tray rather than on
@@ -103,6 +118,79 @@ Whether this console starts with the machine, and what closing it means.
   default. `Alt+F4` and Quit on the tray icon always quit regardless — an
   application that refuses the operating system's own close is one you cannot
   get rid of.
+
+## QUICK STRIP
+
+The small window on top of everything: its look, its pins, and today on it. See
+the QUICK STRIP chapter for the strip itself.
+
+![regulation-06-strip.png](regulation-06-strip.png)
+
+| Setting                    | Effect                                                                                                      |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Show the strip**         | Switches the strip on or off. On by default. **Hide the strip** on the strip turns it off too               |
+| **Look**                   | `PANEL`, `HORIZONTAL` or `VERTICAL`                                                                         |
+| **On top of every window** | Keeps it above every other application. On by default                                                       |
+| **Today**                  | Shows today's agenda and follow-ups on it                                                                   |
+| **Reminders**              | How early CALENDAR's reminder comes before a timed entry: `OFF`, `5`, `10`, `15` or `30 MIN`. 10 by default |
+| **Where it sits**          | **Back to the bottom right** puts the strip back in its starting corner                                     |
+
+The **PINS** panel beneath lists everything on the strip, in order, groups with
+their pins indented under them:
+
+- **Rename** a pin in its name field.
+- **Move** one by dragging its handle, into a group or out of one, or with the
+  arrows beside it.
+- **On click** sets how a stack or a project opens: **Ask each time**, or one
+  way always.
+- **×** removes a pin, or a group with everything in it. The arrow out of a
+  group puts a pin back on the strip.
+- A group's icon button chooses its icon, and its name is edited in place.
+
+To add pins, the row under the list:
+
+1. Choose where they go under **Add**: **The strip**, or one of your groups.
+2. Then press **Stack…** or **Project…** to find one in the ARCHIVE by name,
+   **File…** or **Folder…** to pick one, or an action: **New project**, **Add to
+   today**, **Open a website**, **The console**, **The vestibule**.
+3. Or choose **A department…**, or type an address and press **Pin website**.
+
+**New group** makes an empty group to fill. Files, folders and links dropped on
+the list are pinned where they land.
+
+## LEADS
+
+ARTISTS' follow-ups: what you log, how fast a lead cools, and the reminders.
+See the LEADS chapter for leads themselves.
+
+![regulation-08-leads.png](regulation-08-leads.png)
+
+**PREDEFINED INTERACTIONS** are the suggestions offered when logging an
+interaction, each with its points. Picking one fills in both; typing one's name
+in full brings its points too.
+
+- **Rename** one by typing over its name. An emptied name keeps the last good
+  one.
+- **Change its points** in the box beside it: a whole number from −50 to +50.
+  Warming points are written warm, cooling ones cold.
+- **×** removes it.
+- **Add one**: type its name and points in the row under the list and press
+  Enter, or **Add**. A name already on the list is refused. Up to forty.
+
+A logged interaction keeps the points it was logged with, so a change here
+counts from now on and never re-scores the past.
+
+**Cooling per quiet week** is how many points a lead loses for each week nothing
+is logged, worked out to the day: `0` to `50`, 10 by default. `0` stops cooling
+altogether, so a lead holds its temperature however long it goes quiet.
+
+**Back to the defaults** puts back the seven predefined interactions and a
+cooling of 10.
+
+**FOLLOW-UP REMINDERS**: **Remind me** switches follow-ups' Windows
+notifications on or off. On by default. With it on, opening Haven says what is
+overdue, and each follow-up reminds you as it comes due. Overdue follow-ups show
+on the strip, in NEXUS and in ARTISTS either way.
 
 ## ARCHIVE
 
@@ -254,8 +342,8 @@ projects, stages, tags and notes — is a database and is not in here.
 The uninstaller asks what to keep, with two boxes, both ticked:
 
 - **Keep my settings** — everything on this page, and the credential files.
-- **Keep my archive** — the register: projects, stages, tags, notes, volumes and
-  releases.
+- **Keep my archive** — the register: projects, stages, tags, notes, volumes,
+  releases, the calendar, the roster and the leads.
 
 Clear a box and that part is removed. Leave both and a later reinstall comes
 back exactly as you left it.

@@ -35,8 +35,9 @@ from — so it cannot drift from the truth the way a written page can.
 One field searches departments, ARCHIVE projects, DISCOGRAPHY releases and
 tracks, and the ARTISTS roster at once, and answers nothing until you type —
 opening it shows the field alone rather than a standing menu of everywhere the
-console goes. It also carries three blind actions that need no shelf or date to
-start: **New Release**, **New Artist**, and **Compose** (files a DISPATCH item).
+console goes. It also carries four blind actions that need no shelf or date to
+start: **New Release**, **New Artist**, **New Lead** (opens ARTISTS on LEADS with
+the add dialog) and **Compose** (files a DISPATCH item).
 `↑`/`↓` walks the results, `Enter` goes there, `Escape` closes it.
 
 `Ctrl`+`]` puts the department rail away, or brings it back. The rail's own
@@ -133,16 +134,34 @@ project, so it is disabled rather than creating one somewhere arbitrary.
 
 ## CALENDAR
 
-| Chord                   | Does                     |
-| ----------------------- | ------------------------ |
-| `Alt`+`1` … `Alt`+`4`   | MONTH, WEEK, DAY, AGENDA |
-| `Ctrl`+`←` / `Ctrl`+`→` | Previous / next period   |
-| `Ctrl`+`T`              | Back to today            |
-| `Ctrl`+`N`              | File an entry            |
-| `Escape`                | Close the dialog         |
+| Chord                   | Does                                |
+| ----------------------- | ----------------------------------- |
+| `Alt`+`1` … `Alt`+`4`   | MONTH, WEEK, DAY, AGENDA            |
+| `Ctrl`+`←` / `Ctrl`+`→` | Previous / next period              |
+| `Ctrl`+`T`              | Back to today                       |
+| `Ctrl`+`N`              | File an entry                       |
+| `Escape`                | Close the dialog, or the day's list |
 
 `Ctrl`+`N` opens on the **anchored** date — the day the register is showing,
-not today. In MONTH that is the first of the month.
+not today. In MONTH that is the first of the month. With a day's list open, it
+files on that day instead.
+
+## ARTISTS: LEADS and OPPORTUNITIES
+
+| Key      | Where                            | Does                                          |
+| -------- | -------------------------------- | --------------------------------------------- |
+| `Enter`  | **What happened?** or its points | Logs the interaction                          |
+| `Enter`  | A follow-up's title              | Saves the follow-up                           |
+| `Enter`  | An opportunity's value           | Saves the value                               |
+| `Escape` | A lead's or opportunity's sheet  | Closes it. A dialog open over it closes first |
+
+There are no chords of their own: logging is typing, and the rest is a press.
+
+## THE QUICK STRIP
+
+The strip is a window of its own, so the console's chords don't reach it. In its
+popups, `Enter` does the obvious thing (opens the website, logs and completes,
+adds the entry) and `Escape` puts the popup away.
 
 ## AUDITORIUM
 

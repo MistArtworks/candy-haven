@@ -164,6 +164,83 @@ Nothing is lost. Every department's **Quick guide** button is always available
 and covers the same ground for that department, and these chapters cover all of
 it at more length. `F1` opens the guide for wherever you are.
 
+## The quick strip has gone
+
+It was hidden, or switched off, and Haven is still running.
+
+1. Right-click Candy Haven's tray icon and choose **Show the Quick Strip**.
+2. Or, in the console, open REGULATION → **QUICK STRIP** and switch **Show the
+   strip** back on, then **File changes**.
+
+If it is on but you can't see it, it may be folded to the logo alone, or sat on
+a screen that's no longer connected. **Back to the bottom right**, in the same
+category, brings it back to its starting corner. While the console is on screen
+the strip stands aside by design; minimise the console and it returns.
+
+## Reminders never appear
+
+Both kinds of reminder are Windows notifications, and only come while Candy
+Haven is running.
+
+1. Check the switch for the kind that's quiet:
+   - CALENDAR entries: REGULATION → **QUICK STRIP** → **Reminders** must not be
+     `OFF`, and the entry needs a start time; an all-day entry has nothing to
+     remind before.
+   - Follow-ups: REGULATION → **LEADS** → **Remind me** must be on.
+2. In Windows, open **Settings → System → Notifications** and make sure
+   notifications are on for Candy Haven.
+3. Check **Do not disturb** (Focus): while it's on, notifications go quietly to
+   the notification centre instead of appearing.
+
+A follow-up made already due, like a new lead's first interaction due now,
+doesn't remind in the sitting it was made in, by design. It shows as overdue on
+the strip, in NEXUS and in LEADS, and the next time Haven opens it's counted.
+
+## A follow-up still says overdue after snoozing it
+
+By design. **Snooze** only quiets its reminders until then; the follow-up is
+still past its due time, so it still reads overdue, now with **Snoozed to** and
+when. To actually move it, open it (**Edit**) and give it a new due time. A new
+time also clears the snooze, so the new time reminds you afresh.
+
+**Dismiss** is the same: no more reminders, but the follow-up stays open until
+it's ticked off.
+
+## A reminder's popup says "Done already, or no longer here."
+
+The follow-up was completed, removed or archived after the notification came:
+from the console, from another popup, or because its lead was archived. There
+is nothing left to do about it. **All of today** opens the strip's Today list
+for what's still open.
+
+## LEADS says the archive is not connected
+
+LEADS, OPPORTUNITIES and their follow-ups live in the archive, so they can't be
+read or written while it's down. NEXUS says why in plain words, and **The
+archive says OFFLINE** above covers what to do. Once the archive is back, the
+leads come back with it; nothing was lost.
+
+## A rename is refused
+
+The rename dialog says why, and nothing on disk has moved.
+
+**"That project is in use by another program."** — Ableton Live has the set
+open, or an Explorer window is inside the project's folder. Close both, then
+press **Rename** again.
+
+**"Something called … is already on that shelf."** — another project or folder
+has that name. Choose another, or rename the other one first.
+
+**"This project already has a set called …"** — one of the project's other sets
+already has the new name. Choose another, or rename that set in Ableton.
+
+## Quit didn't quit
+
+By design: the strip's power button asks twice. The first press turns it
+crimson and says **Press again to quit Candy Haven**; a second press within
+three seconds quits. Wait longer and it settles back. **Quit Candy Haven** on
+the tray icon or in the strip's **More** menu quits in one press.
+
 ## Where the logs are
 
 REGULATION → **DIAGNOSTICS** lists the real resolved paths for this

@@ -190,9 +190,20 @@ Release dates appear on the CALENDAR automatically as read-only gold markers, an
 released record's anniversary is marked there too, one year on and every year after —
 neither is ever typed twice.
 
-### ARTISTS — the roster _(live)_
+### ARTISTS — the roster, leads and opportunities _(live)_
 
-Who the practice works with, and what they are credited on. Every artist carries a name,
+Three lenses. **ROSTER** is who the practice works with, and what they are
+credited on (below). **LEADS** is the people it is getting to know: each lead
+carries a temperature from frozen to supernova, worked out from the
+interactions logged with it (each with its own points, cooling a little each
+quiet week) or set by hand, and follow-ups with a due time, a priority, snooze
+and dismiss. **OPPORTUNITIES** is the concrete work that came of a lead, on a
+board by stage (Open, In talks, Negotiating, Agreed, In progress, Won, Lost),
+with a kind, a value and follow-ups of its own. Follow-ups also surface on the
+quick strip, in NEXUS, in CALENDAR and as Windows reminders. See
+[`LEADS.md`](LEADS.md).
+
+On the roster: who the practice works with, and what they are credited on. Every artist carries a name,
 a portrait, a set of roles (producer, vocalist, featured, remixer and others), and social
 links; DISCOGRAPHY credits reference this roster directly rather than free-text names, so
 renaming an artist once corrects every release and track that credits them. A label is
@@ -205,7 +216,11 @@ Sessions, deliveries and observances, in four views: **month, week, day and agen
 Entries can be all-day or timed, and come in five kinds — session, delivery, broadcast,
 rite, deadline — each drawn in a distinct material so a month can be read as a shape
 before reading a word of it. Deliberately not auto-populated from projects: a delivery
-date written down should never silently move because something else changed.
+date written down should never silently move because something else changed. Entries
+carry attachments (a set, a folder, a project, a link, each opened in one click) and a
+checklist. Clicking a day shows everything on it first, with Add an entry beneath.
+Release dates, their anniversaries and ARTISTS' follow-ups are drawn on it as readings
+from where they live, never copied in.
 
 ### AUDITORIUM — the listening room _(live)_
 
@@ -351,9 +366,11 @@ local machine.
 
 ### REGULATION — settings _(live)_
 
-Eight categories: **Presentation** (motion level, interface scale, accent colour, film
-grain, page transitions, custom pointer), **Startup** (launch with Windows, start
-minimised, close to tray, fast boot), **Archive** (filing root, additional folders to
+Ten categories: **Presentation** (motion level, interface scale, accent colour, film
+grain, page transitions, custom pointer), **Startup** (what opens at launch, launch with
+Windows, start minimised, close to tray, fast boot), **Quick strip** (shown or hidden,
+look, on top, today, reminder lead time, every pin and group), **Leads** (predefined
+interactions and their points, cooling per quiet week, follow-up reminders), **Archive** (filing root, additional folders to
 scan, new-project template, scan on launch, move-or-copy, database port),
 **Integrations** (Spotify, Twitch channel, overlay port, overlay asset folder), **Board**
 (shared board configuration), **Updates** (channel, automatic check and download),
@@ -407,13 +424,20 @@ reversible command history. **There is currently no AI in the product at all.**
 - **Honest startup.** The loading screen mirrors nine real startup stages doing real
   work, with a weighted progress meter; failures stop with a plain-English cause, a hint,
   and a retry.
-- **A launch window ahead of the console.** Most launches are to start a new project, not
+- **A strip above everything.** THE QUICK STRIP opens with the PC: today's agenda and
+  overdue follow-ups, the operator's pins (stacks, projects, folders, files, websites,
+  departments, actions, and groups of them), who is signed in, and a Quit button. Most
+  everyday actions never need the console. It stands aside while the console is on
+  screen. See [`QUICK_STRIP.md`](QUICK_STRIP.md).
+- **Reminders.** Windows notifications before a timed CALENDAR entry, and for each
+  ARTISTS follow-up as it comes due, opening on the strip with what can be done there.
+- **A launch window ahead of the console**, when chosen. Most launches are to start a new project, not
   to operate the console at all, so the application opens on a small window with four
   choices — start a new project, or land straight in the console, ARCHIVE or OBSERVATORY
   — rather than opening the whole console just to be told which department to go to.
   Starting a project here names it, picks its shelf, copies the Ableton template, hands it
-  to Live, and retires the application to the tray without the console ever loading. It
-  can be turned off in REGULATION.
+  to Live, and retires the application to the tray without the console ever loading.
+  Since 1.23.0 the default at launch is the quick strip; REGULATION chooses.
 - **Automatic updates**, with the channel and the automatic-download behaviour under the
   user's control, and a short "what changed" note the first time a new version runs.
 - **Clean uninstall with choices.** The uninstaller asks whether to keep settings and

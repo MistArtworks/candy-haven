@@ -13,16 +13,28 @@ involves is filed here rather than spread across applications that cannot see on
 another. See [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) §1 for who uses
 it and why.
 
-Seventeen departments, grouped into four divisions. Fifteen are in service — the
+Eighteen departments, grouped into four divisions. Sixteen are in service: the
 operational overview, the project registry and filing tree, everything
-released and where it went, the artist roster, the dated register, the
-listening room, photo grading onto the console palette, the broadcast overlay
-kit, the website's messages and bookings, the lore of Nayara and its planets
-(written here, published to the website), host telemetry, a shared feedback
-board, operator settings and the built-in manual. **INTERFACE**, the natural-language command console, is routed
-and specified but not yet commissioned; its page lists what it will do.
-**COLOPHON**, the details the website carries, is reserved while it is
-reworked; its page says it is coming soon.
+released and where it went, the artist roster with its leads and
+opportunities, the dated register, the listening room, photo grading onto the
+console palette, the broadcast overlay kit, the website's messages and
+bookings, the lore of Nayara and its planets (written here, published to the
+website), the catalogue as the website shows it, host telemetry, a shared
+feedback board, operator settings and the built-in manual. **INTERFACE**, the
+natural-language command console, is routed and specified but not yet
+commissioned; its page lists what it will do. **COLOPHON**, the details the
+website carries, is reserved while it is reworked; its page says it is coming
+soon.
+
+Beside the console, **THE QUICK STRIP** is a small window above every other
+application from the moment the PC starts: today's agenda and follow-ups, the
+operator's own pins and groups, who is signed in, and Quit. It is what opens at
+launch by default. See [`docs/QUICK_STRIP.md`](docs/QUICK_STRIP.md).
+
+Feature design documents: [`docs/QUICK_STRIP.md`](docs/QUICK_STRIP.md),
+[`docs/LEADS.md`](docs/LEADS.md), [`docs/DISCOGRAPHY.md`](docs/DISCOGRAPHY.md),
+[`docs/INBOX.md`](docs/INBOX.md), [`docs/LORE.md`](docs/LORE.md) and
+[`docs/DISPATCH_BOARD.md`](docs/DISPATCH_BOARD.md).
 
 ---
 
@@ -139,7 +151,10 @@ call out, rather than every call site having to opt in.
 
 ## THE VESTIBULE — the startup window
 
-Launching does not open the console. It opens a small window with four doors:
+Since 1.23.0 a launch opens THE QUICK STRIP by default; the vestibule is one of
+the three choices under REGULATION → STARTUP → **At launch** (`QUICK STRIP`,
+`VESTIBULE`, `CONSOLE`). When chosen, launching does not open the console. It
+opens a small window with four doors:
 **a new project**, **the console**, **ARCHIVE**, or **OBSERVATORY**.
 
 Most launches are the first, and the console is a ten-department operator
@@ -177,8 +192,8 @@ every NEXUS scene uses — laid out as a slab rather than a sphere, because a
 sphere is a focal object and the focal object here is whichever door the
 operator is reaching for.
 
-Turn it off in **REGULATION → STARTUP**. A sign-in launch (`--hidden`) never
-shows it either way.
+Choose it, or the console or the strip alone, in **REGULATION → STARTUP**. A
+sign-in launch (`--hidden`) never shows it either way.
 
 ---
 

@@ -2,6 +2,8 @@
 
 ## Coming soon
 
+![colophon-01-reserved.png](colophon-01-reserved.png)
+
 COLOPHON is reserved while it is reworked, so its page has nothing to fill in
 yet. It comes back in a future update, as the place the details the website
 carries are written.

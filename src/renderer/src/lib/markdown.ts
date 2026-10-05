@@ -76,6 +76,21 @@ export function parseMarkdown(source: string): Block[] {
   // columns in the source reads as one paragraph on the page.
   let paragraph: string[] = []
   let ordinal = 0
+  /**
+   * Whether a numbered list is still running. It survives blank lines, a
+   * picture or an indented line inside a step, so "1. … picture … 2." counts
+   * on rather than starting again at one; a heading, a bullet or a paragraph
+   * at the margin ends it.
+   */
+  let inList = false
+  /** The number the last step was typed with: a new "1." after "3." is a new list. */
+  let lastTyped = 0
+  /**
+   * The bullet, step or callout whose next line, with no blank line between,
+   * is the rest of it. Without this a wrapped item broke in two, its second
+   * line drawn as a paragraph of its own.
+   */
+  let open: { kind: 'bullet' | 'ordered' | 'note'; text: string } | null = null
 
   const flush = (): void => {
     if (paragraph.length > 0) {
@@ -85,19 +100,21 @@ export function parseMarkdown(source: string): Block[] {
   }
 
   for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index].trim()
+    const raw = lines[index]
+    const line = raw.trim()
+    const indented = /^\s/.test(raw)
 
     if (!line) {
       flush()
-      // A blank line also ends a numbered run, so two lists in one document do
-      // not continue each other's count.
-      ordinal = 0
+      open = null
       continue
     }
 
     const fence = FENCE.exec(line)
     if (fence) {
       flush()
+      open = null
+      if (!indented) inList = false
       const lang = fence[1] || null
       const body: string[] = []
       index += 1
@@ -113,6 +130,9 @@ export function parseMarkdown(source: string): Block[] {
 
     if (line.startsWith('#')) {
       flush()
+      open = null
+      inList = false
+      ordinal = 0
       const hashes = /^#+/.exec(line)?.[0].length ?? 1
       blocks.push({
         kind: 'heading',
@@ -125,6 +145,7 @@ export function parseMarkdown(source: string): Block[] {
     const image = IMAGE.exec(line)
     if (image) {
       flush()
+      open = null
       blocks.push({ kind: 'image', alt: image[1], src: image[2] })
       continue
     }
@@ -133,6 +154,8 @@ export function parseMarkdown(source: string): Block[] {
     // in hand when the rule below it confirms what the block is.
     if (line.startsWith('|') && index + 1 < lines.length && isTableRule(lines[index + 1])) {
       flush()
+      open = null
+      if (!indented) inList = false
       const head = cells(line)
       const rows: string[][] = []
       index += 2
@@ -147,16 +170,32 @@ export function parseMarkdown(source: string): Block[] {
       continue
     }
 
-    if (line.startsWith('> ')) {
+    if (line.startsWith('> ') || line === '>') {
+      // A callout wrapped over several `>` lines is one callout. A bare `>`
+      // is its blank line, and the next `>` line starts another.
+      if (open?.kind === 'note' && line !== '>') {
+        open.text += ` ${line.slice(2)}`
+        continue
+      }
       flush()
-      blocks.push({ kind: 'note', text: line.slice(2) })
+      if (!indented) inList = false
+      if (line === '>') {
+        open = null
+        continue
+      }
+      const note = { kind: 'note' as const, text: line.slice(2) }
+      blocks.push(note)
+      open = note
       continue
     }
 
     if (line.startsWith('- ') || line.startsWith('* ')) {
       flush()
+      inList = false
       ordinal = 0
-      blocks.push({ kind: 'bullet', text: line.slice(2) })
+      const bullet = { kind: 'bullet' as const, text: line.slice(2) }
+      blocks.push(bullet)
+      open = bullet
       continue
     }
 
@@ -164,12 +203,26 @@ export function parseMarkdown(source: string): Block[] {
     if (ordered) {
       flush()
       // Numbered from the document's own run rather than from what was typed,
-      // so a list whose source is all "1." still counts up on the page.
-      ordinal += 1
-      blocks.push({ kind: 'ordered', text: ordered[2], index: ordinal })
+      // so a list whose source is all "1." still counts up on the page. A
+      // "1." after a step typed higher is a new list, and starts at one.
+      const typed = Number(ordered[1])
+      const fresh = !inList || (typed === 1 && lastTyped > 1)
+      ordinal = fresh ? 1 : ordinal + 1
+      lastTyped = typed
+      inList = true
+      const step = { kind: 'ordered' as const, text: ordered[2], index: ordinal }
+      blocks.push(step)
+      open = step
       continue
     }
 
+    // The rest of the item above it, wrapped onto this line.
+    if (open) {
+      open.text += ` ${line}`
+      continue
+    }
+
+    if (!indented) inList = false
     paragraph.push(line)
   }
 

@@ -388,6 +388,68 @@ you are working — the exact moment the machine is needed elsewhere.
 
 Filing is refused while a scan is running, because both move the same files.
 
+## Renaming a project
+
+A project can be renamed after it's made, folder, sets and all, without leaving
+anything behind pointing at the old name.
+
+![archive-15-rename-pencil.png](archive-15-rename-pencil.png)
+
+### How to rename one
+
+1. Close the project's set in Ableton Live, and any Explorer window open inside
+   its folder.
+2. Open the rename dialog, either way:
+   - in the project's dossier, press the pencil beside its name
+   - in the register, right-click the project and choose **Rename**
+
+   ![archive-16-project-menu.png](archive-16-project-menu.png)
+
+3. Type the new **Name**. Under **ON DISK**, the dialog shows every change
+   before anything happens: the folder (`Morning Light Project` becomes
+   `Golden Hour Project`) and every set named after the project, numbered ones
+   included (`Morning Light 2.als` becomes `Golden Hour 2.als`).
+4. Press **Rename**.
+
+![archive-12-rename-dialog.png](archive-12-rename-dialog.png)
+
+Sets named anything else, backups and bounces keep their names: only what is
+named after the project is renamed. A change of capitals alone (`vortex` to
+`Vortex`) is a rename too.
+
+### What follows it
+
+Everything that points into the project is moved to the new name in the same
+step, so nothing needs re-linking:
+
+- its record in the register, and its **final master**
+- the release track in DISCOGRAPHY that ships it
+- CALENDAR attachments pointing into it
+- quick strip pins and group pins pointing at it or into it
+
+![archive-17-renamed.png](archive-17-renamed.png)
+
+### When it's refused
+
+Every new name is checked before anything moves, and if any part can't be
+renamed, whatever was renamed is put back. A refused rename leaves the project
+exactly as it was, and the dialog says why:
+
+| It says                                        | What to do                                                                               |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| That project is in use by another program      | Close the set in Ableton Live, and any Explorer window inside the folder, then try again |
+| Something called that is already on that shelf | Choose another name, or rename the other one first                                       |
+| This project already has a set called that     | Choose another name, or rename that set in Ableton first                                 |
+| That project is in the bin                     | Restore it first, then rename it                                                         |
+| That project folder is no longer on disk       | Run a scan, or remove the record from the register                                       |
+
+![archive-13-rename-in-use.png](archive-13-rename-in-use.png)
+
+![archive-14-rename-taken.png](archive-14-rename-taken.png)
+
+A project marked MISSING can't be renamed: **Rename** is greyed out in its menu.
+Renaming waits while a scan is running, as filing does.
+
 ## Deleting and restoring
 
 Deleting a project moves it to the **BIN** — a real directory under the archive,

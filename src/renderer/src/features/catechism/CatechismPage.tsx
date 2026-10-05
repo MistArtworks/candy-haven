@@ -198,7 +198,7 @@ export function CatechismPage(): ReactNode {
           index={String(CHAPTERS.indexOf(chapter) + 1).padStart(2, '0')}
           aside={
             chapter.section ? (
-              <Link className={styles.jump} to={getSection(chapter.section).path}>
+              <Link className={styles.jump} to={chapter.path ?? getSection(chapter.section).path}>
                 Open department
               </Link>
             ) : null

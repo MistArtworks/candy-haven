@@ -48,6 +48,11 @@ export interface ChapterDefinition {
   purpose: string
   /** The department this chapter documents, when it documents exactly one. */
   section?: SectionId
+  /**
+   * Where **Open department** goes, when that isn't the department's own
+   * page: LEADS documents a lens of ARTISTS rather than all of it.
+   */
+  path?: string
 }
 
 /**
@@ -68,7 +73,12 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     label: 'COMMISSIONING',
     purpose: 'First run: the filing root, the archive, and what to set up first'
   },
-  { id: 'nexus', label: 'NEXUS', purpose: 'The landing and the diagnostic grid', section: 'nexus' },
+  {
+    id: 'nexus',
+    label: 'NEXUS',
+    purpose: 'The landing, its follow-ups card, and the diagnostic grid',
+    section: 'nexus'
+  },
   {
     id: 'archive',
     label: 'ARCHIVE',
@@ -84,13 +94,20 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
   {
     id: 'artists',
     label: 'ARTISTS',
-    purpose: 'The roster, and how credits work',
+    purpose: 'The roster, its three lenses, and how credits work',
     section: 'artists'
+  },
+  {
+    id: 'leads',
+    label: 'LEADS',
+    purpose: 'Leads, their temperature and follow-ups, and the opportunities that come of them',
+    section: 'artists',
+    path: '/artists?lens=leads'
   },
   {
     id: 'calendar',
     label: 'CALENDAR',
-    purpose: 'The dated register and its four lenses',
+    purpose: "The dated register: its lenses, a day's list, and follow-ups",
     section: 'calendar'
   },
   {
@@ -158,6 +175,11 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     label: 'REGULATION',
     purpose: 'Every setting, by category',
     section: 'regulation'
+  },
+  {
+    id: 'strip',
+    label: 'QUICK STRIP',
+    purpose: 'The small window on top of everything: pins, groups, today, follow-ups and Quit'
   },
   { id: 'shortcuts', label: 'SHORTCUTS', purpose: 'Every chord the console binds' },
   {

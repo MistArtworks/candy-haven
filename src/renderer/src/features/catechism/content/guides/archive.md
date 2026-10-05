@@ -75,3 +75,15 @@ it, and clicking its name opens the folder.
 > Until it is named, the project cannot reach RELEASED. That is the one thing
 > in the pipeline this console insists on: a release nobody recorded the source
 > of is the question the archive exists to stop being unanswerable.
+
+## Renaming a project
+
+![archive-12-rename-dialog.png](archive-12-rename-dialog.png)
+
+Press the pencil beside a project's name in its dossier, or right-click it and
+choose **Rename**. The dialog shows what changes on disk before anything does:
+the folder, and every set named after the project.
+
+Its final master, its release track, CALENDAR attachments and quick strip pins
+all follow it. Close the set in Ableton Live first: while Live holds the
+project open, nothing is renamed and the dialog says why.

@@ -910,7 +910,7 @@ and Nexus all read from it.
 | 2   | `interface`   | `/interface`    | reserved    | Natural-language command console                       |
 | 3   | `archive`     | `/archive`      | **shipped** | Project registry, filing tree, production pipeline     |
 | 4   | `discography` | `/discography`  | **shipped** | Everything released, and where it went                 |
-| 5   | `artists`     | `/artists`      | **shipped** | The roster, and who is credited on what                |
+| 5   | `artists`     | `/artists`      | **shipped** | The roster, leads and opportunities                    |
 | 6   | `calendar`    | `/calendar`     | **shipped** | The dated register                                     |
 | 7   | `auditorium`  | `/auditorium`   | **shipped** | Listening room and visualiser                          |
 | 8   | `darkroom`    | `/darkroom`     | **shipped** | Grading photographs onto the console palette           |
@@ -932,6 +932,41 @@ pointing at `ReservedPage` with a "Coming soon" status and no scope, while
 reach the first ten, and TELEMETRY, DISPATCH, REGULATION and CATECHISM have
 named chords (`Ctrl`+`Shift`+`T`, `Ctrl`+`Shift`+`D`, `Ctrl`+`,`,
 `Ctrl`+`Shift`+`K`). See `ConsoleLayout.tsx`.
+
+### THE QUICK STRIP — 1.23.0 and 1.24.0 (2026-10-03, 2026-10-04)
+
+A small always-on-top window, its own document (`renderer/strip.html`), opening
+with the PC and by default at launch (`settings.system.launchWith`: `strip`,
+`vestibule`, `console`). Pins are the operator's own (stack, project, folder,
+file, page, link, action, and groups one level deep), with site icons fetched
+by the main process. Today reads CALENDAR and, since 1.25.0, LEADS. It stands
+aside while the console is on screen. 1.25.0 added a fixed two-press Quit
+button. Full design: [`QUICK_STRIP.md`](QUICK_STRIP.md).
+
+### Renaming a project — 1.24.0 (2026-10-04)
+
+`StacksService.renameProject` renames a project's folder (`<Name> Project`) and
+every set named after it, numbered ones included, checking every new name free
+before anything moves and undoing the folder if a set can't follow. Live
+holding the project open is the usual refusal, and the message says so
+(`EBUSY`/`EPERM`). `setPathsListener`, wired in `container.ts`, re-points
+DISCOGRAPHY masters, CALENDAR attachments and strip pins whenever project files
+move: a rename, a filing, or a folder carried along with its parent.
+
+### LEADS and OPPORTUNITIES — 1.25.0 (2026-10-05)
+
+ARTISTS gained two lenses (`?lens=leads`, `?lens=opportunities`): a light CRM,
+local to each PC, in the collections `artists_leads` and
+`artists_opportunities`. A lead's temperature (0..100, frozen to supernova) is
+worked out in the renderer from its interactions' own points and REGULATION's
+cooling per quiet week, or pinned by hand. Tasks (follow-ups) live inside their
+lead or opportunity, are projected into CALENDAR (`setFollowUpReader`) like
+release dates, lead the strip's Today, hang on NEXUS's landing, and remind
+through `main/app/follow-ups.ts`. Full design: [`LEADS.md`](LEADS.md).
+
+In the same release, clicking a day in CALENDAR's MONTH opens a day sheet
+listing everything on it, with Add an entry, instead of the entry dialog
+directly; clicking an hour in WEEK or DAY still files at that time.
 
 ### PUBLICATION and COLOPHON — added 2026-10-01
 

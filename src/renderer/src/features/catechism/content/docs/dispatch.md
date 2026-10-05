@@ -1,7 +1,8 @@
 # DISPATCH
 
 Feedback and suggestions between operators, ruled on and recorded. The only
-department whose record is not this machine's.
+department that keeps no copy of its record on this machine: the board is read
+live from a database the two copies share.
 
 ![dispatch-01-board.png](dispatch-01-board.png)
 
@@ -26,19 +27,23 @@ everyone who does not carry one. That is the actual security; the door is only
 how the token is obtained.
 
 Identity is not chosen, it is resolved: whichever of the two accounts the
-credential belongs to. Sign in once per machine and it stays signed in —
-through a restart — until you sign out.
+credential belongs to, **MIST** or **CANDY**. MIST builds and rules; CANDY asks.
+Sign in once per machine and it stays signed in, through a restart, until you
+sign out. If the stored sign-in is ever refused, the masthead says **The sign-in
+expired. Sign in again.**
 
 1. Type the account's address in **Account** and its **Password** in the band,
    and press **Sign in**.
 2. The masthead then reads **Signed in as** and the name, with **Sign out**
    beside it.
 
-The same sign-in opens CONTACT, SERVICES and LORE. Signing in on any of the
-four signs in on all of them, and signing out here closes the other three.
+The same sign-in opens CONTACT, SERVICES, LORE and RELEASES. Signing in on any
+of the five signs in on all of them, and signing out here (or in REGULATION →
+**BOARD**) closes the other four: CONTACT and SERVICES show nothing, LORE and
+RELEASES can't publish, and the quick strip reads **Not signed in**.
 
-The one rule that is enforced beyond that is that only the builder rules on an
-item, and that is a division of labour rather than a permission.
+Only the builder rules on an item. That is a division of labour the interface
+keeps, rather than a permission the database enforces.
 
 > The door is drawn as a band across the page rather than as a modal. A modal
 > would imply the board is behind it and merely hidden. It is not — it has not
@@ -47,12 +52,16 @@ item, and that is a division of labour rather than a permission.
 
 ## Filing an item
 
-1. Press **New item** (or `Ctrl`+`N`).
+1. Press **New item** (or `Ctrl`+`N`). Both wait until you are signed in and
+   the board is attached. The palette's **Compose** opens the same form from
+   anywhere.
 2. Give it a **Title**: one line, what it is.
 3. Choose its **Kind**, the **Area** it is about, and a **Priority** if it
    matters.
 4. Add **Detail** if the title is not enough: what you want, and why.
 5. Press **File it**. It is on the other copy's board a moment later.
+
+The form opens above the list rather than over it. **Cancel** puts it away.
 
 ![dispatch-04-file.png](dispatch-04-file.png)
 
@@ -72,14 +81,18 @@ prioritised.
 ### Areas
 
 The department the item is about: `GENERAL`, `NEXUS`, `ARCHIVE`, `OBSERVATORY`,
-`INTERFACE`, `TELEMETRY`, `REGULATION`, `DISPATCH`.
+`INTERFACE`, `TELEMETRY`, `REGULATION`, `DISPATCH`. Anything about another
+department, ARTISTS or the quick strip say, is filed under `GENERAL` with the
+department named in the title.
 
 An item keeps the area it was filed under even if a department is later renamed.
 This is a record, and a record that rewrites itself is not one.
 
 ### Priority
 
-`LOW` · `NORMAL` · `HIGH`. Set by whoever files it, and adjustable afterwards.
+`LOW` · `NORMAL` · `HIGH`. Set by whoever files it. Once filed, an item's title,
+detail, kind, area and priority stay as they were filed; say what changed in the
+discussion instead.
 
 ## Reading the board
 
@@ -93,8 +106,9 @@ pending, resolved or denied items, and **Sort** orders it:
 | `RECENTLY DISCUSSED` | Where the conversation is |
 | `PRIORITY`           | High first                |
 
-`RECENTLY DISCUSSED` is the one to use when you come back after a few days — it
-surfaces what moved, not what was added.
+`RECENTLY DISCUSSED` is the default, and the one to use when you come back after
+a few days: an item rises when it's filed, commented on or ruled on, so the top
+of the board is where things moved. Opening an item doesn't move it.
 
 ## Discussion and rulings
 
@@ -116,10 +130,12 @@ Only the builder sees these.
 2. Write the **Reason**: required to deny, optional to resolve, and read first
    by whoever filed it.
 3. Press **Resolve** or **Deny**. **Put back to pending** reopens an item that
-   was settled in haste, with its discussion intact.
+   was settled in haste: its discussion stays, its ruling's reason is cleared.
+   A resolved item can also be denied, or a denied one resolved, directly.
 
-**Withdraw** removes the item and its discussion altogether. It asks first, in
-place: **Delete** to go ahead, **Keep** to change your mind.
+**Withdraw** removes the item and its discussion altogether, and is the
+builder's too. It asks first, in place: **Delete** to go ahead, **Keep** to
+change your mind.
 
 | Status     | Means                                            |
 | ---------- | ------------------------------------------------ |
@@ -127,13 +143,19 @@ place: **Delete** to go ahead, **Keep** to change your mind.
 | `RESOLVED` | Done. The reason records what was actually built |
 | `DENIED`   | Not going to happen, with a reason               |
 
-Both endings are **final and both stay visible**. Denying keeps the item and its
-discussion; removing it deletes both. The distinction is the point — a denied
+Both endings **stay visible**, and both can be reopened. Denying keeps the item
+and its discussion; withdrawing it deletes both. The distinction is the point — a denied
 request that stays on the board is a record of a decision, and the same question
 does not get asked twice.
 
-Items you have not seen since they last changed are marked, so returning to the
-board tells you where to look.
+Two marks tell you where to look when you come back:
+
+- **NEW** on an item the other operator filed that you have never opened.
+- **A crimson count** of the other operator's comments since you last opened it.
+
+Opening an item clears both. Your own items and comments never mark, and a
+ruling alone doesn't either, so a ruling worth hearing about comes with a
+comment. DISPATCH sends no notifications: the board is where it is read.
 
 ## How the sync behaves
 
@@ -150,5 +172,7 @@ The board needs a shared Firebase project, configured in REGULATION under
 **BOARD**. Paste the whole snippet the Firebase console shows — it is parsed
 rather than requiring you to pick the JSON out of it.
 
-Until it is configured, this department says so rather than showing an empty
-board.
+Until it is configured, the band across the page says so, **The board is not
+attached to a database yet**, with a link to REGULATION → **BOARD**. Email and
+password sign-in must be enabled in the Firebase project, and the two accounts
+must be the ones named in its database rules.

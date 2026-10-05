@@ -25,6 +25,34 @@ The version, the last boot's duration and how many departments are
 commissioned are set beneath it. One gesture downward — **Descend** — reaches
 the rest of the numbers.
 
+## Follow-ups on the landing
+
+When follow-ups from ARTISTS' leads are due today or overdue, a small card
+hangs under **SONOALCHEMY** in the top right corner: the one place that is sky
+in every field, so it never covers the picture. It fades away with the rest of
+the landing's lettering as you Descend.
+
+![nexus-03-follow-ups.png](nexus-03-follow-ups.png)
+
+The card names up to three, the most pressing first: who, what, and when it's
+due or how late it is. A slow pulse beside **FOLLOW-UPS** beats crimson while
+anything is overdue, and gold when they're only due today.
+
+- **Click a row** to open that lead (or opportunity) in ARTISTS.
+- **N more in LEADS**, or **Open LEADS**, opens the whole list.
+- **–** puts the card away, folding it to a small mark in the same corner.
+
+![nexus-04-folded.png](nexus-04-folded.png)
+
+Folded, the mark keeps the count and the pulse. Click it to open the card
+again. A follow-up that wasn't there when you folded it, because it has just
+come due, opens the card by itself, so putting away today's list never hides
+tomorrow's.
+
+The card only shows while the archive is up, since that's where the leads are
+read from. When nothing is due, there's no card. See the LEADS chapter for
+follow-ups themselves.
+
 ## The overview
 
 ![nexus-02-overview.png](nexus-02-overview.png)

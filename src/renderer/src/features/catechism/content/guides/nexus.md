@@ -12,6 +12,17 @@ the moment the archive is anything but starting, connecting or online.
 
 The version and the last boot's duration are set beneath it.
 
+## Follow-ups
+
+![nexus-03-follow-ups.png](nexus-03-follow-ups.png)
+
+When follow-ups from ARTISTS' leads are due today or overdue, a small card hangs
+under SONOALCHEMY, in the corner where every field is sky. Overdue ones pulse
+crimson.
+
+Click one to open its lead. **–** folds the card to a mark; a follow-up that
+comes due afterwards opens it again.
+
 ## The overview
 
 ![nexus-02-overview.png](nexus-02-overview.png)

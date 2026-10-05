@@ -4,6 +4,24 @@ The roster: who the practice works with, and what they are on.
 
 ![artists-01-roster.png](artists-01-roster.png)
 
+## Three lenses
+
+ARTISTS has three lenses, in the rail under its heading:
+
+| Lens              | For                                                                    |
+| ----------------- | ---------------------------------------------------------------------- |
+| **ROSTER**        | The people you work with. This chapter                                 |
+| **LEADS**         | The people you're getting to know, how warm it is, and what to do next |
+| **OPPORTUNITIES** | The concrete work that came of a lead, by stage                        |
+
+Each lens shows its count, and LEADS also shows how many follow-ups are overdue.
+ARTISTS opens on ROSTER. LEADS and OPPORTUNITIES have a chapter of their own:
+see LEADS.
+
+A lead and a roster record can be the same person. Link them from the lead
+(**Edit**, then **On the roster**), and the lead's sheet says **On the roster
+as** their name, which opens this record.
+
 ## What an artist record is
 
 One person, with a name, a face, what they do, and where to find them. Records

@@ -4,6 +4,37 @@ What to set up on a fresh installation, in the order that avoids doubling back.
 Steps 1 and 2 are required before the ARCHIVE will draw anything at all. The
 rest are optional and depend on what you intend to use.
 
+## The first launch
+
+The first thing Candy Haven shows is THE QUICK STRIP: a small window in the
+bottom right of the main screen, on top of everything else. That is the
+default under REGULATION → STARTUP → **At launch**, and the console is one
+click from it.
+
+![strip-01-panel.png](strip-01-panel.png)
+
+### How to reach the console from the strip
+
+1. Press the pin called **The console**. Or press **More** (the three dots)
+   and choose **Open the console**.
+2. If Haven is still starting, the console opens on the boot screen. Press
+   **Enter console**, or any key, once the sequence completes.
+3. The orientation tour opens over the console, once. Page through it with
+   `←` and `→`, and close it with `Escape`. Everything in it is in these
+   chapters as well.
+
+The strip steps aside while the console is on screen, and comes back when you
+close the console or minimise it. Closing the console does not quit Haven:
+the power button at the end of the strip does, on a second press.
+
+> Until the archive is set up, the strip's **New project** says so: "The
+> archive isn't set up yet: choose where projects are filed in the console
+> first." Step 1 is how.
+
+If you would rather see the console at every launch, set **At launch** to
+**CONSOLE**. **VESTIBULE** opens a small launcher instead, with a new project
+and the console as its main doors.
+
 ## 1. Establish the archive
 
 ![archive-05-setup.png](archive-05-setup.png)
@@ -54,6 +85,9 @@ The most common first-run case is the MongoDB runtime still downloading. That is
 expected and self-resolving: the installer fetches it, and if that was blocked
 the application provisions it itself on first launch, with resume support.
 
+The strip reads the same state beside who is signed in: `Archive online` once
+it is up.
+
 ## 3. Bring existing work into the register
 
 ![archive-03-intake.png](archive-03-intake.png)
@@ -84,14 +118,52 @@ Only needed if you intend to run overlays.
 | RESONANCE SELECTION     | Nothing, unless you want chat-filed petitions         |
 | INTERVAL, CONVENING     | Nothing                                               |
 
-Then add each one to OBS as a Browser source — see the [OBSERVATORY](/catechism)
-chapter for the exact steps.
+Then add each one to OBS as a Browser source. The
+[OBSERVATORY](/catechism?chapter=observatory) chapter has the exact steps.
 
 ## 5. Attach the shared board
 
 Only if you are the second operator. DISPATCH needs a shared Firebase project,
 configured in REGULATION under **BOARD** by pasting the whole snippet the
 Firebase console shows. There is no account to create inside Candy Haven.
+
+Signing in on DISPATCH also opens CONTACT, SERVICES, LORE and RELEASES, which
+use the same sign-in.
+
+## 6. Make the strip yours
+
+Optional, and worth ten minutes. A new strip starts with six pins: **New
+project**, **Open a website**, **The console**, **Archive**, **Discography**
+and **Calendar**. Change them to what you open every day.
+
+1. Drop a file or a folder on the strip from Explorer to pin it. A folder pin
+   lists what is in it beside the strip; a file opens with whatever Windows
+   opens it with.
+2. Open REGULATION → QUICK STRIP (the strip's gear goes straight there). Under
+   **Pins**, **Stack…** and **Project…** find an ARCHIVE stack or project by
+   name, **File…** and **Folder…** pick one from disk, and a department, a
+   website or one of the strip's actions can be added too. **New group**
+   starts a group, one icon that drops down the pins in it.
+3. Right-click a pin on the strip to rename it, move it, put it in a group or
+   take it off.
+4. Choose a **Look**: `PANEL`, `HORIZONTAL` or `VERTICAL`.
+5. Turn on **Launch at sign-in** under STARTUP if you want the strip on screen
+   from the moment the PC starts.
+
+## 7. Leads, if you want them
+
+Also optional. ARTISTS keeps a light record of the people you want to work
+with, beside the roster: its **LEADS** and **OPPORTUNITIES** lenses.
+
+1. Open [ARTISTS](/artists?lens=leads) on **LEADS** and press **Add a lead**.
+   Only the name is needed.
+2. A new lead starts frozen, with a high-priority follow-up called "First
+   interaction", due when you say (now, unless you change it).
+3. Open REGULATION → LEADS to look over the predefined interactions and their
+   points, how fast a quiet lead cools, and **Remind me**, which is on.
+
+From then on, overdue follow-ups lead the strip's Today, sit in the corner of
+the NEXUS landing, and show in CALENDAR.
 
 ## A reasonable first session
 
@@ -100,7 +172,8 @@ Firebase console shows. There is no account to create inside Candy Haven.
 3. File one project you are actually working on.
 4. Open its dossier and set its stage honestly.
 5. Open AUDITORIUM and play its latest bounce.
+6. Pin that project to the strip, so tomorrow it is one click away.
 
-That exercises the filing tree, the register, the pipeline and the listening
-room in about five minutes, and it will tell you quickly whether the filing root
-is pointed where you meant.
+That exercises the filing tree, the register, the pipeline, the listening room
+and the strip in about five minutes, and it will tell you quickly whether the
+filing root is pointed where you meant.
