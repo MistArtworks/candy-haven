@@ -1,35 +1,25 @@
-Keep track of the people you want to work with in ARTISTS, see a day before filing on it in CALENDAR, and quit Candy Haven from the quick strip. The handbook now covers all of it, with new pictures.
+Start a project for a quick job without filing it, and hear what's new on DISPATCH as it happens.
 
-## LEADS AND OPPORTUNITIES
+## TEMPORARY PROJECTS
 
-ARTISTS has two new lenses beside the roster: LEADS, for the people you're getting to know, and OPPORTUNITIES, for the work that comes of them.
+New project now asks FILED or TEMPORARY first, in ARCHIVE, on the quick strip and in the vestibule. FILED is the usual one, and it's chosen every time the form opens.
 
-Each lead wears an orb showing how warm the relationship is, from frozen to supernova. Log what happens, a reply, a call, a meeting, by typing it with its points and pressing Enter, and the temperature works itself out, cooling a little each quiet week. Or set it yourself on the slider, or as steps.
+TEMPORARY is for a quick job, like editing audio for a video or rebalancing a master. There's no shelf, category or colour, and the name is optional. Open in Live copies your template set into TEMPORARY PROJECTS and opens it, with nothing filed.
 
-Follow-ups say what to do next, and when. A new lead comes with its first one. Tick them done, snooze them, or dismiss their reminders, from the lead, the quick strip, NEXUS or CALENDAR.
+A temporary project goes to the Recycle Bin a day after it was last saved. REGULATION, under ARCHIVE, changes that to 3 days, a week, 30 days, or until you remove it, and opens the folder. One still open in Ableton is never taken.
 
-When something concrete comes of a lead, make it an opportunity, with its kind and value, and move it from Open through In talks, Negotiating, Agreed and In progress to Won or Lost. The lead stays as it was.
+To keep one, use Save As in Live to save it somewhere INTAKE reads, and file it from INTAKE.
 
-Windows reminds you of each follow-up as it comes due, and says what is overdue when Candy Haven opens. Click a reminder to log and complete it, snooze it or dismiss it right there.
+## DISPATCH
 
-REGULATION has a new LEADS category: the suggestions you log with and their points, how fast a quiet lead cools, and whether follow-ups remind you.
+DISPATCH now tells you when the other operator files something, comments, or changes a status, the way CONTACT and SERVICES tell you about the website.
 
-## CALENDAR
+DISPATCH in the rail counts the items with something new, and the board marks them: NEW, a count of unread comments, and now NOW RESOLVED or NOW DENIED when a status changed since you last opened it.
 
-Clicking a day now shows everything on it first, with Add an entry beneath, instead of opening a new entry straight away. Clicking an hour in Week or Day still files one at that time.
+A notice says what happened, in the console, or as a Windows notification when the console isn't in front. Click it to open the item. Opening Candy Haven says once what happened while it was closed.
 
-Follow-ups appear on their days, at their times, in every view: red when overdue, struck through when done.
-
-## THE QUICK STRIP
-
-Overdue follow-ups lead the strip in red, and Today lists every follow-up due first.
-
-A Quit button sits at the end of the strip in every look, and quits Candy Haven. Press it twice: the first press arms it, so a stray click can't.
-
-## NEXUS
-
-When follow-ups are due, a small card in the landing's top right corner lists them. Fold it away with the dash; a new one brings it back.
+REGULATION, under BOARD, has Notify me to turn the notices off. The marks and the count show either way.
 
 ## THE HANDBOOK
 
-CATECHISM has new chapters for THE QUICK STRIP and LEADS, a section on renaming projects in ARCHIVE, and updated chapters and quick guides across the console, with new pictures throughout.
+CATECHISM covers temporary projects and DISPATCH's notices in ARCHIVE, DISPATCH, THE QUICK STRIP and REGULATION, with new pictures.
