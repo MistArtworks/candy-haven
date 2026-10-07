@@ -40,17 +40,19 @@ Closing this console does not quit Haven. The strip carries on.
 
 ![welcome-03-rail.png](welcome-03-rail.png)
 
-Departments are grouped into four divisions, and the grouping tells you what
-each one is for. One division is open at a time, the one you are in; press
-another's heading to look inside it. A red mark on a closed one means
-something in it is waiting from the website.
+Departments are grouped into six categories, and the grouping tells you what
+each one is for. One category is open at a time, the one you are in; press
+another's heading to look inside it. A red mark on a closed one means something
+in it is waiting for you.
 
-- **COMMAND**: where the system is seen whole and instructed.
-- **PRODUCTION**: the work itself: what is filed, when it is due, how it sounds.
-- **PUBLICATION**: what the public sees and sends: the stream while it is live, and the website at any hour.
+- **COMMAND**: the overview, the calendar, and instruction.
+- **STUDIO**: where the work is made, heard and developed.
+- **CATALOGUE**: what is released, and how the website shows it.
+- **COMMUNITY**: the people you're getting to know, work with, and hear from.
+- **PUBLICATION**: the stream while it is live, and the website's own pages.
 - **OVERSIGHT**: the condition of the installation, and the rules it runs under.
 
-`Ctrl+1` through `Ctrl+9`, then `Ctrl+0`, walk the rail's first ten departments in the order they are drawn — reserved departments included, so the numbers match what you can see. The rail has since grown past ten: TELEMETRY, DISPATCH, REGULATION and CATECHISM answer to `Ctrl+Shift+T`, `Ctrl+Shift+D`, `Ctrl+,` and `Ctrl+Shift+K` instead, and CONTACT, SERVICES, LORE and RELEASES are reached from the rail. `Ctrl+Space` finds anything by name.
+**Search pages**, at the top of the rail, finds any department by name or by what it is for (`Ctrl+Shift+F`). `Ctrl+1` through `Ctrl+9`, then `Ctrl+0`, open the first ten in the order the rail draws them, and the numbers match what you can see. REGULATION, under DIRECTORY, rearranges it: your own categories, and pins at the top.
 
 ## NEXUS: the front door
 
@@ -74,18 +76,18 @@ page becoming a settings screen.
 
 - The **lens** decides what is in scope: the whole register (**ALL**), the
   filing tree (**STACKS**), work found on disk and not yet filed (**INTAKE**),
-  or the **BIN**.
+  the **BIN**, or what was opened lately (**RECENT**).
 - The **view** decides how it is drawn: **ICONS**, the **LIST**, or the
   pipeline **BOARD**, where a project's stage is changed by dragging it.
 
-## ARTISTS: the roster, and the leads
+## LEADS: who you might work with
 
 ![leads-01-list.png](leads-01-list.png)
 
-**ROSTER** is who the practice works with. **LEADS** is who it might: each
-lead has a temperature, from frozen to supernova, that warms as you log what
-happens and cools in quiet weeks. **OPPORTUNITIES** is the work that came of
-them, stage by stage.
+ARTISTS is who the practice works with. **LEADS**, first in COMMUNITY, is who
+it might: each lead has a temperature, from frozen to supernova, that warms as
+you log what happens and cools in quiet weeks. **OPPORTUNITIES** is the work
+that came of them, stage by stage.
 
 Follow-ups are what keep a lead moving. The ones due lead the page, and an
 overdue one shows on the strip, on NEXUS and in CALENDAR until it is done.

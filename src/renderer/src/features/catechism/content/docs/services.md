@@ -105,5 +105,5 @@ than a question.
 
 New enquiries are counted beside SERVICES on the rail, on the **DJ** tab, and in
 the notice the console gives after its first check-in. Clicking that notice
-opens SERVICES when it has no messages to point at. While PUBLICATION is folded
+opens SERVICES when it has no messages to point at. While COMMUNITY is folded
 away on the rail, its heading carries a mark for anything waiting.

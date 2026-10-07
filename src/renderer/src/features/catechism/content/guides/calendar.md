@@ -44,6 +44,6 @@ A release date from the DISCOGRAPHY shows on its day in every lens, marked
 with a gold diamond rather than a chip. A year after a release goes out, a
 hollow diamond marks the same day again as its anniversary.
 
-Follow-ups from ARTISTS' leads are marked at their time with a small arrow:
+Follow-ups from LEADS are marked at their time with a small arrow:
 crimson when overdue, struck through when done. Click one to open its lead.
 Both are readings, not entries: change them where they live.

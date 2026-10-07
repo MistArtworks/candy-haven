@@ -156,8 +156,8 @@ list catches up.
 
 ## Being told
 
-- The rail counts new messages beside CONTACT, and marks PUBLICATION's heading
-  while the division is folded away.
+- The rail counts new messages beside CONTACT, and marks COMMUNITY's heading
+  while the category is folded away.
 - After the first check-in of a session, usually as the console starts, one
   Windows notification, **Waiting on the website**, says what is waiting, if
   anything is: `2 messages and 1 DJ enquiry are waiting.` Clicking it brings the

@@ -64,9 +64,22 @@ export function TooltipHost(): ReactNode {
     const dismiss = (): void => useTooltipStore.getState().hide()
     window.addEventListener('scroll', dismiss, true)
     window.addEventListener('resize', dismiss)
+
+    /*
+     * A trigger taken off the page while it is pointed at (a page change, a
+     * sheet closing, a row filtered away) never sends `mouseleave`, so its tip
+     * stayed on screen until another trigger replaced it, over whatever page
+     * came next. Watched only while a tip is up.
+     */
+    const observer = new MutationObserver(() => {
+      if (!target.isConnected) dismiss()
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+
     return () => {
       window.removeEventListener('scroll', dismiss, true)
       window.removeEventListener('resize', dismiss)
+      observer.disconnect()
     }
   }, [target, label])
 

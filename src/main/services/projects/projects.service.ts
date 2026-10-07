@@ -145,6 +145,8 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
   private tagResolver: TagResolver | null = null
   private artistResolver: ArtistResolver | null = null
   private appearanceResolver: AppearanceResolver | null = null
+  /** Told of every set opened in Live from here, for the RECENT lists. */
+  private setOpened: ((path: string) => void) | null = null
   private releaseReconciler: ReleaseReconciler | null = null
 
   constructor(private readonly archive: ArchiveService) {
@@ -360,6 +362,12 @@ export class ProjectsService extends TypedEmitter<ProjectsEvents> {
         recoverable: true
       })
     }
+    this.setOpened?.(primary.path)
+  }
+
+  /** Wired by the container: see `RecentService.record`. */
+  setSetOpenedListener(listener: (path: string) => void): void {
+    this.setOpened = listener
   }
 
   // -------------------------------------------------------------------- scan

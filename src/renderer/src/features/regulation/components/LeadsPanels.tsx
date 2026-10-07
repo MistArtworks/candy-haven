@@ -10,7 +10,7 @@ import type { ApplySettings } from '@renderer/hooks/useSettings'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Toggle } from '@renderer/components/primitives/Toggle'
 import { Button } from '@renderer/components/primitives/Button'
-import { signOf } from '@renderer/features/artists/leads/model'
+import { signOf } from '@renderer/features/leads/model'
 import styles from '../RegulationPage.module.scss'
 import own from './LeadsPanels.module.scss'
 

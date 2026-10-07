@@ -18,7 +18,7 @@ import { Select } from '@renderer/components/primitives/Select'
 import { notify } from '@renderer/components/feedback/notify'
 import { initialsOf } from '@renderer/lib/initials'
 import * as shell from '@renderer/lib/shell'
-import { LinkEditor } from '../components/LinkEditor'
+import { LinkEditor } from '@renderer/features/artists/components/LinkEditor'
 import { TemperatureOrb } from './TemperatureOrb'
 import { TemperaturePanel } from './TemperaturePanel'
 import { LogInteraction } from './LogInteraction'
@@ -33,7 +33,7 @@ import {
   readTemperature,
   temperatureColour
 } from './model'
-import artistStyles from '../ArtistsPage.module.scss'
+import artistStyles from '@renderer/features/artists/ArtistsPage.module.scss'
 import styles from './Leads.module.scss'
 
 export interface LeadSheetProps {
@@ -274,48 +274,51 @@ export function LeadSheet({
             <EditBody lead={lead} roster={roster} actions={actions} />
           )}
 
-          {mode === 'edit' ? (
-            <footer className={artistStyles.sheetFoot}>
-              {confirming ? (
-                <>
-                  <span className={artistStyles.confirmText}>
-                    Remove {lead.name} for good? Their history goes, and{' '}
-                    {opportunities.length === 0
-                      ? 'they have no opportunities.'
-                      : `${opportunities.length} ${opportunities.length === 1 ? 'opportunity goes' : 'opportunities go'} with them.`}{' '}
-                    Archiving keeps all of it.
-                  </span>
-                  <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
-                    Keep
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => {
-                      void actions.remove(lead.id).then((state) => {
-                        if (state) onClose()
-                      })
-                    }}
-                  >
-                    Remove
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void actions.update(lead.id, { archived: !archived })}
-                  >
-                    {archived ? 'Bring back from the archive' : 'Archive'}
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
-                    Remove
-                  </Button>
-                </>
-              )}
-            </footer>
-          ) : null}
+          {/*
+            Always at the foot, in both modes. Delete was behind Edit, at the
+            bottom of the form, and Candy couldn't find a way to delete a lead
+            at all; it asks first, in place.
+          */}
+          <footer className={artistStyles.sheetFoot}>
+            {confirming ? (
+              <>
+                <span className={artistStyles.confirmText}>
+                  Delete {lead.name} for good? Their history goes, and{' '}
+                  {opportunities.length === 0
+                    ? 'they have no opportunities.'
+                    : `${opportunities.length} ${opportunities.length === 1 ? 'opportunity goes' : 'opportunities go'} with them.`}{' '}
+                  Archiving keeps all of it.
+                </span>
+                <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+                  Keep
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => {
+                    void actions.remove(lead.id).then((state) => {
+                      if (state) onClose()
+                    })
+                  }}
+                >
+                  Delete
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void actions.update(lead.id, { archived: !archived })}
+                >
+                  {archived ? 'Bring back from the archive' : 'Archive'}
+                </Button>
+                <Button size="sm" variant="danger" onClick={() => setConfirming(true)}>
+                  Delete lead
+                </Button>
+              </>
+            )}
+          </footer>
         </motion.section>
       </motion.div>
 

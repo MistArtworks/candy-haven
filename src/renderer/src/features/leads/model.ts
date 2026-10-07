@@ -111,8 +111,8 @@ function bySoonest(a: TaskRow, b: TaskRow): number {
  */
 export function followUpRoute(row: TaskRow): string {
   return row.ref.parentKind === 'opportunity'
-    ? `/artists?lens=opportunities&opportunity=${encodeURIComponent(row.ref.parentId)}`
-    : `/artists?lens=leads&lead=${encodeURIComponent(row.leadId)}`
+    ? `/leads?lens=opportunities&opportunity=${encodeURIComponent(row.ref.parentId)}`
+    : `/leads?lead=${encodeURIComponent(row.leadId)}`
 }
 
 /** The follow-up most worth doing next: the first overdue, else the first pending. */

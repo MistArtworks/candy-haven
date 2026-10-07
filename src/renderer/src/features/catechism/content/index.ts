@@ -50,7 +50,7 @@ export interface ChapterDefinition {
   section?: SectionId
   /**
    * Where **Open department** goes, when that isn't the department's own
-   * page: LEADS documents a lens of ARTISTS rather than all of it.
+   * page (LEADS used this while it was a lens of ARTISTS).
    */
   path?: string
 }
@@ -58,9 +58,10 @@ export interface ChapterDefinition {
 /**
  * The reference, in order.
  *
- * Ordered as the rail is ordered, with three chapters that are not departments:
- * an overview at the top, a setup walkthrough that spans several departments,
- * and the shortcut table at the bottom.
+ * Ordered as the console's own rail is ordered (`SECTIONS`), with chapters that
+ * are not departments around them: an overview and a setup walkthrough at the
+ * top, and the strip, the shortcut table, the glossary and the faults at the
+ * bottom.
  */
 export const CHAPTERS: readonly ChapterDefinition[] = [
   {
@@ -80,35 +81,16 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'nexus'
   },
   {
-    id: 'archive',
-    label: 'ARCHIVE',
-    purpose: 'Projects, the filing tree, the pipeline and intake',
-    section: 'archive'
-  },
-  {
-    id: 'discography',
-    label: 'DISCOGRAPHY',
-    purpose: 'Everything released, and where it went',
-    section: 'discography'
-  },
-  {
-    id: 'artists',
-    label: 'ARTISTS',
-    purpose: 'The roster, its three lenses, and how credits work',
-    section: 'artists'
-  },
-  {
-    id: 'leads',
-    label: 'LEADS',
-    purpose: 'Leads, their temperature and follow-ups, and the opportunities that come of them',
-    section: 'artists',
-    path: '/artists?lens=leads'
-  },
-  {
     id: 'calendar',
     label: 'CALENDAR',
     purpose: "The dated register: its lenses, a day's list, and follow-ups",
     section: 'calendar'
+  },
+  {
+    id: 'archive',
+    label: 'ARCHIVE',
+    purpose: 'Projects, the filing tree, the pipeline and intake',
+    section: 'archive'
   },
   {
     id: 'auditorium',
@@ -123,16 +105,28 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'darkroom'
   },
   {
-    id: 'observatory',
-    label: 'OBSERVATORY',
-    purpose: 'The broadcast kit: every overlay, and how to add it to OBS',
-    section: 'observatory'
+    id: 'discography',
+    label: 'DISCOGRAPHY',
+    purpose: 'Everything released, and where it went',
+    section: 'discography'
   },
   {
-    id: 'colophon',
-    label: 'COLOPHON',
-    purpose: 'The details the website carries. Coming soon',
-    section: 'colophon'
+    id: 'releases',
+    label: 'RELEASES',
+    purpose: 'DISCOGRAPHY on the website: shown, hidden, the shelf and covers',
+    section: 'releases'
+  },
+  {
+    id: 'leads',
+    label: 'LEADS',
+    purpose: 'Leads, their temperature and follow-ups, and the opportunities that come of them',
+    section: 'leads'
+  },
+  {
+    id: 'artists',
+    label: 'ARTISTS',
+    purpose: 'The roster, and how credits work',
+    section: 'artists'
   },
   {
     id: 'contact',
@@ -147,16 +141,22 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'services'
   },
   {
+    id: 'observatory',
+    label: 'OBSERVATORY',
+    purpose: 'The broadcast kit: every overlay, and how to add it to OBS',
+    section: 'observatory'
+  },
+  {
     id: 'lore',
     label: 'LORE',
     purpose: 'Writing the lore of Nayara and its planets, and publishing it',
     section: 'lore'
   },
   {
-    id: 'releases',
-    label: 'RELEASES',
-    purpose: 'DISCOGRAPHY on the website: shown, hidden, the shelf and covers',
-    section: 'releases'
+    id: 'colophon',
+    label: 'COLOPHON',
+    purpose: 'The details the website carries. Coming soon',
+    section: 'colophon'
   },
   {
     id: 'telemetry',

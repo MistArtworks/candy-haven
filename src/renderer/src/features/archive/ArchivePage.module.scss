@@ -139,6 +139,32 @@
   min-height: rem(280px);
 }
 
+// RECENT: sets opened lately that aren't in the register, above the register's
+// own recently opened projects.
+.recentOutside {
+  margin: space(4) space(5) 0;
+  @include hairline(all, 0.1);
+  background: var(--ch-surface-sunken);
+}
+
+.recentOutsideHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  margin: 0;
+  padding: space(2) space(3);
+  @include label(8px, 0.18em);
+  color: var(--ch-gold-500);
+  @include hairline(bottom, 0.08);
+}
+
+.recentOutsideHint {
+  @include readout(9px);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ch-text-faint);
+}
+
 .empty {
   @include readout(11px);
   color: var(--ch-text-faint);

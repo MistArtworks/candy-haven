@@ -45,9 +45,9 @@ throughout.
 
 |                          | Count                              | Notes                                    |
 | ------------------------ | ---------------------------------- | ---------------------------------------- |
-| Departments (sections)   | **14 total — 13 live, 1 reserved** | Only INTERFACE is unbuilt                |
+| Departments (sections)   | **19 total — 17 live, 2 reserved** | INTERFACE unbuilt, COLOPHON coming soon  |
 | Live-stream graphics     | **9 shipped**, plus a chat widget  | 1 more (THE DOCKET) specified, unbuilt   |
-| Built-in manual chapters | 16                                 | Written as prose, shipped inside the app |
+| Built-in manual chapters | 23, and 18 quick guides            | Written as prose, shipped inside the app |
 | Platform                 | Windows only                       | Installer-based, auto-updating           |
 
 A department marked **RESERVED** is not an empty page — it lists exactly what it will do
@@ -55,18 +55,23 @@ when built, so the shape of the finished product is visible while it is being as
 
 ## 4. How the application is organised
 
-Departments are grouped into four **divisions**, which tell you what kind of question
+Departments are grouped into six **categories**, which tell you what kind of question
 each one answers:
 
-| Division        | Purpose                                                        | Departments                                |
-| --------------- | -------------------------------------------------------------- | ------------------------------------------ |
-| **COMMAND**     | Seeing the system whole, and instructing it                    | NEXUS, INTERFACE _(reserved)_              |
-| **PRODUCTION**  | The work itself — what is filed, when it is due, how it sounds | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
-| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES, LORE |
-| **OVERSIGHT**   | The condition of the installation and the rules it runs under  | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
+| Category        | Purpose                                                                   | Departments                                |
+| --------------- | ------------------------------------------------------------------------- | ------------------------------------------ |
+| **COMMAND**     | The day seen whole: the overview, the calendar, and instruction           | NEXUS, CALENDAR, INTERFACE _(reserved)_    |
+| **STUDIO**      | Where the work is made, heard and developed                               | ARCHIVE, AUDITORIUM, DARKROOM              |
+| **CATALOGUE**   | What is released, and how the website shows it                           | DISCOGRAPHY, RELEASES                      |
+| **COMMUNITY**   | The people: who's being got to know, who's worked with, who writes in     | LEADS, ARTISTS, CONTACT, SERVICES          |
+| **PUBLICATION** | What the public sees: the stream while it is live, and the website's pages | OBSERVATORY, LORE, COLOPHON _(reserved)_   |
+| **OVERSIGHT**   | The condition of the installation and the rules it runs under             | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
 
-Everything is numbered, every department has a keyboard shortcut, and the layout is
-consistent from page to page.
+That is the console's own arrangement. In REGULATION, under DIRECTORY, the artist can
+make their own categories, rename these, move pages between them, and pin the pages
+and categories used most to the top of the rail; a search at the top of the rail finds
+any page by name or by what it does. Everything is numbered in rail order, the first
+ten have keyboard shortcuts, and the layout is consistent from page to page.
 
 ---
 
@@ -104,7 +109,14 @@ Ableton from its own folder, is never in the register, and goes to the Windows R
 Bin a day after it was last saved (or after 3 days, a week, 30 days, or never, as set
 in REGULATION). A set still open in Ableton is never taken.
 
-**Four ways to look at the register (lenses):**
+**Recent projects.** Like Ableton's own Open Recent Set: the last twenty sets opened,
+however they were opened, drop down from a RECENT button in ARCHIVE and from a pin on
+the quick strip, and a RECENT lens shows the register's projects in the order their sets
+were opened. The list is read from Ableton's own preferences and from what the app opened
+itself, and the set open in Ableton right now is marked. Asked for by Candy on DISPATCH,
+in 1.27.0.
+
+**Five ways to look at the register (lenses):**
 
 | Lens   | Shows                                                               |
 | ------ | -------------------------------------------------------------------- |
@@ -112,6 +124,7 @@ in REGULATION). A set still open in Ableton is never taken.
 | INTAKE | Work found elsewhere on the disk that the register doesn't know yet |
 | ALL    | The whole register as one flat list                                 |
 | BIN    | Deleted projects, recoverable until the bin is emptied              |
+| RECENT | Projects opened lately, in Ableton or from the app, newest first    |
 
 Albums, EPs and release packaging moved out of this list entirely when
 DISCOGRAPHY became its own department (see below) — a project is filed here by
@@ -196,20 +209,22 @@ Release dates appear on the CALENDAR automatically as read-only gold markers, an
 released record's anniversary is marked there too, one year on and every year after —
 neither is ever typed twice.
 
-### ARTISTS — the roster, leads and opportunities _(live)_
+### LEADS — the people it is getting to know _(live)_
 
-Three lenses. **ROSTER** is who the practice works with, and what they are
-credited on (below). **LEADS** is the people it is getting to know: each lead
-carries a temperature from frozen to supernova, worked out from the
-interactions logged with it (each with its own points, cooling a little each
-quiet week) or set by hand, and follow-ups with a due time, a priority, snooze
-and dismiss. **OPPORTUNITIES** is the concrete work that came of a lead, on a
-board by stage (Open, In talks, Negotiating, Agreed, In progress, Won, Lost),
-with a kind, a value and follow-ups of its own. Follow-ups also surface on the
-quick strip, in NEXUS, in CALENDAR and as Windows reminders. See
-[`LEADS.md`](LEADS.md).
+A department of its own since 1.27.0, first in COMMUNITY (it was two lenses of
+ARTISTS before). Each lead carries a temperature from frozen to supernova,
+worked out from the interactions logged with it (each with its own points,
+cooling a little each quiet week) or set by hand, and follow-ups with a due
+time, a priority, snooze and dismiss. **OPPORTUNITIES** is the concrete work
+that came of a lead, on a board by stage (Open, In talks, Negotiating, Agreed,
+In progress, Won, Lost), with a kind, a value and follow-ups of its own.
+Follow-ups also surface on the quick strip, in NEXUS, in CALENDAR and as
+Windows reminders. Deleting a lead, an opportunity or a follow-up is a visible
+button where it is. See [`LEADS.md`](LEADS.md).
 
-On the roster: who the practice works with, and what they are credited on. Every artist carries a name,
+### ARTISTS — the roster _(live)_
+
+Who the practice works with, and what they are credited on. Every artist carries a name,
 a portrait, a set of roles (producer, vocalist, featured, remixer and others), and social
 links; DISCOGRAPHY credits reference this roster directly rather than free-text names, so
 renaming an artist once corrects every release and track that credits them. A label is

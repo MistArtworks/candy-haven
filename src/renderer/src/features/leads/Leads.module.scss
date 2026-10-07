@@ -723,14 +723,21 @@ $t-warm: #e0954b;
   white-space: nowrap;
 }
 
+// Faint until the row is pointed at, never hidden: an interaction logged by
+// mistake has to be findable to be taken back.
 .historyRemove {
   @include readout(13px);
   color: var(--ch-text-faint);
   background: none;
   border: 0;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.5;
   transition: opacity $duration-fast linear;
+
+  &:focus-visible {
+    opacity: 1;
+    @include focus-ring(1px);
+  }
 
   &:hover {
     color: var(--ch-crimson-400);
@@ -911,6 +918,30 @@ $t-warm: #e0954b;
   display: flex;
   align-items: center;
   gap: space(3);
+}
+
+// A follow-up's Delete, and its question in place of it.
+.taskConfirm {
+  display: inline-flex;
+  align-items: center;
+  gap: space(3);
+}
+
+.dangerLink {
+  @include label(8px, 0.14em);
+  color: var(--ch-crimson-400);
+  background: none;
+  border: 0;
+  padding: space(1) 0;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-crimson-300, var(--ch-accent-bright));
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
 }
 
 .tasksFoot {

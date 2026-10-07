@@ -152,11 +152,11 @@ and **Calendar**. Change them to what you open every day.
 
 ## 7. Leads, if you want them
 
-Also optional. ARTISTS keeps a light record of the people you want to work
-with, beside the roster: its **LEADS** and **OPPORTUNITIES** lenses.
+Also optional. LEADS, under COMMUNITY, keeps a light record of the people you
+want to work with, and **OPPORTUNITIES** beside it for the work that comes of
+them.
 
-1. Open [ARTISTS](/artists?lens=leads) on **LEADS** and press **Add a lead**.
-   Only the name is needed.
+1. Open [LEADS](/leads) and press **Add a lead**. Only the name is needed.
 2. A new lead starts frozen, with a high-priority follow-up called "First
    interaction", due when you say (now, unless you change it).
 3. Open REGULATION → LEADS to look over the predefined interactions and their

@@ -51,6 +51,7 @@ import type {
   TemporaryProject,
   TemporaryProjectDraft
 } from '../domain/stacks'
+import type { RecentSet } from '../domain/recent'
 import type { TagDraft, TagPatch, TagSummary } from '../domain/tags'
 import type {
   ArtistCredits,
@@ -220,6 +221,10 @@ export interface CandyHavenApi {
     temporary(draft: TemporaryProjectDraft): Promise<TemporaryProject>
     /** Opens the temporary projects folder in Explorer. */
     temporaryFolder(): Promise<void>
+    /** Recently opened sets, newest first, Live's own and Haven's. */
+    recent(): Promise<RecentSet[]>
+    /** Opens a recent set in Live, and records it. */
+    openSet(path: string): Promise<void>
     /** Drops the record. Files are left exactly where they are. */
     forget(id: string): Promise<void>
     /** Moves the project folder into the archive's recycle bin. Reversible. */

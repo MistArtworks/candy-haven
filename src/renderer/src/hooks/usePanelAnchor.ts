@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties
+} from 'react'
 
 /** The gap between a trigger and the panel it opens. */
 const GAP = 4
@@ -31,7 +38,9 @@ export interface PanelAnchor {
  *   - it closes on `pointerdown` outside, on `resize`, and on `scroll` **in
  *     the capture phase** — scroll does not bubble from an element that is not
  *     the document, so a bubbling listener misses every inner scroller, of
- *     which this application has many;
+ *     which this application has many. Except the panel's own: a list long
+ *     enough to scroll closed the moment it was scrolled, which is what made
+ *     linking a lead to an artist impossible past the first nine names;
  *   - closing returns focus to the trigger, so a keyboard operator is not
  *     dropped at the top of the page.
  *
@@ -90,13 +99,20 @@ export function usePanelAnchor(open: boolean, wanted: number, onClose: () => voi
       latest.current()
     }
 
+    // Anything scrolling but the panel itself: its own list scrolls in place.
+    const onScroll = (event: Event): void => {
+      const target = event.target
+      if (target instanceof Node && panelRef.current?.contains(target)) return
+      close()
+    }
+
     document.addEventListener('pointerdown', onPointerDown)
-    window.addEventListener('scroll', close, true)
+    window.addEventListener('scroll', onScroll, true)
     window.addEventListener('resize', close)
 
     return () => {
       document.removeEventListener('pointerdown', onPointerDown)
-      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('scroll', onScroll, true)
       window.removeEventListener('resize', close)
     }
   }, [open, close])

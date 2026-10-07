@@ -76,6 +76,7 @@ import {
   TemporaryProjectSchema
 } from '../domain/stacks'
 import { TagDraftSchema, TagPatchSchema, TagSummarySchema } from '../domain/tags'
+import { RecentSetSchema } from '../domain/recent'
 import {
   ArtistDraftSchema,
   ArtistPatchSchema,
@@ -221,6 +222,13 @@ export const IPC_INVOKE = {
   'projects:temporary': { input: TemporaryProjectDraftSchema, output: TemporaryProjectSchema },
   /** Opens `TEMPORARY PROJECTS` in Explorer, making it first if need be. */
   'projects:temporary-folder': { input: z.void(), output: z.void() },
+  /**
+   * Recently opened sets, newest first: Live's own recent list, what Haven
+   * opened, and the set Live has open now. See `RecentService`.
+   */
+  'projects:recent': { input: z.void(), output: z.array(RecentSetSchema) },
+  /** Opens one of them in Live (an existing `.als` only), and records it. */
+  'projects:open-set': { input: z.object({ path: z.string() }), output: z.void() },
   /** `force` re-reads every set instead of reusing unchanged analyses. */
   'projects:scan': {
     input: z.object({ force: z.boolean().optional() }).optional(),

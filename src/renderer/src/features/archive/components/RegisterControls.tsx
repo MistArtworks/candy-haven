@@ -189,7 +189,11 @@ export function RegisterControls({
               {active > 0 ? <span className={styles.filterCount}>{active}</span> : null}
             </button>
 
-            <div className={styles.selectInline}>
+            {/* RECENT is in the order things were opened; a sort would undo it. */}
+            <div
+              className={styles.selectInline}
+              style={lens === 'recent' ? { display: 'none' } : undefined}
+            >
               <span className={styles.inlineLabel}>Sort</span>
               <select
                 className={styles.select}

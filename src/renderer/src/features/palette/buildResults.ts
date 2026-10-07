@@ -38,7 +38,10 @@ export interface PaletteGroup {
 }
 
 export interface PaletteSources {
+  /** In the operator's rail order. */
   sections: readonly SectionDefinition[]
+  /** The category a department is in on the operator's rail, for its subtitle. */
+  categoryOf?: (section: SectionDefinition) => string | undefined
   projects: readonly ProjectSummary[]
   releases: readonly DiscographySummary[]
   artists: readonly ArtistSummary[]
@@ -72,9 +75,9 @@ const ACTIONS: readonly PaletteResult[] = [
   {
     id: 'action-lead',
     title: 'New Lead',
-    subtitle: 'Artists',
+    subtitle: 'Leads',
     verb: 'Add',
-    path: '/artists?lens=leads&new=lead'
+    path: '/leads?new=lead'
   },
   {
     // Named after Dispatch's own hotkey for the same action ("File
@@ -115,12 +118,17 @@ export function buildPaletteGroups(sources: PaletteSources, query: string): Pale
 
   const artistNeedle = artistNameKey(query)
 
+  // By name, or by the words the rail's search knows it by ("settings").
   const pages: PaletteResult[] = sources.sections
-    .filter((section) => section.label.toLowerCase().includes(needle))
+    .filter(
+      (section) =>
+        section.label.toLowerCase().includes(needle) ||
+        section.keywords.some((word) => word.startsWith(needle))
+    )
     .map((section) => ({
       id: `page-${section.id}`,
       title: section.label,
-      subtitle: SECTION_GROUP[section.group].label,
+      subtitle: sources.categoryOf?.(section) ?? SECTION_GROUP[section.group].label,
       verb: 'Jump',
       path: section.path
     }))

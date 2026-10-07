@@ -95,19 +95,53 @@ reminders.
 
 ![welcome-03-rail.png](welcome-03-rail.png)
 
-Departments are grouped into four divisions. The division tells you what kind of
-question a department answers, which is usually enough to know where to look.
-One division is open on the rail at a time, the one you are in; press another's
-heading to look inside it. A red mark on a closed division means something in
-it is waiting from the website: a message in CONTACT or an enquiry in SERVICES.
-The arrow beside **DIRECTORY** hides the rail (`Ctrl`+`]`).
+Departments are grouped into categories on the rail. A category tells you what
+kind of question a department answers, which is usually enough to know where to
+look. One category is open at a time, the one you are in; press another's
+heading to look inside it. A red mark on a closed category means something in it
+is waiting for you: a message in CONTACT, an enquiry in SERVICES, or something
+new on DISPATCH. The arrow beside **DIRECTORY** hides the rail (`Ctrl`+`]`).
 
-| Division        | What it is for                                                                           | Departments                                                   |
-| --------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **COMMAND**     | Where the system is seen whole and instructed                                            | NEXUS, INTERFACE                                              |
-| **PRODUCTION**  | The work itself: what is filed, released, due, and how it sounds                         | ARCHIVE, DISCOGRAPHY, ARTISTS, CALENDAR, AUDITORIUM, DARKROOM |
-| **PUBLICATION** | What the public sees and sends: the stream while it is live, and the website at any hour | OBSERVATORY, COLOPHON, CONTACT, SERVICES, LORE, RELEASES      |
-| **OVERSIGHT**   | The condition of the installation, and the rules it runs under                           | TELEMETRY, DISPATCH, REGULATION, CATECHISM                    |
+This is the console's own arrangement:
+
+| Category        | What it is for                                                               | Departments                                |
+| --------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
+| **COMMAND**     | Where the day is seen whole: the overview, the calendar, and instruction     | NEXUS, CALENDAR, INTERFACE                 |
+| **STUDIO**      | Where the work is made, heard and developed                                  | ARCHIVE, AUDITORIUM, DARKROOM              |
+| **CATALOGUE**   | What is released, and how the website shows it                               | DISCOGRAPHY, RELEASES                      |
+| **COMMUNITY**   | The people: who you're getting to know, who you work with, and who writes in | LEADS, ARTISTS, CONTACT, SERVICES          |
+| **PUBLICATION** | What the public sees: the stream while it is live, and the website's pages   | OBSERVATORY, LORE, COLOPHON                |
+| **OVERSIGHT**   | The condition of the installation, and the rules it runs under               | TELEMETRY, DISPATCH, REGULATION, CATECHISM |
+
+### Searching the rail
+
+![rail-01-search.png](rail-01-search.png)
+
+Type in **Search pages**, under DIRECTORY, to find a department by its name,
+what it does, the words it is known by, or its category: `settings` finds
+REGULATION, `help` finds CATECHISM, and `community` lists everything in it.
+
+- **Enter** opens the first result, and the arrow keys move between them.
+- **Esc** clears the search.
+- `Ctrl`+`Shift`+`F` puts the cursor there from anywhere, and opens the rail
+  if it was hidden.
+
+### Your own arrangement
+
+![rail-02-pinned.png](rail-02-pinned.png)
+
+REGULATION, under **DIRECTORY**, arranges the rail your way: make categories of
+your own, rename these, move pages between them, and pin what you use most.
+
+- **Pinned pages** sit at the top of the rail under **PINNED**, always open.
+  They stay in their categories too.
+- **A pinned category** comes first and stays open, beside whichever other one
+  you are in.
+- Page names never change, only where they sit.
+
+The numbers follow the rail top to bottom, pins aside. The rail always reads 01,
+02, 03, a department's masthead shows the same number, and `Ctrl`+`1` to
+`Ctrl`+`0` open the first ten as you have arranged them.
 
 A department marked **RESERVED** is routed and specified but not yet built. Its
 page lists what it will do when it is commissioned, so the shape of the finished
@@ -116,9 +150,9 @@ reserved at present; COLOPHON's page says it is coming soon while it is
 reworked.
 
 Some departments look at more than one thing, and a row of lenses under the
-masthead switches between them. ARTISTS, for one, holds three: **ROSTER**, the
-people the practice works with; **LEADS**, the people you are building a
-relationship with; and **OPPORTUNITIES**, the work that came of them.
+masthead switches between them. LEADS, for one, holds two: **LEADS**, the people
+you are building a relationship with, and **OPPORTUNITIES**, the work that came
+of them.
 
 ## What is due, and where it shows
 
@@ -136,7 +170,7 @@ red, and in the Horizontal and Vertical looks the today chip turns red with a
 person on it. On NEXUS the card sits at the top right of the landing, under
 SONOALCHEMY, with overdue ones in crimson; **–** folds it to a small mark, and
 a new follow-up brings it back. In CALENDAR a follow-up is a read-only mark:
-pressing it opens its lead, or its opportunity, in ARTISTS.
+pressing it opens its lead, or its opportunity, in LEADS.
 
 Notifications are Windows' own. A clicked reminder opens where you can act on
 it: in the console, if the console is on screen, and on the strip otherwise.

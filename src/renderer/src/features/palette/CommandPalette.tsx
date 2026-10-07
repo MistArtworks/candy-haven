@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, type Variants } from 'motion/react'
-import { SECTIONS } from '@shared/domain/navigation'
 import { Portal } from '@renderer/components/primitives/Portal'
 import { SearchInput } from '@renderer/components/primitives/Input'
 import { useBackdropDismiss } from '@renderer/hooks/useBackdropDismiss'
@@ -10,6 +9,7 @@ import type { Hotkey } from '@renderer/hotkeys/registry'
 import { useProjectRegistry } from '@renderer/hooks/useProjects'
 import { useDiscography } from '@renderer/hooks/useDiscography'
 import { useArtists } from '@renderer/hooks/useArtists'
+import { useNavigation } from '@renderer/hooks/useNavigation'
 import { formatIndex } from '@renderer/lib/format'
 import { EASE_OUT_EXPO, EASE_IN_EXPO, DURATION } from '@renderer/motion/transitions'
 import { buildPaletteGroups, type PaletteResult } from './buildResults'
@@ -76,19 +76,21 @@ export function CommandPalette(): ReactNode {
   const projectRegistry = useProjectRegistry({ search: debouncedQuery.trim() })
   const discography = useDiscography(open)
   const artists = useArtists(open)
+  const rail = useNavigation()
 
   const groups = useMemo(
     () =>
       buildPaletteGroups(
         {
-          sections: SECTIONS,
+          sections: rail.ordered,
+          categoryOf: (section) => rail.categoryOf(section.id)?.label,
           projects: projectRegistry.data?.projects ?? [],
           releases: discography.data?.releases ?? [],
           artists: artists.data ?? []
         },
         debouncedQuery
       ),
-    [projectRegistry.data, discography.data, artists.data, debouncedQuery]
+    [projectRegistry.data, discography.data, artists.data, debouncedQuery, rail]
   )
 
   const flatResults = useMemo(() => groups.flatMap((group) => group.results), [groups])

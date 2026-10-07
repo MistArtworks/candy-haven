@@ -6,12 +6,23 @@ are listed, because the second kind is impossible to spot without the first.
 
 ## The console
 
-**Department**: a section of the console, reached from the rail. Eighteen of
-them, grouped into four divisions.
+**Department**: a section of the console, reached from the rail. Nineteen of
+them, grouped into categories. Also called a page.
 
-**Division**: the grouping a department is filed under: COMMAND, PRODUCTION,
-PUBLICATION, OVERSIGHT. It tells you what kind of question the
-departments inside it answer.
+**Category**, on the rail: the grouping a department is filed under. The
+console's own are COMMAND, STUDIO, CATALOGUE, COMMUNITY, PUBLICATION and
+OVERSIGHT, and REGULATION, under DIRECTORY, makes your own. Called a division
+before 1.27.0. Not the ARCHIVE's two kinds of category, below.
+
+**Directory**: the rail itself, as its masthead names it, and the REGULATION
+category that arranges it.
+
+**Pinned**: a page kept at the top of the rail under PINNED, always open, or a
+category kept first and open. Set in REGULATION, under DIRECTORY.
+
+**Department number**: the 01, 02, 03 beside each department on the rail and on
+its masthead. Its place in your rail, top to bottom, so it moves when you
+rearrange it; `Ctrl`+`1` to `Ctrl`+`0` open the first ten.
 
 **Colophon**: the details the website carries: where to write, call and
 message, who represents the artist and where they are, and the artist's profile
@@ -81,8 +92,8 @@ folder or a link on the strip, or from REGULATION → QUICK STRIP → **Pins**.
 each, one level deep: a group never holds another group.
 
 **Action**: something the strip does itself rather than opens: **New
-project**, **Add to today**, **Open a website**, **The console** and **The
-vestibule**.
+project**, **Recent projects**, **Add to today**, **Open a website**, **The
+console** and **The vestibule**.
 
 **On click**: how a stack or a project pin opens. A stack opens in ARCHIVE or
 in Explorer; a project in Ableton, in ARCHIVE (its dossier) or as its folder.
@@ -117,7 +128,7 @@ REGULATION, "archive" settings are about the database; in the rail, ARCHIVE is
 the department. To _archive_ a lead or an opportunity is a third thing again:
 see LEADS below.
 
-**Lens**: what is in scope. ALL, STACKS, INTAKE, BIN.
+**Lens**: what is in scope. ALL, STACKS, INTAKE, BIN, RECENT.
 
 **View**: how whatever is in scope is drawn. ICONS, LIST, BOARD.
 
@@ -143,6 +154,11 @@ samples, bounces and backups. The unit everything in this department is about.
 
 **Set**: the Ableton `.als` file itself. A project can hold several; one is
 primary.
+
+**Recent sets**: the sets opened lately, newest first, from Live's own recent
+list and from what Haven opened. ARCHIVE's **RECENT** menu and lens show them,
+and so does the strip's **Recent projects** pin. The set Live has open is marked
+**Open now**.
 
 **Filed**: the usual kind of new project: made on a shelf, in the register, and
 kept. The default in every New project form.
@@ -198,9 +214,9 @@ now; a final chosen back then still points into it.
 
 ## LEADS
 
-ARTISTS' light record of the people you are building a relationship with, on
-its **LEADS** and **OPPORTUNITIES** lenses beside the **ROSTER**. Everything in
-it stays on this PC.
+The console's light record of the people you are building a relationship with,
+in the LEADS department under COMMUNITY: its **LEADS** and **OPPORTUNITIES**
+lenses. Everything in it stays on this PC.
 
 **Lead**: somebody you want to work with. A name, notes, profiles and links, an
 email, a phone number and, when they are on it, a roster artist; with a
@@ -307,7 +323,7 @@ DAY, clicking an hour still files an entry directly.
 **Follow-up mark**: a follow-up from LEADS as CALENDAR draws it, in all four
 lenses: an arrow, then the time, the name and the task. Red when overdue,
 struck through when done, and marked `!` when high priority. Read-only:
-pressing it opens its lead or opportunity in ARTISTS.
+pressing it opens its lead or opportunity in LEADS.
 
 ## THE OBSERVATORY
 

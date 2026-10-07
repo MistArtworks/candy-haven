@@ -39,6 +39,8 @@ import { gridVariants } from '@renderer/motion/transitions'
 import { useProjectMutations, useProjectRegistry, useScanState } from '@renderer/hooks/useProjects'
 import { useArchiveSetup, useStacksMutations, useStacksTree } from '@renderer/hooks/useStacks'
 import { useTagMutations } from '@renderer/hooks/useTags'
+import { useNow } from '@renderer/hooks/useLeads'
+import { useOpenRecentSet, useRecentSets } from '@renderer/hooks/useRecent'
 import { RegisterControls, type RegisterFilters } from './components/RegisterControls'
 import { ProjectListView } from './components/ProjectListView'
 import { ProjectBoardView } from './components/ProjectBoardView'
@@ -48,6 +50,8 @@ import { IntakeView } from './components/IntakeView'
 import { TagManagerDialog } from './components/tags/TagManagerDialog'
 import { ArchiveGlyph, type ArchiveGlyphName } from './components/icons/ArchiveGlyph'
 import { ViewToggle } from './components/ViewToggle'
+import { RecentMenu } from './components/recent/RecentMenu'
+import { RecentList } from './components/recent/RecentList'
 import { SetupGate } from './components/setup/SetupGate'
 import { TileGrid, type Tile } from './components/tiles/TileGrid'
 import { describeFolder } from './components/tiles/describe'
@@ -441,9 +445,40 @@ export function ArchivePage(): ReactNode {
   const scanning =
     scan.phase === 'walking' || scan.phase === 'analysing' || scan.phase === 'persisting'
 
+  /*
+   * RECENT reads what was opened lately (Live's own list, and Haven's), and
+   * draws the register's projects in that order: the newest first, each once
+   * however many of its sets were opened. The register's own filters still
+   * apply; its sort doesn't, the order being the point.
+   */
+  const recent = useRecentSets(lens === 'recent')
+  const recentSets = useMemo(() => recent.data ?? [], [recent.data])
+  const openRecent = useOpenRecentSet()
+  const now = useNow(60_000)
+
   // Memoised so the empty fallback is not a new array on every render, which
   // would defeat the tile and menu derivations that depend on it.
-  const projects = useMemo(() => registry?.projects ?? [], [registry?.projects])
+  const registered = useMemo(() => registry?.projects ?? [], [registry?.projects])
+  const projects = useMemo(() => {
+    if (lens !== 'recent') return registered
+    const byId = new Map(registered.map((project) => [project.id, project]))
+    const seen = new Set<string>()
+    return recentSets.flatMap((set) => {
+      const project = set.projectId ? byId.get(set.projectId) : undefined
+      if (!project || seen.has(project.id)) return []
+      seen.add(project.id)
+      return [project]
+    })
+  }, [lens, registered, recentSets])
+  // Sets opened lately that aren't in the register, and could be: listed above
+  // it in RECENT. A temporary one never can (INTAKE skips them); the menu has it.
+  const recentOutside = useMemo(
+    () =>
+      recentSets
+        .filter((set) => set.projectId === null && set.exists && !set.temporary)
+        .slice(0, 12),
+    [recentSets]
+  )
   const total = useMemo(
     () => Object.values(registry?.stageCounts ?? {}).reduce((sum, count) => sum + count, 0),
     [registry?.stageCounts]
@@ -482,7 +517,8 @@ export function ArchivePage(): ReactNode {
    * own narrowed toggle — LIST and ICONS, no BOARD — rather than this one,
    * which would offer a board of stages over a folder that has none.
    */
-  const drawsRegister = lens === 'all' || lens === 'bin' || (browsing && folderId !== null)
+  const drawsRegister =
+    lens === 'all' || lens === 'bin' || lens === 'recent' || (browsing && folderId !== null)
 
   const currentFolder = trail.at(-1) ?? null
 
@@ -1261,6 +1297,11 @@ export function ArchivePage(): ReactNode {
   // ------------------------------------------------------------------ copy
 
   const emptyMessage = (): string => {
+    if (lens === 'recent') {
+      return recentOutside.length > 0
+        ? 'None of the sets opened lately is in the register yet. They are listed above; take them in from INTAKE to file them.'
+        : 'Nothing opened lately. Sets you open, in Live or from here, are listed here, newest first.'
+    }
     if (lens === 'bin') {
       return binnedFolders.length > 0
         ? 'No projects deleted on their own — the folders above hold theirs.'
@@ -1307,7 +1348,7 @@ export function ArchivePage(): ReactNode {
      * replace these in place — and the shape itself says what is arriving,
      * which is more than the sentence did.
      */
-    if (isLoading) {
+    if (isLoading || (lens === 'recent' && recent.isLoading)) {
       return view === 'list' ? (
         <SkeletonRows label="Reading the register" />
       ) : (
@@ -1366,6 +1407,36 @@ export function ArchivePage(): ReactNode {
   // ----------------------------------------------------------------- panels
 
   const mainPanel = (): ReactNode => {
+    if (lens === 'recent') {
+      return (
+        <div className={styles.browser}>
+          {recentOutside.length > 0 ? (
+            <section
+              className={styles.recentOutside}
+              aria-label="Opened lately, not in the archive"
+            >
+              <p className={styles.recentOutsideHead}>
+                Opened lately, not in the archive
+                <span className={styles.recentOutsideHint}>
+                  Take them in from INTAKE to file them.
+                </span>
+              </p>
+              <RecentList
+                sets={recentOutside}
+                now={now}
+                onOpen={(set) => {
+                  openRecent(set)
+                    .then(() => notify.done(`Opening ${set.name} in Live`))
+                    .catch((cause: unknown) => notify.refuse(cause, { label: 'Could not open it' }))
+                }}
+              />
+            </section>
+          ) : null}
+          <div className={styles.register}>{registerView()}</div>
+        </div>
+      )
+    }
+
     /*
      * INTAKE is where work comes in, not a second project list.
      *
@@ -1604,7 +1675,7 @@ export function ArchivePage(): ReactNode {
   return (
     <div className={styles.page}>
       <PageHeader
-        index={section.order + 1}
+        section={section.id}
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
@@ -1614,6 +1685,7 @@ export function ArchivePage(): ReactNode {
             <span className={styles.headerFigure}>
               {total} project{total === 1 ? '' : 's'}
             </span>
+            <RecentMenu onDossier={selectProject} onSeeAll={() => changeLens('recent')} />
             <Button
               variant="primary"
               size="sm"
@@ -1935,7 +2007,8 @@ const PANEL_LABEL: Record<ArchiveLens, string> = {
   stacks: 'Stacks',
   unfiled: 'Intake',
   all: 'Register',
-  bin: 'Recycle bin'
+  bin: 'Recycle bin',
+  recent: 'Recently opened'
 }
 
 /**
@@ -1949,7 +2022,8 @@ const PANEL_GLYPH: Record<ArchiveLens, ArchiveGlyphName> = {
   stacks: 'shelf',
   unfiled: 'loose',
   all: 'index',
-  bin: 'bin'
+  bin: 'bin',
+  recent: 'history'
 }
 
 /**

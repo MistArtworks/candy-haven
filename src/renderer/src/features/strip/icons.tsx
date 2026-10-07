@@ -177,6 +177,14 @@ const PATHS: Record<Glyph, ReactNode> = {
     </>
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  // Recent projects: a clock, its hand turned back.
+  recent: (
+    <>
+      <path d="M4.6 12a7.4 7.4 0 1 0 2.2-5.25" />
+      <polyline points="4.1 4.4 4.6 7.6 7.8 7.1" />
+      <polyline points="12 8 12 12 14.8 13.8" />
+    </>
+  ),
   // Quit: the usual power mark.
   power: (
     <>

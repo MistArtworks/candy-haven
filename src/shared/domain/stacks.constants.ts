@@ -32,7 +32,11 @@ import type { FolderSwatch } from './stacks'
  * not an album track" — whereas "not on a shelf" cannot be expressed any other
  * way, and is the question the operator actually asks.
  */
-export const ARCHIVE_LENSES = ['all', 'stacks', 'unfiled', 'bin'] as const
+/*
+ * RECENT came last, in 1.27.0, from Candy's "Recent projects option" on
+ * DISPATCH: last so the lenses before it keep their Alt+1..4.
+ */
+export const ARCHIVE_LENSES = ['all', 'stacks', 'unfiled', 'bin', 'recent'] as const
 export type ArchiveLens = (typeof ARCHIVE_LENSES)[number]
 
 /**
@@ -58,14 +62,16 @@ export const ARCHIVE_LENS_LABEL: Record<ArchiveLens, string> = {
   stacks: 'STACKS',
   unfiled: 'INTAKE',
   all: 'ALL',
-  bin: 'BIN'
+  bin: 'BIN',
+  recent: 'RECENT'
 }
 
 export const ARCHIVE_LENS_PURPOSE: Record<ArchiveLens, string> = {
   stacks: 'Categories, genres, artists and the projects filed on them.',
   unfiled: 'Work found elsewhere on disk, and somewhere to put it.',
   all: 'The whole register, flat.',
-  bin: 'Deleted projects, kept until you empty them.'
+  bin: 'Deleted projects, kept until you empty them.',
+  recent: 'Projects opened lately, in Live or from here, newest first.'
 }
 
 /*

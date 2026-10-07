@@ -117,6 +117,7 @@ interface TaskItemProps {
 export function TaskItem({ row, now, actions, onOpenWho }: TaskItemProps): ReactNode {
   const [editing, setEditing] = useState(false)
   const [snoozing, setSnoozing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const { task, status, ref } = row
   const done = status === 'complete'
   const snoozed = !done && task.snoozedUntil !== null && task.snoozedUntil > now
@@ -231,6 +232,35 @@ export function TaskItem({ row, now, actions, onOpenWho }: TaskItemProps): React
         <button type="button" className={styles.linkButton} onClick={() => setEditing(true)}>
           Edit
         </button>
+        {/* Beside Edit rather than only inside it, so it can be found; asks first. */}
+        {deleting ? (
+          <span className={styles.taskConfirm} role="group" aria-label="Delete this follow-up?">
+            <span className={styles.confirmText}>Delete it?</span>
+            <button type="button" className={styles.linkButton} onClick={() => setDeleting(false)}>
+              Keep
+            </button>
+            <button
+              type="button"
+              className={styles.dangerLink}
+              onClick={() => {
+                void actions.removeTask(ref).then((state) => {
+                  if (!state) setDeleting(false)
+                })
+              }}
+            >
+              Delete
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            className={styles.dangerLink}
+            aria-label={`Delete ${task.title}`}
+            onClick={() => setDeleting(true)}
+          >
+            Delete
+          </button>
+        )}
       </span>
     </li>
   )
@@ -307,17 +337,17 @@ function TaskEditor({
         {onRemove ? (
           confirming ? (
             <>
-              <span className={styles.confirmText}>Remove this follow-up?</span>
+              <span className={styles.confirmText}>Delete this follow-up?</span>
               <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
                 Keep
               </Button>
               <Button size="sm" variant="danger" onClick={() => void onRemove()}>
-                Remove
+                Delete
               </Button>
             </>
           ) : (
             <button type="button" className={styles.linkButton} onClick={() => setConfirming(true)}>
-              Remove
+              Delete
             </button>
           )
         ) : null}

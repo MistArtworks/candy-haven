@@ -22,6 +22,7 @@ import { z } from 'zod'
 /** What the strip can do itself, rather than open. */
 export const STRIP_ACTIONS = [
   'new-project',
+  'recent-projects',
   'add-to-today',
   'open-link',
   'console',
@@ -31,6 +32,7 @@ export type StripAction = (typeof STRIP_ACTIONS)[number]
 
 export const STRIP_ACTION_LABEL: Record<StripAction, string> = {
   'new-project': 'New project',
+  'recent-projects': 'Recent projects',
   'add-to-today': 'Add to today',
   'open-link': 'Open a website',
   console: 'The console',
@@ -465,8 +467,23 @@ export const LAUNCH_WITH_LABEL: Record<LaunchWith, string> = {
 export const REMINDER_LEADS = [0, 5, 10, 15, 30] as const
 
 /** The pins a fresh install starts with, to be changed at will. */
+/**
+ * Recent projects, as a pin. Asked for on the strip by Candy (DISPATCH,
+ * "Recent projects option"), so a strip that predates it is given one once
+ * (`recentOffered`); it can be moved or removed like any other.
+ */
+export const RECENT_PIN: Pin = {
+  id: 'recent-projects',
+  label: 'Recent projects',
+  target: { kind: 'action', action: 'recent-projects' }
+}
+
+/** As many as the strip holds, groups counting as one. */
+export const MAX_STRIP_PINS = 200
+
 export const DEFAULT_PINS: StripPin[] = [
   { id: 'new-project', label: 'New project', target: { kind: 'action', action: 'new-project' } },
+  RECENT_PIN,
   { id: 'open-link', label: 'Open a website', target: { kind: 'action', action: 'open-link' } },
   { id: 'console', label: 'The console', target: { kind: 'action', action: 'console' } },
   { id: 'archive', label: 'Archive', target: { kind: 'page', route: '/archive' } },
@@ -485,16 +502,42 @@ export const StripSettingsSchema = z.object({
   /** Folded down to the logo alone; clicking the logo opens it again. */
   collapsed: z.boolean().default(false),
   /** Any number, in order, and groups of them. */
-  pins: z.array(StripPinSchema).max(200).default(DEFAULT_PINS),
+  pins: z.array(StripPinSchema).max(MAX_STRIP_PINS).default(DEFAULT_PINS),
   /**
    * Where the operator left it: its top-left corner in screen pixels. Null
    * until it is first moved, which puts it in the bottom right.
    */
   position: z.object({ x: z.number().int(), y: z.number().int() }).nullable().default(null),
   /** Minutes ahead of a timed entry its reminder comes; 0 turns them off. */
-  reminderMinutes: z.number().int().min(0).max(120).default(10)
+  reminderMinutes: z.number().int().min(0).max(120).default(10),
+  /**
+   * Recent projects was given to this strip once (1.27.0). Set either way, so
+   * a pin the operator removes isn't put back.
+   */
+  recentOffered: z.boolean().default(false)
 })
 export type StripSettings = z.infer<typeof StripSettingsSchema>
+
+/**
+ * Recent projects, for a strip from before it: put just after New project,
+ * or first, unless it's on the strip already or the strip is full. Null once
+ * offered, so a pin the operator removes stays gone.
+ */
+export function offerRecentPin(
+  strip: StripSettings
+): Pick<StripSettings, 'pins' | 'recentOffered'> | null {
+  if (strip.recentOffered) return null
+  const key = targetKey(RECENT_PIN.target)
+  const has = allPins(strip.pins).some((pin) => targetKey(pin.target) === key)
+  if (has || strip.pins.length >= MAX_STRIP_PINS) return { pins: strip.pins, recentOffered: true }
+  const after = strip.pins.findIndex(
+    (pin) => !isGroup(pin) && pin.target.kind === 'action' && pin.target.action === 'new-project'
+  )
+  return {
+    pins: insertPins(strip.pins, [RECENT_PIN], { group: null, index: after + 1 }),
+    recentOffered: true
+  }
+}
 
 // ------------------------------------------------------------------ the window
 
@@ -528,6 +571,13 @@ export const StripPopupSchema = z.discriminatedUnion('kind', [
   }),
   /** Any web address, to open, or to pin. */
   z.object({ kind: z.literal('website') }),
+  /** The last twenty sets opened, like Live's Open Recent Set, from its pin. */
+  z.object({
+    kind: z.literal('recent'),
+    anchor: StripAnchorSchema.nullable().default(null),
+    /** Dropped down by the pointer resting on the pin: it goes when the pointer leaves. */
+    hover: z.boolean().default(false)
+  }),
   /**
    * A follow-up from ARTISTS' leads, with what can be done about it: open the
    * lead, log and complete, snooze, dismiss. Where a clicked reminder lands,

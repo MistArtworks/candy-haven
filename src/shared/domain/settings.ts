@@ -4,6 +4,7 @@ import { DEFAULT_ARCHIVE_PORT, DEFAULT_OVERLAY_PORT } from '../constants'
 import { LAUNCH_WITH, StripSettingsSchema } from './strip'
 import { LeadsSettingsSchema } from './leads'
 import { TEMPORARY_KEEPS } from './stacks.constants'
+import { MAX_NAVIGATION_CATEGORIES, MAX_NAVIGATION_CATEGORY_LABEL } from './navigation'
 
 /**
  * Persisted operator settings. Every field carries a default so a missing or
@@ -311,6 +312,35 @@ export const IntegrationSettingsSchema = z.object({
 })
 export type IntegrationSettings = z.infer<typeof IntegrationSettingsSchema>
 
+/**
+ * The rail as the operator arranges it, in REGULATION under DIRECTORY.
+ *
+ * Department ids are plain strings rather than an enum, on purpose: a settings
+ * file written by a build with a department this one doesn't have must still
+ * load, so unknown ids are skipped where the rail is arranged
+ * (`arrangeSections`) instead of failing the whole file here.
+ */
+export const NavigationCategorySchema = z.object({
+  id: z.string().min(1).max(48),
+  label: z.string().max(MAX_NAVIGATION_CATEGORY_LABEL).default(''),
+  sections: z.array(z.string().max(32)).max(64).default([])
+})
+export type NavigationCategory = z.infer<typeof NavigationCategorySchema>
+
+export const NavigationSettingsSchema = z.object({
+  /** The operator's own categories, in order. Null: the console's own arrangement. */
+  categories: z
+    .array(NavigationCategorySchema)
+    .max(MAX_NAVIGATION_CATEGORIES)
+    .nullable()
+    .default(null),
+  /** Departments pinned to the top of the rail, in order. */
+  pinned: z.array(z.string().max(32)).max(64).default([]),
+  /** Categories pinned: first in the rail, and always open. */
+  pinnedCategories: z.array(z.string().max(48)).max(MAX_NAVIGATION_CATEGORIES).default([])
+})
+export type NavigationSettings = z.infer<typeof NavigationSettingsSchema>
+
 export const SettingsSchema = z.object({
   version: z.number().int().default(1),
   appearance: AppearanceSettingsSchema.prefault({}),
@@ -320,7 +350,8 @@ export const SettingsSchema = z.object({
   updates: UpdateSettingsSchema.prefault({}),
   integrations: IntegrationSettingsSchema.prefault({}),
   strip: StripSettingsSchema.prefault({}),
-  leads: LeadsSettingsSchema.prefault({})
+  leads: LeadsSettingsSchema.prefault({}),
+  navigation: NavigationSettingsSchema.prefault({})
 })
 export type Settings = z.infer<typeof SettingsSchema>
 
@@ -342,7 +373,8 @@ export const SettingsPatchSchema = z.object({
   updates: z.object(sparseShape(UpdateSettingsSchema.shape)).optional(),
   integrations: z.object(sparseShape(IntegrationSettingsSchema.shape)).optional(),
   strip: z.object(sparseShape(StripSettingsSchema.shape)).optional(),
-  leads: z.object(sparseShape(LeadsSettingsSchema.shape)).optional()
+  leads: z.object(sparseShape(LeadsSettingsSchema.shape)).optional(),
+  navigation: z.object(sparseShape(NavigationSettingsSchema.shape)).optional()
 })
 
 /**

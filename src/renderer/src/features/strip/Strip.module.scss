@@ -1161,6 +1161,41 @@ $card: linear-gradient(180deg, #171417, #100e10);
   background: var(--ch-line);
 }
 
+// Recent projects: the last twenty sets, dropped down from the pin, as Live's
+// Open Recent Set drops from its File menu.
+.recent {
+  width: rem(400px);
+
+  .popupNotice {
+    padding-bottom: space(3);
+  }
+}
+
+// Twenty rows don't fit every screen: the list scrolls, the head and foot stay.
+// Nine and a half show, so the half says there are more.
+.recentScroll {
+  max-height: rem(520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.recentAll {
+  @include label(8px, 0.16em);
+  padding: space(3) space(4);
+  color: var(--ch-text-muted);
+  text-align: left;
+  background: none;
+  border: 0;
+  @include hairline(top, 0.1);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--ch-gold-200);
+    outline: none;
+  }
+}
+
 // ----------------------------------------------------------------- folded
 
 // The logo, as a button: folds the strip down to itself and opens it again.

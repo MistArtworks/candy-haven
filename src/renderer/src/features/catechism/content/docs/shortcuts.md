@@ -12,20 +12,21 @@ naming a project cannot trigger an action.
 
 Available from any department.
 
-| Chord                   | Does                                                    | While typing |
-| ----------------------- | ------------------------------------------------------- | ------------ |
-| `Ctrl`+`1` … `Ctrl`+`9` | Walk the first nine departments, as the rail draws them | Yes          |
-| `Ctrl`+`0`              | The tenth: COLOPHON                                     | Yes          |
-| `Ctrl`+`Shift`+`T`      | Open TELEMETRY                                          | Yes          |
-| `Ctrl`+`Shift`+`D`      | Open DISPATCH                                           | Yes          |
-| `Ctrl`+`,`              | Open REGULATION                                         | Yes          |
-| `Ctrl`+`Shift`+`O`      | Open OBSERVATORY                                        | Yes          |
-| `Ctrl`+`Shift`+`K`      | Open CATECHISM                                          | Yes          |
-| `Ctrl`+`Space`          | The command palette                                     | Yes          |
-| `Ctrl`+`]`              | Show or hide the department rail                        | Yes          |
-| `F1`                    | Quick guide for the department you are on               | Yes          |
-| `Ctrl`+`R`, `F5`        | Refresh this department                                 | No           |
-| `Ctrl`+`/`              | The live cheatsheet — every chord currently bound       | Yes          |
+| Chord                   | Does                                                   | While typing |
+| ----------------------- | ------------------------------------------------------ | ------------ |
+| `Ctrl`+`1` … `Ctrl`+`9` | The first nine departments in your rail, top to bottom | Yes          |
+| `Ctrl`+`0`              | The tenth                                              | Yes          |
+| `Ctrl`+`Shift`+`F`      | Search the rail's pages and categories                 | Yes          |
+| `Ctrl`+`Shift`+`T`      | Open TELEMETRY                                         | Yes          |
+| `Ctrl`+`Shift`+`D`      | Open DISPATCH                                          | Yes          |
+| `Ctrl`+`,`              | Open REGULATION                                        | Yes          |
+| `Ctrl`+`Shift`+`O`      | Open OBSERVATORY                                       | Yes          |
+| `Ctrl`+`Shift`+`K`      | Open CATECHISM                                         | Yes          |
+| `Ctrl`+`Space`          | The command palette                                    | Yes          |
+| `Ctrl`+`]`              | Show or hide the department rail                       | Yes          |
+| `F1`                    | Quick guide for the department you are on              | Yes          |
+| `Ctrl`+`R`, `F5`        | Refresh this department                                | No           |
+| `Ctrl`+`/`              | The live cheatsheet — every chord currently bound      | Yes          |
 
 `Ctrl`+`/` is worth knowing above all the rest. It lists exactly what is bound
 _right now_, generated from the same registry the console actually dispatches
@@ -36,8 +37,9 @@ One field searches departments, ARCHIVE projects, DISCOGRAPHY releases and
 tracks, and the ARTISTS roster at once, and answers nothing until you type —
 opening it shows the field alone rather than a standing menu of everywhere the
 console goes. It also carries four blind actions that need no shelf or date to
-start: **New Release**, **New Artist**, **New Lead** (opens ARTISTS on LEADS with
-the add dialog) and **Compose** (files a DISPATCH item).
+start: **New Release**, **New Artist**, **New Lead** (opens LEADS with the add
+dialog) and **Compose** (files a DISPATCH item). A department is found by the
+words the rail's search knows it by too: `settings` finds REGULATION.
 `↑`/`↓` walks the results, `Enter` goes there, `Escape` closes it.
 
 `Ctrl`+`]` puts the department rail away, or brings it back. The rail's own
@@ -46,21 +48,33 @@ corner to bring it back once it is gone — the chord does either, from wherever
 you are. This is a working posture for the session, not a setting: it does not
 survive a restart.
 
-The numbers come from the registry rather than being hard-coded, so a department
-added or removed renumbers the rest with it. Reserved departments are bound too
-— they are on the rail, and a shortcut that silently skipped one would make the
-numbering stop matching what is on screen.
+The numbers follow your rail: a department's number is its place on the rail,
+top to bottom, pins aside, and `Ctrl`+`1` to `Ctrl`+`0` open the first ten. In
+the console's own arrangement those are:
 
-**A number row has ten keys and the rail has eighteen departments.** So the
-first ten are reachable by position, and TELEMETRY, DISPATCH, REGULATION and
-CATECHISM have named chords instead of fictional numbers. CONTACT, SERVICES,
-LORE and RELEASES have neither: they are reached from the rail, and the first two
-also from a notification about something they hold.
+| Chord      | Department | Chord      | Department  |
+| ---------- | ---------- | ---------- | ----------- |
+| `Ctrl`+`1` | NEXUS      | `Ctrl`+`6` | DARKROOM    |
+| `Ctrl`+`2` | CALENDAR   | `Ctrl`+`7` | DISCOGRAPHY |
+| `Ctrl`+`3` | INTERFACE  | `Ctrl`+`8` | RELEASES    |
+| `Ctrl`+`4` | ARCHIVE    | `Ctrl`+`9` | LEADS       |
+| `Ctrl`+`5` | AUDITORIUM | `Ctrl`+`0` | ARTISTS     |
 
-This changed when DISCOGRAPHY and ARTISTS shipped. If you have `Ctrl`+`9` in
-your fingers for DISPATCH, it is now `Ctrl`+`Shift`+`D`. It changed again when
-COLOPHON opened PUBLICATION: `Ctrl`+`0` is COLOPHON now, and TELEMETRY is
-`Ctrl`+`Shift`+`T`.
+Rearrange the rail in REGULATION, under DIRECTORY, and the numbers and the
+chords move with it. Reserved departments are bound too: they are on the rail,
+and a shortcut that silently skipped one would make the numbering stop matching
+what is on screen.
+
+**A number row has ten keys and the rail has nineteen departments.** So the
+first ten are reachable by position, and TELEMETRY, DISPATCH, REGULATION,
+CATECHISM and OBSERVATORY have named chords wherever they sit. The rest are
+reached from the rail or its search (`Ctrl`+`Shift`+`F`), and CONTACT and
+SERVICES also from a notification about something they hold.
+
+> The numbers changed in 1.27.0, when the rail was rearranged into six
+> categories: `Ctrl`+`3` was ARCHIVE and is `Ctrl`+`4` now, and the rest moved
+> with it. The table above, or the live cheatsheet (`Ctrl`+`/`), says where
+> each one is.
 
 ## ARCHIVE
 
@@ -75,7 +89,8 @@ COLOPHON opened PUBLICATION: `Ctrl`+`0` is COLOPHON now, and TELEMETRY is
 | `Ctrl+N`          | New folder on this shelf                                                      |
 | `Ctrl+Shift+N`    | New project on this shelf                                                     |
 | `Alt+↑`           | Up one shelf                                                                  |
-| `Alt+1` … `Alt+4` | Switch lens — ALL, STACKS, INTAKE, BIN                                        |
+| `Alt+1` … `Alt+5` | Switch lens — ALL, STACKS, INTAKE, BIN, RECENT                                |
+| `↓`, on RECENT    | Open the recent sets on the first one. `↑` `↓` move, `Escape` closes          |
 | `Escape`          | Close what is open — the menu, then marks, then the cursor                    |
 
 `Ctrl+A` deliberately does **not** fire while a text field has focus, so
@@ -146,7 +161,7 @@ project, so it is disabled rather than creating one somewhere arbitrary.
 not today. In MONTH that is the first of the month. With a day's list open, it
 files on that day instead.
 
-## ARTISTS: LEADS and OPPORTUNITIES
+## LEADS
 
 | Key      | Where                            | Does                                          |
 | -------- | -------------------------------- | --------------------------------------------- |

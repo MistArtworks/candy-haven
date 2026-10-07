@@ -1,6 +1,7 @@
 # LEADS and OPPORTUNITIES
 
-ARTISTS' light CRM, shipped in 1.25.0 (2026-10-05). The roster is who the
+The console's light CRM, shipped in 1.25.0 (2026-10-05) as two lenses of ARTISTS
+and its own department, LEADS, since 1.27.0. The roster is who the
 practice works with; a **lead** is somebody it is getting to know, and an
 **opportunity** is concrete work that came of a lead. This document is the
 engineering record: the model, the rules, the surfaces and why they are shaped
@@ -71,7 +72,7 @@ past. `pinnedTemperature` (0..100, rounded) overrides the automatic value while
 set; the slider draws a marker where the automatic value would be.
 
 The temperature is computed in the renderer (`readTemperature` in
-`features/artists/leads/model.ts`) because it depends on REGULATION's cooling,
+`features/leads/model.ts`) because it depends on REGULATION's cooling,
 which the renderer reads anyway, and on the current time.
 
 The history (`History.tsx`) replays the same rule to draw **Quiet for N weeks**
@@ -134,21 +135,30 @@ Gated by `settings.leads.reminders` (on by default).
 
 ## Surfaces
 
-| Where                   | What                                                                                              | Files                                                                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ARTISTS → LEADS         | The list (orbs, Follow-ups due), a lead's sheet, Add a lead                                       | `features/artists/leads/LeadsView.tsx`, `LeadSheet.tsx`, `NewLeadDialog.tsx`                                                                                     |
-| ARTISTS → OPPORTUNITIES | The board by stage, an opportunity's sheet, Make an opportunity                                   | `OpportunitiesView.tsx`, `OpportunitySheet.tsx`, `ConvertDialog.tsx`                                                                                             |
-| Shared pieces           | The orb and its single animation loop, the slider, steps, logging, history, follow-ups, due field | `orb.ts`, `TemperatureOrb.tsx`, `TemperatureSlider.tsx`, `TemperaturePanel.tsx`, `LogInteraction.tsx`, `History.tsx`, `TaskList.tsx`, `DueField.tsx`, `model.ts` |
-| CALENDAR                | Follow-up marks in all four lenses; a day's list                                                  | `features/calendar/followUps.ts`, `components/FollowUpMark.tsx`, `DaySheet.tsx`, `DayList.tsx`                                                                   |
-| QUICK STRIP             | Overdue follow-ups lead Today; the Today popup's Follow-ups; the `followup` popup                 | `features/strip/useStrip.ts`, `popups/FollowUps.tsx`, `popups/FollowUpPopup.tsx`                                                                                 |
-| NEXUS                   | The follow-ups card under SONOALCHEMY, foldable                                                   | `features/home/components/FollowUpsBeacon.tsx`                                                                                                                   |
-| REGULATION → LEADS      | Predefined interactions, cooling per quiet week, Remind me                                        | `features/regulation/components/LeadsPanels.tsx`                                                                                                                 |
-| Palette                 | **New Lead**                                                                                      | `features/palette/buildResults.ts`                                                                                                                               |
+| Where                 | What                                                                                              | Files                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| LEADS → LEADS         | The list (orbs, Follow-ups due), a lead's sheet, Add a lead                                       | `features/leads/LeadsPage.tsx`, `LeadsView.tsx`, `LeadSheet.tsx`, `NewLeadDialog.tsx`                                                                            |
+| LEADS → OPPORTUNITIES | The board by stage, an opportunity's sheet, Make an opportunity                                   | `OpportunitiesView.tsx`, `OpportunitySheet.tsx`, `ConvertDialog.tsx`                                                                                             |
+| Shared pieces         | The orb and its single animation loop, the slider, steps, logging, history, follow-ups, due field | `orb.ts`, `TemperatureOrb.tsx`, `TemperatureSlider.tsx`, `TemperaturePanel.tsx`, `LogInteraction.tsx`, `History.tsx`, `TaskList.tsx`, `DueField.tsx`, `model.ts` |
+| CALENDAR              | Follow-up marks in all four lenses; a day's list                                                  | `features/calendar/followUps.ts`, `components/FollowUpMark.tsx`, `DaySheet.tsx`, `DayList.tsx`                                                                   |
+| QUICK STRIP           | Overdue follow-ups lead Today; the Today popup's Follow-ups; the `followup` popup                 | `features/strip/useStrip.ts`, `popups/FollowUps.tsx`, `popups/FollowUpPopup.tsx`                                                                                 |
+| NEXUS                 | The follow-ups card under SONOALCHEMY, foldable                                                   | `features/home/components/FollowUpsBeacon.tsx`                                                                                                                   |
+| REGULATION → LEADS    | Predefined interactions, cooling per quiet week, Remind me                                        | `features/regulation/components/LeadsPanels.tsx`                                                                                                                 |
+| Palette               | **New Lead**                                                                                      | `features/palette/buildResults.ts`                                                                                                                               |
 
-The lens and any open record live in the address (`/artists?lens=leads&lead=…`,
-`?lens=opportunities&opportunity=…`), so reminders, the strip, NEXUS and
+The lens and any open record live in the address (`/leads?lead=…`,
+`/leads?lens=opportunities&opportunity=…`), so reminders, the strip, NEXUS and
 CALENDAR all land on a record by route. A route stays under the strip's
 80-character page-target limit with a UUID.
+
+**Its own department since 1.27.0.** LEADS and OPPORTUNITIES were two lenses of
+ARTISTS until Candy asked, on DISPATCH, for them to have a section of their own;
+they are the department `leads`, first in COMMUNITY, with the files moved from
+`features/artists/leads/` to `features/leads/`. ARTISTS forwards an old
+`/artists?lens=…` address to `/leads`, open record and all, so a strip pin made
+before then still works. Deleting is at the foot of every sheet (**Delete
+lead**, **Delete opportunity**, in red), beside **Edit** on every follow-up, and
+a faint **×** on every logged interaction.
 
 ### CALENDAR's projection
 

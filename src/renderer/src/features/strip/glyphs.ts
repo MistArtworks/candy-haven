@@ -31,6 +31,7 @@ export type Glyph =
   | 'bolt'
   | 'person'
   | 'power'
+  | 'recent'
 
 /** A group wears one of the strip's own glyphs; this fails to compile if one isn't. */
 export const GROUP_GLYPHS: readonly Glyph[] = GROUP_ICONS
@@ -64,6 +65,7 @@ export function targetGlyph(target: Target): Glyph {
       return PAGE_GLYPH[target.route.split('?')[0]] ?? 'page'
     case 'action':
       if (target.action === 'new-project') return 'new'
+      if (target.action === 'recent-projects') return 'recent'
       if (target.action === 'add-to-today') return 'calendar'
       if (target.action === 'open-link') return 'globe'
       if (target.action === 'vestibule') return 'door'

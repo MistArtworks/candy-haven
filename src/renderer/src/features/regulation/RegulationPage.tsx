@@ -12,6 +12,7 @@ import { SettingsNav } from './components/SettingsNav'
 import { BoardPanel } from './components/BoardPanel'
 import { FilingPanel } from './components/FilingPanel'
 import { StripPanels } from './components/StripPanels'
+import { DirectoryPanels } from './components/DirectoryPanels'
 import { LeadsPanels } from './components/LeadsPanels'
 import { LAUNCH_WITH, LAUNCH_WITH_LABEL } from '@shared/domain/strip'
 import { REGULATION_CATEGORY, isRegulationCategory, type RegulationCategory } from './categories'
@@ -228,7 +229,7 @@ export function RegulationPage(): ReactNode {
   return (
     <div className={styles.page}>
       <PageHeader
-        index={section.order + 1}
+        section={section.id}
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
@@ -602,6 +603,10 @@ export function RegulationPage(): ReactNode {
                   </div>
                 </div>
               </Panel>
+            ) : null}
+
+            {category === 'directory' ? (
+              <DirectoryPanels settings={settings} apply={applySettings} />
             ) : null}
 
             {category === 'strip' ? (

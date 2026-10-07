@@ -298,7 +298,7 @@ export function DiscographyPage(): ReactNode {
   return (
     <div className={styles.page}>
       <PageHeader
-        index={section.order + 1}
+        section={section.id}
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}

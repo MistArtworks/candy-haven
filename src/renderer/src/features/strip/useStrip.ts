@@ -6,7 +6,7 @@ import { StripSettingsSchema, baseName, normalizeAddress, siteNameOf } from '@sh
 import { selectSettings, useSystemStore } from '@renderer/app/store/system.store'
 import { useCalendar } from '@renderer/hooks/useCalendar'
 import { useLeads, useNow } from '@renderer/hooks/useLeads'
-import { byUrgency, openTaskRows, type TaskRow } from '@renderer/features/artists/leads/model'
+import { byUrgency, openTaskRows, type TaskRow } from '@renderer/features/leads/model'
 import {
   anniversariesBetween,
   type CalendarAnniversary

@@ -4,14 +4,15 @@
 
 ![archive-01-lenses.png](archive-01-lenses.png)
 
-The rail down the left is the lens. It changes _what you are looking at_, not
-how it is drawn.
+The row of tabs above the register is the lens. It changes _what you are
+looking at_, not how it is drawn.
 
 - **ALL** — the whole register, flat.
 - **STACKS** — the filing tree you build. Categories, genres and artists, and the
   projects shelved on them. These are real directories on disk.
 - **INTAKE** — work found elsewhere on disk that is not in the register yet.
 - **BIN** — deleted projects, kept until you empty them.
+- **RECENT** — projects opened lately, in Live or from here, newest first.
 
 > Albums, EPs and compilations used to be a VOLUMES lens here. They are
 > releases in DISCOGRAPHY now.
@@ -61,6 +62,23 @@ opens it straight away from the TEMPORARY PROJECTS folder.
 
 > To keep one, **Save As** in Live somewhere INTAKE reads, and file it from
 > INTAKE.
+
+## Recent sets, as Live lists them
+
+![archive-20-recent-menu.png](archive-20-recent-menu.png)
+
+Rest the pointer on **RECENT**, at the top right, and the last twenty sets drop
+down, the way Live's **Open Recent Set** lists them, however they were opened.
+Press one to open it in Ableton, or **Dossier** to open its project.
+
+- **Open now** is the set Live has open.
+- **not in the archive** is a set INTAKE can take in.
+- **temporary** is a quick job from New project's TEMPORARY.
+- **Not found** was moved or deleted since.
+
+**All recent projects** opens the RECENT lens: the register in the order its
+sets were opened. The quick strip has the same list on its **Recent projects**
+pin.
 
 ## INTAKE files what is already on disk
 

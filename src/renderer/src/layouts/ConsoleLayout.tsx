@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { SECTIONS, getSection, getSectionByPath } from '@shared/domain/navigation'
+import { getSection, getSectionByPath } from '@shared/domain/navigation'
 import { TimerCues } from '@renderer/app/providers/TimerCues'
 import { ConcordCues } from '@renderer/app/providers/ConcordCues'
 import { InboxCues } from '@renderer/app/providers/InboxCues'
@@ -24,6 +24,7 @@ import { consoleEnterVariants, pageVariants, sweepVariants } from '@renderer/mot
 import { PageSweep } from '@renderer/components/chrome/PageSweep'
 import { useSystemStore, selectSettings } from '@renderer/app/store/system.store'
 import { useAnimationsEnabled } from '@renderer/hooks/useMotionPreference'
+import { useNavigation } from '@renderer/hooks/useNavigation'
 import { usePageNonce, usePageRefresh } from '@renderer/hooks/usePageRefresh'
 import { PageOutlet } from './PageOutlet'
 import styles from './ConsoleLayout.module.scss'
@@ -39,6 +40,7 @@ export function ConsoleLayout(): ReactNode {
   const location = useLocation()
   const navigate = useNavigate()
   const section = getSectionByPath(location.pathname)
+  const rail = useNavigation()
 
   // The refresh, shared between the title bar's control and its two shortcuts.
   const { refresh } = usePageRefresh()
@@ -77,6 +79,9 @@ export function ConsoleLayout(): ReactNode {
    * back to walk the directory — not a preference to carry between launches.
    */
   const [railOpen, setRailOpen] = useState(true)
+  // Bumped by Ctrl+Shift+F, which the rail answers by putting the cursor in
+  // its search.
+  const [railSearch, setRailSearch] = useState(0)
   const toggleRail = (): void => setRailOpen((open) => !open)
 
   /*
@@ -109,7 +114,9 @@ export function ConsoleLayout(): ReactNode {
        * and `Ctrl+Shift+K`. Every department is reachable from the keyboard;
        * only the first ten are reachable by position.
        */
-      ...SECTIONS.slice(0, 10).map((entry, index) => ({
+      // The first ten in the operator's rail, as it is arranged: the numbers
+      // on the rail are the numbers on the keys.
+      ...rail.ordered.slice(0, 10).map((entry, index) => ({
         chord: `ctrl+${index === 9 ? '0' : index + 1}`,
         label: entry.label,
         group: 'Global',
@@ -219,13 +226,24 @@ export function ConsoleLayout(): ReactNode {
         group: 'Global',
         whileTyping: true,
         run: () => setRailOpen((open) => !open)
+      },
+      {
+        // Opens the rail first if it was put away.
+        chord: 'ctrl+shift+f',
+        label: 'Search pages',
+        group: 'Global',
+        whileTyping: true,
+        run: () => {
+          setRailOpen(true)
+          setRailSearch((count) => count + 1)
+        }
       }
     ],
     // `setGuideOpen` and `setRailOpen` are listed although a setState
     // function is stable: the compiler infers dependencies from the body,
     // and a manual array narrower than what it infers makes it drop the
     // memo entirely.
-    [navigate, setGuideOpen, setRailOpen, refresh]
+    [navigate, setGuideOpen, setRailOpen, setRailSearch, refresh, rail]
   )
 
   useHotkeys(navigation)
@@ -239,7 +257,7 @@ export function ConsoleLayout(): ReactNode {
   // is why this is preferred over an effect, whose setState would cascade a
   // second visible render mid-transition.
   // https://react.dev/reference/react/useState#storing-information-from-previous-renders
-  const currentOrder = section?.order ?? 0
+  const currentOrder = section ? rail.numberOf(section.id) : 0
   const [previousOrder, setPreviousOrder] = useState(currentOrder)
   const [direction, setDirection] = useState(1)
 
@@ -310,7 +328,7 @@ export function ConsoleLayout(): ReactNode {
       <TitleBar />
 
       <div className={styles.body}>
-        <CommandRail hidden={!railOpen} onToggleRail={toggleRail} />
+        <CommandRail hidden={!railOpen} onToggleRail={toggleRail} searchRequest={railSearch} />
 
         <main className={styles.main}>
           {/*

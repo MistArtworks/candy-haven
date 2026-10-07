@@ -27,7 +27,7 @@ import {
   readTemperature,
   temperatureColour
 } from './model'
-import artistStyles from '../ArtistsPage.module.scss'
+import artistStyles from '@renderer/features/artists/ArtistsPage.module.scss'
 import styles from './Leads.module.scss'
 
 export interface OpportunitySheetProps {
@@ -296,7 +296,7 @@ export function OpportunitySheet({
             {confirming ? (
               <>
                 <span className={artistStyles.confirmText}>
-                  Remove this opportunity and its follow-ups for good? Archiving keeps them.
+                  Delete this opportunity and its follow-ups for good? Archiving keeps them.
                   {lead ? ` ${lead.name} stays a lead.` : ''}
                 </span>
                 <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
@@ -311,12 +311,12 @@ export function OpportunitySheet({
                     })
                   }}
                 >
-                  Remove
+                  Delete
                 </Button>
               </>
             ) : (
-              <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
-                Remove
+              <Button size="sm" variant="danger" onClick={() => setConfirming(true)}>
+                Delete opportunity
               </Button>
             )}
           </footer>

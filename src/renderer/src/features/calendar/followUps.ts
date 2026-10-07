@@ -45,9 +45,9 @@ export function followUpHref(followUp: CalendarFollowUp): string {
   // Built rather than concatenated, so an id is escaped however it is spelled.
   const query =
     followUp.parentKind === 'lead'
-      ? new URLSearchParams({ lens: 'leads', lead: followUp.leadId })
+      ? new URLSearchParams({ lead: followUp.leadId })
       : new URLSearchParams({ lens: 'opportunities', opportunity: followUp.parentId })
-  return `/artists?${query.toString()}`
+  return `/leads?${query.toString()}`
 }
 
 /**

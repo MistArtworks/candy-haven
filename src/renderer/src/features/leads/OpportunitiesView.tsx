@@ -17,7 +17,7 @@ import {
   opportunityTaskRows,
   readTemperature
 } from './model'
-import artistStyles from '../ArtistsPage.module.scss'
+import artistStyles from '@renderer/features/artists/ArtistsPage.module.scss'
 import styles from './Leads.module.scss'
 
 export interface OpportunitiesViewProps {

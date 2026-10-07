@@ -15,6 +15,10 @@ const SNAP = 28
 const GAP = 8
 /** The transparent margin around a popup's card (Strip.module.scss, .popupFrame), in CSS pixels. */
 const FRAME_PAD = 6
+/** How often the pointer is looked for while a popup it dropped down is up. */
+const HOVER_TICK_MS = 100
+/** How long the pointer can be off that popup and its pin before it goes. */
+const HOVER_LEAVE_MS = 450
 
 /** What the strip needs from the rest of the application. */
 export interface StripHost {
@@ -52,6 +56,9 @@ export class StripManager {
   private aside = false
   /** The icon a group's popup drops down from, in the strip's own pixels. */
   private anchor: StripAnchor | null = null
+  /** The popup was dropped down by the pointer resting on a pin, not pressed for. */
+  private popupHover = false
+  private hoverWatch: NodeJS.Timeout | null = null
   /** The scale the windows were made at: CSS pixels to screen pixels. */
   private scale = 1
 
@@ -142,14 +149,29 @@ export class StripManager {
   openPopup(popup: StripPopup): void {
     const target = this.popup
     if (!target || target.isDestroyed() || !this.strip) return
+    const hover = popup.kind === 'recent' && popup.hover
+    // The pointer resting on a pin never takes over a popup that's up.
+    if (hover && this.popupOpen) return
+    const wasHover = this.popupOpen && this.popupHover
     this.popupOpen = true
-    this.anchor = popup.kind === 'group' ? popup.anchor : null
+    this.popupHover = hover
+    this.anchor = popup.kind === 'group' || popup.kind === 'recent' ? popup.anchor : null
     // Shown once it has measured itself and been placed; see fitPopup.
     target.webContents.send('strip:popup', popup)
+    if (hover) {
+      this.watchHover()
+    } else {
+      this.stopHoverWatch()
+      // Pressed for while the pointer had one up: in use now, so it takes
+      // the keyboard, and goes on a press elsewhere, as the others do.
+      if (wasHover && target.isVisible()) target.focus()
+    }
   }
 
   closePopup(): void {
     this.popupOpen = false
+    this.popupHover = false
+    this.stopHoverWatch()
     const popup = this.popup
     if (popup && !popup.isDestroyed() && popup.isVisible()) popup.hide()
   }
@@ -167,6 +189,7 @@ export class StripManager {
 
   dispose(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer)
+    this.stopHoverWatch()
     for (const window of [this.popup, this.strip]) {
       if (window && !window.isDestroyed()) window.destroy()
     }
@@ -296,9 +319,66 @@ export class StripManager {
     this.popupSize = size
     this.placePopup()
     if (!popup.isVisible()) {
-      popup.show()
-      popup.focus()
+      // Dropped down by the pointer, it comes up without taking the keyboard
+      // from whatever is in front, Live mostly; a press in it does.
+      if (this.popupHover) {
+        popup.showInactive()
+      } else {
+        popup.show()
+        popup.focus()
+      }
     }
+  }
+
+  /**
+   * A popup the pointer dropped down stays while the pointer is on it, on
+   * the pin it came from, or crossing between them, and goes a moment after
+   * it leaves them, as a menu's submenu does. Watched from here: on the way
+   * the pointer is over two windows, and whatever lies between.
+   */
+  private watchHover(): void {
+    this.stopHoverWatch()
+    let away = 0
+    this.hoverWatch = setInterval(() => {
+      if (!this.popupOpen || !this.popupHover) {
+        this.stopHoverWatch()
+        return
+      }
+      if (this.pointerOnHover()) {
+        away = 0
+        return
+      }
+      away += HOVER_TICK_MS
+      if (away >= HOVER_LEAVE_MS) this.closePopup()
+    }, HOVER_TICK_MS)
+  }
+
+  private stopHoverWatch(): void {
+    if (this.hoverWatch) clearInterval(this.hoverWatch)
+    this.hoverWatch = null
+  }
+
+  /** The pointer on the popup, on its pin, or on the way between them. */
+  private pointerOnHover(): boolean {
+    const popup = this.popup
+    const strip = this.strip
+    if (!popup || !strip || popup.isDestroyed() || strip.isDestroyed()) return false
+    const s = strip.getBounds()
+    const a = this.anchor
+    const pin = a ? { x: s.x + a.x, y: s.y + a.y, width: a.width, height: a.height } : s
+    const point = screen.getCursorScreenPoint()
+    if (contains(pin, point)) return true
+    // Not up yet, it has no place: the pin alone holds it.
+    if (!popup.isVisible()) return false
+    const card = popup.getBounds()
+    if (contains(card, point)) return true
+    // The way across: the pin's own breadth, over the gap to the card.
+    const stacked = card.x < pin.x + pin.width && card.x + card.width > pin.x
+    const span = union(pin, card)
+    const bridge = stacked
+      ? { x: pin.x, width: pin.width, y: span.y, height: span.height }
+      : { x: span.x, width: span.width, y: pin.y, height: pin.height }
+    return contains(bridge, point)
   }
 
   /**
@@ -359,6 +439,18 @@ export class StripManager {
       }
     }
     popup.setBounds(clampInto(bounds, area))
+  }
+}
+
+/** The smallest rectangle holding both. */
+function union(a: Rectangle, b: Rectangle): Rectangle {
+  const x = Math.min(a.x, b.x)
+  const y = Math.min(a.y, b.y)
+  return {
+    x,
+    y,
+    width: Math.max(a.x + a.width, b.x + b.width) - x,
+    height: Math.max(a.y + a.height, b.y + b.height) - y
   }
 }
 

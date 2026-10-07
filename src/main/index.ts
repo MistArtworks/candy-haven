@@ -13,7 +13,7 @@ import { FollowUpReminders } from './app/follow-ups'
 import { TemporarySweep } from './app/temporary-sweep'
 import { BoardNotices } from './app/board-notices'
 import type { TargetHost } from './app/targets'
-import type { StripPopup } from '@shared/domain/strip'
+import { offerRecentPin, type StripPopup } from '@shared/domain/strip'
 import { applyLaunchAtStartup, launchedHidden } from './app/startup'
 import { IpcRouter } from './ipc/router'
 import { registerEventBridges, registerIpcHandlers } from './ipc/register-handlers'
@@ -275,7 +275,20 @@ async function start(): Promise<void> {
    * face, and a launcher asking them to choose something every morning is the
    * exact opposite of that.
    */
-  const { system, appearance, strip: stripSettings } = await services.settings.load()
+  const { system, appearance } = await services.settings.load()
+
+  /*
+   * Recent projects came to the strip in 1.27.0, asked for there by Candy
+   * on DISPATCH. A strip from before it is given the pin once; a failure to
+   * save it costs the pin, never the launch.
+   */
+  const offer = offerRecentPin(services.settings.snapshot.strip)
+  if (offer) {
+    await services.settings.update({ strip: offer }).catch((error: unknown) => {
+      logger.warn('Could not put Recent projects on the strip', error)
+    })
+  }
+  const stripSettings = services.settings.snapshot.strip
 
   /*
    * THE QUICK STRIP is up at every launch while it's switched on, the
@@ -340,8 +353,8 @@ async function start(): Promise<void> {
       if (windows.isPresent()) {
         void openConsole(
           task.ref.parentKind === 'lead'
-            ? `/artists?lens=leads&lead=${task.leadId}`
-            : `/artists?lens=opportunities&opportunity=${task.ref.parentId}`
+            ? `/leads?lead=${task.leadId}`
+            : `/leads?lens=opportunities&opportunity=${task.ref.parentId}`
         )
         return
       }
@@ -349,7 +362,7 @@ async function start(): Promise<void> {
     },
     openAll: () => {
       if (windows.isPresent()) {
-        void openConsole('/artists?lens=leads')
+        void openConsole('/leads')
         return
       }
       onStrip({ kind: 'today', entryId: null })

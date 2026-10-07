@@ -20,6 +20,8 @@ export function openPin(
   const { target } = pin
   if (target.kind === 'action' && target.action === 'new-project') {
     void window.candy.strip.popup({ kind: 'new-project' })
+  } else if (target.kind === 'action' && target.action === 'recent-projects') {
+    void window.candy.strip.popup({ kind: 'recent', anchor, hover: false })
   } else if (target.kind === 'action' && target.action === 'add-to-today') {
     void window.candy.strip.popup({ kind: 'add' })
   } else if (target.kind === 'action' && target.action === 'open-link') {

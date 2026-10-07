@@ -48,8 +48,9 @@ order.
 `src/shared/domain/strip.ts`.
 
 A pin is `{ id, label, target, icon? }`. Targets: `page` (a department route,
-80 characters at most), `action` (`new-project`, `add-to-today`, `open-link`,
-`console`, `vestibule`), `file`, `folder` (listed beside the strip), `link`,
+80 characters at most), `action` (`new-project`, `recent-projects`,
+`add-to-today`, `open-link`, `console`, `vestibule`), `file`, `folder` (listed
+beside the strip), `link`,
 `stack` (an ARCHIVE folder) and `project`. A stack or a project pin carries
 `opensIn` (`archive`, `explorer`, `ableton`) once told; without one, a click
 opens the **choose** popup ("Always do this for this pin" saves the answer).
@@ -88,6 +89,18 @@ DISCOGRAPHY masters.
 | `website`     | Open a website, or pin it                                                   |
 | `menu`        | More: a website, the console, the vestibule, settings, Hide, Quit           |
 | `followup`    | One follow-up from LEADS, with Log and complete, Open, Snooze and Dismiss   |
+| `recent`      | The last twenty sets opened, dropped down from the Recent projects pin      |
+
+**Recent projects** (1.27.0) is the one popup the pointer opens as well as a
+press. Resting 300 ms on its pin asks for `{ kind: 'recent', anchor, hover: true }`.
+Main shows that popup with `showInactive()`, so Live keeps the keyboard, and
+watches the pointer (`watchHover`, `screen.getCursorScreenPoint()` every 100 ms):
+it stays while the pointer is on the pin, the popup or the way between them, and
+closes 450 ms after it leaves them. A hover never takes over a popup that's up;
+a press on one the pointer opened focuses it and ends the watch, and then it
+closes as the others do. The list itself is ARCHIVE's (`RecentService`, see
+`PROJECT_CONTEXT.md`). A strip from before 1.27.0 is given the pin once at
+launch (`offerRecentPin`, `strip.recentOffered`).
 
 ## Today
 

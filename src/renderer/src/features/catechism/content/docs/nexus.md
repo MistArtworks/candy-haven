@@ -27,7 +27,7 @@ the rest of the numbers.
 
 ## Follow-ups on the landing
 
-When follow-ups from ARTISTS' leads are due today or overdue, a small card
+When follow-ups from LEADS are due today or overdue, a small card
 hangs under **SONOALCHEMY** in the top right corner: the one place that is sky
 in every field, so it never covers the picture. It fades away with the rest of
 the landing's lettering as you Descend.
@@ -38,7 +38,7 @@ The card names up to three, the most pressing first: who, what, and when it's
 due or how late it is. A slow pulse beside **FOLLOW-UPS** beats crimson while
 anything is overdue, and gold when they're only due today.
 
-- **Click a row** to open that lead (or opportunity) in ARTISTS.
+- **Click a row** to open that lead (or opportunity) in LEADS.
 - **N more in LEADS**, or **Open LEADS**, opens the whole list.
 - **–** puts the card away, folding it to a small mark in the same corner.
 

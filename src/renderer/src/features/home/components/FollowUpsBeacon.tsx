@@ -9,7 +9,7 @@ import {
   formatDue,
   openTaskRows,
   type TaskRow
-} from '@renderer/features/artists/leads/model'
+} from '@renderer/features/leads/model'
 import styles from './FollowUpsBeacon.module.scss'
 
 /** How many are named on the card; the rest are a count. */
@@ -131,11 +131,7 @@ export function FollowUpsBeacon(): ReactNode {
                 </li>
               ))}
             </ul>
-            <button
-              type="button"
-              className={styles.more}
-              onClick={() => void navigate('/artists?lens=leads')}
-            >
+            <button type="button" className={styles.more} onClick={() => void navigate('/leads')}>
               {rows.length > SHOWN ? `${rows.length - SHOWN} more in LEADS` : 'Open LEADS'} →
             </button>
           </motion.section>

@@ -904,34 +904,40 @@ Registry: **`src/shared/domain/navigation.ts`** — the single source of truth f
 routes, labels, order, and shipped status. The rail, titlebar, page transitions
 and Nexus all read from it.
 
-| #   | Id            | Path            | Status      | Purpose                                                |
-| --- | ------------- | --------------- | ----------- | ------------------------------------------------------ |
-| 1   | `nexus`       | `/`             | **shipped** | Operational overview and system state                  |
-| 2   | `interface`   | `/interface`    | reserved    | Natural-language command console                       |
-| 3   | `archive`     | `/archive`      | **shipped** | Project registry, filing tree, production pipeline     |
-| 4   | `discography` | `/discography`  | **shipped** | Everything released, and where it went                 |
-| 5   | `artists`     | `/artists`      | **shipped** | The roster, leads and opportunities                    |
-| 6   | `calendar`    | `/calendar`     | **shipped** | The dated register                                     |
-| 7   | `auditorium`  | `/auditorium`   | **shipped** | Listening room and visualiser                          |
-| 8   | `darkroom`    | `/darkroom`     | **shipped** | Grading photographs onto the console palette           |
-| 9   | `observatory` | `/observatory`  | **shipped** | The broadcast desk and every overlay served to OBS     |
-| 10  | `colophon`    | `/colophon`     | reserved    | The details the website carries (coming soon)          |
-| 11  | `contact`     | `/contact`      | **shipped** | Messages sent from the website                         |
-| 12  | `services`    | `/services`     | **shipped** | DJ enquiries from the website; producer to come        |
-| 13  | `lore`        | `/lore`         | **shipped** | The lore and its planets, published to the website     |
-| 14  | `telemetry`   | `/telemetry`    | **shipped** | Host vitals                                            |
-| 15  | `dispatch`    | `/dispatch`     | **shipped** | The shared board                                       |
-| 16  | `regulation`  | `/regulation`   | **shipped** | Operator settings                                      |
-| 17  | `catechism`   | `/catechism`    | **shipped** | The built-in manual                                    |
+| #   | Id            | Path           | Category    | Status      | Purpose                                            |
+| --- | ------------- | -------------- | ----------- | ----------- | -------------------------------------------------- |
+| 1   | `nexus`       | `/`            | COMMAND     | **shipped** | Operational overview and system state              |
+| 2   | `calendar`    | `/calendar`    | COMMAND     | **shipped** | The dated register                                 |
+| 3   | `interface`   | `/interface`   | COMMAND     | reserved    | Natural-language command console                   |
+| 4   | `archive`     | `/archive`     | STUDIO      | **shipped** | Project registry, filing tree, production pipeline |
+| 5   | `auditorium`  | `/auditorium`  | STUDIO      | **shipped** | Listening room and visualiser                      |
+| 6   | `darkroom`    | `/darkroom`    | STUDIO      | **shipped** | Grading photographs onto the console palette       |
+| 7   | `discography` | `/discography` | CATALOGUE   | **shipped** | Everything released, and where it went             |
+| 8   | `releases`    | `/releases`    | CATALOGUE   | **shipped** | The discography as the website shows it            |
+| 9   | `leads`       | `/leads`       | COMMUNITY   | **shipped** | Leads, and the opportunities that come of them     |
+| 10  | `artists`     | `/artists`     | COMMUNITY   | **shipped** | The roster                                         |
+| 11  | `contact`     | `/contact`     | COMMUNITY   | **shipped** | Messages sent from the website                     |
+| 12  | `services`    | `/services`    | COMMUNITY   | **shipped** | DJ enquiries from the website; producer to come    |
+| 13  | `observatory` | `/observatory` | PUBLICATION | **shipped** | The broadcast desk and every overlay served to OBS |
+| 14  | `lore`        | `/lore`        | PUBLICATION | **shipped** | The lore and its planets, published to the website |
+| 15  | `colophon`    | `/colophon`    | PUBLICATION | reserved    | The details the website carries (coming soon)      |
+| 16  | `telemetry`   | `/telemetry`   | OVERSIGHT   | **shipped** | Host vitals                                        |
+| 17  | `dispatch`    | `/dispatch`    | OVERSIGHT   | **shipped** | The shared board                                   |
+| 18  | `regulation`  | `/regulation`  | OVERSIGHT   | **shipped** | Operator settings                                  |
+| 19  | `catechism`   | `/catechism`   | OVERSIGHT   | **shipped** | The built-in manual                                |
 
-**Seventeen departments, fifteen in service,** in four divisions: COMMAND,
-PRODUCTION, PUBLICATION, OVERSIGHT. INTERFACE and COLOPHON are reserved:
-COLOPHON was built (below) and taken back out of service in 1.19.1, its route
-pointing at `ReservedPage` with a "Coming soon" status and no scope, while
-`ColophonPage`, its service and its stored record wait in the code. The rail has outgrown the numbered chords: `Ctrl`+`1`…`9`,`0`
-reach the first ten, and TELEMETRY, DISPATCH, REGULATION and CATECHISM have
-named chords (`Ctrl`+`Shift`+`T`, `Ctrl`+`Shift`+`D`, `Ctrl`+`,`,
-`Ctrl`+`Shift`+`K`). See `ConsoleLayout.tsx`.
+**Nineteen departments, seventeen in service,** in six categories as the console
+arranges them (since 1.27.0): COMMAND, STUDIO, CATALOGUE, COMMUNITY,
+PUBLICATION, OVERSIGHT. The table is that arrangement; the operator's own, from
+REGULATION → DIRECTORY, is `settings.navigation` turned into the rail by
+`arrangeSections`. INTERFACE and COLOPHON are reserved: COLOPHON was built
+(below) and taken back out of service in 1.19.1, its route pointing at
+`ReservedPage` with a "Coming soon" status and no scope, while `ColophonPage`,
+its service and its stored record wait in the code. A department's number is
+its place in the operator's rail; `Ctrl`+`1`…`9`,`0` reach the first ten, and
+TELEMETRY, DISPATCH, REGULATION, CATECHISM and OBSERVATORY have named chords
+(`Ctrl`+`Shift`+`T`, `Ctrl`+`Shift`+`D`, `Ctrl`+`,`, `Ctrl`+`Shift`+`K`,
+`Ctrl`+`Shift`+`O`). See `ConsoleLayout.tsx`.
 
 ### THE QUICK STRIP — 1.23.0 and 1.24.0 (2026-10-03, 2026-10-04)
 
@@ -967,6 +973,85 @@ through `main/app/follow-ups.ts`. Full design: [`LEADS.md`](LEADS.md).
 In the same release, clicking a day in CALENDAR's MONTH opens a day sheet
 listing everything on it, with Add an entry, instead of the entry dialog
 directly; clicking an hour in WEEK or DAY still files at that time.
+
+### The rail rearranged, LEADS on its own, DIRECTORY — 1.27.0
+
+From Candy's feedback on DISPATCH, three changes to how the console is found:
+
+- **LEADS** left ARTISTS for a department of its own (`/leads`,
+  `features/leads/`), the first in a new **COMMUNITY** category, which was
+  Candy's name for it. ARTISTS is the roster alone again, and forwards any old
+  `/artists?lens=leads|opportunities` address (a strip pin, a bookmark) to
+  `/leads` with its open record (`leadsAddress`).
+- **Six categories** replaced the four divisions: COMMAND (NEXUS, CALENDAR,
+  INTERFACE), STUDIO (ARCHIVE, AUDITORIUM, DARKROOM), CATALOGUE (DISCOGRAPHY,
+  RELEASES), COMMUNITY (LEADS, ARTISTS, CONTACT, SERVICES), PUBLICATION
+  (OBSERVATORY, LORE, COLOPHON) and OVERSIGHT. Department names didn't change.
+- **The operator's own arrangement**, in REGULATION → DIRECTORY
+  (`DirectoryPanels.tsx`): categories made, renamed, reordered and deleted once
+  empty; pages dragged between them; pages pinned to a PINNED block at the top
+  of the rail, and categories pinned first and always open. Stored as
+  `settings.navigation` (`categories` null for the console's own,
+  `pinned`, `pinnedCategories`), with department ids as plain strings so a
+  settings file from another build still loads. `completeCategories` puts every
+  department in exactly one category, a new one going to its own category or
+  the first; `arrangeSections` gives the rail, its order and each
+  department's number. `useNavigation` reads it for the rail, the mastheads
+  (`PageHeader section=`), `Ctrl`+`1`…`0`, the palette and NEXUS's list.
+- **The rail's search** (`searchSections`): name, purpose, each department's
+  `keywords` and its category; Enter opens the first; `Ctrl`+`Shift`+`F`
+  focuses it. The palette matches the same keywords.
+
+Fixed alongside: a dropdown closed itself when its own list scrolled
+(`usePanelAnchor` closed on any scroll in the capture phase, its own list's
+included), which made a lead impossible to link to an artist past the ninth
+name; a tooltip whose trigger left the page stayed on screen (`TooltipHost`
+now watches for that); and deleting a lead, an opportunity, a follow-up or an
+interaction is visible where it happens instead of behind Edit.
+
+### Recent projects — 1.27.0
+
+Candy's DISPATCH idea "Recent projects option": every set opened lately, like
+Live's Open Recent Set, in ARCHIVE and on the strip ("ADD IT TO QUICK STRIPS
+TOO"). `RecentService` (`main/services/recent/`) answers `projects:recent` with
+up to 50 sets (`RecentSet`, `shared/domain/recent.ts`), newest first, from three
+sources:
+
+- **Live's own list.** `readLiveRecents` reads every
+  `%APPDATA%\Ableton\Live <version>\Preferences\Preferences.cfg`, the newest
+  file first and the others after it, each set once. After the last
+  `RecentDocsList` marker, each path is a uint32 character count, then the path
+  in UTF-16LE with forward slashes; the list ends at the first string that
+  isn't an `.als`. A PC without Live has an empty list, never an error. Live
+  writes the file when it saves its preferences, so it trails a Live still
+  running.
+- **What Haven opened**, kept in `userData/recent-sets.json` (100 at most).
+  `record()` is called by `projects:open-set`, by `shell:open-path` for an
+  `.als`, and by the projects and stacks services when they open a set in Live
+  (`setSetOpenedListener`, wired in `container.ts`). What Haven opened after
+  Live last wrote its list comes first.
+- **The set open now**, from Live's window title
+  (`Name* [Name Project] - Ableton Live 12 Suite`, `liveWindowTitles`, fresh for
+  5 s, one read at a time), matched by set name and folder and moved to the top.
+
+Each set is matched to its project (the register's set paths, else a project
+folder it sits in) and checked on disk. `projects:open-set` opens only an `.als`
+that exists, through `shell.openPath`, and records it.
+
+- **ARCHIVE**: `RecentMenu` in the masthead (opens on a 160 ms hover, a press
+  or `↓`; the first `RECENT_MENU_SIZE`, 20, through `RecentList`), and the
+  `recent` lens (`Alt`+`5`), which draws the register's projects in the order
+  their sets were opened, with the sets outside the archive above them. The
+  sort control hides there.
+- **The strip**: a `recent-projects` action pin. At launch, `offerRecentPin`
+  gives it once to a strip from before it, first or just after New project, and
+  sets `strip.recentOffered` either way, so a removed pin stays removed. Resting
+  300 ms on the pin asks for a `{ kind: 'recent', hover: true }` popup. Main
+  shows it with `showInactive()`, so Live keeps the keyboard, and closes it
+  450 ms after the pointer has left the pin, the popup and the way between them
+  (`watchHover` polls `screen.getCursorScreenPoint()` every 100 ms, since the
+  pointer crosses two windows). A hover never takes over a popup that's up; a
+  press on one the pointer opened focuses it and ends the watch.
 
 ### PUBLICATION and COLOPHON — added 2026-10-01
 

@@ -1,6 +1,6 @@
 # REGULATION
 
-Operator settings, grouped into ten categories. The category lives in the URL,
+Operator settings, grouped into eleven categories. The category lives in the URL,
 so a link can point at one and the back gesture walks the groups rather than
 leaving the department.
 
@@ -86,6 +86,40 @@ The title bar keeps the system cursor whatever is set here. The window drag
 region swallows mouse events before the renderer sees them, so there is nothing
 there to draw from.
 
+## DIRECTORY
+
+![regulation-11-directory.png](regulation-11-directory.png)
+
+The rail, arranged your way: your own categories, what is pinned to the top,
+and the order of everything. Page names stay as they are; only where they sit
+changes. Like the rest of the page, it is a draft until **File changes**, and
+the rail shows each change as you make it.
+
+**PINNED PAGES** sit at the top of the rail, always open, above the categories.
+They stay in their categories too.
+
+1. Choose a page in **Pin a page**, or drag one here by its handle from the
+   categories below.
+2. Reorder them by their handles or with **↑** and **↓**.
+3. **Unpin** takes one off.
+
+**CATEGORIES** are the rail's headings, top to bottom.
+
+| To                        | Do this                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| Rename one                | Type over its name                                                             |
+| Make one                  | **New category**, then name it and drag pages into it                          |
+| Move a page               | Drag it by its handle into another category, or choose one in its **Move to**  |
+| Reorder pages or headings | Drag by the handle, or **↑** and **↓**                                         |
+| Pin a category            | **Pin**: it comes first in the rail and stays open                             |
+| Pin a page from here      | **Pin** at the end of its row                                                  |
+| Delete one                | **Delete**, once it is empty. A category with pages in it keeps its button dim |
+| Start again               | **Back to the console's own**: the six categories it ships with. Pins are kept |
+
+The numbers beside each page are the ones the rail and the mastheads show, and
+`Ctrl`+`1` to `Ctrl`+`0` follow them. A department added by an update goes
+into its own category if you kept it, or your first one if you didn't.
+
 ## STARTUP
 
 Whether this console starts with the machine, and what closing it means.
@@ -161,7 +195,7 @@ the list are pinned where they land.
 
 ## LEADS
 
-ARTISTS' follow-ups: what you log, how fast a lead cools, and the reminders.
+LEADS' follow-ups: what you log, how fast a lead cools, and the reminders.
 See the LEADS chapter for leads themselves.
 
 ![regulation-08-leads.png](regulation-08-leads.png)
@@ -191,7 +225,7 @@ cooling of 10.
 **FOLLOW-UP REMINDERS**: **Remind me** switches follow-ups' Windows
 notifications on or off. On by default. With it on, opening Haven says what is
 overdue, and each follow-up reminds you as it comes due. Overdue follow-ups show
-on the strip, in NEXUS and in ARTISTS either way.
+on the strip, in NEXUS and in LEADS either way.
 
 ## ARCHIVE
 

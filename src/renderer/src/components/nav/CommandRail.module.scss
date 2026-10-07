@@ -90,6 +90,84 @@
   }
 }
 
+// -------------------------------------------------------------------- search
+
+// Finds a department by name, purpose, the words it is known by, or its
+// category. Drawn as the rail's own furniture: a hairline box with the glyph
+// at its start, quiet until it is used.
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  margin: 0 space(5) space(4);
+  padding: 0 space(2);
+  @include hairline(all, 0.1);
+  background: rgba(0, 0, 0, 0.18);
+  transition: border-color $duration-fast linear;
+
+  &:focus-within,
+  &[data-active] {
+    border-color: var(--ch-line-strong);
+  }
+}
+
+.searchGlyph {
+  flex-shrink: 0;
+  color: var(--ch-text-faint);
+
+  .search:focus-within & {
+    color: var(--ch-gold-300);
+  }
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  height: rem(28px);
+  background: none;
+  border: 0;
+  outline: none;
+  color: var(--ch-text-primary);
+  @include label(9px, 0.16em);
+  font-weight: 500;
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+}
+
+.searchClear {
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  color: var(--ch-text-faint);
+  font-size: rem(10px);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-gold-300);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.noResults {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  padding: space(3) space(5);
+  margin: 0;
+}
+
+// The category a result sits in, ahead of its purpose line.
+.resultCategory {
+  @include label(7px, 0.18em);
+  color: var(--ch-gold-500);
+  margin-right: space(2);
+}
+
 // -------------------------------------------------------------------- groups
 
 // The divisions the departments are filed under. Each is a heading and a ruled
@@ -199,6 +277,20 @@
   opacity: 0.6;
 }
 
+// A heading that is not a disclosure: PINNED, and a category pinned open.
+.groupStatic {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: space(3);
+  padding: space(2) space(5);
+}
+
+.pinGlyph {
+  flex-shrink: 0;
+  color: var(--ch-gold-500);
+}
+
 // ---------------------------------------------------------------------- list
 
 .list {
@@ -224,6 +316,16 @@
   }
 
   &:hover .purpose {
+    opacity: 1;
+  }
+}
+
+// The keyboard's place among search results: the hover, held.
+.item[data-cursor] {
+  color: var(--ch-text-secondary);
+  background: rgba(210, 169, 97, 0.05);
+
+  .purpose {
     opacity: 1;
   }
 }

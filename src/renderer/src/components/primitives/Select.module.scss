@@ -85,6 +85,9 @@
   padding: 0;
   list-style: none;
   overflow-y: auto;
+  // Reaching the end of the list doesn't scroll the page behind it, which
+  // would close the list.
+  overscroll-behavior: contain;
   background: var(--ch-obsidian-800);
   @include hairline(all, 0.2);
   box-shadow: var(--ch-shadow-panel);

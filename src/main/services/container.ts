@@ -11,6 +11,7 @@ import { ArtistsService } from './artists/artists.service'
 import { DiscographyService } from './discography/discography.service'
 import { CalendarService } from './calendar/calendar.service'
 import { LeadsService } from './leads/leads.service'
+import { RecentService } from './recent/recent.service'
 import { ColophonService } from './colophon/colophon.service'
 import { OverlayServer } from './overlay/overlay-server'
 import { RiteService } from './overlay/rite.service'
@@ -76,6 +77,11 @@ export interface ServiceContainer {
    * CALENDAR reads its follow-ups by projection, as it does release dates.
    */
   readonly leads: LeadsService
+  /**
+   * Recently opened sets: Live's own recent list, what Haven opened, and the
+   * set Live has open now. For ARCHIVE's RECENT lens and the RECENT menus.
+   */
+  readonly recent: RecentService
   /**
    * COLOPHON: the details the website carries. One record in a collection of
    * its own, and nothing else; it reads no other service and none reads it.
@@ -144,6 +150,12 @@ export function createServiceContainer(): ServiceContainer {
   // is handed back as a callback rather than made mutual. See `FilingResolver`.
   const stacks = new StacksService(archive, projects, settings)
   projects.setFilingResolver((records) => stacks.reconcileFiling(records))
+
+  // Every set Haven opens goes to the top of the RECENT lists.
+  const recent = new RecentService(projects, () => stacks.resolveTemporaryRoot())
+  const opened = (path: string): void => void recent.record(path)
+  projects.setSetOpenedListener(opened)
+  stacks.setSetOpenedListener(opened)
 
   // Tags are the second mutual dependency in this section, resolved the same
   // way as filing: the tags service counts usage by reading the register, so
@@ -248,6 +260,7 @@ export function createServiceContainer(): ServiceContainer {
     telemetry: new TelemetryService(),
     projects,
     stacks,
+    recent,
     tags,
     artists,
     discography,

@@ -1,0 +1,223 @@
+@use 'abstracts' as *;
+
+// REGULATION's DIRECTORY: the rail, arranged. Rows drawn like the quick
+// strip's pins (a handle, a gold line where a drop lands), categories as
+// ruled blocks the way the rail itself draws them.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: space(5);
+}
+
+.toolbarButtons {
+  display: flex;
+  flex-shrink: 0;
+  gap: space(2);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// A row being moved stays faintly where it was; where it would land is a gold
+// line in the gap above or below.
+@mixin movable {
+  position: relative;
+
+  &[data-dragging] {
+    opacity: 0.4;
+  }
+
+  &[data-drop='before'] {
+    box-shadow: 0 -3px 0 -1px var(--ch-gold-300);
+  }
+
+  &[data-drop='after'] {
+    box-shadow: 0 3px 0 -1px var(--ch-gold-300);
+  }
+}
+
+.pageRow,
+.pinnedRow {
+  @include movable;
+  display: grid;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3) space(2) space(2);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+}
+
+.pageRow {
+  grid-template-columns: auto rem(28px) minmax(0, 1fr) rem(190px) auto rem(70px);
+}
+
+.pinnedRow {
+  grid-template-columns: auto rem(28px) minmax(0, 1fr) auto rem(70px);
+}
+
+.number {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.label {
+  @include label(11px, 0.2em);
+  color: var(--ch-text-primary);
+}
+
+.purpose {
+  font-size: rem(11px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+// Pin, Pinned, Unpin: a word rather than an icon, gold while it is pinned.
+.pinToggle {
+  @include label(8px, 0.16em);
+  height: rem(26px);
+  padding: 0 space(3);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-gold);
+  }
+
+  &[aria-pressed='true'] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+    background: rgba(210, 169, 97, 0.06);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.pinChooser {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  max-width: rem(420px);
+}
+
+// -------------------------------------------------------------- categories
+
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.category {
+  @include movable;
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  padding: space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+
+  // Pinned open in the rail: a gold rule down its side.
+  &[data-pinned] {
+    border-left: 2px solid var(--ch-gold-400);
+  }
+}
+
+.categoryHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, rem(260px)) 1fr auto auto auto;
+  align-items: center;
+  gap: space(3);
+}
+
+.categoryName {
+  height: rem(32px);
+  padding: 0 space(2);
+  @include label(11px, 0.2em);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-raised);
+  border: $hairline solid var(--ch-line);
+  outline: none;
+
+  &:focus {
+    border-color: var(--ch-line-gold);
+  }
+
+  &::placeholder {
+    color: var(--ch-text-faint);
+  }
+}
+
+.count {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.deleteCategory {
+  @include label(8px, 0.16em);
+  height: rem(26px);
+  padding: 0 space(3);
+  color: var(--ch-crimson-400);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--ch-crimson-500);
+  }
+
+  &:disabled {
+    color: var(--ch-text-faint);
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+// An empty category, or nothing pinned: where a dragged page goes.
+.empty {
+  margin: 0;
+  padding: space(3) space(4);
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-muted);
+  text-align: center;
+  border: $hairline dashed var(--ch-line);
+  list-style: none;
+
+  &[data-drop='into'] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+}

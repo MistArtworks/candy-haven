@@ -13,10 +13,10 @@ involves is filed here rather than spread across applications that cannot see on
 another. See [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) §1 for who uses
 it and why.
 
-Eighteen departments, grouped into four divisions. Sixteen are in service: the
-operational overview, the project registry and filing tree, everything
-released and where it went, the artist roster with its leads and
-opportunities, the dated register, the listening room, photo grading onto the
+Nineteen departments, grouped into six categories that the operator can
+rearrange. Seventeen are in service: the operational overview, the project
+registry and filing tree, everything released and where it went, leads and
+the opportunities that come of them, the artist roster, the dated register, the listening room, photo grading onto the
 console palette, the broadcast overlay kit, the website's messages and
 bookings, the lore of Nayara and its planets (written here, published to the
 website), the catalogue as the website shows it, host telemetry, a shared
@@ -28,7 +28,8 @@ soon.
 
 Beside the console, **THE QUICK STRIP** is a small window above every other
 application from the moment the PC starts: today's agenda and follow-ups, the
-operator's own pins and groups, who is signed in, and Quit. It is what opens at
+sets opened lately, the operator's own pins and groups, who is signed in, and
+Quit. It is what opens at
 launch by default. See [`docs/QUICK_STRIP.md`](docs/QUICK_STRIP.md).
 
 Feature design documents: [`docs/QUICK_STRIP.md`](docs/QUICK_STRIP.md),

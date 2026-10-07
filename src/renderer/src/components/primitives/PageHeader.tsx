@@ -1,11 +1,19 @@
 import type { ReactNode } from 'react'
+import type { SectionId } from '@shared/domain/navigation'
 import { formatIndex } from '@renderer/lib/format'
+import { useNavigation } from '@renderer/hooks/useNavigation'
 import { GuideButton } from '@renderer/components/guide/GuideButton'
 import type { GuideId } from '@renderer/features/catechism/content'
 import styles from './PageHeader.module.scss'
 
 export interface PageHeaderProps {
-  index: number
+  /**
+   * The department this masthead heads. Its number is then its place in the
+   * operator's rail (`useNavigation`), which moves when they rearrange it.
+   */
+  section?: SectionId
+  /** A number of its own, for a page that isn't a department (an overlay's). */
+  index?: number
   label: string
   purpose: string
   /**
@@ -44,6 +52,7 @@ export interface PageHeaderProps {
  * as departments of one institution rather than as separate screens.
  */
 export function PageHeader({
+  section,
   index,
   label,
   purpose,
@@ -52,11 +61,14 @@ export function PageHeader({
   actions,
   guideId
 }: PageHeaderProps): ReactNode {
+  const navigation = useNavigation()
+  const number = section ? navigation.numberOf(section) : (index ?? 0)
+
   return (
     <header className={styles.header}>
       <div className={styles.top}>
         <div className={styles.identity}>
-          <span className={styles.index}>{formatIndex(index)}</span>
+          <span className={styles.index}>{formatIndex(number)}</span>
           <div>
             <div className={styles.titleRow}>
               <h1 className={styles.label}>{label}</h1>

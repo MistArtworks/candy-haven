@@ -15,7 +15,7 @@ import {
   signOf,
   signed,
   type TaskRow
-} from '@renderer/features/artists/leads/model'
+} from '@renderer/features/leads/model'
 import { Icon } from '../icons'
 import styles from '../Strip.module.scss'
 

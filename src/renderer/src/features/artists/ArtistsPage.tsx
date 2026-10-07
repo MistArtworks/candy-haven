@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { getSection } from '@shared/domain/navigation'
 import type { ArtistDraft, ArtistPatch, ArtistRole, ArtistSummary } from '@shared/domain/artists'
@@ -13,37 +13,38 @@ import { StatusDot } from '@renderer/components/primitives/StatusDot'
 import { Skeleton } from '@renderer/components/primitives/Skeleton'
 import { gridVariants } from '@renderer/motion/transitions'
 import { useArtistMutations, useArtists } from '@renderer/hooks/useArtists'
-import { useLeads, useLeadsActions, useLeadsSettings, useNow } from '@renderer/hooks/useLeads'
 import { useSystemStore, selectArchive } from '@renderer/app/store/system.store'
 import { notify } from '@renderer/components/feedback/notify'
 import { plural } from '@renderer/lib/format'
 import { ArtistDialog } from './components/ArtistDialog'
 import { ArtistSheet } from './components/ArtistSheet'
-import { LeadsView } from './leads/LeadsView'
-import { LeadSheet } from './leads/LeadSheet'
-import { NewLeadDialog } from './leads/NewLeadDialog'
-import { OpportunitiesView } from './leads/OpportunitiesView'
-import { OpportunitySheet } from './leads/OpportunitySheet'
-import { isLive, openTaskRows } from './leads/model'
 import styles from './ArtistsPage.module.scss'
-import leadStyles from './leads/Leads.module.scss'
 
 /**
- * What the page is looking at: the roster, or the light CRM beside it.
+ * Where an old address into ARTISTS' LEADS and OPPORTUNITIES lenses now goes.
  *
- * In the URL (`?lens=`) like the open sheets, so a reminder, the strip or
- * CALENDAR can land on a lead or an opportunity directly.
+ * They were two lenses here until 1.27.0 gave them a page of their own. A
+ * strip pin or a bookmark made before then still says `/artists?lens=leads`;
+ * this keeps it working, open record and all. Null for a roster address.
  */
-type Lens = 'roster' | 'leads' | 'opportunities'
+function leadsAddress(params: URLSearchParams): string | null {
+  const lens = params.get('lens')
+  const intoLeads =
+    lens === 'leads' ||
+    lens === 'opportunities' ||
+    params.has('lead') ||
+    params.has('opportunity') ||
+    params.get('new') === 'lead'
+  if (!intoLeads) return null
 
-const LENS_LABEL: Record<Lens, string> = {
-  roster: 'Roster',
-  leads: 'Leads',
-  opportunities: 'Opportunities'
-}
-
-function lensOf(value: string | null): Lens {
-  return value === 'leads' || value === 'opportunities' ? value : 'roster'
+  const next = new URLSearchParams()
+  if (lens === 'opportunities') next.set('lens', 'opportunities')
+  for (const key of ['lead', 'opportunity', 'new']) {
+    const value = params.get(key)
+    if (value) next.set(key, value)
+  }
+  const query = next.toString()
+  return query ? `/leads?${query}` : '/leads'
 }
 
 /**
@@ -62,6 +63,9 @@ function lensOf(value: string | null): Lens {
  * No focal panel. The roster is a directory read evenly, and giving one
  * person the crimson treatment would claim the page's single focal object for
  * whoever happened to be listed first — the same call `OverlayCard` makes.
+ *
+ * LEADS and OPPORTUNITIES were lenses here until 1.27.0; they are their own
+ * department now, under COMMUNITY beside this one (`LeadsPage`).
  */
 export function ArtistsPage(): ReactNode {
   const section = getSection('artists')
@@ -83,11 +87,9 @@ export function ArtistsPage(): ReactNode {
    */
   const [searchParams, setSearchParams] = useSearchParams()
   const openId = searchParams.get('artist')
-  const lens = lensOf(searchParams.get('lens'))
-  const openLeadId = searchParams.get('lead')
-  const openOpportunityId = searchParams.get('opportunity')
+  const forward = leadsAddress(searchParams)
 
-  /** Several at once, so a move between lenses is one history step. */
+  /** Several at once, so a move is one history step. */
   const setParams = useCallback(
     (changes: Record<string, string | null>) => {
       setSearchParams(
@@ -107,13 +109,6 @@ export function ArtistsPage(): ReactNode {
 
   const setOpenId = useCallback((id: string | null) => setParams({ artist: id }), [setParams])
 
-  // The CRM, read once for all three lenses: the lens rail counts from it.
-  const leads = useLeads()
-  const leadActions = useLeadsActions()
-  const leadSettings = useLeadsSettings()
-  const now = useNow(30_000, leads.state)
-  const [addingLead, setAddingLead] = useState(false)
-
   const [adding, setAdding] = useState(false)
 
   /*
@@ -126,7 +121,6 @@ export function ArtistsPage(): ReactNode {
    */
   const newIntent = searchParams.get('new')
   const showAddDialog = adding || newIntent === 'artist'
-  const showAddLead = addingLead || newIntent === 'lead'
 
   const clearNewIntent = useCallback(() => {
     setSearchParams(
@@ -201,25 +195,6 @@ export function ArtistsPage(): ReactNode {
   }
 
   const open = openId ? (roster.find((artist) => artist.id === openId) ?? null) : null
-  const openLead = openLeadId
-    ? (leads.state.leads.find((lead) => lead.id === openLeadId) ?? null)
-    : null
-  const openOpportunity = openOpportunityId
-    ? (leads.state.opportunities.find((entry) => entry.id === openOpportunityId) ?? null)
-    : null
-
-  const activeLeads = leads.state.leads.filter((lead) => lead.archivedAt === null).length
-  const overdue = openTaskRows(leads.state.leads, leads.state.opportunities, now).filter(
-    (row) => row.status === 'overdue'
-  ).length
-  const liveOpportunities = leads.state.opportunities.filter(isLive).length
-
-  const goToLead = (id: string): void =>
-    setParams({ lens: 'leads', lead: id, opportunity: null, artist: null })
-  const goToOpportunity = (id: string): void =>
-    setParams({ lens: 'opportunities', opportunity: id, lead: null, artist: null })
-  const goToArtist = (id: string): void =>
-    setParams({ lens: null, artist: id, lead: null, opportunity: null })
 
   const reportToDialog = (cause: unknown): void => {
     const failure = cause as Error & { hint?: string | null }
@@ -251,10 +226,12 @@ export function ArtistsPage(): ReactNode {
     mutations.update.mutate({ id, patch: value })
   }
 
+  if (forward) return <Navigate to={forward} replace />
+
   return (
     <div className={styles.page}>
       <PageHeader
-        index={section.order + 1}
+        section={section.id}
         label={section.label}
         purpose={section.purpose}
         epigraph={section.epigraph}
@@ -269,67 +246,12 @@ export function ArtistsPage(): ReactNode {
         }
       />
 
-      {ready ? (
-        <div className={leadStyles.lenses} role="group" aria-label="Artists lens">
-          {(Object.keys(LENS_LABEL) as Lens[]).map((entry) => (
-            <button
-              key={entry}
-              type="button"
-              className={leadStyles.lens}
-              data-selected={lens === entry || undefined}
-              aria-pressed={lens === entry}
-              onClick={() =>
-                setParams({
-                  lens: entry === 'roster' ? null : entry,
-                  artist: null,
-                  lead: null,
-                  opportunity: null
-                })
-              }
-            >
-              {LENS_LABEL[entry]}
-              <span className={leadStyles.lensCount}>
-                {entry === 'roster'
-                  ? roster.length
-                  : entry === 'leads'
-                    ? activeLeads
-                    : liveOpportunities}
-              </span>
-              {entry === 'leads' && overdue > 0 ? (
-                <span className={leadStyles.lensAlert}>{overdue} overdue</span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
       {!ready ? (
         <Panel label="Roster" index="01">
           <p className={styles.hint}>
             The archive is not connected, so the roster cannot be read. NEXUS reports why.
           </p>
         </Panel>
-      ) : lens === 'leads' ? (
-        <LeadsView
-          state={leads.state}
-          ready={leads.ready}
-          settings={leadSettings}
-          now={now}
-          actions={leadActions}
-          roster={roster}
-          onOpenLead={(id) => setParams({ lead: id })}
-          onOpenOpportunity={goToOpportunity}
-          onAdd={() => setAddingLead(true)}
-        />
-      ) : lens === 'opportunities' ? (
-        <OpportunitiesView
-          state={leads.state}
-          ready={leads.ready}
-          settings={leadSettings}
-          now={now}
-          onOpen={(id) => setParams({ opportunity: id })}
-          onOpenLeads={() => setParams({ lens: 'leads' })}
-        />
       ) : (
         <>
           {/*
@@ -473,61 +395,6 @@ export function ArtistsPage(): ReactNode {
           }}
         />
       ) : null}
-
-      {showAddLead ? (
-        <NewLeadDialog
-          roster={roster}
-          busy={leadActions.busy}
-          onCancel={() => {
-            setAddingLead(false)
-            if (newIntent) clearNewIntent()
-          }}
-          onSubmit={(draft) => {
-            void leadActions.create(draft).then((state) => {
-              if (!state) return
-              setAddingLead(false)
-              if (newIntent) clearNewIntent()
-              // Straight into the new lead's sheet, as a new artist's opens.
-              const made = [...state.leads].sort((a, b) => b.createdAt - a.createdAt)[0]
-              if (made) goToLead(made.id)
-            })
-          }}
-        />
-      ) : null}
-
-      <AnimatePresence>
-        {openLead ? (
-          <LeadSheet
-            key={openLead.id}
-            lead={openLead}
-            opportunities={leads.state.opportunities.filter(
-              (entry) => entry.leadId === openLead.id
-            )}
-            roster={roster}
-            settings={leadSettings}
-            now={now}
-            actions={leadActions}
-            onOpenOpportunity={goToOpportunity}
-            onOpenArtist={goToArtist}
-            onClose={() => setParams({ lead: null })}
-          />
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {openOpportunity ? (
-          <OpportunitySheet
-            key={openOpportunity.id}
-            opportunity={openOpportunity}
-            lead={leads.state.leads.find((lead) => lead.id === openOpportunity.leadId) ?? null}
-            settings={leadSettings}
-            now={now}
-            actions={leadActions}
-            onOpenLead={goToLead}
-            onClose={() => setParams({ opportunity: null })}
-          />
-        ) : null}
-      </AnimatePresence>
 
       <AnimatePresence>
         {open ? (

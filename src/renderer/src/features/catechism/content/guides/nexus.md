@@ -16,7 +16,7 @@ The version and the last boot's duration are set beneath it.
 
 ![nexus-03-follow-ups.png](nexus-03-follow-ups.png)
 
-When follow-ups from ARTISTS' leads are due today or overdue, a small card hangs
+When follow-ups from LEADS are due today or overdue, a small card hangs
 under SONOALCHEMY, in the corner where every field is sky. Overdue ones pulse
 crimson.
 

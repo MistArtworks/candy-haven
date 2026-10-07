@@ -1,7 +1,7 @@
 import { useCallback, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { SECTIONS, getSection } from '@shared/domain/navigation'
+import { getSection } from '@shared/domain/navigation'
 import { BOOT_STAGES } from '@shared/domain/boot.constants'
 import {
   useSystemStore,
@@ -10,6 +10,7 @@ import {
   selectUpdate
 } from '@renderer/app/store/system.store'
 import { useRuntimeInfo } from '@renderer/hooks/useRuntimeInfo'
+import { useNavigation } from '@renderer/hooks/useNavigation'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
 import { Panel } from '@renderer/components/primitives/Panel'
 import { Field, FieldGrid } from '@renderer/components/primitives/Field'
@@ -47,6 +48,7 @@ export function NexusPage(): ReactNode {
   const boot = useSystemStore(selectBoot)
   const update = useSystemStore(selectUpdate)
   const { data: runtime } = useRuntimeInfo()
+  const navigation = useNavigation()
 
   const overviewRef = useRef<HTMLDivElement>(null)
 
@@ -86,7 +88,7 @@ export function NexusPage(): ReactNode {
 
       <div ref={overviewRef} className={styles.overview}>
         <PageHeader
-          index={section.order + 1}
+          section={section.id}
           label={section.label}
           purpose={section.purpose}
           epigraph={section.epigraph}
@@ -200,21 +202,25 @@ export function NexusPage(): ReactNode {
             flush
           >
             <ul className={styles.sectionList}>
-              {SECTIONS.filter((entry) => entry.id !== 'nexus').map((entry) => (
-                <li key={entry.id}>
-                  <Link to={entry.path} className={styles.sectionLink}>
-                    <span className={styles.sectionIndex}>{formatIndex(entry.order + 1)}</span>
-                    <span className={styles.sectionBody}>
-                      <span className={styles.sectionLabel}>{entry.label}</span>
-                      <span className={styles.sectionPurpose}>{entry.purpose}</span>
-                    </span>
-                    <StatusDot
-                      tone={entry.implemented ? 'online' : 'offline'}
-                      label={entry.implemented ? 'IN SERVICE' : 'RESERVED'}
-                    />
-                  </Link>
-                </li>
-              ))}
+              {navigation.ordered
+                .filter((entry) => entry.id !== 'nexus')
+                .map((entry) => (
+                  <li key={entry.id}>
+                    <Link to={entry.path} className={styles.sectionLink}>
+                      <span className={styles.sectionIndex}>
+                        {formatIndex(navigation.numberOf(entry.id))}
+                      </span>
+                      <span className={styles.sectionBody}>
+                        <span className={styles.sectionLabel}>{entry.label}</span>
+                        <span className={styles.sectionPurpose}>{entry.purpose}</span>
+                      </span>
+                      <StatusDot
+                        tone={entry.implemented ? 'online' : 'offline'}
+                        label={entry.implemented ? 'IN SERVICE' : 'RESERVED'}
+                      />
+                    </Link>
+                  </li>
+                ))}
             </ul>
           </Panel>
         </motion.div>

@@ -26,6 +26,7 @@ through any view that makes sense for it.
 | **STACKS** | The filing tree you build — categories, genres, artists, and what is shelved on them | `Alt`+`2` |
 | **INTAKE** | Work found elsewhere on disk that the register does not know about                   | `Alt`+`3` |
 | **BIN**    | Deleted projects, kept until you empty them                                          | `Alt`+`4` |
+| **RECENT** | Projects opened lately, in Live or from here, newest first                           | `Alt`+`5` |
 
 There was a **VOLUMES** lens. Albums, EPs and compilations are DISCOGRAPHY's
 now — see that chapter, and the note further down this one.
@@ -113,6 +114,53 @@ days, a week, 30 days, or until removed.
 > To keep one, use **Save As** in Live to save it outside TEMPORARY PROJECTS,
 > in a folder INTAKE reads, then file it from INTAKE like any other set.
 > REGULATION's **Open the temporary folder** opens it in Explorer.
+
+## Recent projects
+
+![archive-20-recent-menu.png](archive-20-recent-menu.png)
+
+The sets opened lately, newest first, the way Live's own **File › Open Recent
+Set** lists them. However a set was opened, it is here: from Live's menu, from
+Explorer, from a dossier's **OPEN IN ABLETON**, or from the quick strip.
+
+### How to open a recent set
+
+1. Rest the pointer on **RECENT**, at the top right of ARCHIVE. The last twenty
+   sets drop down. Pressing RECENT drops them too, and so does `↓` once RECENT
+   has focus.
+2. Press a set to open it in Ableton.
+3. A set in the register has **Dossier** beside it, which opens its project.
+4. **All recent projects**, at the foot, opens the RECENT lens.
+
+Each row says where the set sits, like `PERSONAL › DUBSTEP`, the way Live tells
+sets of the same name apart, and when it was opened, when Haven knows.
+
+- **Open now** marks the set Live has open at the moment, and puts it first.
+- **not in the archive** marks a set the register doesn't hold. It opens all
+  the same; take it in from INTAKE to file it.
+- **temporary** marks a set made with New project's TEMPORARY. It opens like
+  any other until it goes to the Recycle Bin.
+- **Not found** marks a set moved or deleted since. It stays listed, as it does
+  in Live, but can't be opened.
+
+`↑` and `↓` move through the sets, and `Escape` puts the list away.
+
+### The RECENT lens
+
+![archive-21-recent.png](archive-21-recent.png)
+
+**RECENT** (`Alt`+`5`) draws the register's projects in the order their sets
+were opened, each project once, however many of its sets were. Sets opened
+lately that aren't in the archive are listed above them; temporary ones are in
+the menu only.
+
+- ICONS, LIST and BOARD all work, and so do the search and the filters.
+- There is no sort: the order is the point.
+
+> Live keeps its own list in its preferences and writes it when it saves them,
+> so a set opened straight in a Live that is still running can be late to
+> appear. A set opened from Haven is listed at once, and the one Live has open
+> is marked **Open now**.
 
 ## How to review a project
 

@@ -2,7 +2,7 @@
 
 The dated register: sessions, deliveries and observances. Four lenses over one
 array of entries, plus what other departments put on it: the release dates the
-DISCOGRAPHY keeps, and the follow-ups from ARTISTS' leads.
+DISCOGRAPHY keeps, and the follow-ups from LEADS.
 
 ![calendar-01-month.png](calendar-01-month.png)
 
@@ -47,7 +47,7 @@ From the list:
   the list, updated.
 - **Tick an entry's square** to mark it done.
 - **Click an attachment** to open it.
-- **Click a follow-up** to open its lead in ARTISTS.
+- **Click a follow-up** to open its lead in LEADS.
 - **Add an entry** files a new one on that day. It's focused when the list
   opens, so a click on the day and then Enter is all it takes.
 - **Close**, **Esc** or a click outside puts the list away.
@@ -159,7 +159,7 @@ anniversary with it and deleting a release removes them all.
 
 ## Follow-ups
 
-Every follow-up from ARTISTS' leads and opportunities is marked on its day, at
+Every follow-up from LEADS, on leads and opportunities, is marked on its day, at
 its time, in all four lenses. Like a release date, it is read from where it
 lives: change its time on the lead and the mark moves; tick it off and the mark
 is struck through.
@@ -176,7 +176,7 @@ A mark is a small arrow, then the time, the name and the follow-up:
 | A gold **!** at the end     | High priority     |
 
 Hover a mark for the whole of it: who, what, when, its state and priority.
-Click it to open its lead (or opportunity) in ARTISTS, where it is dealt with.
+Click it to open its lead (or opportunity) in LEADS, where it is dealt with.
 Marks are read-only here: no dragging, no ticking, no dialog.
 
 - **WEEK and DAY**: a mark hangs from a thin rule at its minute, and takes about

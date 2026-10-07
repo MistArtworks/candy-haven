@@ -11,6 +11,7 @@ import { GroupPopup } from './popups/GroupPopup'
 import { WebsitePopup } from './popups/WebsitePopup'
 import { MenuPopup } from './popups/MenuPopup'
 import { FollowUpPopup } from './popups/FollowUpPopup'
+import { RecentPopup } from './popups/RecentPopup'
 import styles from './Strip.module.scss'
 
 /**
@@ -64,6 +65,7 @@ export function StripPopupHost({ scale }: { scale: number }): ReactNode {
           <GroupPopup pinId={popup.spec.pinId} onClose={close} />
         ) : null}
         {popup.spec.kind === 'website' ? <WebsitePopup onClose={close} /> : null}
+        {popup.spec.kind === 'recent' ? <RecentPopup onClose={close} /> : null}
         {popup.spec.kind === 'menu' ? <MenuPopup onClose={close} /> : null}
         {popup.spec.kind === 'followup' ? (
           <FollowUpPopup taskId={popup.spec.taskId} onClose={close} />

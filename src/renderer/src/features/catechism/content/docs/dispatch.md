@@ -161,7 +161,7 @@ Three marks on the board tell you where to look when you come back:
 
 Opening an item clears its marks. Your own items, comments and rulings never
 mark. The board's header counts the items with something new (**3 new**), and
-so does DISPATCH in the rail, with a dot on its division's heading while that
+so does DISPATCH in the rail, with a dot on its category's heading while that
 is folded away, the way CONTACT and SERVICES count what is waiting from the
 website.
 

@@ -1,0 +1,123 @@
+@use 'abstracts' as *;
+
+// Recently opened sets: a numbered register, a row each, the way the rail
+// draws its departments, quieter.
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: stretch;
+  @include hairline(bottom, 0.06);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.row {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: rem(24px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    color: var(--ch-text-primary);
+    background: rgba(210, 169, 97, 0.06);
+    outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: inset 2px 0 0 var(--ch-accent);
+  }
+
+  // Moved or deleted since: listed, as Live lists it, but not pressable.
+  &[data-gone] {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.number {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: inherit;
+  @include truncate;
+}
+
+.where {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.outside {
+  color: var(--ch-text-muted);
+}
+
+.state {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  white-space: nowrap;
+
+  // The set Live has open now: gold, the one thing in the list that is live.
+  &[data-now] {
+    color: var(--ch-gold-300);
+  }
+}
+
+.dossier {
+  flex-shrink: 0;
+  @include label(8px, 0.14em);
+  padding: 0 space(3);
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  @include hairline(left, 0.06);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--ch-gold-200);
+    outline: none;
+  }
+}
+
+.quiet {
+  margin: 0;
+  padding: space(4) space(3);
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  line-height: 1.5;
+  color: var(--ch-text-muted);
+}

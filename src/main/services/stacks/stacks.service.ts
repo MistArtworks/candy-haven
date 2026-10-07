@@ -111,6 +111,8 @@ export class StacksService {
   private pathsListener: PathsListener | null = null
   /** A temporary clean-up in progress; a second one waits for the next pass. */
   private sweeping = false
+  /** Told of a temporary set opened in Live, for the RECENT lists. */
+  private setOpened: ((path: string) => void) | null = null
 
   constructor(
     private readonly archive: ArchiveService,
@@ -551,7 +553,13 @@ export class StacksService {
     }
 
     logger.info(`Opened a temporary project: ${name}`)
+    this.setOpened?.(setPath)
     return { name, path, setPath }
+  }
+
+  /** Wired by the container: see `RecentService.record`. */
+  setSetOpenedListener(listener: (path: string) => void): void {
+    this.setOpened = listener
   }
 
   /** Opens `TEMPORARY PROJECTS` in Explorer, making it first if need be. */

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useLeads, useNow } from '@renderer/hooks/useLeads'
-import { followUpRoute, openTaskRows } from '@renderer/features/artists/leads/model'
+import { followUpRoute, openTaskRows } from '@renderer/features/leads/model'
 import { useNotice } from '../useStrip'
 import { PopupHead } from '../StripPopupHost'
 import { FollowUpRow } from './FollowUps'

@@ -1,27 +1,29 @@
 # LEADS
 
 The people you are building a relationship with, and the work that comes of
-them. LEADS and OPPORTUNITIES are ARTISTS' other two lenses: a light way to
-keep track of who you've reached out to, how warm it is, and what to do next.
+them: a light way to keep track of who you've reached out to, how warm it is,
+and what to do next.
 
 ![leads-01-list.png](leads-01-list.png)
 
 ## Where it is
 
-ARTISTS opens on the roster. The rail under its heading has three lenses:
+LEADS is a department of its own, the first in **COMMUNITY**, beside ARTISTS.
+Until 1.27.0 it was two lenses inside ARTISTS; an old address or strip pin to
+those lenses still lands here. The rail under its heading has two lenses:
 
 | Lens              | Shows                                                      |
 | ----------------- | ---------------------------------------------------------- |
-| **ROSTER**        | The people you work with. See the ARTISTS chapter          |
 | **LEADS**         | The people you're getting to know, warmest to coldest      |
 | **OPPORTUNITIES** | The concrete work that came of a lead, as a board by stage |
 
 Each lens shows its count. LEADS also says how many follow-ups are overdue, in
-crimson, so you can see it from the roster without switching.
+crimson, so you can see it from OPPORTUNITIES without switching.
 
 The lens, and any open lead or opportunity, is part of the address. A reminder,
 the quick strip, NEXUS and CALENDAR all use that to land you on the right
-record.
+record. ARTISTS is still where the roster lives: a lead linked to somebody on
+it says **On the roster as** their name, and that opens their record there.
 
 ## What a lead is
 
@@ -229,8 +231,8 @@ worked out, not stored: change the cooling in REGULATION and they change with
 it. A spell that cost nothing, because the lead was already frozen, isn't
 shown.
 
-Logged something by mistake? Hover the line and press **×** to remove it. The
-temperature is worked out again without it.
+Logged something by mistake? Press the faint **×** at the end of its line to
+delete it. The temperature is worked out again without it.
 
 ## Follow-ups
 
@@ -271,7 +273,7 @@ High-priority follow-ups carry a **HIGH** mark.
 | Put it off         | **Snooze**, then **In an hour**, **This evening** (18:00) or **Tomorrow morning** (10:00) |
 | Stop its reminders | **Dismiss**. It stays open and overdue, just quiet                                        |
 | Change it          | **Edit**: its title, due time, priority or notes, then **Save**                           |
-| Remove it          | **Edit**, then **Remove**, then **Remove** again to confirm                               |
+| Delete it          | **Delete**, beside Edit, then **Delete** again to confirm. Or **Edit**, then **Delete**   |
 
 Snooze and Dismiss appear once a follow-up is overdue: before that there is
 nothing to quiet. A snoozed follow-up says **Snoozed to** and when; a dismissed
@@ -311,7 +313,7 @@ With **Remind me** on in REGULATION, under LEADS (it is, by default):
   list altogether.
 
 Click a reminder and it opens what it's about. With the console on screen, that
-is the lead (or opportunity) in ARTISTS. Otherwise the follow-up opens beside
+is the lead (or opportunity) in LEADS. Otherwise the follow-up opens beside
 the quick strip, with **Log and complete**, **Open the lead**, **Snooze** and
 **Dismiss**, so most of them never need the console.
 
@@ -337,17 +339,20 @@ Links work as they do on the roster: the platform is guessed from the address,
 **Open** opens it in your browser, **Remove** takes it off. On the sheet they're
 listed under CONTACT, one press from opening.
 
-## Archiving and removing a lead
+## Archiving and deleting a lead
 
-At the foot of the sheet in Edit:
+![leads-17-delete.png](leads-17-delete.png)
+
+At the foot of every lead's sheet:
 
 - **Archive** puts a lead away when it's gone nowhere, keeping everything. It
   leaves the list (find it under **Show: Archived**), its follow-ups stop
   appearing anywhere and stop reminding, and its sheet becomes read-only.
   **Bring back from the archive** undoes it.
-- **Remove** deletes the lead for good: its history, its follow-ups, and every
-  opportunity that came of it. Press **Remove** again to confirm. There is no
-  undo, which is what Archive is for.
+- **Delete lead**, in red, deletes the lead for good: its history, its
+  follow-ups, and every opportunity that came of it. The sheet asks first, and
+  says how many opportunities go with it; press **Delete** to confirm or
+  **Keep** to change your mind. There is no undo, which is what Archive is for.
 
 ## OPPORTUNITIES
 
@@ -433,11 +438,11 @@ It leaves the board (find it under **Archived**), its follow-ups stop showing
 and reminding, and its stages lock until you press **Archived** again to bring
 it back.
 
-### Removing an opportunity
+### Deleting an opportunity
 
-**Remove**, at the foot of its sheet, then **Remove** again, deletes it and its
-follow-ups for good. The lead stays as it was. Archiving keeps everything, if
-you might want it later.
+**Delete opportunity**, in red at the foot of its sheet, then **Delete** to
+confirm, deletes it and its follow-ups for good. The lead stays as it was.
+Archiving keeps everything, if you might want it later.
 
 ## Settings
 

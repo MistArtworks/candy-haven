@@ -12,6 +12,7 @@
  */
 export const REGULATION_CATEGORIES = [
   'presentation',
+  'directory',
   'startup',
   'strip',
   'leads',
@@ -39,6 +40,11 @@ export const REGULATION_CATEGORY: Record<RegulationCategory, RegulationCategoryD
     label: 'PRESENTATION',
     purpose: 'Motion, interface scale and the accent this console draws with.'
   },
+  directory: {
+    id: 'directory',
+    label: 'DIRECTORY',
+    purpose: 'The rail: your own categories, what is pinned to the top, and the order of it all.'
+  },
   startup: {
     id: 'startup',
     label: 'STARTUP',
@@ -52,7 +58,7 @@ export const REGULATION_CATEGORY: Record<RegulationCategory, RegulationCategoryD
   leads: {
     id: 'leads',
     label: 'LEADS',
-    purpose: "ARTISTS' follow-ups: what you log, how fast a lead cools, and the reminders."
+    purpose: "LEADS' follow-ups: what you log, how fast a lead cools, and the reminders."
   },
   archive: {
     id: 'archive',

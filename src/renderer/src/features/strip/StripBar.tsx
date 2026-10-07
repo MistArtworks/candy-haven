@@ -29,6 +29,13 @@ import {
 } from './useStrip'
 import styles from './Strip.module.scss'
 
+/** Resting on Recent projects this long drops its sets down, as Live's menu does. */
+const REST_MS = 300
+
+/** Recent projects: dropped down by the pointer resting on it, as well as by a press. */
+const dropsOnRest = (pin: StripPin): boolean =>
+  !isGroup(pin) && pin.target.kind === 'action' && pin.target.action === 'recent-projects'
+
 /**
  * THE QUICK STRIP: the logo, today's agenda, the operator's pins, who is
  * signed in, and the gear. Drawn one of three ways (REGULATION, Look).
@@ -44,8 +51,33 @@ export function StripBar({ scale }: { scale: number }): ReactNode {
   const [notice, say] = useNotice()
   /** What a drag is over: the pins (null), or a group's icon (its id). */
   const [dropping, setDropping] = useState<{ group: string | null } | null>(null)
+  const resting = useRef<number | null>(null)
   useFit(ref, scale, settings.enabled)
   useSiteIcons(settings.pins, settings.enabled)
+
+  const stopResting = (): void => {
+    if (resting.current !== null) window.clearTimeout(resting.current)
+    resting.current = null
+  }
+  useEffect(() => {
+    const pending = resting
+    return () => {
+      if (pending.current !== null) window.clearTimeout(pending.current)
+    }
+  }, [])
+
+  /** The pointer arriving on Recent projects: its sets drop down if it stays. */
+  const restOn = (element: HTMLElement): void => {
+    stopResting()
+    resting.current = window.setTimeout(() => {
+      resting.current = null
+      void window.candy.strip.popup({
+        kind: 'recent',
+        anchor: anchorOf(element, scale),
+        hover: true
+      })
+    }, REST_MS)
+  }
 
   const options = (pin: StripPin): void => {
     void window.candy.strip.popup({ kind: 'pin', pinId: pin.id })
@@ -110,6 +142,7 @@ export function StripBar({ scale }: { scale: number }): ReactNode {
     >
       {settings.pins.map((pin) => {
         const group = isGroup(pin) ? pin : null
+        const drops = group !== null || dropsOnRest(pin)
         return (
           <button
             key={pin.id}
@@ -119,10 +152,13 @@ export function StripBar({ scale }: { scale: number }): ReactNode {
             data-dropping={(group && dropping?.group === group.id) || undefined}
             title={group ? `${group.label} · ${group.group.items.length}` : pin.label}
             aria-label={pin.label}
-            aria-haspopup={group ? 'true' : undefined}
-            onClick={(event) =>
-              openPin(pin, say, group ? anchorOf(event.currentTarget, scale) : null)
-            }
+            aria-haspopup={drops ? 'true' : undefined}
+            onMouseEnter={dropsOnRest(pin) ? (event) => restOn(event.currentTarget) : undefined}
+            onMouseLeave={dropsOnRest(pin) ? stopResting : undefined}
+            onClick={(event) => {
+              stopResting()
+              openPin(pin, say, drops ? anchorOf(event.currentTarget, scale) : null)
+            }}
             onContextMenu={(event) => {
               event.preventDefault()
               options(pin)

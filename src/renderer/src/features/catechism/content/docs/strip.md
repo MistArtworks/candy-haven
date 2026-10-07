@@ -54,8 +54,8 @@ Anything can be pinned, up to two hundred, in any order:
 - **A file**: one click opens it.
 - **A department**: opens the console there.
 - **A website**: opens in your browser. See **Websites** below.
-- **An action**: New project, Add to today, Open a website, the console, the
-  vestibule.
+- **An action**: New project, Recent projects, Add to today, Open a website,
+  the console, the vestibule.
 - **A group**: a pin that holds pins. See **Groups** below.
 
 ![strip-03-ways.png](strip-03-ways.png)
@@ -146,7 +146,7 @@ Click it for the list.
 
 ![strip-02-today.png](strip-02-today.png)
 
-**FOLLOW-UPS** come first: every follow-up from ARTISTS' leads that is overdue
+**FOLLOW-UPS** come first: every follow-up from LEADS that is overdue
 or due today, the late ones on top marked **Late**. Then overdue CALENDAR
 entries with **Move to today**, then today's entries in order, then releases.
 
@@ -168,7 +168,7 @@ it done without logging anything, or click it to open it:
 | Press                                                  | And                                                                                                             |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | **Log and complete**                                   | Type what happened and its points, then **Log and complete**. It's logged on the lead and the follow-up is done |
-| **Open the lead**                                      | The lead (or the opportunity) opens in ARTISTS                                                                  |
+| **Open the lead**                                      | The lead (or the opportunity) opens in LEADS                                                                    |
 | **In an hour**, **This evening**, **Tomorrow morning** | Snoozes its reminder until then. It stays overdue                                                               |
 | **Dismiss**                                            | No more reminders for it. It stays open                                                                         |
 
@@ -210,6 +210,26 @@ The strip's **New project** opens the vestibule's form beside it, with
   template set into TEMPORARY PROJECTS and opens it, with nothing filed. It
   goes to the Recycle Bin a day after it was last saved. See the ARCHIVE
   chapter, under Temporary projects.
+
+## Recent projects
+
+![strip-12-recent.png](strip-12-recent.png)
+
+The **Recent projects** pin, the clock, holds the last twenty sets opened: the
+same list as ARCHIVE's RECENT, the way Live's **Open Recent Set** lists them.
+
+1. Rest the pointer on it for a moment, or press it. The sets drop down from
+   the pin.
+2. Press a set to open it in Ableton.
+3. **Dossier** opens a project's dossier in the console. **All recent
+   projects** opens ARCHIVE on its RECENT lens.
+
+Dropped down by the pointer, the list doesn't take the keyboard from Live, and
+it goes once the pointer has left the pin and the list. Pressed for, it stays
+until you press `Escape` or somewhere else.
+
+A strip from before 1.27.0 is given the pin once, first, or just after New
+project. Move it or take it off like any other pin; taken off, it stays off.
 
 ## The More menu
 

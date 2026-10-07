@@ -1,0 +1,94 @@
+@use 'abstracts' as *;
+
+// RECENT in ARCHIVE's masthead, and the menu it drops: Live's Open Recent Set,
+// drawn as the console draws a menu.
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  height: rem(28px);
+  padding: 0 space(3);
+  @include label(9px, 0.18em);
+  color: var(--ch-text-secondary);
+  background: none;
+  border: $hairline solid var(--ch-line);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover,
+  &[data-open] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+.glyph {
+  width: 13px;
+  height: 13px;
+}
+
+.chevron {
+  opacity: 0.7;
+}
+
+.panel {
+  position: fixed;
+  z-index: z('modal');
+  display: flex;
+  flex-direction: column;
+  width: rem(420px);
+  max-width: calc(100vw - 16px);
+  background: var(--ch-obsidian-800);
+  @include hairline(all, 0.2);
+  box-shadow: var(--ch-shadow-panel);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space(3);
+  padding: space(3) space(3) space(2);
+  @include hairline(bottom, 0.1);
+}
+
+.title {
+  @include label(9px, 0.2em);
+  color: var(--ch-gold-500);
+}
+
+.sub {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+// Twenty rows don't fit every window: the list scrolls, the head and foot stay.
+.scroll {
+  max-height: min(rem(560px), 64vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.all {
+  @include label(8px, 0.16em);
+  padding: space(3);
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  @include hairline(top, 0.1);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--ch-gold-200);
+    outline: none;
+  }
+}

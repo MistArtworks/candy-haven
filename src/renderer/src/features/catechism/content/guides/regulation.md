@@ -1,6 +1,6 @@
 # REGULATION
 
-## Ten categories
+## Eleven categories
 
 ![regulation-01-categories.png](regulation-01-categories.png)
 
@@ -8,6 +8,7 @@ Settings, grouped rather than laid out all at once. The category lives in the
 URL, so a link can point at one.
 
 - **PRESENTATION** — motion, interface scale, and the accent the console draws with.
+- **DIRECTORY** — the rail: your own categories, what is pinned to the top, and their order.
 - **STARTUP** — what opens at launch, whether the console starts with the machine, and what closing it means.
 - **QUICK STRIP** — the strip's look, its pins and groups, and today on it.
 - **LEADS** — the interactions you log, how fast a lead cools, and follow-up reminders.
@@ -20,6 +21,15 @@ URL, so a link can point at one.
 
 Changes wait in the bar at the foot of the page: **File changes** keeps them,
 **Discard** puts them back.
+
+## The rail, your way
+
+![regulation-11-directory.png](regulation-11-directory.png)
+
+**DIRECTORY** arranges the rail: pin the pages you use most to the top, make and
+rename categories, and drag pages between them by their handles. Pin a category
+to keep it first and open. **Back to the console's own** undoes it all, pins
+aside. Page names never change.
 
 ## The quick strip
 

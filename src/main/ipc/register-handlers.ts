@@ -192,6 +192,8 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('projects:open', ({ id }) => services.projects.openInLive(id))
   router.handle('projects:temporary', (draft) => services.stacks.openTemporaryProject(draft))
   router.handle('projects:temporary-folder', () => services.stacks.openTemporaryFolder())
+  router.handle('projects:recent', () => services.recent.list())
+  router.handle('projects:open-set', ({ path }) => services.recent.open(path))
 
   /*
    * Roots come from settings rather than the renderer so a compromised renderer
@@ -808,6 +810,8 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
         recoverable: true
       })
     }
+    // A set opened from a pin or an attachment is a set opened all the same.
+    if (/\.als$/i.test(path)) void services.recent.record(path)
   })
 
   /*
