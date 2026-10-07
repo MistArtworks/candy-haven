@@ -1,25 +1,33 @@
-Start a project for a quick job without filing it, and hear what's new on DISPATCH as it happens.
+Everything Candy asked for on DISPATCH: LEADS on a page of its own, a rail you can arrange and search, deletes you can see, and every set you opened lately, in ARCHIVE and on the quick strip.
 
-## TEMPORARY PROJECTS
+## RECENT PROJECTS
 
-New project now asks FILED or TEMPORARY first, in ARCHIVE, on the quick strip and in the vestibule. FILED is the usual one, and it's chosen every time the form opens.
+ARCHIVE has a RECENT button at the top right. Rest the pointer on it and the last twenty sets drop down, the way Ableton's Open Recent Set lists them, however they were opened: in Live, from Explorer, or from Haven. Press one to open it in Ableton, or Dossier to open its project.
 
-TEMPORARY is for a quick job, like editing audio for a video or rebalancing a master. There's no shelf, category or colour, and the name is optional. Open in Live copies your template set into TEMPORARY PROJECTS and opens it, with nothing filed.
+The RECENT lens (Alt+5) shows the register's projects in the order their sets were opened, with the sets that aren't in the archive yet above them.
 
-A temporary project goes to the Recycle Bin a day after it was last saved. REGULATION, under ARCHIVE, changes that to 3 days, a week, 30 days, or until you remove it, and opens the folder. One still open in Ableton is never taken.
+The quick strip has a Recent projects pin with the same list. Rest the pointer on it and the sets drop down without taking the keyboard from Live. It's added once, at the front of the strip; move it or take it off like any other pin.
 
-To keep one, use Save As in Live to save it somewhere INTAKE reads, and file it from INTAKE.
+## LEADS
 
-## DISPATCH
+LEADS and OPPORTUNITIES have a page of their own, first in a new COMMUNITY category. ARTISTS is the roster again, and old links to its leads open LEADS.
 
-DISPATCH now tells you when the other operator files something, comments, or changes a status, the way CONTACT and SERVICES tell you about the website.
+Deleting is where you'd look for it: Delete lead and Delete opportunity at the foot of every sheet, and Delete beside Edit on every follow-up.
 
-DISPATCH in the rail counts the items with something new, and the board marks them: NEW, a count of unread comments, and now NOW RESOLVED or NOW DENIED when a status changed since you last opened it.
+## THE RAIL
 
-A notice says what happened, in the console, or as a Windows notification when the console isn't in front. Click it to open the item. Opening Candy Haven says once what happened while it was closed.
+The departments are in six categories now: COMMAND, STUDIO, CATALOGUE, COMMUNITY, PUBLICATION and OVERSIGHT. Their names haven't changed, and Ctrl+1 to Ctrl+0 follow the rail as it's drawn.
 
-REGULATION, under BOARD, has Notify me to turn the notices off. The marks and the count show either way.
+Search pages, at the top of the rail, finds any department by name or by what it's for (Ctrl+Shift+F).
+
+REGULATION, under DIRECTORY, arranges the rail your way: make, rename and reorder categories, move pages between them, and pin the pages and categories you use most to the top.
+
+## FIXES
+
+Linking a lead to an artist: the list of names scrolls again, so every name on the roster can be picked.
+
+A hint that stayed on screen after its page changed now goes with it.
 
 ## THE HANDBOOK
 
-CATECHISM covers temporary projects and DISPATCH's notices in ARCHIVE, DISPATCH, THE QUICK STRIP and REGULATION, with new pictures.
+CATECHISM covers all of it, with new pictures: LEADS, the rail, DIRECTORY, and recent projects in ARCHIVE and on the quick strip.
