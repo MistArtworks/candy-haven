@@ -1,7 +1,7 @@
 # Screenshots
 
 Every image the CATECHISM references, listed from the Markdown itself: what it
-shows and where it is used. 127 files: 121 captures, 4 copies of one of
+shows and where it is used. 132 files: 126 captures, 4 copies of one of
 those under a second name for the orientation tour, and two supplied photographs.
 
 **Drop a file in this folder and it is available.** `lib/guide-assets.ts` globs
@@ -163,7 +163,12 @@ recovered from them.
 | `releases-02-covers.png`         | Covers and tapes, as sent to the website                                                           | `docs/releases.md`, `guides/releases.md`                                                |
 | `services-01-enquiries.png`      | DJ enquiries, one open                                                                             | `docs/services.md`, `guides/services.md`                                                |
 | `services-02-enquiry.png`        | One enquiry. Crop                                                                                  | `docs/services.md`, `guides/services.md`                                                |
-| `services-03-producer.png`       | PRODUCER, coming soon. Crop                                                                        | `docs/services.md`, `guides/services.md`                                                |
+| `services-03-producer.png`       | PRODUCER, a 1-1 session open                                                                       | `docs/services.md`, `guides/services.md`                                                |
+| `services-04-offerings.png`      | OFFERINGS, started from the website’s list, one service changed                                    | `docs/services.md`, `guides/services.md`                                                |
+| `services-05-write-up.png`       | A service’s photo and write-up, side by side with the website’s reading                            | `docs/services.md`                                                                      |
+| `services-06-first-publish.png`  | The first publish, asking first. Crop                                                              | `docs/services.md`                                                                      |
+| `services-07-hours.png`          | HOURS: the week, days off and the rules, up to date                                                | `docs/services.md`, `guides/services.md`                                                |
+| `services-08-move.png`           | Moving a session a day later. Crop                                                                 | `docs/services.md`, `guides/services.md`                                                |
 | `strip-01-panel.png`             | The quick strip, Panel: an overdue follow-up first, then the pins, Recent projects first, and Quit | `docs/getting-started.md`, `docs/overview.md`, `docs/strip.md`, `guides/orientation.md` |
 | `strip-02-today.png`             | Today, opened: follow-ups first, then the day                                                      | `docs/strip.md`                                                                         |
 | `strip-03-ways.png`              | Choosing how a project pin opens                                                                   | `docs/strip.md`                                                                         |

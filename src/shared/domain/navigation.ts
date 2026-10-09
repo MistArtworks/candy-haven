@@ -268,18 +268,30 @@ export const SECTIONS: readonly SectionDefinition[] = [
   },
   {
     /*
-     * What the website books: DJ enquiries now, producer work when its
-     * payments are in. Same sign-in, same check-ins as CONTACT.
+     * What the website books, and what it offers: DJ enquiries, producer
+     * bookings (moved or cancelled from here), and the producer services
+     * and hours, published from here. Same sign-in, same check-ins as
+     * CONTACT.
      */
     id: 'services',
     path: '/services',
     label: 'SERVICES',
-    purpose: 'Bookings from the website: DJ enquiries, and producer work to come',
+    purpose: 'Bookings from the website, and the services and hours it offers',
     epigraph: 'The work is asked for before it is made.',
     group: 'community',
     order: 11,
     implemented: true,
-    keywords: ['bookings', 'enquiries', 'dj', 'producer', 'website']
+    keywords: [
+      'bookings',
+      'enquiries',
+      'dj',
+      'producer',
+      'sessions',
+      'offerings',
+      'prices',
+      'hours',
+      'website'
+    ]
   },
   {
     id: 'observatory',

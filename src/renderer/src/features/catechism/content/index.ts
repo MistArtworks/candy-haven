@@ -137,7 +137,7 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
   {
     id: 'services',
     label: 'SERVICES',
-    purpose: 'DJ enquiries from the website, and producer bookings to come',
+    purpose: 'Bookings from the website, and publishing the services and hours',
     section: 'services'
   },
   {
