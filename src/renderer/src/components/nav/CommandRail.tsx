@@ -122,7 +122,7 @@ export function CommandRail({
   const board = useDispatch()
   const waiting: Partial<Record<SectionId, number>> = {
     contact: inbox.waiting.messages,
-    services: inbox.waiting.enquiries,
+    services: inbox.waiting.enquiries + inbox.waiting.bookings,
     dispatch: countWaiting(board.items, board.link.identity)
   }
 

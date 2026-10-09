@@ -464,3 +464,58 @@
   line-height: 1.7;
   margin: 0;
 }
+
+// --------------------------------------------------------------- producer
+
+// A booking's kind, at the end of its card's first line.
+.cardKind {
+  @include label(7px, 0.18em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+// What happened to a booking on the website: moved, or cancelled.
+.notice {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  padding: space(3) space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+
+  &[data-tone='bad'] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.noticeLabel {
+  @include label(8px, 0.16em);
+  margin-right: space(2);
+}
+
+.dialogFields {
+  display: grid;
+  gap: space(4);
+}
+
+.dialogRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: space(3);
+}
+
+.their {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+}
+
+// The calendar has something then: worth a pause, not an alarm.
+.warning {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  line-height: 1.6;
+  margin: 0;
+}

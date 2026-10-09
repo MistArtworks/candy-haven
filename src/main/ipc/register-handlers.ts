@@ -484,6 +484,11 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('inbox:enquiry-status', (change) => services.inbox.setEnquiryStatus(change))
   router.handle('inbox:note', (note) => services.inbox.setNote(note))
   router.handle('inbox:delete', (target) => services.inbox.remove(target))
+  router.handle('inbox:bookings', () => services.inbox.bookings())
+  router.handle('inbox:booking-status', (change) => services.inbox.setBookingStatus(change))
+  router.handle('inbox:booking-note', (note) => services.inbox.setBookingNote(note))
+  router.handle('inbox:booking-move', (move) => services.inbox.moveBooking(move))
+  router.handle('inbox:booking-cancel', (cancel) => services.inbox.cancelBooking(cancel))
 
   // --------------------------------------------------------------------- lore
 

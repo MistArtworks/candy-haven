@@ -2,18 +2,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { notify } from '@renderer/components/feedback/notify'
 import type {
+  BookingCancel,
+  BookingChangeResult,
+  BookingMove,
+  BookingNote,
+  BookingStatusChange,
   EnquiryStatusChange,
   InboxNote,
   InboxState,
   InboxTarget,
   MessageStatusChange,
+  SiteBooking,
   SiteEnquiry,
   SiteMessage
 } from '@shared/domain/inbox'
 
 const EMPTY: InboxState = {
   link: { state: 'signed-out', message: '', website: '', syncedAt: null },
-  waiting: { messages: 0, enquiries: 0 },
+  waiting: { messages: 0, enquiries: 0, bookings: 0 },
   revision: 0
 }
 
@@ -82,6 +88,16 @@ export function useSiteEnquiries(state: InboxState): UseQueryResult<SiteEnquiry[
   })
 }
 
+/** SERVICES' PRODUCER: the website's paid bookings, as copied here. */
+export function useSiteBookings(state: InboxState): UseQueryResult<SiteBooking[]> {
+  return useQuery({
+    queryKey: ['inbox', 'bookings', state.link.website, state.revision],
+    queryFn: () => window.candy.inbox.bookings(),
+    enabled: inboxOpen(state),
+    placeholderData: keepPreviousData
+  })
+}
+
 // -------------------------------------------------------------------- actions
 
 export interface InboxActions {
@@ -91,6 +107,11 @@ export interface InboxActions {
   setEnquiryStatus(change: EnquiryStatusChange): Promise<void>
   setNote(note: InboxNote): Promise<void>
   remove(target: InboxTarget): Promise<boolean>
+  setBookingStatus(change: BookingStatusChange): Promise<void>
+  setBookingNote(note: BookingNote): Promise<void>
+  /** Null when it was refused (the notice says why). */
+  moveBooking(move: BookingMove): Promise<BookingChangeResult | null>
+  cancelBooking(cancel: BookingCancel): Promise<BookingChangeResult | null>
   pending: string | null
 }
 
@@ -114,6 +135,22 @@ export function useInboxActions(): InboxActions {
       setPending((current) => (current === key ? null : current))
     }
   }, [])
+
+  /** As `run`, handing back what the action answered, or null when refused. */
+  const answer = useCallback(
+    async <T>(key: string, action: () => Promise<T>): Promise<T | null> => {
+      setPending(key)
+      try {
+        return await action()
+      } catch (cause) {
+        notify.refuse(cause)
+        return null
+      } finally {
+        setPending((current) => (current === key ? null : current))
+      }
+    },
+    []
+  )
 
   return useMemo<InboxActions>(
     () => ({
@@ -142,8 +179,16 @@ export function useInboxActions(): InboxActions {
         await run('note', () => window.candy.inbox.setNote(note))
       },
       remove: (target) => run('delete', () => window.candy.inbox.remove(target)),
+      setBookingStatus: async (change) => {
+        await run('status', () => window.candy.inbox.setBookingStatus(change))
+      },
+      setBookingNote: async (note) => {
+        await run('note', () => window.candy.inbox.setBookingNote(note))
+      },
+      moveBooking: (move) => answer('move', () => window.candy.inbox.moveBooking(move)),
+      cancelBooking: (cancel) => answer('cancel', () => window.candy.inbox.cancelBooking(cancel)),
       pending
     }),
-    [run, pending]
+    [run, answer, pending]
   )
 }

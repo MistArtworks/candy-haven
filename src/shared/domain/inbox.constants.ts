@@ -37,6 +37,37 @@ export const ENQUIRY_STATUS_LABEL: Record<EnquiryStatus, string> = {
   archived: 'ARCHIVED'
 }
 
+/**
+ * Where a producer booking stands, in the operator's own tracking.
+ *
+ * Every booking arrives paid (a commission's half, a session's whole fee),
+ * so there is nothing to accept or turn down: new until it's taken up,
+ * then in progress, then done. Like an enquiry, a new one keeps the rail's
+ * mark lit. Whether it's paid in full, moved or cancelled is the website's,
+ * and shows beside this rather than in it.
+ */
+export const BOOKING_STATUSES = ['new', 'in_progress', 'done', 'archived'] as const
+export type BookingStatus = (typeof BOOKING_STATUSES)[number]
+
+export const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
+  new: 'NEW',
+  in_progress: 'IN PROGRESS',
+  done: 'DONE',
+  archived: 'ARCHIVED'
+}
+
+/** A commission (made for them, half upfront) or a 1-1 session (paid in full). */
+export const BOOKING_KINDS = ['commission', 'session'] as const
+export type BookingKind = (typeof BOOKING_KINDS)[number]
+
+export const BOOKING_KIND_LABEL: Record<BookingKind, string> = {
+  commission: 'COMMISSION',
+  session: '1-1 SESSION'
+}
+
+/** What the operator can say to a client when cancelling, at most. */
+export const CANCEL_NOTE_MAX = 1000
+
 /** The two things the website files, as its API names them. */
 export const INBOX_KINDS = ['message', 'enquiry'] as const
 export type InboxKind = (typeof INBOX_KINDS)[number]

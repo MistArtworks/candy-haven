@@ -101,6 +101,28 @@ export const Collections = {
   /** SERVICES: the same arrangement, for "Book me as a DJ" enquiries. */
   SiteEnquiries: 'site_dj_enquiries',
   /**
+   * SERVICES: the website's producer bookings, the same arrangement again:
+   * what the client gave and paid, as the website last said, with the
+   * operator's status and note beside it.
+   */
+  SiteBookings: 'site_bookings',
+  /**
+   * SERVICES: the producer services as written here, for "Book me as a
+   * music producer". Kept here until published, like LORE's drafts; a
+   * publish sends the whole list (docs/INBOX.md).
+   */
+  ServiceOfferings: 'services_offerings',
+  /** SERVICES: the hours sessions can be booked in, as set here. One document. */
+  ServiceHours: 'services_hours',
+  /**
+   * SERVICES: what each website was last sent from here, one document per
+   * website: the revision it answered with, and what each service was, so
+   * the page can tell what changed since.
+   */
+  ServiceLinks: 'services_links',
+  /** SERVICES: what each website offers, as last fetched. A copy for reading only. */
+  ServiceCache: 'services_cache',
+  /**
    * Where each website's check-ins have got to: one document per website,
    * keyed by its address, holding the cursor the website handed back last.
    */
@@ -198,6 +220,10 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
   [Collections.SiteEnquiries]: [
     { key: { website: 1, createdAt: -1 }, name: 'site_enquiry_by_website' },
     { key: { website: 1, status: 1 }, name: 'site_enquiry_by_status' }
+  ],
+  [Collections.SiteBookings]: [
+    { key: { website: 1, createdAt: -1 }, name: 'site_booking_by_website' },
+    { key: { website: 1, status: 1 }, name: 'site_booking_by_status' }
   ],
   [Collections.ProjectVersions]: [
     { key: { projectId: 1, capturedAt: -1 }, name: 'version_by_project' },

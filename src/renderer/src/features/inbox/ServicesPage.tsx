@@ -24,6 +24,7 @@ import {
 import { formatRelative, formatStamp } from '@renderer/features/dispatch/lib/present'
 import { CheckForNew, WebsiteGate, WebsiteStatus } from '@renderer/components/website/WebsiteChrome'
 import { DeleteControl, DetailRows, NoteField, StatusSwitch } from './components/Filed'
+import { ProducerTab } from './ProducerTab'
 import styles from './Inbox.module.scss'
 
 const TABS = [
@@ -47,11 +48,11 @@ const SETTLED: ReadonlySet<EnquiryStatus> = new Set(['confirmed', 'declined', 'a
 /**
  * SERVICES: what the website books.
  *
- * Two tabs, for the two things the website offers. DJ is the "Book me as a
- * DJ" enquiries, checked in alongside CONTACT's messages. PRODUCER waits for
- * the website to take payment: a booking is only worth filing once it is
- * paid for (the deposit on a commission, the whole fee for a one-to-one), and
- * that side of the website is not built yet.
+ * DJ is the "Book me as a DJ" enquiries, checked in alongside CONTACT's
+ * messages. PRODUCER is "Book me as a music producer": every booking there
+ * is already paid for (the deposit on a commission, the whole fee for a
+ * one-to-one), checked in with the rest, and a session can be moved or
+ * cancelled from here (see ProducerTab).
  *
  * The tab is kept in the address, `?tab=producer`, so a notification or a
  * link can open the one it means.
@@ -110,6 +111,9 @@ export function ServicesPage(): ReactNode {
                   {entry.id === 'dj' && state.waiting.enquiries > 0 ? (
                     <span className={styles.waiting}>{state.waiting.enquiries}</span>
                   ) : null}
+                  {entry.id === 'producer' && state.waiting.bookings > 0 ? (
+                    <span className={styles.waiting}>{state.waiting.bookings}</span>
+                  ) : null}
                 </button>
               ))}
             </div>
@@ -120,7 +124,11 @@ export function ServicesPage(): ReactNode {
             />
           </div>
 
-          {tab === 'dj' ? <DjTab state={state} actions={actions} /> : <ProducerTab />}
+          {tab === 'dj' ? (
+            <DjTab state={state} actions={actions} />
+          ) : (
+            <ProducerTab state={state} actions={actions} />
+          )}
         </>
       ) : null}
     </div>
@@ -251,21 +259,6 @@ function DjTab({ state, actions }: { state: InboxState; actions: InboxActions })
         )}
       </Panel>
     </motion.div>
-  )
-}
-
-function ProducerTab(): ReactNode {
-  return (
-    <Panel label="Producer bookings" index="01" focal>
-      <div className={styles.soon}>
-        <h3 className={styles.soonTitle}>Coming soon</h3>
-        <p className={styles.soonText}>
-          Producer bookings will arrive here once the website takes payment for them. A commission
-          is filed when its 50% deposit is paid, and a one-to-one session when it is paid in full,
-          so everything that lands here is already a booking rather than a question.
-        </p>
-      </div>
-    </Panel>
   )
 }
 

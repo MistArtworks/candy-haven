@@ -347,6 +347,11 @@ const api: CandyHavenApi = {
     setEnquiryStatus: (change) => invoke('inbox:enquiry-status', change),
     setNote: (note) => invoke('inbox:note', note),
     remove: (target) => invoke('inbox:delete', target),
+    bookings: () => invoke('inbox:bookings'),
+    setBookingStatus: (change) => invoke('inbox:booking-status', change),
+    setBookingNote: (note) => invoke('inbox:booking-note', note),
+    moveBooking: (move) => invoke('inbox:booking-move', move),
+    cancelBooking: (cancel) => invoke('inbox:booking-cancel', cancel),
     onState: (listener) => subscribe('inbox:state', listener),
     onOpen: (listener) => subscribe('inbox:open', listener)
   },

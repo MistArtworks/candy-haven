@@ -108,11 +108,17 @@ import {
 } from '../domain/discography'
 import { ColophonPatchSchema, ColophonSchema } from '../domain/colophon'
 import {
+  BookingCancelSchema,
+  BookingChangeResultSchema,
+  BookingMoveSchema,
+  BookingNoteSchema,
+  BookingStatusChangeSchema,
   EnquiryStatusChangeSchema,
   InboxNoteSchema,
   InboxStateSchema,
   InboxTargetSchema,
   MessageStatusChangeSchema,
+  SiteBookingSchema,
   SiteEnquirySchema,
   SiteMessageSchema
 } from '../domain/inbox'
@@ -916,6 +922,19 @@ export const IPC_INVOKE = {
   'inbox:note': { input: InboxNoteSchema, output: z.void() },
   /** Deletes it from the website, then from here. Refused offline. */
   'inbox:delete': { input: InboxTargetSchema, output: z.void() },
+  /** SERVICES' PRODUCER: the website's paid bookings, as copied here. */
+  'inbox:bookings': { input: z.void(), output: z.array(SiteBookingSchema) },
+  'inbox:booking-status': { input: BookingStatusChangeSchema, output: SiteBookingSchema },
+  /** The operator's own note on a booking. Never leaves this machine. */
+  'inbox:booking-note': { input: BookingNoteSchema, output: z.void() },
+  /**
+   * Moves a session on the website, which frees the old time, moves the
+   * calendar event and tells the client. Something else on the calendar
+   * then comes back as `busy`, to ask; everything else refused throws.
+   */
+  'inbox:booking-move': { input: BookingMoveSchema, output: BookingChangeResultSchema },
+  /** Cancels a session still to come, on the website. Any refund is Stripe's, by hand. */
+  'inbox:booking-cancel': { input: BookingCancelSchema, output: BookingChangeResultSchema },
 
   // --------------------------------------------------------------------- lore
 

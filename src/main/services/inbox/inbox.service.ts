@@ -1,11 +1,17 @@
 import { Notification } from 'electron'
 import type {
+  BookingCancel,
+  BookingChangeResult,
+  BookingMove,
+  BookingNote,
+  BookingStatusChange,
   EnquiryStatusChange,
   InboxLink,
   InboxNote,
   InboxState,
   InboxTarget,
   MessageStatusChange,
+  SiteBooking,
   SiteEnquiry,
   SiteMessage
 } from '@shared/domain/inbox'
@@ -18,7 +24,7 @@ import type { SettingsService } from '@main/services/settings/settings.service'
 import type { DispatchService } from '@main/services/dispatch/dispatch.service'
 import { hostOf, websiteFor } from '@main/services/website/website.address'
 import { InboxRepository } from './inbox.repository'
-import { SiteClient, SiteError } from './site.client'
+import { SiteClient, SiteError, type RemoteBookingChange } from './site.client'
 
 const logger = getLogger('inbox')
 
@@ -34,7 +40,11 @@ interface InboxEvents {
 const MAX_PAGES = 50
 
 /** Where the startup notice sends the operator when it is clicked. */
-const PAGE: Record<InboxKind, string> = { message: '/contact', enquiry: '/services' }
+const PAGE: Record<InboxKind | 'booking', string> = {
+  message: '/contact',
+  enquiry: '/services',
+  booking: '/services?tab=producer'
+}
 
 /**
  * CONTACT and SERVICES: what the website's visitors send, kept here.
@@ -72,7 +82,7 @@ export class InboxService extends TypedEmitter<InboxEvents> {
       website: '',
       syncedAt: null
     },
-    waiting: { messages: 0, enquiries: 0 },
+    waiting: { messages: 0, enquiries: 0, bookings: 0 },
     revision: 0
   }
 
@@ -264,6 +274,42 @@ export class InboxService extends TypedEmitter<InboxEvents> {
       await repository.saveCursor(website, cursor)
       if (!changes.more) break
     }
+
+    await this.pullBookings(client, website)
+  }
+
+  /**
+   * Brings the producer bookings up to date, by their own cursor: a booking
+   * changes after it's made (paid in full, moved, cancelled), and each
+   * change hands it over again.
+   *
+   * A website that doesn't hand bookings over yet, being older than this
+   * console, is no reason to fail the check-in: the messages and enquiries
+   * came in, and there are simply no bookings to show.
+   */
+  private async pullBookings(client: SiteClient, website: string): Promise<void> {
+    const repository = this.repository
+    let cursor = await repository.bookingsCursor(website)
+
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const changes = await client.bookings(cursor).catch((error: unknown) => {
+        if (error instanceof SiteError && error.kind === 'failed' && error.status === 404) {
+          return null
+        }
+        throw error
+      })
+      if (!changes) {
+        logger.info('The website does not hand over producer bookings yet')
+        return
+      }
+      if (changes.unreadable) {
+        logger.warn(`Left out ${changes.unreadable} unreadable booking(s) from the website`)
+      }
+      await repository.applyBookings(website, changes.bookings)
+      cursor = changes.cursor
+      await repository.saveBookingsCursor(website, cursor)
+      if (!changes.more) break
+    }
   }
 
   // ------------------------------------------------------------------- reads
@@ -278,6 +324,12 @@ export class InboxService extends TypedEmitter<InboxEvents> {
   async enquiries(): Promise<SiteEnquiry[]> {
     if (!this.signedIn) return []
     return this.repository.listEnquiries(this.website)
+  }
+
+  /** This website's producer bookings, newest first. None while signed out. */
+  async bookings(): Promise<SiteBooking[]> {
+    if (!this.signedIn) return []
+    return this.repository.listBookings(this.website)
   }
 
   // ------------------------------------------------------------------ writes
@@ -311,6 +363,40 @@ export class InboxService extends TypedEmitter<InboxEvents> {
     this.changed()
   }
 
+  async setBookingStatus({ id, status }: BookingStatusChange): Promise<SiteBooking> {
+    this.requireSignedIn()
+    const held = await this.repository.setBookingStatus(this.website, id, status)
+    if (!held) throw notHeld('booking')
+    await this.refresh()
+    return this.requireBooking(id)
+  }
+
+  /** The operator's note on a booking. Kept here only. */
+  async setBookingNote({ id, note }: BookingNote): Promise<void> {
+    this.requireSignedIn()
+    const held = await this.repository.setBookingNote(this.website, id, note.trim())
+    if (!held) throw notHeld('booking')
+    this.changed()
+  }
+
+  /**
+   * Moves a session to another time, on the website: it frees the old time,
+   * moves the calendar event and tells the client. Something else on
+   * Candy's calendar then comes back as a question, not a refusal.
+   */
+  async moveBooking({ id, start, force }: BookingMove): Promise<BookingChangeResult> {
+    const booking = await this.requireBooking(id)
+    return this.changeBooking((client) =>
+      client.moveBooking(booking.ref, new Date(start).toISOString(), force)
+    )
+  }
+
+  /** Cancels a session still to come, on the website, telling the client `note`. */
+  async cancelBooking({ id, note }: BookingCancel): Promise<BookingChangeResult> {
+    const booking = await this.requireBooking(id)
+    return this.changeBooking((client) => client.cancelBooking(booking.ref, note.trim()))
+  }
+
   /**
    * Deletes one from the website, and then from here.
    *
@@ -340,6 +426,50 @@ export class InboxService extends TypedEmitter<InboxEvents> {
   }
 
   // ----------------------------------------------------------------- private
+
+  /**
+   * One change to a booking, made on the website, whose answer is laid over
+   * the copy. Online only: the website keeps the open times, the calendar
+   * and the emails, so there is nothing to do here without it.
+   */
+  private async changeBooking(
+    send: (client: SiteClient) => Promise<RemoteBookingChange>
+  ): Promise<BookingChangeResult> {
+    this.requireSignedIn()
+    const website = this.website
+    let change: RemoteBookingChange
+    try {
+      change = await send(new SiteClient(website, () => this.dispatch.idToken()))
+    } catch (error) {
+      if (!(error instanceof SiteError)) throw error
+      const said = (error.body ?? {}) as { error?: unknown }
+      if (said.error === 'busy') return { status: 'busy', message: error.message }
+      if (error.kind === 'unreachable') {
+        this.patchLink({ state: 'offline', message: error.message })
+      }
+      throw new AppError(
+        error.kind === 'unreachable' ? 'Connect to change a booking.' : error.message,
+        {
+          code: error.kind === 'invalid' ? ErrorCode.Validation : ErrorCode.Unavailable,
+          hint: 'Moving and cancelling happen on the website, which keeps the open times.',
+          recoverable: true
+        }
+      )
+    }
+
+    await this.repository.applyBookings(website, [change.booking])
+    await this.refresh()
+    const booking = await this.repository.booking(website, change.booking.id)
+    if (!booking) throw notHeld('booking')
+    return { status: 'done', booking, calendar: change.calendar, email: change.email }
+  }
+
+  private async requireBooking(id: string): Promise<SiteBooking> {
+    this.requireSignedIn()
+    const booking = await this.repository.booking(this.website, id)
+    if (!booking) throw notHeld('booking')
+    return booking
+  }
 
   private async setStatus(
     kind: InboxKind,
@@ -380,7 +510,7 @@ export class InboxService extends TypedEmitter<InboxEvents> {
     const waiting =
       this.signedIn && this.archive.isConnected()
         ? await this.repository.waiting(this.website)
-        : { messages: 0, enquiries: 0 }
+        : { messages: 0, enquiries: 0, bookings: 0 }
     this.state = { ...this.state, waiting }
     this.changed()
   }
@@ -403,17 +533,17 @@ export class InboxService extends TypedEmitter<InboxEvents> {
 
   /** The startup notice: what is waiting, if anything is. */
   private announceWaiting(): void {
-    const { messages, enquiries } = this.state.waiting
-    if (!messages && !enquiries) return
-    const total = messages + enquiries
+    const { messages, enquiries, bookings } = this.state.waiting
+    if (!messages && !enquiries && !bookings) return
+    const total = messages + enquiries + bookings
     this.notify(
       'Waiting on the website',
-      `${countWords(messages, enquiries)} ${total === 1 ? 'is' : 'are'} waiting.`,
-      messages ? 'message' : 'enquiry'
+      `${countWords(messages, enquiries, bookings)} ${total === 1 ? 'is' : 'are'} waiting.`,
+      messages ? 'message' : enquiries ? 'enquiry' : 'booking'
     )
   }
 
-  private notify(title: string, body: string, kind: InboxKind): void {
+  private notify(title: string, body: string, kind: InboxKind | 'booking'): void {
     if (!Notification.isSupported()) return
 
     const notification = new Notification({ title, body })
@@ -435,11 +565,13 @@ export class InboxService extends TypedEmitter<InboxEvents> {
   }
 }
 
-function notHeld(kind: InboxKind): AppError {
+function notHeld(kind: InboxKind | 'booking'): AppError {
   return new AppError(
     kind === 'message'
       ? 'That message is not here any more.'
-      : 'That enquiry is not here any more.',
+      : kind === 'booking'
+        ? 'That booking is not here any more.'
+        : 'That enquiry is not here any more.',
     {
       code: ErrorCode.NotFound,
       hint: 'It may have been deleted from the other copy of the console.',
@@ -448,11 +580,14 @@ function notHeld(kind: InboxKind): AppError {
   )
 }
 
-/** `2 messages and 1 DJ enquiry`. */
-function countWords(messages: number, enquiries: number): string {
+/** `2 messages, 1 DJ enquiry and 1 booking`. */
+function countWords(messages: number, enquiries: number, bookings: number): string {
   const parts = [
     messages ? `${messages} message${messages === 1 ? '' : 's'}` : '',
-    enquiries ? `${enquiries} DJ enquir${enquiries === 1 ? 'y' : 'ies'}` : ''
+    enquiries ? `${enquiries} DJ enquir${enquiries === 1 ? 'y' : 'ies'}` : '',
+    bookings ? `${bookings} booking${bookings === 1 ? '' : 's'}` : ''
   ].filter(Boolean)
-  return parts.join(' and ')
+  return parts.length > 1
+    ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+    : parts.join('')
 }

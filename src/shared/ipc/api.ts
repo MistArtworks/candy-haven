@@ -84,11 +84,17 @@ import type {
 } from '../domain/discography'
 import type { Colophon, ColophonPatch } from '../domain/colophon'
 import type {
+  BookingCancel,
+  BookingChangeResult,
+  BookingMove,
+  BookingNote,
+  BookingStatusChange,
   EnquiryStatusChange,
   InboxNote,
   InboxState,
   InboxTarget,
   MessageStatusChange,
+  SiteBooking,
   SiteEnquiry,
   SiteMessage
 } from '../domain/inbox'
@@ -581,6 +587,14 @@ export interface CandyHavenApi {
     setNote(note: InboxNote): Promise<void>
     /** Deletes from the website and from here. Needs the website. */
     remove(target: InboxTarget): Promise<void>
+    /** SERVICES' PRODUCER: the website's paid bookings, newest first. */
+    bookings(): Promise<SiteBooking[]>
+    setBookingStatus(change: BookingStatusChange): Promise<SiteBooking>
+    setBookingNote(note: BookingNote): Promise<void>
+    /** Moves a session on the website. `busy` asks before moving onto the calendar. */
+    moveBooking(move: BookingMove): Promise<BookingChangeResult>
+    /** Cancels a session still to come, on the website. */
+    cancelBooking(cancel: BookingCancel): Promise<BookingChangeResult>
     onState(listener: (state: InboxState) => void): Unsubscribe
     /** A notification was clicked; go where it says. */
     onOpen(listener: (request: { path: string }) => void): Unsubscribe

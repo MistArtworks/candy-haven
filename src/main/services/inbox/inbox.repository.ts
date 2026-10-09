@@ -1,14 +1,21 @@
 import type { AnyBulkWriteOperation, Collection, Db } from 'mongodb'
 import {
+  SiteBookingSchema,
   SiteEnquirySchema,
   SiteMessageSchema,
+  type SiteBooking,
   type SiteEnquiry,
   type SiteMessage
 } from '@shared/domain/inbox'
-import type { EnquiryStatus, InboxKind, MessageStatus } from '@shared/domain/inbox.constants'
+import type {
+  BookingStatus,
+  EnquiryStatus,
+  InboxKind,
+  MessageStatus
+} from '@shared/domain/inbox.constants'
 import { getLogger } from '@main/core/logger'
 import { Collections } from '@main/services/archive/schema'
-import type { RemoteDeletion, RemoteEnquiry, RemoteMessage } from './site.client'
+import type { RemoteBooking, RemoteDeletion, RemoteEnquiry, RemoteMessage } from './site.client'
 
 const logger = getLogger('inbox:repository')
 
@@ -29,6 +36,7 @@ const logger = getLogger('inbox:repository')
 type Stored<T> = Omit<T, 'id'> & { _id: string; website: string }
 type MessageDocument = Stored<SiteMessage>
 type EnquiryDocument = Stored<SiteEnquiry>
+type BookingDocument = Stored<SiteBooking>
 
 interface SyncStateDocument {
   /** The website's origin. */
@@ -64,6 +72,10 @@ const ENQUIRY_TEXT = [
 ] as const satisfies readonly (keyof SiteEnquiry)[]
 
 const time = (iso: string): number => Date.parse(iso) || 0
+const timeOrNull = (iso: string | null): number | null => (iso ? Date.parse(iso) || null : null)
+
+/** The bookings' cursor sits beside the inbox's, under the website's address. */
+const bookingsCursorId = (website: string): string => `${website} bookings`
 
 export class InboxRepository {
   constructor(private readonly db: Db) {}
@@ -80,6 +92,10 @@ export class InboxRepository {
     return (kind === 'message' ? this.messages : this.enquiries) as Collection<
       MessageDocument | EnquiryDocument
     >
+  }
+
+  private get bookings(): Collection<BookingDocument> {
+    return this.db.collection<BookingDocument>(Collections.SiteBookings)
   }
 
   private get syncState(): Collection<SyncStateDocument> {
@@ -108,13 +124,30 @@ export class InboxRepository {
     return document ? readEnquiry(document) : null
   }
 
-  /** Messages nobody has opened and enquiries nobody has taken up. */
-  async waiting(website: string): Promise<{ messages: number; enquiries: number }> {
-    const [messages, enquiries] = await Promise.all([
+  /** This website's producer bookings, newest first. */
+  async listBookings(website: string): Promise<SiteBooking[]> {
+    const documents = await this.bookings.find({ website }).sort({ createdAt: -1 }).toArray()
+    return documents.flatMap((document) => readBooking(document) ?? [])
+  }
+
+  async booking(website: string, id: string): Promise<SiteBooking | null> {
+    const document = await this.bookings.findOne({ _id: id, website })
+    return document ? readBooking(document) : null
+  }
+
+  /**
+   * Messages nobody has opened, enquiries nobody has taken up, and bookings
+   * nobody has taken up (a cancelled one isn't waiting on anyone).
+   */
+  async waiting(
+    website: string
+  ): Promise<{ messages: number; enquiries: number; bookings: number }> {
+    const [messages, enquiries, bookings] = await Promise.all([
       this.messages.countDocuments({ website, status: 'new' }),
-      this.enquiries.countDocuments({ website, status: 'new' })
+      this.enquiries.countDocuments({ website, status: 'new' }),
+      this.bookings.countDocuments({ website, status: 'new', cancelled: false })
     ])
-    return { messages, enquiries }
+    return { messages, enquiries, bookings }
   }
 
   // -------------------------------------------------------------- check-ins
@@ -164,6 +197,18 @@ export class InboxRepository {
     }
   }
 
+  /**
+   * Lays the website's latest of some bookings over the copy: everything it
+   * says, moved and cancelled included. The operator's status and note stay.
+   */
+  async applyBookings(website: string, remote: readonly RemoteBooking[]): Promise<void> {
+    await this.apply(
+      this.bookings,
+      website,
+      remote.map((record) => ({ id: record.id, fields: bookingFields(record) }))
+    )
+  }
+
   async cursor(website: string): Promise<string | null> {
     return (await this.syncState.findOne({ _id: website }))?.cursor ?? null
   }
@@ -174,6 +219,14 @@ export class InboxRepository {
       { $set: { cursor, syncedAt: Date.now() } },
       { upsert: true }
     )
+  }
+
+  async bookingsCursor(website: string): Promise<string | null> {
+    return this.cursor(bookingsCursorId(website))
+  }
+
+  async saveBookingsCursor(website: string, cursor: string): Promise<void> {
+    await this.saveCursor(bookingsCursorId(website), cursor)
   }
 
   // ------------------------------------------------------------------ writes
@@ -198,6 +251,16 @@ export class InboxRepository {
     await this.collection(kind).deleteOne({ _id: id })
   }
 
+  async setBookingStatus(website: string, id: string, status: BookingStatus): Promise<boolean> {
+    const result = await this.bookings.updateOne({ _id: id, website }, { $set: { status } })
+    return result.matchedCount > 0
+  }
+
+  async setBookingNote(website: string, id: string, note: string): Promise<boolean> {
+    const result = await this.bookings.updateOne({ _id: id, website }, { $set: { note } })
+    return result.matchedCount > 0
+  }
+
   // ----------------------------------------------------------------- private
 
   /**
@@ -207,7 +270,7 @@ export class InboxRepository {
    * are the operator's: a copy starts new with an empty note, and no later
    * check-in touches either.
    */
-  private async apply<T extends MessageDocument | EnquiryDocument>(
+  private async apply<T extends MessageDocument | EnquiryDocument | BookingDocument>(
     collection: Collection<T>,
     website: string,
     records: readonly { id: string; fields: Record<string, unknown> }[]
@@ -229,6 +292,50 @@ export class InboxRepository {
   }
 }
 
+/** A booking as kept here, from what the website sent: everything but the operator's own. */
+function bookingFields(record: RemoteBooking): Record<string, unknown> {
+  return {
+    ref: record.ref,
+    kind: record.kind,
+    itemId: record.itemId,
+    itemName: record.itemName,
+    cancelled: record.status === 'cancelled',
+    start: timeOrNull(record.start),
+    end: timeOrNull(record.end),
+    visitorTimeZone: record.visitorTimeZone,
+    name: record.details.name,
+    email: record.details.email,
+    meetOn: record.details.meetOn,
+    instagram: record.details.instagram,
+    discord: record.details.discord,
+    phone: record.details.phone,
+    clientNote: record.details.note,
+    totalCents: record.amounts.totalCents,
+    nowCents: record.amounts.nowCents,
+    laterCents: record.amounts.laterCents,
+    createdAt: time(record.createdAt),
+    paidAt: timeOrNull(record.paidAt),
+    updatedAt: time(record.updatedAt),
+    meetLink: record.meetLink ?? '',
+    invoice: record.invoice
+      ? {
+          ref: record.invoice.ref,
+          status: record.invoice.status,
+          dueCents: record.invoice.dueCents,
+          paidAt: timeOrNull(record.invoice.paidAt)
+        }
+      : null,
+    paymentUrl: record.paymentUrl ?? '',
+    moves: record.moves.map((move) => ({
+      from: time(move.from),
+      to: time(move.to),
+      at: time(move.at)
+    })),
+    cancelledAt: timeOrNull(record.cancelledAt),
+    cancelNote: record.cancelNote
+  }
+}
+
 function pickText<K extends string>(
   fields: readonly K[],
   record: Record<K, string>
@@ -247,6 +354,14 @@ function readMessage(document: MessageDocument): SiteMessage | null {
   const parsed = SiteMessageSchema.safeParse({ ...rest, id: _id })
   if (parsed.success) return parsed.data
   logger.warn(`Website message ${_id} is unreadable; leaving it out`)
+  return null
+}
+
+function readBooking(document: BookingDocument): SiteBooking | null {
+  const { _id, ...rest } = document
+  const parsed = SiteBookingSchema.safeParse({ ...rest, id: _id })
+  if (parsed.success) return parsed.data
+  logger.warn(`Website booking ${_id} is unreadable; leaving it out`)
   return null
 }
 
