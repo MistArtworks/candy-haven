@@ -22,6 +22,7 @@ const logger = getLogger('media')
  *   artists\   <artistId>.<ext>
  *   releases\  <releaseId>-artwork.<ext>
  *              <releaseId>-canvas.<ext>
+ *   services\  <offeringId>.<ext>    (SERVICES' OFFERINGS: a service's photo)
  * ```
  *
  * Named by the **record's** id rather than by the source filename, which is
@@ -31,7 +32,7 @@ const logger = getLogger('media')
  */
 export const MEDIA_DIRECTORY_NAME = 'Media'
 
-export type MediaBucket = 'artists' | 'releases'
+export type MediaBucket = 'artists' | 'releases' | 'services'
 
 export interface MediaRequest {
   /** Absolute path to the wrapper — `<filing root>\Candy Haven`. */

@@ -1,0 +1,381 @@
+@use 'abstracts' as *;
+
+// SERVICES' OFFERINGS and HOURS: what "Book me as a music producer" offers,
+// written here and published to the website.
+//
+// The editor is LORE's (its fields, its markdown box and its preview are
+// borrowed from Lore.module.scss, so the two read alike); what's here is
+// what only a service has: its photo, its facts, the publish bar over both
+// tabs, and the week of start times.
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: start;
+}
+
+.listPanel {
+  grid-column: span 2;
+}
+
+.editorPanel {
+  grid-column: span 4;
+}
+
+@include below('lg') {
+  .listPanel,
+  .editorPanel {
+    grid-column: span 6;
+  }
+}
+
+// ------------------------------------------------------------ publish bar
+
+// Over both tabs: what the website has, what a publish would change, and
+// the one button that sends it.
+.publish {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(3) space(5);
+  margin: 0 0 space(5);
+  padding: space(4) space(5);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.12);
+
+  &[data-pending] {
+    box-shadow: inset 2px 0 0 var(--ch-accent);
+  }
+}
+
+.publishText {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  min-width: 0;
+  flex: 1;
+}
+
+.publishTitle {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-primary);
+}
+
+.publishDetail {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.publishActions {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+// ---------------------------------------------------------------- the list
+
+.price {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  white-space: nowrap;
+}
+
+.start {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding: space(2) 0;
+  max-width: rem(560px);
+}
+
+.startTitle {
+  font-family: var(--ch-font-display);
+  font-size: rem(17px);
+  letter-spacing: 0.05em;
+  color: var(--ch-text-primary);
+  margin: 0;
+}
+
+.startText {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.listFoot {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  margin-top: space(4);
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+}
+
+// --------------------------------------------------------------- the photo
+
+.photo {
+  display: grid;
+  grid-template-columns: rem(150px) minmax(0, 1fr);
+  gap: space(4);
+  align-items: start;
+}
+
+.photoFrames {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  min-width: 0;
+}
+
+// The two shapes the website cuts, roughly: it cuts around what draws the
+// eye, and these from the middle.
+.card,
+.wide {
+  position: relative;
+  overflow: hidden;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.12);
+
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.card {
+  width: rem(150px);
+  aspect-ratio: 7 / 10;
+}
+
+.wide {
+  width: 100%;
+  aspect-ratio: 1600 / 609;
+}
+
+.noPhoto {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: space(3);
+  text-align: center;
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.photoSide {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  min-width: 0;
+}
+
+// ---------------------------------------------------------------- the facts
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: end;
+  gap: space(2);
+}
+
+.factTools {
+  display: flex;
+  gap: space(1);
+  padding-bottom: space(1);
+}
+
+.toolButton {
+  display: grid;
+  place-items: center;
+  min-width: rem(24px);
+  height: rem(24px);
+  padding: 0 space(1);
+  @include label(8px, 0.12em);
+  color: var(--ch-text-faint);
+  background: none;
+  @include hairline(all, 0.12);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--ch-text-primary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+// What stops a service going, listed under its fields.
+.problems {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  margin: 0;
+  padding: space(3) space(4);
+  list-style: none;
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+
+  li {
+    @include readout(10px);
+    color: var(--ch-text-secondary);
+    line-height: 1.6;
+  }
+}
+
+.wholeRow {
+  grid-column: 1 / -1;
+}
+
+// -------------------------------------------------------------- the hours
+
+.hoursGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: start;
+}
+
+.weekPanel {
+  grid-column: span 4;
+}
+
+.sidePanel {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: space(5);
+}
+
+@include below('lg') {
+  .weekPanel,
+  .sidePanel {
+    grid-column: span 6;
+  }
+}
+
+.week {
+  display: flex;
+  flex-direction: column;
+}
+
+.day {
+  display: grid;
+  grid-template-columns: rem(110px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space(4);
+  padding: space(3) 0;
+
+  & + & {
+    @include hairline(top, 0.08);
+  }
+}
+
+.dayName {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-secondary);
+}
+
+.times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+  min-width: 0;
+}
+
+.time {
+  display: inline-flex;
+  align-items: center;
+  gap: space(2);
+  padding: 2px space(1) 2px space(3);
+  @include readout(11px);
+  color: var(--ch-text-primary);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.14);
+}
+
+.timeRemove {
+  display: grid;
+  place-items: center;
+  width: rem(18px);
+  height: rem(18px);
+  padding: 0;
+  color: var(--ch-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-crimson-400);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.closed {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+}
+
+.dayTools {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+}
+
+.addTime {
+  width: rem(110px);
+}
+
+.daysOff {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dayOff {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(3);
+  padding: space(2) space(3);
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+}
+
+.addDay {
+  margin-top: space(3);
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}

@@ -20,6 +20,7 @@ import { SpotifyService } from './overlay/spotify.service'
 import { DispatchService } from './dispatch/dispatch.service'
 import { InboxService } from './inbox/inbox.service'
 import { LoreService } from './lore/lore.service'
+import { OfferingsService } from './offerings/offerings.service'
 import { ReleasesService } from './releases/releases.service'
 import { ConcordService } from './overlay/concord.service'
 import { MusterService } from './overlay/muster.service'
@@ -113,6 +114,12 @@ export interface ServiceContainer {
    * website. Borrows DISPATCH's sign-in, as the inbox does. See docs/LORE.md.
    */
   readonly lore: LoreService
+  /**
+   * SERVICES' OFFERINGS and HOURS: what "Book me as a music producer"
+   * offers, written here and published to the website, whole, through the
+   * same API and sign-in as LORE. See docs/INBOX.md.
+   */
+  readonly offerings: OfferingsService
   /**
    * RELEASES: DISCOGRAPHY, as the website shows it. Sends releases through
    * the same API and sign-in as LORE. See docs/RELEASES.md.
@@ -275,6 +282,7 @@ export function createServiceContainer(): ServiceContainer {
     dispatch,
     inbox: new InboxService(archive, settings, dispatch),
     lore: new LoreService(archive, settings, dispatch),
+    offerings: new OfferingsService(archive, settings, dispatch, stacks),
     releases,
     concord,
     muster: new MusterService(archive, overlayServer, chat, settings, rite, concord),
@@ -305,6 +313,7 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
   // Before the board: the inbox and LORE borrow its sign-in and listen to it.
   container.inbox.dispose()
   container.lore.dispose()
+  container.offerings.dispose()
   container.discography.dispose()
   container.releases.dispose()
   container.dispatch.dispose()

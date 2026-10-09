@@ -66,6 +66,14 @@ function Block({ block }: { block: TextBlock }): ReactNode {
   }
 }
 
+/**
+ * The text alone, in the site's voices: what SERVICES draws a service's
+ * write-up with, since the website reads both with the same reader.
+ */
+export function PreviewBlocks({ blocks }: { blocks: readonly TextBlock[] }): ReactNode {
+  return blocks.map((block, i) => <Block key={i} block={block} />)
+}
+
 export function LorePreview({
   numeral,
   title,

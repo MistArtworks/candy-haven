@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import type { InboxState, SiteEnquiry } from '@shared/domain/inbox'
@@ -23,15 +23,24 @@ import {
 } from '@renderer/hooks/useInbox'
 import { formatRelative, formatStamp } from '@renderer/features/dispatch/lib/present'
 import { CheckForNew, WebsiteGate, WebsiteStatus } from '@renderer/components/website/WebsiteChrome'
+import { useSystemStore } from '@renderer/app/store/system.store'
+import { useOfferings, useOfferingsActions } from '@renderer/hooks/useOfferings'
+import { HoursTab } from '@renderer/features/offerings/HoursTab'
+import { OfferingsTab } from '@renderer/features/offerings/OfferingsTab'
 import { DeleteControl, DetailRows, NoteField, StatusSwitch } from './components/Filed'
 import { ProducerTab } from './ProducerTab'
 import styles from './Inbox.module.scss'
 
 const TABS = [
   { id: 'dj', label: 'DJ' },
-  { id: 'producer', label: 'PRODUCER' }
+  { id: 'producer', label: 'PRODUCER' },
+  { id: 'offerings', label: 'OFFERINGS' },
+  { id: 'hours', label: 'HOURS' }
 ] as const
 type ServicesTab = (typeof TABS)[number]['id']
+
+const isTab = (value: string | null): value is ServicesTab =>
+  TABS.some((entry) => entry.id === value)
 
 /** The list's lenses. OPEN is everything still in play, and the default. */
 type EnquiryFilter = 'open' | 'all' | EnquiryStatus
@@ -52,7 +61,9 @@ const SETTLED: ReadonlySet<EnquiryStatus> = new Set(['confirmed', 'declined', 'a
  * messages. PRODUCER is "Book me as a music producer": every booking there
  * is already paid for (the deposit on a commission, the whole fee for a
  * one-to-one), checked in with the rest, and a session can be moved or
- * cancelled from here (see ProducerTab).
+ * cancelled from here (see ProducerTab). OFFERINGS and HOURS are what
+ * that page offers and when its sessions can be booked, written here and
+ * published to the website (see features/offerings).
  *
  * The tab is kept in the address, `?tab=producer`, so a notification or a
  * link can open the one it means.
@@ -63,9 +74,20 @@ export function ServicesPage(): ReactNode {
   const actions = useInboxActions()
   const open = inboxOpen(state)
 
+  const offerings = useOfferings()
+  const offeringsActions = useOfferingsActions()
+
   const [searchParams, setSearchParams] = useSearchParams()
-  const tab: ServicesTab = searchParams.get('tab') === 'producer' ? 'producer' : 'dj'
+  const requested = searchParams.get('tab')
+  const tab: ServicesTab = isTab(requested) ? requested : 'dj'
   const chooseTab = (next: ServicesTab): void => {
+    // Leaving a service or the hours half-typed is guarded as leaving the
+    // page is: the unsaved-changes bar asks for a save or a discard.
+    const { unsaved, nudgeUnsaved } = useSystemStore.getState()
+    if (unsaved?.dirty) {
+      nudgeUnsaved()
+      return
+    }
     setSearchParams(
       (current) => {
         const params = new URLSearchParams(current)
@@ -76,6 +98,18 @@ export function ServicesPage(): ReactNode {
       { replace: true }
     )
   }
+
+  // What the website offers is fetched once, the first time OFFERINGS or
+  // HOURS opens while someone's signed in: the other person may have
+  // published since. After that, Check the website.
+  const publishing = tab === 'offerings' || tab === 'hours'
+  const fetched = useRef(false)
+  const { sync: syncOfferings } = offeringsActions
+  useEffect(() => {
+    if (!publishing || fetched.current || !open) return
+    fetched.current = true
+    void syncOfferings()
+  }, [publishing, open, syncOfferings])
 
   return (
     <div className={styles.page}>
@@ -117,17 +151,23 @@ export function ServicesPage(): ReactNode {
                 </button>
               ))}
             </div>
-            <CheckForNew
-              link={state.link}
-              syncing={actions.pending === 'sync'}
-              onSync={() => void actions.sync()}
-            />
+            {publishing ? null : (
+              <CheckForNew
+                link={state.link}
+                syncing={actions.pending === 'sync'}
+                onSync={() => void actions.sync()}
+              />
+            )}
           </div>
 
           {tab === 'dj' ? (
             <DjTab state={state} actions={actions} />
-          ) : (
+          ) : tab === 'producer' ? (
             <ProducerTab state={state} actions={actions} />
+          ) : tab === 'offerings' ? (
+            <OfferingsTab state={offerings} actions={offeringsActions} />
+          ) : (
+            <HoursTab state={offerings} actions={offeringsActions} />
           )}
         </>
       ) : null}

@@ -355,6 +355,21 @@ const api: CandyHavenApi = {
     onState: (listener) => subscribe('inbox:state', listener),
     onOpen: (listener) => subscribe('inbox:open', listener)
   },
+  offerings: {
+    state: () => invoke('offerings:state'),
+    sync: () => invoke('offerings:sync'),
+    create: (input) => invoke('offerings:create', input),
+    save: (input) => invoke('offerings:save', input),
+    remove: (id) => invoke('offerings:delete', { id }),
+    reorder: (ids) => invoke('offerings:reorder', { ids }),
+    setPhoto: (input) => invoke('offerings:set-photo', input),
+    photoPreview: (id) => invoke('offerings:photo-preview', { id }),
+    saveHours: (hours) => invoke('offerings:save-hours', hours),
+    importFromSite: () => invoke('offerings:import'),
+    takeTheirs: () => invoke('offerings:take-theirs'),
+    publish: (force = false) => invoke('offerings:publish', { force }),
+    onState: (listener) => subscribe('offerings:state', listener)
+  },
   lore: {
     state: () => invoke('lore:state'),
     sync: () => invoke('lore:sync'),

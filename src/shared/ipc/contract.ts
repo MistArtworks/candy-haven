@@ -108,6 +108,15 @@ import {
 } from '../domain/discography'
 import { ColophonPatchSchema, ColophonSchema } from '../domain/colophon'
 import {
+  NewOfferingSchema,
+  OfferingCreatedSchema,
+  OfferingHoursSchema,
+  OfferingPhotoInputSchema,
+  OfferingsPublishResultSchema,
+  OfferingsStateSchema,
+  SaveOfferingSchema
+} from '../domain/offerings'
+import {
   BookingCancelSchema,
   BookingChangeResultSchema,
   BookingMoveSchema,
@@ -936,6 +945,44 @@ export const IPC_INVOKE = {
   /** Cancels a session still to come, on the website. Any refund is Stripe's, by hand. */
   'inbox:booking-cancel': { input: BookingCancelSchema, output: BookingChangeResultSchema },
 
+  // ---------------------------------------------------------------- offerings
+
+  /*
+   * SERVICES' OFFERINGS and HOURS: "Book me as a music producer", written
+   * here and published to the website. The services and the hours are kept
+   * here, in the archive, and saving them never touches the website; a
+   * publish sends the whole list (the ones shown, in order) with the hours.
+   * A publish refused because the other person published first comes back
+   * as a `conflict` result carrying what the website has, not as an error.
+   */
+  'offerings:state': { input: z.void(), output: OfferingsStateSchema },
+  /** Fetches what the website offers. Never throws: a failure is in the state. */
+  'offerings:sync': { input: z.void(), output: OfferingsStateSchema },
+  'offerings:create': { input: NewOfferingSchema, output: OfferingCreatedSchema },
+  'offerings:save': { input: SaveOfferingSchema, output: OfferingsStateSchema },
+  /** Deletes it here; one on the website comes off with the next publish. */
+  'offerings:delete': { input: z.object({ id: z.string() }), output: OfferingsStateSchema },
+  'offerings:reorder': {
+    input: z.object({ ids: z.array(z.string()) }),
+    output: OfferingsStateSchema
+  },
+  /** Copies a picked picture in as a service's photo. */
+  'offerings:set-photo': { input: OfferingPhotoInputSchema, output: OfferingsStateSchema },
+  /** A service's photo to show, as a data URL; null when there's none here. */
+  'offerings:photo-preview': {
+    input: z.object({ id: z.string() }),
+    output: z.string().nullable()
+  },
+  'offerings:save-hours': { input: OfferingHoursSchema, output: OfferingsStateSchema },
+  /** Starts the list here from the website's. Refused once there's a list here. */
+  'offerings:import': { input: z.void(), output: OfferingsStateSchema },
+  /** After a conflict: the website's list and hours replace the ones here. */
+  'offerings:take-theirs': { input: z.void(), output: OfferingsStateSchema },
+  'offerings:publish': {
+    input: z.object({ force: z.boolean().default(false) }),
+    output: OfferingsPublishResultSchema
+  },
+
   // --------------------------------------------------------------------- lore
 
   /*
@@ -1213,6 +1260,7 @@ export const IPC_EVENT = {
   'calendar:state': CalendarStateSchema,
   'inbox:state': InboxStateSchema,
   'lore:state': LoreStateSchema,
+  'offerings:state': OfferingsStateSchema,
   'releases:state': ReleasesStateSchema,
   'leads:state': LeadsStateSchema,
   /** To the strip's popup: what to show. */

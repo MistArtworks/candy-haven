@@ -84,6 +84,15 @@ import type {
 } from '../domain/discography'
 import type { Colophon, ColophonPatch } from '../domain/colophon'
 import type {
+  NewOffering,
+  OfferingCreated,
+  OfferingHours,
+  OfferingPhotoInput,
+  OfferingsPublishResult,
+  OfferingsState,
+  SaveOffering
+} from '../domain/offerings'
+import type {
   BookingCancel,
   BookingChangeResult,
   BookingMove,
@@ -598,6 +607,31 @@ export interface CandyHavenApi {
     onState(listener: (state: InboxState) => void): Unsubscribe
     /** A notification was clicked; go where it says. */
     onOpen(listener: (request: { path: string }) => void): Unsubscribe
+  }
+  /**
+   * SERVICES' OFFERINGS and HOURS: what "Book me as a music producer" offers,
+   * written here and published to the website, whole. Kept here until
+   * Publish. Behind the DISPATCH sign-in. See docs/INBOX.md.
+   */
+  readonly offerings: {
+    state(): Promise<OfferingsState>
+    /** Fetches what the website offers. */
+    sync(): Promise<OfferingsState>
+    create(input: NewOffering): Promise<OfferingCreated>
+    save(input: SaveOffering): Promise<OfferingsState>
+    remove(id: string): Promise<OfferingsState>
+    reorder(ids: string[]): Promise<OfferingsState>
+    /** Copies a picked picture in as the service's photo. */
+    setPhoto(input: OfferingPhotoInput): Promise<OfferingsState>
+    /** The service's photo to show, as a data URL. */
+    photoPreview(id: string): Promise<string | null>
+    saveHours(hours: OfferingHours): Promise<OfferingsState>
+    /** Starts the list here from the website's. */
+    importFromSite(): Promise<OfferingsState>
+    /** After a conflict: the website's list and hours replace these. */
+    takeTheirs(): Promise<OfferingsState>
+    publish(force?: boolean): Promise<OfferingsPublishResult>
+    onState(listener: (state: OfferingsState) => void): Unsubscribe
   }
   /**
    * LORE: the lore of Nayara, written here and published to the website.

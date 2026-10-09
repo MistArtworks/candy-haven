@@ -490,6 +490,21 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('inbox:booking-move', (move) => services.inbox.moveBooking(move))
   router.handle('inbox:booking-cancel', (cancel) => services.inbox.cancelBooking(cancel))
 
+  // ---------------------------------------------------------------- offerings
+
+  router.handle('offerings:state', () => services.offerings.current)
+  router.handle('offerings:sync', () => services.offerings.sync())
+  router.handle('offerings:create', (input) => services.offerings.create(input))
+  router.handle('offerings:save', (input) => services.offerings.save(input))
+  router.handle('offerings:delete', ({ id }) => services.offerings.remove(id))
+  router.handle('offerings:reorder', ({ ids }) => services.offerings.reorder(ids))
+  router.handle('offerings:set-photo', (input) => services.offerings.setPhoto(input))
+  router.handle('offerings:photo-preview', ({ id }) => services.offerings.photoPreview(id))
+  router.handle('offerings:save-hours', (hours) => services.offerings.saveHours(hours))
+  router.handle('offerings:import', () => services.offerings.importFromSite())
+  router.handle('offerings:take-theirs', () => services.offerings.takeTheirs())
+  router.handle('offerings:publish', (input) => services.offerings.publish(input))
+
   // --------------------------------------------------------------------- lore
 
   router.handle('lore:state', () => services.lore.current)
@@ -945,6 +960,7 @@ export function registerEventBridges(deps: {
   services.leads.on('changed', (state) => router.broadcast('leads:state', state))
   services.inbox.on('state', (state) => router.broadcast('inbox:state', state))
   services.lore.on('state', (state) => router.broadcast('lore:state', state))
+  services.offerings.on('state', (state) => router.broadcast('offerings:state', state))
   services.releases.on('state', (state) => router.broadcast('releases:state', state))
   services.discography.onSettled((ids) => router.broadcast('discography:settled', { ids }))
 
