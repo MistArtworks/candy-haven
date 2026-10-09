@@ -120,7 +120,6 @@ export function PublishBar({
       {asking === 'first' ? (
         <Dialog
           title="This replaces the website's services"
-          subtitle="The first publish from here switches the website over."
           confirmLabel="Publish"
           canConfirm
           busy={publishing}

@@ -501,7 +501,7 @@ function MoveDialog({
   return (
     <Dialog
       title="Move the session"
-      subtitle={`${booking.itemName} with ${booking.name}, now ${booking.start ? whenHere(booking.start) : ''}`}
+      subtitle={`${booking.name}, now ${booking.start ? whenShort(booking.start) : ''}`}
       confirmLabel={busy ? 'Move it anyway' : 'Move it'}
       canConfirm={!problem}
       busy={actions.pending === 'move'}
@@ -563,7 +563,7 @@ function CancelDialog({
   return (
     <Dialog
       title="Cancel the session"
-      subtitle={`${booking.itemName} with ${booking.name}, ${booking.start ? whenHere(booking.start) : ''}`}
+      subtitle={`${booking.name}, ${booking.start ? whenShort(booking.start) : ''}`}
       confirmLabel="Cancel the session"
       danger
       canConfirm
