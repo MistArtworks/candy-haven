@@ -1,33 +1,19 @@
-Everything Candy asked for on DISPATCH: LEADS on a page of its own, a rail you can arrange and search, deletes you can see, and every set you opened lately, in ARCHIVE and on the quick strip.
+SERVICES takes in the whole of "Book me as a music producer": every booking as it's paid, a session moved or cancelled from here, and the services and hours the website offers, written here and published.
 
-## RECENT PROJECTS
+## PRODUCER
 
-ARCHIVE has a RECENT button at the top right. Rest the pointer on it and the last twenty sets drop down, the way Ableton's Open Recent Set lists them, however they were opened: in Live, from Explorer, or from Haven. Press one to open it in Ableton, or Dossier to open its project.
+Every booking paid on the website comes in with Check for new: a commission's first half, or a 1-1 session in full. Open one to see who booked it, when, where it meets, and what's been paid. Copy the pay link when a commission is ready for its other half; See the payment opens it in Stripe.
 
-The RECENT lens (Alt+5) shows the register's projects in the order their sets were opened, with the sets that aren't in the archive yet above them.
+## MOVING AND CANCELLING
 
-The quick strip has a Recent projects pin with the same list. Rest the pointer on it and the sets drop down without taking the keyboard from Live. It's added once, at the front of the strip; move it or take it off like any other pin.
+Move to another time, pick the day and the time, and the website does the rest: the old time opens up, the calendar invitation moves (the Meet link stays), and the client gets an email. Cancel the session takes it off the calendar and tells them, with your note. Any refund is made in Stripe.
 
-## LEADS
+## OFFERINGS AND HOURS
 
-LEADS and OPPORTUNITIES have a page of their own, first in a new COMMUNITY category. ARTISTS is the roster again, and old links to its leads open LEADS.
+OFFERINGS is every service the website offers, in its order: the name, the kind, the price in CAD, a session's length, the photo, the facts and the write-up, beside the website's reading of it. HOURS is when sessions can be booked: the start times for each day, days off, the notice, how far ahead, and a break between sessions.
 
-Deleting is where you'd look for it: Delete lead and Delete opportunity at the foot of every sheet, and Delete beside Edit on every follow-up.
-
-## THE RAIL
-
-The departments are in six categories now: COMMAND, STUDIO, CATALOGUE, COMMUNITY, PUBLICATION and OVERSIGHT. Their names haven't changed, and Ctrl+1 to Ctrl+0 follow the rail as it's drawn.
-
-Search pages, at the top of the rail, finds any department by name or by what it's for (Ctrl+Shift+F).
-
-REGULATION, under DIRECTORY, arranges the rail your way: make, rename and reorder categories, move pages between them, and pin the pages and categories you use most to the top.
-
-## FIXES
-
-Linking a lead to an artist: the list of names scrolls again, so every name on the roster can be picked.
-
-A hint that stayed on screen after its page changed now goes with it.
+Nothing reaches the website until Publish. Start from the website's list brings in what it offers now, and the first publish asks before it switches the website over. If the other computer published first, Publish asks whose list to keep.
 
 ## THE HANDBOOK
 
-CATECHISM covers all of it, with new pictures: LEADS, the rail, DIRECTORY, and recent projects in ARCHIVE and on the quick strip.
+CATECHISM's SERVICES chapter covers all four tabs, with new pictures.
