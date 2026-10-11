@@ -1,19 +1,25 @@
-SERVICES takes in the whole of "Book me as a music producer": every booking as it's paid, a session moved or cancelled from here, and the services and hours the website offers, written here and published.
+CONSULTATION is new: share a track you're still working on with another producer, and hear their feedback through their own settings. It works once you're signed in to DISPATCH.
 
-## PRODUCER
+## SHARING A TRACK
 
-Every booking paid on the website comes in with Check for new: a commission's first half, or a 1-1 session in full. Open one to see who booked it, when, where it meets, and what's been paid. Copy the pay link when a commission is ready for its other half; See the payment opens it in Stripe.
+Share a track takes a bounce from this computer: pick it, or drop it on the dialog. Give it a title, say what to listen for, and choose how long the link stays open, from 1 to 7 days. Copy the link and send it. The meter shows how much of the website's free storage the shared tracks take, 1 GB in all; ending a link deletes its track at once.
 
-## MOVING AND CANCELLING
+## WHAT THEY DO WITH IT
 
-Move to another time, pick the day and the time, and the website does the rest: the old time opens up, the calendar invitation moves (the Meet link stays), and the client gets an email. Cancel the session takes it off the calendar and tells them, with your note. Any refund is made in Stripe.
+They type a name and listen. They leave notes at a moment, or over a section they mark out, and lay a chain of devices on the whole track or on one section: EQs, stereo width, a compressor or a limiter, each switched on or off, in the order they drag them in. Meters under the waveform show the loudness in LUFS, a scope and the stereo image as they go. Then they send it.
 
-## OFFERINGS AND HOURS
+## HEARING IT
 
-OFFERINGS is every service the website offers, in its order: the name, the kind, the price in CAD, a session's length, the photo, the facts and the write-up, beside the website's reading of it. HOURS is when sessions can be booked: the start times for each day, days off, the notice, how far ahead, and a break between sessions.
+Check for new brings their feedback in. Pick the track, then a producer, and their page opens: the waveform with their notes and the same meters on the left, their chain on the right. Play hears the track through their settings; As it is and their settings are the A/B, and the transport bar does it from any page. Switch any device off to hear what it does. Nothing they sent changes, and Back to theirs puts every switch back.
 
-Nothing reaches the website until Publish. Start from the website's list brings in what it offers now, and the first publish asks before it switches the website over. If the other computer published first, Publish asks whose list to keep.
+## WHEN IT CLOSES
+
+When its days run out, or with End now, the link stops working and the track and all its feedback are deleted. Its name stays, marked EXPIRED, until Remove.
+
+## QUITTING
+
+Closing Candy Haven now waits for the archive to finish shutting down, so it starts cleanly next time.
 
 ## THE HANDBOOK
 
-CATECHISM's SERVICES chapter covers all four tabs, with new pictures.
+CATECHISM has a CONSULTATION chapter and a quick guide.
