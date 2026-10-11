@@ -406,7 +406,7 @@ export function AuditoriumPage(): ReactNode {
                 <Field label="Position" value={`${Math.round(progress * 100)}%`} mono />
               </FieldGrid>
               <Field label="Filed at" value={truncatePath(source.path, 52)} mono selectable />
-              {/* A track CONSULTATION fetched from the bucket is on no disk. */}
+              {/* A track CONSULTATION fetched from the website's store is on no disk. */}
               {source.local ? (
                 <div className={styles.particularActions}>
                   <Button size="sm" variant="ghost" onClick={() => shell.reveal(source.path)}>

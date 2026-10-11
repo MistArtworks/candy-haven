@@ -78,7 +78,7 @@ export function FeedbackView({
   /**
    * Plays the track through `entry`'s tools, from `from` when given. Loads
    * it first if the transport has something else: the file it was shared
-   * from when it is still here, or the copy in the bucket.
+   * from when it is still here, or the copy in the website's store.
    */
   const listen = async (entry: ConsultationFeedback, from?: number): Promise<void> => {
     if (!loaded) {

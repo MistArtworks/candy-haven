@@ -111,9 +111,10 @@ export interface ServiceContainer {
   readonly inbox: InboxService
   /**
    * CONSULTATION: tracks shared for other producers' feedback, through a
-   * link on the website. Uploads to Firebase Storage on DISPATCH's sign-in,
-   * and copies the feedback here on every check-in, as the inbox copies
-   * messages. See docs/CONSULTATION.md.
+   * link on the website. Uploads to the website's Vercel Blob store with a
+   * pass the website gives on DISPATCH's sign-in, and copies the feedback
+   * here on every check-in, as the inbox copies messages. See
+   * docs/CONSULTATION.md.
    */
   readonly consultation: ConsultationService
   /**

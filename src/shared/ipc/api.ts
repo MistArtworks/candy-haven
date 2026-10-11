@@ -630,7 +630,7 @@ export interface CandyHavenApi {
     feedback(id: string): Promise<ConsultationFeedback[]>
     /** Marks a link's feedback read. */
     read(id: string): Promise<void>
-    /** Uploads a track and opens its link. Needs the website and the bucket. */
+    /** Uploads a track and opens its link. Needs the website, and its store. */
     share(draft: ConsultationDraft): Promise<Consultation>
     /** Refuses a file that couldn't be shared, with the reason, reading only its size. */
     check(path: string): Promise<{ size: number }>
@@ -641,7 +641,7 @@ export interface CandyHavenApi {
     end(id: string): Promise<Consultation>
     /** Forgets a closed link, here and on the website. */
     remove(id: string): Promise<void>
-    /** The track's sound: the file it was shared from, or the copy in the bucket. */
+    /** The track's sound: the file it was shared from, or the copy in the website's store. */
     audio(id: string): Promise<AudioPayload>
     onState(listener: (state: ConsultationState) => void): Unsubscribe
     onProgress(listener: (progress: ConsultationProgress) => void): Unsubscribe

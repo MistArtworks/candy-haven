@@ -2,11 +2,12 @@
  * Constants half of CONSULTATION: a track shared for other producers'
  * feedback, through a link on the website that stays open a week at most.
  *
- * The console uploads the track to Firebase Storage and opens the link on
- * the website. Producers listen there, leave notes and try tools on it, and
+ * The console uploads the track to the website's Vercel Blob store, with a
+ * pass the website gives it for that one file, and opens the link on the
+ * website. Producers listen there, leave notes and try tools on it, and
  * what they send comes back here when someone checks. When the link closes,
- * the track and all its feedback are deleted, and only the record that it
- * was shared stays, marked EXPIRED. See docs/CONSULTATION.md.
+ * the website deletes the track and all its feedback, and only the record
+ * that it was shared stays, marked EXPIRED. See docs/CONSULTATION.md.
  */
 
 export const DAY_MS = 24 * 60 * 60 * 1000
@@ -15,11 +16,12 @@ export const DAY_MS = 24 * 60 * 60 * 1000
 export const MAX_LINK_DAYS = 7
 
 /**
- * Firebase's free Storage allowance, which the meter measures against and
- * no upload is let past. Binary gigabytes, as Google bills storage, and as
- * `formatBytes` counts them.
+ * The Blob storage Vercel's free Hobby plan includes, which the meter
+ * measures against and no upload is let past. The website keeps the same
+ * figure and checks it again before it gives an upload's pass; this is
+ * what the meter shows before the first check-in answers.
  */
-export const STORAGE_FREE_BYTES = 5 * 1024 ** 3
+export const STORAGE_LIMIT_BYTES = 1024 ** 3
 
 /** The largest track one link plays. The website refuses bigger as well. */
 export const MAX_TRACK_BYTES = 200 * 1024 ** 2
@@ -30,9 +32,6 @@ export const MAX_MESSAGE = 1000
 /** The tempo range the producers' sidechain accepts, and so this field. */
 export const MIN_BPM = 60
 export const MAX_BPM = 200
-
-/** Every shared track lives under this folder of the bucket, and nothing else does. */
-export const STORAGE_FOLDER = 'consultation/'
 
 /** How near its close a link reads as closing soon: its last day. */
 export const CLOSING_SOON_MS = DAY_MS

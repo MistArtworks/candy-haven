@@ -205,18 +205,6 @@ export class DispatchService extends TypedEmitter<DispatchEvents> {
   }
 
   /**
-   * The Firebase Storage bucket the pasted config names, or null.
-   *
-   * CONSULTATION's: it keeps the tracks it shares there, on this sign-in.
-   * Read from the config rather than made from the project's id, because a
-   * project's default bucket is `<id>.firebasestorage.app` or, for one made
-   * before late 2024, `<id>.appspot.com`, and only the config says which.
-   */
-  get storageBucket(): string | null {
-    return this.config?.storageBucket.trim() || null
-  }
-
-  /**
    * The sign-in, lent to the website inbox.
    *
    * CONTACT and SERVICES sit behind the same two accounts as the board, and a

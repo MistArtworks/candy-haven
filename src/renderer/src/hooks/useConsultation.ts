@@ -7,11 +7,11 @@ import type {
   ConsultationProgress,
   ConsultationState
 } from '@shared/domain/consultation'
-import { STORAGE_FREE_BYTES } from '@shared/domain/consultation.constants'
+import { STORAGE_LIMIT_BYTES } from '@shared/domain/consultation.constants'
 
 const EMPTY: ConsultationState = {
   link: { state: 'signed-out', message: '', website: '', syncedAt: null },
-  storage: { bucket: null, usedBytes: 0, limitBytes: STORAGE_FREE_BYTES },
+  storage: { configured: null, usedBytes: 0, limitBytes: STORAGE_LIMIT_BYTES },
   waiting: 0,
   revision: 0
 }

@@ -1,5 +1,4 @@
 import { Notification } from 'electron'
-import { randomUUID } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
 import { basename, extname } from 'node:path'
 import { AUDIO_EXTENSIONS, audioMimeFor, type AudioPayload } from '@shared/domain/auditorium'
@@ -16,8 +15,7 @@ import {
   CLOSING_SOON_MS,
   MAX_LINK_DAYS,
   MAX_TRACK_BYTES,
-  STORAGE_FOLDER,
-  STORAGE_FREE_BYTES,
+  STORAGE_LIMIT_BYTES,
   formatLeft,
   isLinkOpen,
   latestClose,
@@ -31,9 +29,14 @@ import type { ArchiveService } from '@main/services/archive/archive.service'
 import type { SettingsService } from '@main/services/settings/settings.service'
 import type { DispatchService } from '@main/services/dispatch/dispatch.service'
 import { hostOf, websiteFor } from '@main/services/website/website.address'
-import { ConsultationClient, SiteError, type RemoteConsultation } from './consultation.client'
+import { UploadError, uploadTrack } from './blob.upload'
+import {
+  ConsultationClient,
+  SiteError,
+  type RemoteConsultation,
+  type RemoteStorage
+} from './consultation.client'
 import { ConsultationRepository, type WaitingLink } from './consultation.repository'
-import { StorageClient, StorageError } from './storage.client'
 
 const logger = getLogger('consultation')
 
@@ -50,35 +53,44 @@ const MAX_PAGES = 50
 const PAGE = '/consultation'
 
 /**
- * How long after a link's close its track is deleted: a few seconds, so
- * the website, which decides, has closed it by then.
+ * How long after a link's close the check-in that deletes its track runs:
+ * a few seconds, so the website, which decides, has closed it by then.
  */
 const CLOSE_GRACE_MS = 5_000
 
 /** The longest a timer can be set for: 2^31 - 1 ms, about 24 days. */
 const LONGEST_TIMER_MS = 2 ** 31 - 1
 
+/** A whole track coming down from the store, 200 MB at most. */
+const DOWNLOAD_TIMEOUT_MS = 10 * 60_000
+
+/** Every public Vercel Blob store's addresses are on a host ending in this. */
+const BLOB_HOST_SUFFIX = '.public.blob.vercel-storage.com'
+
 /**
  * CONSULTATION: tracks shared for other producers' feedback.
  *
- * Sharing uploads the track to Firebase Storage, then opens a link for it
- * on the website, which stays open for the days chosen, a week at most.
- * Producers send their notes and tools there; this service checks in with
- * the website when asked and keeps a copy of what they sent in the archive,
- * so the department opens at once and plays their settings offline.
+ * Sharing asks the website for a pass, uploads the track to the website's
+ * Vercel Blob store with it, then opens a link for it on the website, which
+ * stays open for the days chosen, a week at most. Producers send their
+ * notes and tools there; this service checks in with the website when asked
+ * and keeps a copy of what they sent in the archive, so the department
+ * opens at once and plays their settings offline.
+ *
+ * **The website deletes the tracks**, not this console: at End now, at
+ * Remove, when a check-in here finds a closed link with its track still in
+ * the store (it asks the website to sweep), and once a day by itself. This
+ * console holds no key to the store at all, only, for the length of one
+ * upload, a pass that lets one named file in.
  *
  * **Asked, not polled**, as the inbox is: at startup, on signing in, on a
  * new website address, and on Check for new. The one thing that runs by
  * itself is a link closing while the console is open: a check-in at that
- * moment, which deletes the track from the bucket, since the deletion is
- * the promise made when it was shared. A link that closes while no copy is
- * open has its track deleted at the next startup, and the bucket's own
- * lifecycle rule deletes anything left after eight days.
+ * moment, so its track goes when it closes, not at the next daily sweep.
  *
  * **The website decides when a link closes.** Either copy of the console
- * can move a link's close or end it, so a track is only deleted, and a
- * link's feedback only dropped from the copy, straight after the website
- * has said the link is closed.
+ * can move a link's close or end it, so a link's feedback is only dropped
+ * from the copy straight after the website has said the link is closed.
  *
  * Signed in means signed in to DISPATCH, as for the inbox. While nobody is,
  * nothing is fetched and nothing in the copy is shown.
@@ -91,7 +103,7 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
       website: '',
       syncedAt: null
     },
-    storage: { bucket: null, usedBytes: 0, limitBytes: STORAGE_FREE_BYTES },
+    storage: { configured: null, usedBytes: 0, limitBytes: STORAGE_LIMIT_BYTES },
     waiting: 0,
     revision: 0
   }
@@ -111,6 +123,8 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
   private closing: NodeJS.Timeout | null = null
   /** The upload under way, so it can be cancelled. */
   private uploading: AbortController | null = null
+  /** The website's store, as it last said: whether there is one, and its size. */
+  private remoteStorage: RemoteStorage = null
   /**
    * Serialises what reads the website's list and writes the copy from it.
    * Without it, a check-in that listed the links a moment before a share
@@ -148,12 +162,6 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
     return new ConsultationClient(website, () => this.dispatch.idToken())
   }
 
-  /** The bucket, on the board's sign-in, or null when the config names none. */
-  private storage(): StorageClient | null {
-    const bucket = this.dispatch.storageBucket
-    return bucket ? new StorageClient(bucket, () => this.dispatch.idToken()) : null
-  }
-
   /** Where a clicked notice goes; wired by the main entry. */
   setOpener(open: (path: string) => void): void {
     this.opener = open
@@ -172,30 +180,26 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
 
     let signedIn = this.signedIn
     let configured = this.dispatch.current.link.state !== 'unconfigured'
-    let bucket = this.dispatch.storageBucket
     let website = this.website
 
-    // Signing in or out on DISPATCH is signing in or out here, and a newly
-    // pasted config may name a bucket where the last one named none.
+    // Signing in or out on DISPATCH is signing in or out here.
     this.unsubscribers.push(
       this.dispatch.on('state', (state) => {
         const nowSignedIn = state.link.identity !== null
         const nowConfigured = state.link.state !== 'unconfigured'
-        const nowBucket = this.dispatch.storageBucket
-        if (nowSignedIn === signedIn && nowConfigured === configured && nowBucket === bucket) {
-          return
-        }
+        if (nowSignedIn === signedIn && nowConfigured === configured) return
         signedIn = nowSignedIn
         configured = nowConfigured
-        bucket = nowBucket
         void this.sync()
       })
     )
 
+    // A new address in REGULATION is a different website, and its own store.
     this.unsubscribers.push(
       this.settings.on('changed', () => {
         if (this.website === website) return
         website = this.website
+        this.remoteStorage = null
         this.patchLink({ website, syncedAt: null })
         void this.sync()
       })
@@ -270,8 +274,8 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
 
   /**
    * Brings the copy up to date: the links as the website lists them, the
-   * feedback sent since the last check-in, and the tracks of links that
-   * have closed deleted from the bucket.
+   * feedback sent since the last check-in, and, when a link has closed with
+   * its track still in the store, the website asked to delete it now.
    */
   private async pull(client: ConsultationClient, website: string): Promise<void> {
     const repository = this.repository
@@ -281,6 +285,7 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
       logger.warn(`Left out ${listed.unreadable} unreadable shared track(s) from the website`)
     }
     await repository.applyList(website, listed.consultations)
+    this.remoteStorage = listed.storage
     // The website has deleted a closed link's feedback; so does the copy.
     await repository.purgeClosed(website, Date.now())
 
@@ -300,46 +305,22 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
   }
 
   /**
-   * Deletes the tracks of closed links from the bucket. One that can't be
-   * deleted now is left for the next check-in; the record keeps counting
-   * it on the meter until one is.
+   * Asks the website to delete the tracks of closed links now, when the
+   * list shows one still in the store, rather than leave it to the daily
+   * sweep. A website that can't, or doesn't know the request yet, costs
+   * the check-in nothing: the daily sweep gets there regardless.
    */
   private async sweep(client: ConsultationClient, website: string): Promise<void> {
+    if (this.remoteStorage?.configured === false) return
     const due = await this.repository.undeleted(website, Date.now())
     if (!due.length) return
-
-    const storage = this.storage()
-    if (!storage) {
-      logger.warn(
-        `${due.length} closed link(s) still have a track, and there is no bucket to delete from`
-      )
-      return
+    try {
+      const swept = await client.sweep()
+      await this.repository.applyList(website, swept.consultations)
+      this.remoteStorage = swept.storage
+    } catch (error) {
+      logger.warn(`Could not have ${due.length} closed link(s)' tracks deleted yet`, error)
     }
-
-    for (const link of due) {
-      await this.deleteTrack(client, storage, website, link).catch((error: unknown) => {
-        logger.warn(`Could not delete the track of ${link.id} yet`, error)
-      })
-    }
-  }
-
-  /**
-   * Deletes one link's track from the bucket, then tells the website, so
-   * the other copy doesn't try again and both meters drop. The bucket
-   * first: a record that says deleted while the track is still there would
-   * never be retried.
-   */
-  private async deleteTrack(
-    client: ConsultationClient,
-    storage: StorageClient,
-    website: string,
-    link: Pick<Consultation, 'id' | 'audio'>
-  ): Promise<void> {
-    // Never anything outside the folder, whatever a record says.
-    const path = link.audio.path
-    if (path.startsWith(STORAGE_FOLDER) && !path.includes('..')) await storage.remove(path)
-    const remote = await client.change(link.id, { audioDeletedAt: new Date().toISOString() })
-    await this.repository.applyOne(website, remote)
   }
 
   /** Sets the timer for the next open link to close, so its track goes when it does. */
@@ -385,7 +366,7 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
   /**
    * A shared track's sound, to hear the feedback through: the file it was
    * shared from when it is still where it was and the same size, and
-   * otherwise the copy in the bucket, while there is one.
+   * otherwise the copy in the store, while there is one.
    */
   async audio(id: string): Promise<AudioPayload> {
     this.requireSignedIn()
@@ -409,23 +390,8 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
       }
     }
 
-    if (link.audioDeletedAt !== null || !link.audio.path) {
-      throw new AppError('Its track has been deleted from storage.', {
-        code: ErrorCode.NotFound,
-        hint: link.sourcePath
-          ? 'And the file it was shared from has moved or changed since.'
-          : 'It was shared from the other copy of the console, so there is no file of it here.',
-        recoverable: false
-      })
-    }
-
-    const storage = this.requireStorage()
-    let bytes: Uint8Array<ArrayBuffer>
-    try {
-      bytes = await storage.download(link.audio.path)
-    } catch (error) {
-      throw storageProblem(error, 'The track is not in storage any more.')
-    }
+    if (link.audioDeletedAt !== null || !link.audio.url) throw trackGone(link)
+    const bytes = await fetchTrack(link.audio.url, link)
     const extension = extname(link.audio.path).slice(1).toLowerCase()
     return {
       path: link.audio.path,
@@ -441,11 +407,13 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
 
   /**
    * Shares a track: refuses it with the reason if it is too big or there is
-   * no room for it, uploads it, and opens its link on the website.
+   * no room for it, uploads it to the website's store with the pass the
+   * website gives for it, and opens its link.
    *
    * The room left is the website's own count, fetched first, since the
-   * other copy's tracks take room too. If the link can't be opened, the
-   * upload is deleted again rather than left taking room for nothing.
+   * other copy's tracks take room too, and the website checks it once more
+   * before it gives the pass. If the link can't be opened, the website is
+   * asked to delete the upload rather than leave it taking room.
    */
   async share(draft: ConsultationDraft): Promise<Consultation> {
     this.requireSignedIn()
@@ -456,7 +424,6 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
         recoverable: true
       })
     }
-    const storage = this.requireStorage()
     const file = await admitTrack(draft.path)
     const website = this.website
     const client = this.client(website)
@@ -464,23 +431,33 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
     const controller = new AbortController()
     this.uploading = controller
     try {
-      await this.exclusive(async () => {
+      const pass = await this.exclusive(async () => {
         const listed = await this.onWebsite(() => client.list(), 'Connect to share a track.')
         await this.repository.applyList(website, listed.consultations)
+        this.remoteStorage = listed.storage
+        if (listed.storage?.configured === false) throw noStore()
+        const limit = listed.storage?.limitBytes ?? STORAGE_LIMIT_BYTES
+        const used = listed.storage?.usedBytes ?? (await this.repository.usedBytes(website))
+        const free = Math.max(0, limit - used)
+        if (file.size > free) throw noRoom(free, file.size, limit)
+        return this.onWebsite(
+          () =>
+            client.prepareUpload({
+              extension: file.extension,
+              contentType: file.contentType,
+              bytes: file.size
+            }),
+          'Connect to share a track.'
+        )
       })
-      const free = Math.max(0, STORAGE_FREE_BYTES - (await this.repository.usedBytes(website)))
-      if (file.size > free) throw noRoom(free, file.size)
 
-      const path = `${STORAGE_FOLDER}${randomUUID()}.${file.extension}`
       this.progress('uploading', 0, file.size)
-      const stored = await storage
-        .upload(draft.path, path, file.contentType, file.size, {
-          signal: controller.signal,
-          onProgress: (sent) => this.progress('uploading', sent, file.size)
-        })
-        .catch((error: unknown) => {
-          throw storageProblem(error, `Firebase Storage has no bucket called ${storage.bucket}.`)
-        })
+      const stored = await uploadTrack(draft.path, pass, file.contentType, {
+        signal: controller.signal,
+        onProgress: (sent) => this.progress('uploading', sent, file.size)
+      }).catch((error: unknown) => {
+        throw uploadProblem(error)
+      })
 
       this.progress('opening', file.size, file.size)
       const remote = await this.exclusive(async () => {
@@ -493,16 +470,16 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
             bpm: draft.bpm,
             days: draft.days,
             audio: {
-              path: stored.path,
+              path: stored.pathname,
               url: stored.url,
-              bytes: stored.bytes,
-              contentType: stored.contentType
+              bytes: file.size,
+              contentType: file.contentType
             },
             waveform: draft.waveform
           })
         } catch (error) {
-          await storage.remove(stored.path).catch((cause: unknown) => {
-            logger.warn('Could not delete an upload whose link did not open', cause)
+          await client.discard(stored.pathname).catch((cause: unknown) => {
+            logger.warn('Could not have an upload whose link did not open deleted', cause)
           })
           throw this.siteProblem(error, 'Connect to share a track.')
         }
@@ -527,9 +504,11 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
   async check(path: string): Promise<{ size: number }> {
     this.requireSignedIn()
     const file = await admitTrack(path)
+    if (this.remoteStorage?.configured === false) throw noStore()
+    const limit = this.remoteStorage?.limitBytes ?? STORAGE_LIMIT_BYTES
     const used = this.archive.isConnected() ? await this.repository.usedBytes(this.website) : 0
-    const free = Math.max(0, STORAGE_FREE_BYTES - used)
-    if (file.size > free) throw noRoom(free, file.size)
+    const free = Math.max(0, limit - used)
+    if (file.size > free) throw noRoom(free, file.size, limit)
     return { size: file.size }
   }
 
@@ -578,8 +557,8 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
 
   /**
    * Closes a link now: the website stops answering it and deletes its
-   * feedback, and this copy deletes the track from the bucket and its own
-   * copy of the feedback. The record stays, as an expired one does.
+   * feedback and its track, and this copy drops its own copy of the
+   * feedback. The record stays, as an expired one does.
    */
   async end(id: string): Promise<Consultation> {
     this.requireSignedIn()
@@ -591,13 +570,6 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
       const remote = await this.onWebsite(() => client.end(id), 'Connect to end a link.')
       await this.repository.applyOne(website, remote)
       await this.repository.purgeClosed(website, Date.now())
-      const storage = this.storage()
-      if (storage && remote.audioDeletedAt === null) {
-        // Left for the next check-in if it fails: the link is closed either way.
-        await this.deleteTrack(client, storage, website, { id, audio: remote.audio }).catch(
-          (error: unknown) => logger.warn(`Could not delete the track of ${id} yet`, error)
-        )
-      }
     })
     await this.refresh()
     await this.arm(website)
@@ -605,10 +577,9 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
   }
 
   /**
-   * Forgets a closed link altogether, here and on the website. Its track
-   * must have gone from the bucket first: the record is what the meter
-   * counts it by, and without it a track left behind would take room
-   * unseen until the lifecycle rule caught it.
+   * Forgets a closed link altogether, here and on the website, which
+   * deletes its track if it is still in the store, or leaves it to its
+   * daily sweep, which deletes anything no record points to.
    */
   async remove(id: string): Promise<void> {
     this.requireSignedIn()
@@ -624,20 +595,6 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
     const website = this.website
     const client = this.client(website)
     await this.exclusive(async () => {
-      if (link.audioDeletedAt === null) {
-        const storage = this.requireStorage()
-        try {
-          await this.deleteTrack(client, storage, website, link)
-        } catch (error) {
-          const reason =
-            error instanceof StorageError || error instanceof SiteError ? error.message : null
-          throw new AppError('Its track couldn’t be deleted from storage yet.', {
-            code: ErrorCode.Unavailable,
-            hint: `${reason ? `${reason} ` : ''}The record stays until it is, to keep count of the room it takes.`,
-            recoverable: true
-          })
-        }
-      }
       await this.onWebsite(() => client.remove(id), 'Connect to remove it.')
       await this.repository.remove(website, id)
     })
@@ -672,16 +629,6 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
     })
   }
 
-  private requireStorage(): StorageClient {
-    const storage = this.storage()
-    if (storage) return storage
-    throw new AppError('The Firebase config names no Storage bucket.', {
-      code: ErrorCode.Unavailable,
-      hint: 'Set Storage up in the Firebase console, then paste the config again in REGULATION → BOARD (docs/CONSULTATION.md).',
-      recoverable: true
-    })
-  }
-
   private async requireHeld(id: string): Promise<Consultation> {
     const link = await this.repository.get(this.website, id, Date.now())
     if (link) return link
@@ -701,7 +648,12 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
     })
   }
 
-  /** Re-counts what is waiting and what the bucket holds, and tells the page the copy moved. */
+  /**
+   * Re-counts what is waiting and what the store holds, and tells the page
+   * the copy moved. The store is counted from the copy, which carries the
+   * website's records, both copies' tracks among them, as of the last word
+   * from it; whether there is a store at all is the website's to say.
+   */
   private async refresh(): Promise<void> {
     const live = this.signedIn && this.archive.isConnected()
     const website = this.website
@@ -716,7 +668,11 @@ export class ConsultationService extends TypedEmitter<ConsultationEvents> {
     this.state = {
       ...this.state,
       waiting,
-      storage: { bucket: this.dispatch.storageBucket, usedBytes, limitBytes: STORAGE_FREE_BYTES }
+      storage: {
+        configured: live ? (this.remoteStorage?.configured ?? null) : null,
+        usedBytes,
+        limitBytes: this.remoteStorage?.limitBytes ?? STORAGE_LIMIT_BYTES
+      }
     }
     this.changed()
   }
@@ -818,7 +774,7 @@ async function admitTrack(
       `That track is ${size(info.size)}, and a link plays ${size(MAX_TRACK_BYTES)} at most.`,
       {
         code: ErrorCode.Validation,
-        hint: `Producers stream the whole file, and the free storage is ${size(STORAGE_FREE_BYTES)} in all. Bounce it at 16-bit, or as a 320 kbps MP3: either is plenty to judge a mix by.`,
+        hint: `Producers stream the whole file, and the free storage is ${size(STORAGE_LIMIT_BYTES)} in all. Bounce it at 16-bit, or as a 320 kbps MP3: either is plenty to judge a mix by.`,
         recoverable: false
       }
     )
@@ -827,10 +783,72 @@ async function admitTrack(
   return { extension, size: info.size, contentType: storedType(audioMimeFor(extension)) }
 }
 
+/**
+ * A track's bytes, from its public address in the store, for hearing it
+ * where the file it was shared from isn't. Only ever an address in a Vercel
+ * Blob store, whatever a record says.
+ */
+async function fetchTrack(
+  url: string,
+  link: Pick<Consultation, 'sourcePath'>
+): Promise<Uint8Array<ArrayBuffer>> {
+  let address: URL
+  try {
+    address = new URL(url)
+  } catch {
+    throw trackGone(link)
+  }
+  if (address.protocol !== 'https:' || !address.hostname.endsWith(BLOB_HOST_SUFFIX)) {
+    throw trackGone(link)
+  }
+
+  let response: Response
+  try {
+    response = await fetch(address, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) })
+  } catch {
+    throw new AppError('Could not reach Vercel Blob.', {
+      code: ErrorCode.Unavailable,
+      hint: 'Check the connection, then try again.',
+      recoverable: true
+    })
+  }
+  if (response.status === 404) throw trackGone(link)
+  if (!response.ok) {
+    throw new AppError(`Vercel Blob answered ${response.status}.`, {
+      code: ErrorCode.Unavailable,
+      hint:
+        response.status === 403
+          ? 'Vercel may have paused the store: a month’s free allowance is used up.'
+          : 'Try again in a minute.',
+      recoverable: true
+    })
+  }
+  return new Uint8Array(await response.arrayBuffer())
+}
+
+function trackGone(link: Pick<Consultation, 'sourcePath'>): AppError {
+  return new AppError('Its track has been deleted from storage.', {
+    code: ErrorCode.NotFound,
+    hint: link.sourcePath
+      ? 'And the file it was shared from has moved or changed since.'
+      : 'It was shared from the other copy of the console, so there is no file of it here.',
+    recoverable: false
+  })
+}
+
+/** The website has no Blob store yet, so a track has nowhere to go. */
+function noStore(): AppError {
+  return new AppError('The website has no Blob store yet.', {
+    code: ErrorCode.Unavailable,
+    hint: 'It is set up once, in the website’s Vercel project (docs/CONSULTATION.md).',
+    recoverable: true
+  })
+}
+
 /** No room left in the free allowance for a track of `bytes`. */
-function noRoom(free: number, bytes: number): AppError {
+function noRoom(free: number, bytes: number, limit: number): AppError {
   return new AppError(
-    `There isn’t room for this track: ${size(free)} of the free ${size(STORAGE_FREE_BYTES)} is left, and it is ${size(bytes)}.`,
+    `There isn’t room for this track: ${size(free)} of the free ${size(limit)} is left, and it is ${size(bytes)}.`,
     {
       code: ErrorCode.Validation,
       hint: 'End a link you no longer need, which deletes its track at once, or share a smaller bounce.',
@@ -839,35 +857,25 @@ function noRoom(free: number, bytes: number): AppError {
   )
 }
 
-/** A Storage failure as the page states it. `missing` reads as `whenMissing`. */
-function storageProblem(error: unknown, whenMissing: string): unknown {
-  if (!(error instanceof StorageError)) return error
+/** An upload's failure, as the share dialog states it. */
+function uploadProblem(error: unknown): unknown {
+  if (!(error instanceof UploadError)) return error
   switch (error.kind) {
     case 'cancelled':
-      return new AppError('The upload was cancelled.', {
-        code: ErrorCode.Cancelled,
-        recoverable: true
-      })
-    case 'missing':
-      return new AppError(whenMissing, {
-        code: ErrorCode.NotFound,
-        hint: 'Storage is set up once, in the Firebase console (docs/CONSULTATION.md).',
-        recoverable: true
-      })
-    case 'forbidden':
-      return new AppError(error.message, {
-        code: ErrorCode.PermissionDenied,
-        hint: 'Publish storage.rules in the Firebase console (docs/CONSULTATION.md).',
-        recoverable: true
-      })
-    case 'billing':
+      return new AppError(error.message, { code: ErrorCode.Cancelled, recoverable: true })
+    case 'paused':
       return new AppError(error.message, {
         code: ErrorCode.Unavailable,
-        hint: 'Move the project to Blaze in the Firebase console. It stays free within the free allowance (docs/CONSULTATION.md).',
+        hint: 'Vercel stops the store for 30 days rather than charge anything. Until then, tracks can’t be shared or played.',
+        recoverable: false
+      })
+    case 'refused':
+      return new AppError(error.message, {
+        code: ErrorCode.Unavailable,
+        hint: 'Share the track again: the website gives a fresh pass each time.',
         recoverable: true
       })
     case 'unreachable':
-    case 'busy':
       return new AppError(error.message, {
         code: ErrorCode.Unavailable,
         hint: 'Check the connection, then try again.',
@@ -886,7 +894,7 @@ function people(link: WaitingLink): string {
   return `${names[0]}, ${names[1]} and ${names.length - 2} other${names.length === 3 ? '' : 's'}`
 }
 
-/** Bytes in the units `formatBytes` uses: `312 MB`, `4.1 GB`. */
+/** Bytes in the units `formatBytes` uses: `312 MB`, `1.0 GB`. */
 function size(bytes: number): string {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`
   // A sliver still reads as some room, not none.

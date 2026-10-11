@@ -1,8 +1,0 @@
-[
-  {
-    "origin": ["https://candy-heist.vercel.app", "http://localhost:3000"],
-    "method": ["GET", "HEAD"],
-    "responseHeader": ["Content-Type", "Content-Length", "Content-Range", "Accept-Ranges"],
-    "maxAgeSeconds": 3600
-  }
-]

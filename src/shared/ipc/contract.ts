@@ -1000,7 +1000,7 @@ export const IPC_INVOKE = {
   'consultation:remove': { input: ConsultationTargetSchema, output: z.void() },
   /**
    * A shared track's sound, to hear the feedback through: the file it was
-   * shared from when it is still here, or the copy in the bucket.
+   * shared from when it is still here, or the copy in the website's store.
    */
   'consultation:audio': { input: ConsultationTargetSchema, output: AudioPayloadSchema },
 

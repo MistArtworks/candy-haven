@@ -217,10 +217,10 @@ export function ShareDialog({
       error={problem}
       confirmLabel="Share"
       canConfirm={chosen !== null && title.trim() !== '' && tempoValid && !reading}
-      footnote={`Uploads the track to Firebase Storage (${formatBytes(free)} of ${formatBytes(
+      footnote={`Uploads the track to the website’s storage at Vercel (${formatBytes(free)} of ${formatBytes(
         storage.limitBytes,
         0
-      )} free), then opens its link on ${host(website)}. When the link closes, the track and all its feedback are deleted; its name stays here, marked EXPIRED.`}
+      )} free), then opens its link on ${host(website)}. When the link closes, the website deletes the track and all its feedback; its name stays here, marked EXPIRED.`}
       onConfirm={() => void share()}
       onCancel={cancel}
     >

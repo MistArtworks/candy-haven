@@ -9,7 +9,7 @@ import {
   MAX_TITLE,
   MIN_BPM,
   SHARE_STAGES,
-  STORAGE_FREE_BYTES
+  STORAGE_LIMIT_BYTES
 } from './consultation.constants'
 
 /**
@@ -34,17 +34,20 @@ export const ConsultationLinkSchema = z.object({
 })
 export type ConsultationLink = z.infer<typeof ConsultationLinkSchema>
 
-/** What the meter shows: the bucket, and how much of the free allowance is used. */
+/** What the meter shows: whether there's a store, and how much of it is used. */
 export const ConsultationStorageSchema = z.object({
-  /** The Firebase Storage bucket the pasted config names, or null when it names none. */
-  bucket: z.string().nullable().default(null),
   /**
-   * The tracks not yet deleted, shared from either copy of the console, as
-   * the website last listed them.
+   * Whether the website has a Blob store to keep tracks in, as it last
+   * said; null before it has said.
+   */
+  configured: z.boolean().nullable().default(null),
+  /**
+   * The tracks not yet deleted, shared from either copy of the console, by
+   * the website's count; this copy's own sum before it has answered.
    */
   usedBytes: z.number().min(0).default(0),
-  /** What Firebase keeps for free. */
-  limitBytes: z.number().positive().default(STORAGE_FREE_BYTES)
+  /** What Vercel's free plan includes. */
+  limitBytes: z.number().positive().default(STORAGE_LIMIT_BYTES)
 })
 export type ConsultationStorage = z.infer<typeof ConsultationStorageSchema>
 
@@ -67,10 +70,12 @@ export const ConsultationSchema = z.object({
   message: z.string().default(''),
   durationMs: z.number().min(0).default(0),
   bpm: z.number().nullable().default(null),
-  /** The track in the bucket. */
+  /** The track in the website's Blob store. */
   audio: z
     .object({
       path: z.string().default(''),
+      /** Its public address, which stops answering once the website deletes it. */
+      url: z.string().default(''),
       bytes: z.number().min(0).default(0),
       contentType: z.string().default('')
     })
@@ -81,7 +86,7 @@ export const ConsultationSchema = z.object({
   expiresAt: z.number().default(0),
   /** Set when it was closed early. */
   endedAt: z.number().nullable().default(null),
-  /** Set once the track was deleted from the bucket, by either copy. */
+  /** Set once the website deleted the track from its store. */
   audioDeletedAt: z.number().nullable().default(null),
   /** The page's address while it is open; null once it isn't. */
   link: z.string().nullable().default(null),

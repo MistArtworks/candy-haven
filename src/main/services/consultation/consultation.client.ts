@@ -5,11 +5,13 @@ import { SiteError, callWebsite, jsonBody, readJson } from '@main/services/websi
 /**
  * The website's consultation API, as this console calls it.
  *
- * Every shared track, open or not; opening a link for a track just
- * uploaded; moving when one closes, or recording that its track was
- * deleted; closing one now; forgetting one; and the feedback sent since a
- * moment. How a call is made, signed in, and what its failures mean, is the
- * inbox's and LORE's: see website/website.http.ts.
+ * Every shared track, open or not, with the room left in the store; the
+ * pass to upload one; opening its link; moving when one closes; closing
+ * one now; forgetting one; asking the website to delete what should be
+ * gone; and the feedback sent since a moment. The website keeps the tracks
+ * in its Vercel Blob store and does every deletion itself. How a call is
+ * made, signed in, and what its failures mean, is the inbox's and LORE's:
+ * see website/website.http.ts.
  */
 
 export { SiteError } from '@main/services/website/website.http'
@@ -29,8 +31,8 @@ const RemoteConsultationSchema = z.object({
   durationMs: z.number().catch(0),
   bpm: z.number().nullable().catch(null),
   audio: z
-    .object({ path: text, bytes: z.number().catch(0), contentType: text })
-    .catch({ path: '', bytes: 0, contentType: '' }),
+    .object({ path: text, url: text, bytes: z.number().catch(0), contentType: text })
+    .catch({ path: '', url: '', bytes: 0, contentType: '' }),
   createdAt: z.string(),
   /** The account that shared it, by UID. */
   createdBy: text,
@@ -42,6 +44,17 @@ const RemoteConsultationSchema = z.object({
   feedbackCount: z.number().int().min(0).catch(0)
 })
 export type RemoteConsultation = z.infer<typeof RemoteConsultationSchema>
+
+/** How full the website's store is, by its own count. Null when it didn't say. */
+const RemoteStorageSchema = z
+  .object({
+    configured: z.boolean(),
+    usedBytes: z.number().min(0),
+    limitBytes: z.number().positive()
+  })
+  .nullable()
+  .catch(null)
+export type RemoteStorage = z.infer<typeof RemoteStorageSchema>
 
 /**
  * One producer's feedback, as the website sends it.
@@ -60,13 +73,26 @@ const RemoteFeedbackSchema = z.object({
 })
 export type RemoteFeedback = z.infer<typeof RemoteFeedbackSchema>
 
-const ListSchema = z.object({ consultations: z.array(z.unknown()).default([]) })
+const ListSchema = z.object({
+  consultations: z.array(z.unknown()).default([]),
+  storage: RemoteStorageSchema.default(null)
+})
+
+const PassSchema = z.object({ pathname: z.string().min(1), token: z.string().min(1) })
 
 const FeedbackPageSchema = z.object({
   feedback: z.array(z.unknown()).default([]),
   cursor: z.string(),
   more: z.boolean().default(false)
 })
+
+/** Every shared track, and the room left, as one listing answers. */
+export interface ListPage {
+  consultations: RemoteConsultation[]
+  storage: RemoteStorage
+  /** How many could not be read and were left out. */
+  unreadable: number
+}
 
 export interface FeedbackPage {
   feedback: RemoteFeedback[]
@@ -95,33 +121,41 @@ export class ConsultationClient {
     private readonly token: () => Promise<string | null>
   ) {}
 
-  /** Every shared track, newest first, with the ones it could not read counted. */
-  async list(): Promise<{ consultations: RemoteConsultation[]; unreadable: number }> {
+  /** Every shared track, newest first, and the room left in the store. */
+  async list(): Promise<ListPage> {
     const response = await this.call('/api/haven/consultations', { method: 'GET' })
-    const page = ListSchema.safeParse(await readJson(response))
-    if (!page.success) throw unknownShape()
-
-    let unreadable = 0
-    const consultations = page.data.consultations.flatMap((value) => {
-      const parsed = RemoteConsultationSchema.safeParse(value)
-      if (parsed.success) return [parsed.data]
-      unreadable += 1
-      return []
-    })
-    return { consultations, unreadable }
+    return readList(await readJson(response))
   }
 
-  /** Opens a link for a track already in the bucket. */
+  /**
+   * The pass to upload one track: where it goes in the store, and the
+   * token that lets exactly it in for an hour. The website refuses it,
+   * with a sentence, when there is no store or no room.
+   */
+  async prepareUpload(ask: {
+    extension: string
+    contentType: string
+    bytes: number
+  }): Promise<{ pathname: string; token: string }> {
+    const response = await this.call('/api/haven/consultations/upload', jsonBody('POST', ask))
+    const pass = PassSchema.safeParse(await readJson(response))
+    if (!pass.success) throw unknownShape()
+    return pass.data
+  }
+
+  /** Opens a link for a track already in the store. */
   async open(body: OpenLink): Promise<RemoteConsultation> {
     const response = await this.call('/api/haven/consultations', jsonBody('POST', body))
     return readConsultation(await readJson(response))
   }
 
-  /** Moves when an open link closes, or records when its track was deleted. */
-  async change(
-    id: string,
-    change: { expiresAt?: string; audioDeletedAt?: string }
-  ): Promise<RemoteConsultation> {
+  /** Deletes an upload whose link didn't open. */
+  async discard(pathname: string): Promise<void> {
+    await this.call('/api/haven/consultations/discard', jsonBody('POST', { pathname }))
+  }
+
+  /** Moves when an open link closes. */
+  async change(id: string, change: { expiresAt: string }): Promise<RemoteConsultation> {
     const response = await this.call(
       `/api/haven/consultations/${encodeURIComponent(id)}`,
       jsonBody('PATCH', change)
@@ -129,7 +163,7 @@ export class ConsultationClient {
     return readConsultation(await readJson(response))
   }
 
-  /** Closes a link now. Its page stops answering and its feedback is deleted. */
+  /** Closes a link now. Its page stops answering; its feedback and track are deleted. */
   async end(id: string): Promise<RemoteConsultation> {
     const response = await this.call(`/api/haven/consultations/${encodeURIComponent(id)}/end`, {
       method: 'POST'
@@ -137,7 +171,7 @@ export class ConsultationClient {
     return readConsultation(await readJson(response))
   }
 
-  /** Forgets one altogether. Already gone counts as done. */
+  /** Forgets one altogether, its track included. Already gone counts as done. */
   async remove(id: string): Promise<void> {
     try {
       await this.call(`/api/haven/consultations/${encodeURIComponent(id)}`, { method: 'DELETE' })
@@ -145,6 +179,12 @@ export class ConsultationClient {
       if (error instanceof SiteError && error.kind === 'missing') return
       throw error
     }
+  }
+
+  /** Asks the website to delete closed links' tracks now; answers with the list after. */
+  async sweep(): Promise<ListPage> {
+    const response = await this.call('/api/haven/consultations/sweep', { method: 'POST' })
+    return readList(await readJson(response))
   }
 
   /** Feedback sent since `since`, or since the start, on links still open. */
@@ -171,6 +211,20 @@ export class ConsultationClient {
   private call(path: string, init: RequestInit): Promise<Response> {
     return callWebsite(this.origin, this.token, path, init)
   }
+}
+
+function readList(body: unknown): ListPage {
+  const page = ListSchema.safeParse(body)
+  if (!page.success) throw unknownShape()
+
+  let unreadable = 0
+  const consultations = page.data.consultations.flatMap((value) => {
+    const parsed = RemoteConsultationSchema.safeParse(value)
+    if (parsed.success) return [parsed.data]
+    unreadable += 1
+    return []
+  })
+  return { consultations, storage: page.data.storage, unreadable }
 }
 
 function readConsultation(body: unknown): RemoteConsultation {

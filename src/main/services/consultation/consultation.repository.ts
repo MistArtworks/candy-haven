@@ -146,7 +146,7 @@ export class ConsultationRepository {
   }
 
   /**
-   * The tracks still in the bucket, by the records of them: what the meter
+   * The tracks still in the store, by the records of them: what the meter
    * counts. A record keeps counting its track until a copy has deleted it.
    */
   async usedBytes(website: string): Promise<number> {

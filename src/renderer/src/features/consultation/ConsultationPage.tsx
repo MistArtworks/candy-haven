@@ -30,18 +30,19 @@ const NEARLY_FULL = 0.9
 /**
  * CONSULTATION: a track shared for other producers' feedback.
  *
- * **Share a track** uploads a bounce from this machine to Firebase Storage
- * and opens a link for it on the website, open for one to seven days. The
+ * **Share a track** uploads a bounce from this machine to the website's
+ * Vercel Blob store and opens a link for it there, open for one to seven
+ * days. The
  * producer it is sent to types a name, listens, leaves notes at a moment or
  * over a section, tries tools on it (EQ, compressor or limiter, sidechain,
  * width, saturation) and sends it. Their feedback comes back here on the
  * check-ins, as the inbox's messages do, and is heard through the same
  * tools, A/B, on the console's transport.
  *
- * When a link closes, its page stops answering, and the track and its
- * feedback are deleted; the link stays in the list as EXPIRED until it is
- * removed. The meter is the free storage the tracks not yet deleted take.
- * See docs/CONSULTATION.md.
+ * When a link closes, its page stops answering, and the website deletes
+ * the track and its feedback; the link stays in the list as EXPIRED until
+ * it is removed. The meter is the free storage the tracks not yet deleted
+ * take. See docs/CONSULTATION.md.
  */
 export function ConsultationPage(): ReactNode {
   const section = getSection('consultation')
@@ -64,7 +65,9 @@ export function ConsultationPage(): ReactNode {
     null
   const live = all.filter((link) => isLinkOpen(link, now)).length
 
-  const canShare = reachable && state.storage.bucket !== null
+  // Unknown until the first check-in answers; the website refuses the pass then if it must.
+  const noStore = state.storage.configured === false
+  const canShare = reachable && !noStore
 
   return (
     <div className={styles.page}>
@@ -78,9 +81,9 @@ export function ConsultationPage(): ReactNode {
       />
 
       <WebsiteGate link={state.link} what="CONSULTATION">
-        A shared track is kept in the board&apos;s Firebase Storage and its link on the website,
-        both behind the same two accounts as the board, and signing in here signs in there too.
-        Nothing is fetched or shown until someone has.
+        A shared track and its link are kept by the website, behind the same two accounts as the
+        board, and signing in here signs in there too. Nothing is fetched or shown until someone
+        has.
       </WebsiteGate>
 
       {open ? (
@@ -91,8 +94,8 @@ export function ConsultationPage(): ReactNode {
               {...tooltipTrigger(
                 !reachable
                   ? 'Sharing opens a link on the website, so it needs the website'
-                  : state.storage.bucket === null
-                    ? 'The Firebase config names no Storage bucket yet'
+                  : noStore
+                    ? 'The website has no Blob store to keep tracks in yet'
                     : ''
               )}
             >
@@ -124,12 +127,12 @@ export function ConsultationPage(): ReactNode {
         </div>
       ) : null}
 
-      {open && state.storage.bucket === null ? (
+      {open && noStore ? (
         <p className={styles.notice}>
-          <span className={styles.noticeLabel}>NO BUCKET</span>
-          The Firebase config on this machine names no Storage bucket, so there is nowhere to upload
-          to. Set Storage up in the Firebase console, then paste the config again in REGULATION →
-          BOARD. The CATECHISM&apos;s CONSULTATION chapter has the steps.
+          <span className={styles.noticeLabel}>NO STORE</span>
+          The website has no Blob store yet, so there is nowhere to keep a shared track. It is set
+          up once, in the website&apos;s Vercel project, and costs nothing. The CATECHISM&apos;s
+          CONSULTATION chapter says where the steps are.
         </p>
       ) : null}
 
@@ -213,8 +216,8 @@ export function ConsultationPage(): ReactNode {
 }
 
 /**
- * How much of Firebase's free storage the shared tracks take: those not
- * deleted yet, from either copy of the console. Sharing refuses a track
+ * How much of the website's free Blob storage the shared tracks take: those
+ * not deleted yet, from either copy of the console. Sharing refuses a track
  * that would go past it.
  */
 function StorageMeter({ storage }: { storage: ConsultationStorage }): ReactNode {
@@ -224,7 +227,7 @@ function StorageMeter({ storage }: { storage: ConsultationStorage }): ReactNode 
     <div
       className={styles.meter}
       {...tooltipTrigger(
-        'Tracks not deleted yet, shared from either copy of the console, against what Firebase keeps for free. Ending a link deletes its track at once.'
+        'Tracks not deleted yet, shared from either copy of the console, against the storage Vercel’s free plan includes. Ending a link deletes its track at once.'
       )}
     >
       <Meter
