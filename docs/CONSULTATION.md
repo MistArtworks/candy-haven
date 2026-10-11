@@ -31,17 +31,21 @@ the website's `src/lib/consult/`, `/api/haven/consultations` or
    opened, main asks the website to delete the upload (`/discard`).
 3. Candy sends the link to a producer. The producer types a name (no
    account), plays the track with its waveform and a live spectrum, leaves
-   notes at a moment or over a section, puts tools on a section or on the
-   whole track (EQ, compressor or limiter, sidechain pumping, stereo width,
-   saturation), hears it A/B, and sends it. A Server Action files it.
+   notes at a moment or over a section, lays a chain of devices on a section
+   or on the whole track (EQs, stereo width, a compressor or limiter, each
+   switched on or off, in the order they drag them in), watches the meters
+   under the waveform (loudness in LUFS, a scope, a stereo imager), hears it
+   A/B, and sends it. A Server Action files it.
 4. The console checks in with the website, as the inbox does, and keeps a copy
    of every link and of the feedback on the open ones in the archive.
 5. CONSULTATION lists each link's producers. Each opens its own page, laid
-   out like the website's: the waveform with their notes under it on the
-   left; their tools on the right, one card each, held beside it and
+   out like the website's: the waveform with the same meters and their notes
+   under it on the left; their chain on the right, a strip of devices in the
+   order they're heard with the one picked shown below, held beside it and
    scrolling on their own. The track plays through their tools on the
    console's one transport: **As it is** and **Their settings** are the A/B.
-   Each tool folds to a line, and switches off to hear the track without it.
+   Each device switches off and on, to hear the track without it, and the one
+   shown folds to a line.
 6. When the link closes (its days run out, or **End now**), its page stops
    answering, and the website deletes the track and all its feedback. The
    record stays, as the track's name marked EXPIRED, until **Remove** forgets
@@ -63,10 +67,10 @@ website ─▶ deletes tracks: end, remove, sweep, and the daily cron
 What a producer's feedback is, the check it passes, and the Web Audio graph
 it is heard through are written once, in the website, and copied here:
 
-| Website (the master)      | Here                        | Holds                                                           |
-| ------------------------- | --------------------------- | --------------------------------------------------------------- |
-| `src/lib/consult/engine/` | `src/shared/consult/engine` | The types, the zod check, section and duck timing, the EQ scale |
-| `src/lib/consult/audio/`  | `src/shared/consult/audio`  | The graph, the filters, the EQ curve, the canvas drawing        |
+| Website (the master)      | Here                        | Holds                                                         |
+| ------------------------- | --------------------------- | ------------------------------------------------------------- |
+| `src/lib/consult/engine/` | `src/shared/consult/engine` | The types, the zod check, section timing, the EQ scale        |
+| `src/lib/consult/audio/`  | `src/shared/consult/audio`  | The graph, the filters, the EQ curve, the meters, the drawing |
 
 `npm run sync:consult` copies them; `npm run sync:consult -- --check` fails if
 the copy is out of date. **Edit the website's copy**, as with the planets. The
@@ -74,11 +78,24 @@ copy is left out of this repo's lint and format, and the audio half out of
 `tsconfig.node.json` (it needs the DOM).
 
 Because the graph is the same code, what Candy hears here is what the producer
-heard: the same filters (a 24 dB cut is a Butterworth pair), the same tanh
-saturation, ducks scheduled on the same beat from the BPM and offset, the same
-mid/side width, and the same `DynamicsCompressorNode` with makeup gain. The
-compressor and limiter are a guide to what the producer means, not a
-mastering-grade processor; the CATECHISM chapter says so.
+heard: the same devices in the same order, the same filters (a 24 dB cut is a
+Butterworth pair), the same mid/side width, and the same
+`DynamicsCompressorNode` with makeup gain. The compressor and limiter are a
+guide to what the producer means, not a mastering-grade processor; the
+CATECHISM chapter says so.
+
+The meters (`audio/meters.ts`) are the same code too. Loudness is measured as
+ITU-R BS.1770 does: the standard's own K-weighting, as IIR filters worked out
+for the context's sample rate, 400 ms momentary, 3 s short-term, and an
+integrated reading gated at −70 LUFS and −10 LU. They're plain nodes, no
+AudioWorklet, which this console's page couldn't load from a blob. Here they
+hang off the transport's analyser, after the Level fader, so the readings put
+the fader back.
+
+A chain stored before devices (`{ eq, saturation, sidechain, width, dynamics
+}`) is read through `upgradeChain` by the chain's own schema: its EQ, width
+and dynamics come over as devices, and saturation and the sidechain, which
+nothing plays any more, are left behind.
 
 ## The transport's insert slot
 
@@ -90,11 +107,11 @@ source and the analyser. `setBypass(on)` is the A/B. Opening any other file
 takes the tools off, so AUDITORIUM never inherits someone's EQ.
 
 A producer's page is `/consultation?link=<id>&producer=<id>`, which is also the
-insert's `path`: the transport bar's way back goes to it. Switching a tool
-off there calls `retune(tools)` with their tools less the ones off
-(`withoutPlugins` in `lib/track.ts`). Unlike `setInsert`, it leaves the A/B
-where it is. What they sent is not changed, and opening another producer has
-all of theirs on.
+insert's `path`: the transport bar's way back goes to it. Switching a device
+there calls `retune(tools)` with their tools and that switch flipped
+(`heardTools` in `lib/track.ts`). Unlike `setInsert`, it leaves the A/B where
+it is. What they sent is not changed, and opening another producer has theirs
+as they left them.
 
 The track comes from `consultation:audio`: the file it was shared from, when it
 is still where it was and the same size, and otherwise the copy in the store,
@@ -291,8 +308,8 @@ posted publicly is not what this is for. The figures are Vercel's, from
 - One track a link, 200 MB at most: refused before upload, with the hint to
   bounce at 16-bit or as a 320 kbps MP3.
 - 1 to 7 days, counted from when it was shared.
-- A submission holds 60 notes, 12 sections with tools, and 8 EQ points a set
-  of tools; a note is 1,000 characters.
+- A submission holds 60 notes and 12 sections with tools; a chain holds 8
+  devices, and an EQ 8 points; a note is 1,000 characters.
 - 10 submissions an hour per visitor. A producer can send more than once;
   each is kept separately.
 

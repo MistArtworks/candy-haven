@@ -317,7 +317,7 @@ export function ShareDialog({
                 ? `Between ${MIN_BPM} and ${MAX_BPM} BPM, or empty.`
                 : tempoFrom
                   ? `From ARCHIVE: ${tempoFrom}`
-                  : 'BPM, so their sidechain lands on the beat. Optional.'
+                  : 'BPM, shown to them beside the title. Optional.'
             }
             disabled={!editing}
           />

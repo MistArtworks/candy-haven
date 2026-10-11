@@ -663,9 +663,187 @@
   }
 }
 
-.foldAll {
-  display: inline-flex;
+// The meters under the waveform: loudness, the scope and the imager.
+.meterRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: space(2);
+}
+
+.meterCell {
+  display: flex;
+  flex-direction: column;
+  gap: space(1);
+  min-width: 0;
+  padding: space(2) space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+}
+
+.meterLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: space(2);
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.meterUnit {
+  color: var(--ch-text-faint);
+  opacity: 0.7;
+}
+
+.meterBig {
+  display: flex;
+  align-items: baseline;
+  gap: space(1);
+  @include readout(18px);
+  font-variant-numeric: tabular-nums;
+  color: var(--ch-text-primary);
+}
+
+.meterSmall {
+  display: flex;
   gap: space(3);
+  @include readout(10px);
+  font-variant-numeric: tabular-nums;
+  color: var(--ch-text-secondary);
+}
+
+.meterKey {
+  margin-right: 3px;
+  @include label(7px, 0.16em);
+  color: var(--ch-gold-300);
+}
+
+// Integrated, which starts again when pressed.
+.meterReset {
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.meterBar {
+  position: relative;
+  height: 3px;
+  margin-top: auto;
+  background: rgba(182, 158, 124, 0.12);
+}
+
+.meterFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ch-gold-300);
+}
+
+.meterTarget {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--ch-text-secondary);
+}
+
+.meterCanvas {
+  display: block;
+  width: 100%;
+  height: rem(72px);
+}
+
+// Their chain: a strip of devices, left to right as heard, each with its
+// switch; the one picked shown under it.
+.deviceChain {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2) space(5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.device {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  padding-right: space(2);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  transition:
+    border-color $duration-fast linear,
+    opacity $duration-fast linear;
+
+  // The signal's way, from each device to the next.
+  & + &::before {
+    position: absolute;
+    top: 50%;
+    left: -#{space(4)};
+    content: '→';
+    @include readout(10px);
+    color: var(--ch-text-faint);
+    transform: translateY(-50%);
+  }
+
+  &[data-open] {
+    border-color: var(--ch-line-gold);
+    box-shadow: inset 0 -2px 0 var(--ch-gold-400);
+  }
+
+  &[data-off] {
+    opacity: 0.55;
+  }
+}
+
+.deviceOpen {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: rem(96px);
+  padding: space(2) space(3);
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.deviceName {
+  @include label(8px, 0.18em);
+  color: var(--ch-gold-300);
+}
+
+.deviceSummary {
+  max-width: rem(150px);
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  @include truncate;
+}
+
+// A device the producer had switched off when they sent it.
+.offNote {
+  @include label(7px, 0.16em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
 }
 
 .toolsBody {

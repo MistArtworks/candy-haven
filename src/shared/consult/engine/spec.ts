@@ -4,6 +4,7 @@ import {
   DYNAMICS_MODES,
   EQ_BAND_TYPES,
   MAX_CHAINED_SECTIONS,
+  MAX_DEVICES,
   MAX_EQ_BANDS,
   MAX_ID,
   MAX_NAME,
@@ -12,8 +13,8 @@ import {
   MAX_SECONDS,
   MIN_SECTION_SECONDS,
   RANGES,
-  SIDECHAIN_RATES,
   chainIsEmpty,
+  upgradeChain,
   type Chain,
   type Feedback,
   type Range
@@ -24,10 +25,16 @@ import {
 // what reaches it may not have come from the page at all), and in Candy
 // Haven when it's read back. Built from the ranges in params.ts, so a
 // control and its check can't disagree.
+//
+// A chain stored before devices is read through upgradeChain first, so
+// feedback left that way still opens: in a draft in a producer's browser,
+// in the database, and in Haven's own copy.
 
 const ranged = ({ min, max }: Range) => z.number().finite().min(min).max(max);
 const id = z.string().min(1).max(MAX_ID);
 const seconds = z.number().finite().min(0).max(MAX_SECONDS);
+
+const unique = (ids: readonly string[]) => new Set(ids).size === ids.length;
 
 export const EqBandSchema = z.object({
   id,
@@ -36,20 +43,6 @@ export const EqBandSchema = z.object({
   gain: ranged(RANGES.gain),
   q: ranged(RANGES.q),
   slope: z.union([z.literal(CUT_SLOPES[0]), z.literal(CUT_SLOPES[1])])
-});
-
-export const SaturationSchema = z.object({
-  drive: ranged(RANGES.drive),
-  mix: ranged(RANGES.mix),
-  output: ranged(RANGES.output)
-});
-
-export const SidechainSchema = z.object({
-  bpm: ranged(RANGES.bpm),
-  rate: z.enum(SIDECHAIN_RATES),
-  depth: ranged(RANGES.depth),
-  release: ranged(RANGES.release),
-  offset: ranged(RANGES.offset)
 });
 
 export const WidthSchema = z.object({ width: ranged(RANGES.width) });
@@ -64,13 +57,40 @@ export const DynamicsSchema = z.object({
   makeup: ranged(RANGES.makeup)
 });
 
-export const ChainSchema = z.object({
-  eq: z.array(EqBandSchema).max(MAX_EQ_BANDS),
-  saturation: SaturationSchema.nullable(),
-  sidechain: SidechainSchema.nullable(),
-  width: WidthSchema.nullable(),
-  dynamics: DynamicsSchema.nullable()
-});
+export const DeviceSchema = z.discriminatedUnion('kind', [
+  z.object({
+    id,
+    kind: z.literal('eq'),
+    on: z.boolean(),
+    bands: z
+      .array(EqBandSchema)
+      .max(MAX_EQ_BANDS)
+      .refine((bands) => unique(bands.map((band) => band.id)), {
+        message: 'Two points share an id.'
+      })
+  }),
+  z.object({
+    id,
+    kind: z.literal('width'),
+    on: z.boolean(),
+    width: WidthSchema
+  }),
+  z.object({
+    id,
+    kind: z.literal('dynamics'),
+    on: z.boolean(),
+    dynamics: DynamicsSchema
+  })
+]);
+
+export const ChainSchema = z.preprocess(
+  upgradeChain,
+  z
+    .object({ devices: z.array(DeviceSchema).max(MAX_DEVICES) })
+    .refine((chain) => unique(chain.devices.map((device) => device.id)), {
+      message: 'Two devices share an id.'
+    })
+);
 
 export const NoteSchema = z
   .object({
@@ -103,12 +123,9 @@ export const FeedbackSchema = z
       MAX_CHAINED_SECTIONS,
     { message: `Tools go on ${MAX_CHAINED_SECTIONS} sections at most.` }
   )
-  .refine(
-    (feedback) =>
-      new Set(feedback.notes.map((note) => note.id)).size ===
-      feedback.notes.length,
-    { message: 'Two notes share an id.' }
-  )
+  .refine((feedback) => unique(feedback.notes.map((note) => note.id)), {
+    message: 'Two notes share an id.'
+  })
   .refine(
     (feedback) => feedback.notes.length > 0 || !chainIsEmpty(feedback.chain),
     { message: 'Leave a note, or put a tool on the track.' }
@@ -137,7 +154,7 @@ export function parseFeedback(
   return feedback;
 }
 
-/** One set of tools as it can be trusted, or null. */
+/** One set of tools as it can be trusted, or null. Old ones come as devices. */
 export function parseChain(raw: unknown): Chain | null {
   const parsed = ChainSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;

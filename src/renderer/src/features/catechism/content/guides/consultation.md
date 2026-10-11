@@ -15,13 +15,13 @@ for, and press **Share**. Then **Copy link**, and send it.
 ![consultation-03-feedback.png](consultation-03-feedback.png)
 
 Press **Check for new**, pick the track, then a producer: their page opens.
-Their notes are pins and bands on the waveform, listed under it. Their
-settings are on the right, a card per tool, in words, with the EQ drawn as a
-curve.
+Their notes are pins and bands on the waveform, listed under it, with the
+loudness, scope and stereo meters. Their chain of devices is on the right;
+press one to see its settings, the EQ drawn as a curve.
 
 **Play**, or press a note, to hear it through their settings. **As it is** and
-**their settings** are the A/B; the transport bar does it from any page. Fold
-a card with its arrow, or switch a tool off to hear the track without it.
+**their settings** are the A/B; the transport bar does it from any page.
+Switch a device off to hear the track without it, or fold its view away.
 
 ## When it closes
 

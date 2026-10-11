@@ -1,14 +1,14 @@
 import type { AudioPayload } from '@shared/domain/auditorium'
 import type { ConsultationFeedback } from '@shared/domain/consultation'
 import {
-  TOOL_KINDS,
   chainIsEmpty,
   compactPeaks,
+  deviceIsNeutral,
   encodeWaveform,
   formatSpan,
   type Chain,
-  type Note,
-  type ToolKind
+  type Device,
+  type Note
 } from '@shared/consult/engine'
 import type { Tools } from '@shared/consult/audio'
 import { surveyPeaks } from '@renderer/features/auditorium/lib/survey'
@@ -98,35 +98,38 @@ export function scopesOf(feedback: ConsultationFeedback): ToolScope[] {
   return scopes
 }
 
-/** The tools a chain has on, in the order they are heard. */
-export function stagesIn(chain: Chain): ToolKind[] {
-  return TOOL_KINDS.filter((kind) => (kind === 'eq' ? chain.eq.length > 0 : chain[kind] !== null))
-}
+/** The devices in a chain doing something to the sound: an EQ with no points doesn't count. */
+export const shapingDevices = (chain: Chain | null): Device[] =>
+  (chain?.devices ?? []).filter((device) => !deviceIsNeutral(device))
 
-/** One tool in one place: `whole:eq`, `<note id>:dynamics`. */
-export const pluginKey = (scope: string, kind: ToolKind): string => `${scope}:${kind}`
+/** One device in one place: `whole:<device id>`, `<note id>:<device id>`. */
+export const pluginKey = (scope: string, deviceId: string): string => `${scope}:${deviceId}`
+
+/** Switches flipped here, by `pluginKey`: whether that device is heard now. */
+export type Flips = ReadonlyMap<string, boolean>
+
+/** Whether a device is heard: as the producer left it, unless flipped here. */
+export const isHeard = (flips: Flips, scope: string, device: Device): boolean =>
+  flips.get(pluginKey(scope, device.id)) ?? device.on
 
 /**
- * A producer's tools with the ones switched off here taken out, to hear
- * what each does. What they sent is not changed. A section left with
- * nothing on drops its chain, so the graph has no idle slot for it.
+ * A producer's tools with the switches flipped here, to hear what each
+ * device does. What they sent is not changed. A section left with nothing
+ * heard drops its chain, so the graph has no idle slot for it.
  */
-export function withoutPlugins(feedback: ConsultationFeedback, off: ReadonlySet<string>): Tools {
-  if (off.size === 0) return toolsOf(feedback)
-  const strip = (chain: Chain | null, scope: string): Chain | null => {
+export function heardTools(feedback: ConsultationFeedback, flips: Flips): Tools {
+  if (flips.size === 0) return toolsOf(feedback)
+  const apply = (chain: Chain | null, scope: string): Chain | null => {
     if (!chain) return null
-    const kept: Chain = {
-      eq: off.has(pluginKey(scope, 'eq')) ? [] : chain.eq,
-      saturation: off.has(pluginKey(scope, 'saturation')) ? null : chain.saturation,
-      sidechain: off.has(pluginKey(scope, 'sidechain')) ? null : chain.sidechain,
-      width: off.has(pluginKey(scope, 'width')) ? null : chain.width,
-      dynamics: off.has(pluginKey(scope, 'dynamics')) ? null : chain.dynamics
-    }
-    return chainIsEmpty(kept) ? null : kept
+    const devices = chain.devices.map((device) => ({
+      ...device,
+      on: isHeard(flips, scope, device)
+    }))
+    return devices.some((device) => device.on) ? { devices } : null
   }
   return {
-    notes: feedback.notes.map((note) => ({ ...note, chain: strip(note.chain, note.id) })),
-    chain: strip(feedback.chain, WHOLE)
+    notes: feedback.notes.map((note) => ({ ...note, chain: apply(note.chain, note.id) })),
+    chain: apply(feedback.chain, WHOLE)
   }
 }
 

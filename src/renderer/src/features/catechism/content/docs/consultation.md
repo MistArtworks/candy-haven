@@ -10,13 +10,16 @@ Behind the DISPATCH sign-in.
 You share a track you are still working on, and get a link on the website to
 send to another producer. They open it, type their name, and listen. They can
 leave a note at a moment ("the snare's too loud here"), mark out a section and
-leave a note on it, and try tools on a section or on the whole track: an EQ
-with points they add and remove, a compressor or a limiter, sidechain pumping,
-stereo width and saturation. Then they send it.
+leave a note on it, and lay a chain of devices on a section or on the whole
+track, the way a DAW chains them: EQs (as many as they like, a point made by
+pressing the graph), stereo width, and a compressor or a limiter, each switched
+on or off. Meters under the waveform show its loudness in LUFS, a scope and a
+stereo imager. Then they send it.
 
 Their feedback comes back here. You read their notes pinned on the waveform,
-read their settings in words and as the EQ's curve, and **hear the track
-through their settings**, switching between that and the track as it is.
+read their chain device by device, and **hear the track through their
+settings**, switching between that and the track as it is, with the same
+meters.
 
 A link is open for one to seven days. When it closes, the page stops working,
 and the track and every piece of feedback are deleted. The link stays here,
@@ -40,8 +43,8 @@ fetched or shown.
 3. Check the **Title**. It starts as the file's name; the page shows it above
    the track.
 4. Check the **Tempo**. If the file sits in an ARCHIVE project's folder, it is
-   that project's tempo, and the hint says which project. It lets their
-   sidechain land on the beat; leave it empty if you don't know it.
+   that project's tempo, and the hint says which project. Their page shows
+   it beside the title; leave it empty if you don't know it.
 5. Choose how long the link is open: **1 DAY** to **7 DAYS**. The hint says
    when it will close.
 6. Under **What to listen for**, say what you want to know, if anything. It is
@@ -76,10 +79,12 @@ read by then is gone.
    feedback stops counting as new.
 3. Pick a producer. Their page opens:
    - **On the left:** the waveform, with their moments as pins and their
-     sections as bands, and their notes in order underneath.
-   - **On the right:** their tools, a card each, in words, with the EQ drawn
-     as a curve over the track's sound. Choose **Whole track** or a section
-     above the cards. A note's **Tools →** does the same.
+     sections as bands, the meters under it, and their notes in order
+     underneath.
+   - **On the right:** their chain, a strip of devices in the order they're
+     heard. Press one to see it below: an EQ as its curve over the track's
+     sound and its points in words, the width, the dynamics. Choose **Whole
+     track** or a section above the strip. A note's **Tools →** does the same.
    - **Across the top:** the other producers, to move between them.
 4. Press **Play**, or press the waveform, or a note, to play from there. The
    track plays through their settings: each section's tools switch in where
@@ -87,11 +92,18 @@ read by then is gone.
    are on all the way through.
 5. Press **As it is** to hear the track without their settings, and **their
    name's settings** to hear it with them again. That is the A/B.
-6. A card's arrow folds it to one line, and **Collapse all** and **Expand all**
-   do every card at once.
-7. A card's switch turns that tool off: you hear their settings without it,
-   to tell what it does. What they sent isn't changed. **Turn all on** brings
-   every tool back, and opening another producer has all of theirs on.
+6. The device shown folds to one line with its arrow, and stays folded as you
+   move between producers.
+7. A device's switch turns it off, or on: you hear their settings without it,
+   to tell what it does. A device they had switched off says so. What they
+   sent isn't changed. **Back to theirs** puts every switch back as they left
+   it, and opening another producer has theirs as they left them.
+8. The meters: **S** is the last 3 seconds' loudness, **M** the last 0.4 s,
+   and **I** all of what you've played since you opened the page (press it to
+   start again). The bar marks −14 LUFS, what streaming services play to. The
+   scope and the imager show the two sides: a straight up-and-down line is
+   mono, a wide cloud is wide, and the bar under the imager running left is the
+   two sides cancelling.
 
 ![consultation-03-feedback.png](consultation-03-feedback.png)
 

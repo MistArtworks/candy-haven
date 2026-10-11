@@ -29,7 +29,7 @@ export const MAX_TRACK_BYTES = 200 * 1024 ** 2
 export const MAX_TITLE = 120
 export const MAX_MESSAGE = 1000
 
-/** The tempo range the producers' sidechain accepts, and so this field. */
+/** The tempo range the website takes for a track, and so this field. */
 export const MIN_BPM = 60
 export const MAX_BPM = 200
 

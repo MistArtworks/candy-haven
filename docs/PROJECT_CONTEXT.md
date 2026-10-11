@@ -951,9 +951,11 @@ Song feedback from other producers. The full capture is
   Vercel Blob store (`consultation/<uuid>.<ext>`) with a one-file pass the
   website gives on DISPATCH's sign-in, and opens a link on the website,
   `/consult/<token>`, for 1 to 7 days. The producer types a name, plays it,
-  leaves notes at a moment or over a section, puts tools on a section or the
-  whole track (EQ with added and removed points, compressor or limiter,
-  sidechain, width, saturation) and sends it. No account.
+  leaves notes at a moment or over a section, lays a chain of devices on a
+  section or the whole track (EQs, width, compressor or limiter, each on or
+  off, dragged in from a palette), with LUFS, scope and stereo meters under
+  the waveform, and sends it. No account. Saturation and the sidechain were
+  removed on 2026-10-11; chains stored before devices upgrade on read.
 - **Vercel Blob, not Firebase Storage** (2026-10-11): Firebase Storage needs
   the Blaze plan since 2026-02-03, and the operator won't move to Blaze. Blob
   on Vercel's free Hobby plan never charges; past its allowance (1 GB stored,

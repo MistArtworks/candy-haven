@@ -1,16 +1,14 @@
 import {
   EQ_BAND_READS,
+  heardDevices,
   type Chain,
-  type Note,
-  type Sidechain
+  type Device,
+  type Dynamics,
+  type Note
 } from '../engine/params';
 import {
-  DUCK_ATTACK,
   chainedSections,
   covers,
-  duckFloor,
-  duckRecovery,
-  duckTimes,
   edgesBetween,
   type ChainedSection
 } from '../engine/schedule';
@@ -25,16 +23,21 @@ import { filtersFor, tuneFilters } from './filters';
 //   input ─┬─ bypass ─────────────────────────────────────┬─ output
 //          └─ section ─ section ─ … ─ whole song ─ tools ──┘
 //
+// A set of tools is a chain of devices, heard in the order he laid them:
+// an EQ's filters, the width's mid and side, the compressor and its gain.
+// A device switched off is left out.
+//
 // A section's tools are always connected, and faded between it and the
 // plain sound at its edges, so moving through the track never rebuilds
-// anything. The fades and the sidechain's ducks are scheduled ahead on the
-// audio clock, a couple of seconds at a time, so they land where they
-// should even while a browser slows the page's timers down.
+// anything. The fades are scheduled ahead on the audio clock, a couple of
+// seconds at a time, so they land where they should even while a browser
+// slows the page's timers down.
 //
 // Moving a control doesn't rebuild anything either: while the tools keep
-// their shape (the same points of the same kinds, the same tools on),
-// their values glide to the new ones in place. Only adding or removing
-// something rebuilds, which is a press, not a drag.
+// their shape (the same devices in the same order, the same points of the
+// same kinds), their values glide to the new ones in place. Only adding,
+// removing, moving or switching a device rebuilds, which is a press, not a
+// drag.
 
 /** The tools to hear: a producer's sections, and those on the whole song. */
 export interface Tools {
@@ -52,8 +55,8 @@ export interface ConsultGraph {
   /** Play the track as it is without forgetting the tools: the A/B. */
   bypass(on: boolean): void;
   /**
-   * Follow a media element's playhead, so sections and ducks land in time.
-   * Answers the way to stop following.
+   * Follow a media element's playhead, so sections land in time. Answers
+   * the way to stop following.
    */
   follow(element: HTMLMediaElement): () => void;
   /** Everything disconnected; the graph can't be used again. */
@@ -73,49 +76,31 @@ const GLIDE = 0.015;
 /** How far the playhead and the audio clock may part, in seconds, before the schedule is laid again. */
 const DRIFT = 0.12;
 
-/** The most drive saturation reaches: what its curve is drawn to take. */
-const MAX_DRIVE = dbToGain(24);
-
-const tanhCurves = new WeakMap<BaseAudioContext, Float32Array<ArrayBuffer>>();
-
-/** tanh over the whole drive range, drawn once per context. */
-function tanhCurve(context: BaseAudioContext): Float32Array<ArrayBuffer> {
-  let curve = tanhCurves.get(context);
-  if (!curve) {
-    curve = new Float32Array(4096);
-    for (let i = 0; i < curve.length; i++) {
-      const x = (i / (curve.length - 1)) * 2 - 1;
-      curve[i] = Math.tanh(x * MAX_DRIVE);
-    }
-    tanhCurves.set(context, curve);
+/** What one device is made of, without its values. */
+function deviceShape(device: Device): string {
+  switch (device.kind) {
+    case 'eq':
+      return `e(${device.bands
+        .map((b) =>
+          EQ_BAND_READS[b.type].slope ? `${b.type}${b.slope}` : b.type
+        )
+        .join(',')})`;
+    case 'width':
+      return 'w';
+    case 'dynamics':
+      return 'd';
   }
-  return curve;
 }
 
 /** What a set of tools is made of, without its values: equal shapes, equal nodes. */
 function shapeOf(chain: Chain | null): string {
   if (!chain) return '-';
-  const bands = chain.eq
-    .map((b) => (EQ_BAND_READS[b.type].slope ? `${b.type}${b.slope}` : b.type))
-    .join(',');
-  const tools = [
-    chain.saturation && 's',
-    chain.sidechain && 'c',
-    chain.width && 'w',
-    chain.dynamics && 'd'
-  ];
-  return `${bands}|${tools.filter(Boolean).join('')}`;
-}
-
-interface Duck {
-  gain: AudioParam;
-  sidechain: Sidechain;
+  return heardDevices(chain).map(deviceShape).join('>');
 }
 
 interface Stage {
   input: AudioNode;
   output: AudioNode;
-  ducks: Duck[];
   nodes: AudioNode[];
   shape: string;
   /** Moves every value to `chain`'s, which must have this stage's shape. */
@@ -129,7 +114,7 @@ const place: Apply = (param, value) => {
   param.value = value;
 };
 
-/** One set of tools, in the order they're heard. */
+/** One set of tools: its devices that are on, in the order they're heard. */
 function buildStage(context: BaseAudioContext, chain: Chain | null): Stage {
   const nodes: AudioNode[] = [];
   const keep = <T extends AudioNode>(node: T): T => {
@@ -146,7 +131,6 @@ function buildStage(context: BaseAudioContext, chain: Chain | null): Stage {
     param.setTargetAtTime(value, context.currentTime, GLIDE);
   };
   const input = gain(1);
-  const ducks: Duck[] = [];
   const tuners: Array<(next: Chain) => void> = [];
   let head: AudioNode = input;
   const link = (node: AudioNode) => {
@@ -154,115 +138,96 @@ function buildStage(context: BaseAudioContext, chain: Chain | null): Stage {
     head = node;
   };
 
-  const stage = (): Stage => ({
+  heardDevices(chain).forEach((device, i) => {
+    /** The same device in a chain of the same shape: the one in this place. */
+    const counterpart = (next: Chain) => heardDevices(next)[i];
+
+    switch (device.kind) {
+      case 'eq': {
+        const filters = device.bands.map((band) => {
+          const made = filtersFor(context, band).map(keep);
+          for (const filter of made) link(filter);
+          return made;
+        });
+        tuners.push((next) => {
+          const same = counterpart(next);
+          if (same?.kind !== 'eq') return;
+          filters.forEach((made, j) => {
+            const band = same.bands[j];
+            if (band) tuneFilters(made, band, GLIDE);
+          });
+        });
+        break;
+      }
+
+      case 'width': {
+        // Mid and side, with the side scaled: left' = ½(1+w)L + ½(1−w)R.
+        const splitter = keep(context.createChannelSplitter(2));
+        const merger = keep(context.createChannelMerger(2));
+        head.connect(splitter);
+        const route = (from: 0 | 1, to: 0 | 1) => {
+          const node = gain(0);
+          splitter.connect(node, from).connect(merger, 0, to);
+          return node;
+        };
+        const same = [route(0, 0), route(1, 1)];
+        const cross = [route(1, 0), route(0, 1)];
+        head = merger;
+        const set = (w: number, apply: Apply) => {
+          for (const node of same) apply(node.gain, (1 + w) / 2);
+          for (const node of cross) apply(node.gain, (1 - w) / 2);
+        };
+        set(device.width.width, place);
+        tuners.push((next) => {
+          const other = counterpart(next);
+          if (other?.kind === 'width') set(other.width.width, glide);
+        });
+        break;
+      }
+
+      case 'dynamics': {
+        const compressor = keep(context.createDynamicsCompressor());
+        link(compressor);
+        const makeup = gain(1);
+        link(makeup);
+        const params = [
+          compressor.threshold,
+          compressor.ratio,
+          compressor.knee,
+          compressor.attack,
+          compressor.release,
+          makeup.gain
+        ];
+        const set = (d: Dynamics, apply: Apply) => {
+          const values = [
+            d.threshold,
+            d.ratio,
+            d.knee,
+            d.attack,
+            d.release,
+            dbToGain(d.makeup)
+          ];
+          params.forEach((param, j) => apply(param, values[j]));
+        };
+        set(device.dynamics, place);
+        tuners.push((next) => {
+          const other = counterpart(next);
+          if (other?.kind === 'dynamics') set(other.dynamics, glide);
+        });
+        break;
+      }
+    }
+  });
+
+  return {
     input,
     output: head,
-    ducks,
     nodes,
     shape: shapeOf(chain),
     tune(next) {
       if (next) for (const tuner of tuners) tuner(next);
     }
-  });
-
-  if (!chain) return stage();
-
-  chain.eq.forEach((band, i) => {
-    const filters = filtersFor(context, band).map(keep);
-    for (const filter of filters) link(filter);
-    tuners.push((next) => tuneFilters(filters, next.eq[i], GLIDE));
-  });
-
-  if (chain.saturation) {
-    const split = head;
-    // Pushed into tanh by the drive, then brought back by it, so a quiet
-    // passage comes out as loud as it went in and only the peaks bend.
-    const shaper = keep(context.createWaveShaper());
-    shaper.curve = tanhCurve(context);
-    shaper.oversample = '4x';
-    const dry = gain(0);
-    const push = gain(0);
-    const wet = gain(0);
-    const sum = gain(0);
-    split.connect(dry).connect(sum);
-    split.connect(push).connect(shaper).connect(wet).connect(sum);
-    head = sum;
-    const set = (next: Chain, apply: Apply) => {
-      if (!next.saturation) return;
-      const { drive, mix, output } = next.saturation;
-      apply(dry.gain, 1 - mix);
-      apply(push.gain, dbToGain(drive) / MAX_DRIVE);
-      apply(wet.gain, mix / dbToGain(drive));
-      apply(sum.gain, dbToGain(output));
-    };
-    set(chain, place);
-    tuners.push((next) => set(next, glide));
-  }
-
-  if (chain.sidechain) {
-    const duck = gain(1);
-    link(duck);
-    const entry: Duck = { gain: duck.gain, sidechain: chain.sidechain };
-    ducks.push(entry);
-    tuners.push((next) => {
-      if (next.sidechain) entry.sidechain = next.sidechain;
-    });
-  }
-
-  if (chain.width) {
-    // Mid and side, with the side scaled: left' = ½(1+w)L + ½(1−w)R.
-    const splitter = keep(context.createChannelSplitter(2));
-    const merger = keep(context.createChannelMerger(2));
-    head.connect(splitter);
-    const route = (from: 0 | 1, to: 0 | 1) => {
-      const node = gain(0);
-      splitter.connect(node, from).connect(merger, 0, to);
-      return node;
-    };
-    const same = [route(0, 0), route(1, 1)];
-    const cross = [route(1, 0), route(0, 1)];
-    head = merger;
-    const set = (next: Chain, apply: Apply) => {
-      if (!next.width) return;
-      const w = next.width.width;
-      for (const node of same) apply(node.gain, (1 + w) / 2);
-      for (const node of cross) apply(node.gain, (1 - w) / 2);
-    };
-    set(chain, place);
-    tuners.push((next) => set(next, glide));
-  }
-
-  if (chain.dynamics) {
-    const compressor = keep(context.createDynamicsCompressor());
-    link(compressor);
-    const makeup = gain(1);
-    link(makeup);
-    const params = [
-      compressor.threshold,
-      compressor.ratio,
-      compressor.knee,
-      compressor.attack,
-      compressor.release,
-      makeup.gain
-    ];
-    const set = (next: Chain, apply: Apply) => {
-      if (!next.dynamics) return;
-      const d = next.dynamics;
-      const values = [
-        d.threshold,
-        d.ratio,
-        d.knee,
-        d.attack,
-        d.release,
-        dbToGain(d.makeup)
-      ];
-      params.forEach((param, i) => apply(param, values[i]));
-    };
-    set(chain, place);
-    tuners.push((next) => set(next, glide));
-  }
-
-  return stage();
+  };
 }
 
 /** A section's tools, faded in over its length and out around it. */
@@ -275,13 +240,9 @@ interface Slot {
   stage: Stage;
 }
 
-/** What has to be scheduled again when it changes: the edges and the ducks. */
-function timingOf(sections: readonly ChainedSection[], chain: Chain | null) {
-  const ducks = [...sections.map((s) => s.chain), chain].map((c) =>
-    c?.sidechain ? Object.values(c.sidechain).join(':') : ''
-  );
-  return `${sections.map((s) => `${s.at}-${s.end}`).join(',')}/${ducks.join(',')}`;
-}
+/** What has to be scheduled again when it changes: the sections' edges. */
+const timingOf = (sections: readonly ChainedSection[]) =>
+  sections.map((s) => `${s.at}-${s.end}`).join(',');
 
 export function createConsultGraph(context: BaseAudioContext): ConsultGraph {
   // Two channels from here on, whatever the file: a mono track would
@@ -306,11 +267,6 @@ export function createConsultGraph(context: BaseAudioContext): ConsultGraph {
   let anchor = { track: 0, audio: 0, rate: 1 };
   let laidUntil = 0;
 
-  const ducks = () => [
-    ...slots.flatMap((slot) => slot.stage.ducks),
-    ...whole.ducks
-  ];
-
   const audioAt = (track: number) =>
     anchor.audio + (track - anchor.track) / anchor.rate;
 
@@ -330,11 +286,6 @@ export function createConsultGraph(context: BaseAudioContext): ConsultGraph {
       slot.plain.gain.cancelScheduledValues(now);
       switchSlot(slot, covers(slot.section, track), now);
     }
-    // A duck already under way comes back up at its own pace, not with a jump.
-    for (const duck of ducks()) {
-      duck.gain.cancelScheduledValues(now);
-      duck.gain.setTargetAtTime(1, now, duckRecovery(duck.sidechain));
-    }
     lay();
   }
 
@@ -352,21 +303,6 @@ export function createConsultGraph(context: BaseAudioContext): ConsultGraph {
     for (const slot of slots)
       for (const edge of edgesBetween(slot.section, laidUntil, until))
         switchSlot(slot, edge.on, Math.max(now, audioAt(edge.time)));
-    for (const duck of ducks())
-      for (const time of duckTimes(duck.sidechain, laidUntil, until)) {
-        const at = audioAt(time);
-        if (at < now) continue;
-        duck.gain.setTargetAtTime(
-          duckFloor(duck.sidechain),
-          at,
-          DUCK_ATTACK / 3
-        );
-        duck.gain.setTargetAtTime(
-          1,
-          at + DUCK_ATTACK,
-          duckRecovery(duck.sidechain)
-        );
-      }
     laidUntil = until;
   }
 
@@ -417,7 +353,7 @@ export function createConsultGraph(context: BaseAudioContext): ConsultGraph {
       ...sections.map((s) => `${s.id}:${shapeOf(s.chain)}`),
       shapeOf(chain)
     ].join('/');
-    const nextTiming = timingOf(sections, chain);
+    const nextTiming = timingOf(sections);
 
     if (nextShape === shape) {
       slots.forEach((slot, i) => {

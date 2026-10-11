@@ -2,7 +2,9 @@ import {
   DYNAMICS_LABEL,
   EQ_BAND_LABEL,
   EQ_BAND_READS,
+  deviceTitle,
   type Chain,
+  type Device,
   type EqBand
 } from './params';
 
@@ -52,27 +54,62 @@ export function describeBand(band: EqBand): string {
   return `${name} at ${at}, ${formatQ(band.q)}`;
 }
 
-/** Each tool on a line, in the order they're heard. */
+/**
+ * What one device does, a line each: an EQ's points from the lowest up,
+ * or the one setting the others come down to.
+ */
+export function describeDevice(device: Device): string[] {
+  switch (device.kind) {
+    case 'eq':
+      return [...device.bands]
+        .sort((a, b) => a.frequency - b.frequency)
+        .map(describeBand);
+    case 'width':
+      return [`Stereo width ${percent(device.width.width)}`];
+    case 'dynamics': {
+      const { dynamics } = device;
+      return [
+        dynamics.mode === 'limiter'
+          ? `${DYNAMICS_LABEL.limiter} at ${formatDb(dynamics.threshold)}, ${formatDb(dynamics.makeup)} gain`
+          : `${DYNAMICS_LABEL.compressor} ${Number(dynamics.ratio.toFixed(1))}:1 at ${formatDb(dynamics.threshold)}`
+      ];
+    }
+  }
+}
+
+/** A device in a few words, for its tile: `3 points`, `120%`, `4:1 at −18 dB`. */
+export function summarizeDevice(device: Device): string {
+  switch (device.kind) {
+    case 'eq': {
+      const count = device.bands.length;
+      if (count === 0) return 'No points yet';
+      if (count === 1) return describeBand(device.bands[0]);
+      return `${count} points`;
+    }
+    case 'width':
+      return percent(device.width.width);
+    case 'dynamics': {
+      const { dynamics } = device;
+      return dynamics.mode === 'limiter'
+        ? `Limit at ${formatDb(dynamics.threshold)}`
+        : `${Number(dynamics.ratio.toFixed(1))}:1 at ${formatDb(dynamics.threshold)}`;
+    }
+  }
+}
+
+/**
+ * Each device's lines, in the order they're heard. A device switched off
+ * says so; where a chain has two of a kind, each line names its device.
+ */
 export function describeChain(chain: Chain | null): string[] {
   if (!chain) return [];
-  const lines = [...chain.eq]
-    .sort((a, b) => a.frequency - b.frequency)
-    .map(describeBand);
-  const { saturation, sidechain, width, dynamics } = chain;
-  if (saturation)
-    lines.push(
-      `Saturation ${formatDb(saturation.drive)} drive, ${percent(saturation.mix)} mix`
-    );
-  if (sidechain)
-    lines.push(
-      `Sidechain ${sidechain.rate} at ${Number(sidechain.bpm.toFixed(2))} BPM, ${percent(sidechain.depth)} deep`
-    );
-  if (width) lines.push(`Stereo width ${percent(width.width)}`);
-  if (dynamics)
-    lines.push(
-      dynamics.mode === 'limiter'
-        ? `${DYNAMICS_LABEL.limiter} at ${formatDb(dynamics.threshold)}, ${formatDb(dynamics.makeup)} gain`
-        : `${DYNAMICS_LABEL.compressor} ${Number(dynamics.ratio.toFixed(1))}:1 at ${formatDb(dynamics.threshold)}`
-    );
-  return lines;
+  return chain.devices.flatMap((device) => {
+    const lines = describeDevice(device);
+    const many =
+      chain.devices.filter((other) => other.kind === device.kind).length > 1;
+    const named = many
+      ? lines.map((line) => `${deviceTitle(chain, device)}: ${line}`)
+      : lines;
+    return device.on ? named : named.map((line) => `${line} (off)`);
+  });
 }

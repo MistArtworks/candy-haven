@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { Consultation, ConsultationFeedback } from '@shared/domain/consultation'
-import { TOOL_KINDS, formatClock, type Note, type ToolKind } from '@shared/consult/engine'
+import { formatClock, type Device, type Note } from '@shared/consult/engine'
 import { usePlayback } from '@renderer/app/providers/playback'
 import { notify } from '@renderer/components/feedback/notify'
 import { Button } from '@renderer/components/primitives/Button'
@@ -13,23 +13,24 @@ import { insertFor, trackKey } from '../lib/listen'
 import {
   WHOLE,
   hasTools,
+  heardTools,
+  isHeard,
   noteAt,
   pluginKey,
   scopesOf,
-  stagesIn,
   toolsOf,
-  withoutPlugins
+  type Flips
 } from '../lib/track'
+import { DeviceChain } from './DeviceChain'
 import { FeedbackWaveform } from './FeedbackWaveform'
-import { PluginCard } from './PluginCard'
+import { MeterRow } from './MeterRow'
 import { ProducerNotes } from './ProducerNotes'
 import styles from '../Consultation.module.scss'
 
 /** How near a pin a press must land to pick its note, as a share of the track. */
 const PIN_REACH = 0.006
 
-const NONE: ReadonlySet<string> = new Set()
-const NONE_FOLDED: ReadonlySet<ToolKind> = new Set()
+const NONE: Flips = new Map()
 
 /**
  * One producer's feedback on one open link, laid out as the website's page
@@ -38,10 +39,11 @@ const NONE_FOLDED: ReadonlySet<ToolKind> = new Set()
  *
  * Playing goes through the console's one transport, with their tools in
  * its insert slot, so it keeps playing on any page and the bar's way back
- * comes here. **As it is** and **Their settings** are the A/B. Each tool
- * folds to a line and unfolds again, and switches off, to hear what it
- * does: what they sent is not changed, and opening another producer has
- * all of theirs on.
+ * comes here; the meters under the waveform read it as heard. **As it is**
+ * and **Their settings** are the A/B. Their tools are their chain of
+ * devices, as they laid it: each switches off and on, to hear what it
+ * does (what they sent is not changed, and opening another producer has
+ * theirs as they left them), and the one shown folds away to a line.
  */
 export function ProducerPage({
   link,
@@ -67,6 +69,7 @@ export function ProducerPage({
     playing,
     position,
     loading,
+    volume,
     openFrom,
     setInsert,
     retune,
@@ -74,11 +77,15 @@ export function ProducerPage({
     toggle
   } = usePlayback()
   // Each kept for the producer it was set on: another one starts afresh.
-  const [off, setOff] = useState<{ id: string; keys: ReadonlySet<string> }>({ id: '', keys: NONE })
+  const [flipped, setFlipped] = useState<{ id: string; flips: Flips }>({ id: '', flips: NONE })
   const [scope, setScope] = useState<{ id: string; scope: string }>({ id: '', scope: '' })
   const [active, setActive] = useState<{ id: string; note: string | null }>({ id: '', note: null })
-  // Kept from one producer to the next: the tools folded away.
-  const [folded, setFolded] = useState<ReadonlySet<ToolKind>>(NONE_FOLDED)
+  const [shownDevice, setShownDevice] = useState<{ id: string; by: Record<string, string> }>({
+    id: '',
+    by: {}
+  })
+  // Kept from one producer to the next: the device view folded away.
+  const [folded, setFolded] = useState(false)
 
   const who = feedback.find((entry) => entry.id === producerId) ?? null
   const key = trackKey(link)
@@ -105,15 +112,17 @@ export function ProducerPage({
   const tooled = hasTools(who)
   const duration = link.durationMs / 1000
   const notes = [...who.notes].sort((a, b) => a.at - b.at)
-  const switchedOff = off.id === who.id ? off.keys : NONE
+  const flips = flipped.id === who.id ? flipped.flips : NONE
   const scopes = scopesOf(who)
   const shown =
     scopes.find((option) => scope.id === who.id && option.id === scope.scope) ?? scopes[0]
   const activeNote = active.id === who.id ? active.note : null
+  const shownDeviceId =
+    shown && shownDevice.id === who.id ? (shownDevice.by[shown.id] ?? null) : null
 
-  /** Their tools on, less any switched off here; off when they put none on. */
+  /** Their tools on, with any switches flipped here; off when they put none on. */
   const through = (entry: ConsultationFeedback): void => {
-    setInsert(insertFor(link, entry, entry.id === who.id ? switchedOff : NONE))
+    setInsert(insertFor(link, entry, entry.id === who.id ? flips : NONE))
   }
 
   /**
@@ -152,27 +161,26 @@ export function ProducerPage({
     void listen(who, note.at)
   }
 
-  const switchPlugin = (scopeId: string, kind: ToolKind, on: boolean): void => {
-    const next = new Set(switchedOff)
-    if (on) next.delete(pluginKey(scopeId, kind))
-    else next.add(pluginKey(scopeId, kind))
-    setOff({ id: who.id, keys: next })
+  const switchDevice = (scopeId: string, device: Device, on: boolean): void => {
+    const next = new Map(flips)
+    // Back where they left it, it's no flip at all.
+    if (on === device.on) next.delete(pluginKey(scopeId, device.id))
+    else next.set(pluginKey(scopeId, device.id), on)
+    setFlipped({ id: who.id, flips: next })
     // Heard at once, the A/B left where it is.
-    if (theirs) retune(withoutPlugins(who, next))
+    if (theirs) retune(heardTools(who, next))
   }
 
-  const allOn = (): void => {
-    setOff({ id: who.id, keys: NONE })
+  const backToTheirs = (): void => {
+    setFlipped({ id: who.id, flips: NONE })
     if (theirs) retune(toolsOf(who))
   }
 
-  const fold = (kind: ToolKind, open: boolean): void => {
-    setFolded((current) => {
-      const next = new Set(current)
-      if (open) next.delete(kind)
-      else next.add(kind)
-      return next
-    })
+  const showDevice = (scopeId: string, deviceId: string): void => {
+    setShownDevice((current) => ({
+      id: who.id,
+      by: { ...(current.id === who.id ? current.by : {}), [scopeId]: deviceId }
+    }))
   }
 
   return (
@@ -248,6 +256,14 @@ export function ProducerPage({
               }}
             />
 
+            <MeterRow
+              // Another producer is another sound: the integrated reading starts again.
+              key={who.id}
+              analyserRef={analyserRef}
+              live={loaded && playing}
+              volume={volume}
+            />
+
             <div className={styles.transport}>
               <Button
                 size="sm"
@@ -291,11 +307,12 @@ export function ProducerPage({
               )}
             </div>
 
-            {switchedOff.size > 0 ? (
+            {flips.size > 0 ? (
               <p className={styles.offLine}>
-                {plural(switchedOff.size, 'tool')} switched off, heard without them.
-                <button type="button" className={styles.inlineAction} onClick={allOn}>
-                  Turn all on
+                {plural(flips.size, 'device')} switched from how they left{' '}
+                {flips.size === 1 ? 'it' : 'them'}.
+                <button type="button" className={styles.inlineAction} onClick={backToTheirs}>
+                  Back to theirs
                 </button>
               </p>
             ) : null}
@@ -315,31 +332,7 @@ export function ProducerPage({
           </div>
         </Panel>
 
-        <Panel
-          label="Their tools"
-          index="02"
-          className={styles.toolsPanel}
-          aside={
-            tooled ? (
-              <span className={styles.foldAll}>
-                <button
-                  type="button"
-                  className={styles.inlineAction}
-                  onClick={() => setFolded(new Set(TOOL_KINDS))}
-                >
-                  Collapse all
-                </button>
-                <button
-                  type="button"
-                  className={styles.inlineAction}
-                  onClick={() => setFolded(NONE_FOLDED)}
-                >
-                  Expand all
-                </button>
-              </span>
-            ) : null
-          }
-        >
+        <Panel label="Their tools" index="02" className={styles.toolsPanel}>
           {shown ? (
             <div className={styles.toolsBody}>
               <div className={styles.scopes} role="group" aria-label="Where the tools are">
@@ -358,19 +351,17 @@ export function ProducerPage({
                   </button>
                 ))}
               </div>
-              {stagesIn(shown.chain).map((kind) => (
-                <PluginCard
-                  key={`${shown.id}:${kind}`}
-                  kind={kind}
-                  chain={shown.chain}
-                  on={!switchedOff.has(pluginKey(shown.id, kind))}
-                  open={!folded.has(kind)}
-                  onSwitch={(on) => switchPlugin(shown.id, kind, on)}
-                  onFold={(open) => fold(kind, open)}
-                  analyserRef={analyserRef}
-                  live={loaded && playing}
-                />
-              ))}
+              <DeviceChain
+                chain={shown.chain}
+                heard={(device) => isHeard(flips, shown.id, device)}
+                onSwitch={(device, on) => switchDevice(shown.id, device, on)}
+                openId={shownDeviceId}
+                onOpen={(deviceId) => showDevice(shown.id, deviceId)}
+                folded={folded}
+                onFold={setFolded}
+                analyserRef={analyserRef}
+                live={loaded && playing}
+              />
             </div>
           ) : (
             <p className={styles.empty}>{who.name} left notes only, with no tools on the track.</p>

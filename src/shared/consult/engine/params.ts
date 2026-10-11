@@ -5,6 +5,10 @@
 // database it's filed in, and Candy Haven, which plays the track back
 // through it so Candy hears what he meant.
 //
+// The tools are a chain of devices, as in a DAW: EQs (as many as he
+// likes), stereo width and dynamics, in the order he lays them, each
+// switched on or off.
+//
 // Every control's range and default lives here, once. The page builds its
 // sliders from it, the schema (spec.ts) checks against it, and Haven reads
 // it too, which is why this file carries no zod: Haven's console takes the
@@ -22,7 +26,9 @@ export const MAX_NOTE = 1000;
 export const MAX_NOTES = 60;
 /** Sections one piece of feedback may put tools on. */
 export const MAX_CHAINED_SECTIONS = 12;
-/** EQ points one set of tools may hold. */
+/** Devices one chain may hold. */
+export const MAX_DEVICES = 8;
+/** Points one EQ may hold. */
 export const MAX_EQ_BANDS = 8;
 /** Ids are made by the page; this only bounds them. */
 export const MAX_ID = 40;
@@ -97,44 +103,7 @@ export interface EqBand {
   slope: CutSlope;
 }
 
-// --------------------------------------------------------- the other tools
-
-export interface Saturation {
-  /** In dB: how hard it's pushed into the curve. */
-  drive: number;
-  /** 0 to 1: how much of the pushed sound is heard against the clean. */
-  mix: number;
-  /** In dB, after it. */
-  output: number;
-}
-
-/** How often the sidechain ducks: a whole bar, half, a beat, half a beat. */
-export const SIDECHAIN_RATES = ['1/1', '1/2', '1/4', '1/8'] as const;
-export type SidechainRate = (typeof SIDECHAIN_RATES)[number];
-
-/** Beats between ducks, at each rate. */
-export const RATE_BEATS: Record<SidechainRate, number> = {
-  '1/1': 4,
-  '1/2': 2,
-  '1/4': 1,
-  '1/8': 0.5
-};
-
-/**
- * Ducking on the beat: what a sidechain from the kick sounds like, without
- * the kick. The producer can't route Candy's kick from a web page, so he
- * shows the movement instead.
- */
-export interface Sidechain {
-  bpm: number;
-  rate: SidechainRate;
-  /** 0 to 1: how far down each duck goes. */
-  depth: number;
-  /** 0 to 1: how much of the step it takes to come back up. */
-  release: number;
-  /** In ms: slides the ducks against the track, so they land on the kick. */
-  offset: number;
-}
+// --------------------------------------------------------- width, dynamics
 
 export interface Width {
   /** 0 is mono, 1 as it is, 2 twice as wide. */
@@ -165,35 +134,48 @@ export interface Dynamics {
   makeup: number;
 }
 
-/**
- * One set of tools, in the order they're heard: the EQ, then saturation,
- * the sidechain, the width and the dynamics last, as a master bus would
- * have them. Each is there or isn't; the EQ is there with no points.
- */
-export interface Chain {
-  eq: EqBand[];
-  saturation: Saturation | null;
-  sidechain: Sidechain | null;
-  width: Width | null;
-  dynamics: Dynamics | null;
-}
+// ---------------------------------------------------------------- devices
 
-export const TOOL_KINDS = [
-  'eq',
-  'saturation',
-  'sidechain',
-  'width',
-  'dynamics'
-] as const;
-export type ToolKind = (typeof TOOL_KINDS)[number];
+export const DEVICE_KINDS = ['eq', 'width', 'dynamics'] as const;
+export type DeviceKind = (typeof DEVICE_KINDS)[number];
 
-export const TOOL_LABEL: Record<ToolKind, string> = {
+export const DEVICE_LABEL: Record<DeviceKind, string> = {
   eq: 'EQ',
-  saturation: 'Saturation',
-  sidechain: 'Sidechain',
   width: 'Stereo width',
   dynamics: 'Dynamics'
 };
+
+interface DeviceBase {
+  /** Stable while it's edited and moved, so the page follows one device. */
+  id: string;
+  /** Switched off, it stays in the chain but isn't heard. */
+  on: boolean;
+}
+
+export interface EqDevice extends DeviceBase {
+  kind: 'eq';
+  bands: EqBand[];
+}
+
+export interface WidthDevice extends DeviceBase {
+  kind: 'width';
+  width: Width;
+}
+
+export interface DynamicsDevice extends DeviceBase {
+  kind: 'dynamics';
+  dynamics: Dynamics;
+}
+
+export type Device = EqDevice | WidthDevice | DynamicsDevice;
+
+/**
+ * One set of tools: devices in the order they're heard, the first first,
+ * as a DAW's chain has them. An EQ may come more than once.
+ */
+export interface Chain {
+  devices: Device[];
+}
 
 // ------------------------------------------------------------- the feedback
 
@@ -235,13 +217,6 @@ export const RANGES = {
   frequency: { min: 20, max: 20000, step: 1, initial: 1000, unit: 'Hz' },
   gain: { min: -18, max: 18, step: 0.1, initial: 0, unit: 'dB' },
   q: { min: 0.1, max: 18, step: 0.01, initial: 0.9, unit: '' },
-  drive: { min: 0, max: 24, step: 0.1, initial: 6, unit: 'dB' },
-  mix: { min: 0, max: 1, step: 0.01, initial: 0.5, unit: '' },
-  output: { min: -18, max: 6, step: 0.1, initial: 0, unit: 'dB' },
-  bpm: { min: 60, max: 200, step: 0.01, initial: 124, unit: 'BPM' },
-  depth: { min: 0, max: 1, step: 0.01, initial: 0.6, unit: '' },
-  release: { min: 0.1, max: 0.95, step: 0.01, initial: 0.6, unit: '' },
-  offset: { min: -250, max: 250, step: 1, initial: 0, unit: 'ms' },
   width: { min: 0, max: 2, step: 0.01, initial: 1.2, unit: '' },
   threshold: { min: -60, max: 0, step: 0.1, initial: -18, unit: 'dB' },
   ratio: { min: 1, max: 20, step: 0.1, initial: 4, unit: ':1' },
@@ -279,20 +254,6 @@ export function newBand(
   };
 }
 
-export const newSaturation = (): Saturation => ({
-  drive: RANGES.drive.initial,
-  mix: RANGES.mix.initial,
-  output: RANGES.output.initial
-});
-
-export const newSidechain = (bpm?: number | null): Sidechain => ({
-  bpm: clampTo(RANGES.bpm, bpm ?? RANGES.bpm.initial),
-  rate: '1/4',
-  depth: RANGES.depth.initial,
-  release: RANGES.release.initial,
-  offset: RANGES.offset.initial
-});
-
 export const newWidth = (): Width => ({ width: RANGES.width.initial });
 
 /** A compressor as the controls start, or the limiter's own settings. */
@@ -318,27 +279,94 @@ export function newDynamics(mode: DynamicsMode): Dynamics {
       };
 }
 
-export const emptyChain = (): Chain => ({
-  eq: [],
-  saturation: null,
-  sidechain: null,
-  width: null,
-  dynamics: null
+/** A device as it's first put in a chain: an EQ with no points, the others at their defaults. */
+export function newDevice(kind: DeviceKind, id: string): Device {
+  switch (kind) {
+    case 'eq':
+      return { id, kind, on: true, bands: [] };
+    case 'width':
+      return { id, kind, on: true, width: newWidth() };
+    case 'dynamics':
+      return { id, kind, on: true, dynamics: newDynamics('compressor') };
+  }
+}
+
+/** No tools at all. */
+export const emptyChain = (): Chain => ({ devices: [] });
+
+/** A chain as the page starts one: an EQ in it, ready for points. */
+export const startingChain = (id: string): Chain => ({
+  devices: [newDevice('eq', id)]
 });
 
-/** True for no tools at all, or an EQ with every point flat and no others. */
+/**
+ * Whether a device does nothing to the sound, set as it is: an EQ with
+ * every point flat (or none), a width left at as it is. Dynamics always
+ * does something. Whether it's switched on doesn't come into it: a device
+ * switched off is still what he set.
+ */
+export function deviceIsNeutral(device: Device): boolean {
+  switch (device.kind) {
+    case 'eq':
+      return !device.bands.some(
+        (band) => !EQ_BAND_READS[band.type].gain || band.gain !== 0
+      );
+    case 'width':
+      return device.width.width === 1;
+    case 'dynamics':
+      return false;
+  }
+}
+
+/** True for no devices, or only ones that leave the sound as it is. */
 export function chainIsEmpty(chain: Chain | null | undefined): boolean {
   if (!chain) return true;
-  const shaping = chain.eq.some(
-    (band) => !EQ_BAND_READS[band.type].gain || band.gain !== 0
-  );
-  return (
-    !shaping &&
-    !chain.saturation &&
-    !chain.sidechain &&
-    !chain.width &&
-    !chain.dynamics
-  );
+  return chain.devices.every(deviceIsNeutral);
+}
+
+/** The devices a chain plays: those switched on, in order. */
+export const heardDevices = (chain: Chain | null | undefined): Device[] =>
+  chain ? chain.devices.filter((device) => device.on) : [];
+
+/**
+ * A device's name in its chain: `EQ`, and `EQ 2`, `EQ 3` for the ones
+ * after it, so two of a kind can be told apart.
+ */
+export function deviceTitle(chain: Chain, device: Device): string {
+  const same = chain.devices.filter((other) => other.kind === device.kind);
+  const place = same.findIndex((other) => other.id === device.id);
+  const label = DEVICE_LABEL[device.kind];
+  return same.length > 1 && place > 0 ? `${label} ${place + 1}` : label;
+}
+
+/**
+ * A chain as feedback stored it before devices: `{ eq, saturation,
+ * sidechain, width, dynamics }`, a fixed order. Its EQ, width and dynamics
+ * come over as devices, in that order, switched on; saturation and the
+ * sidechain are left behind, since nothing plays them any more. Anything
+ * else is handed back as it is, for the schema to judge.
+ */
+export function upgradeChain(raw: unknown): unknown {
+  if (typeof raw !== 'object' || raw === null || 'devices' in raw) return raw;
+  const old = raw as {
+    eq?: unknown;
+    width?: unknown;
+    dynamics?: unknown;
+  };
+  if (!Array.isArray(old.eq)) return raw;
+  const devices: unknown[] = [];
+  if (old.eq.length > 0)
+    devices.push({ id: 'eq', kind: 'eq', on: true, bands: old.eq });
+  if (old.width)
+    devices.push({ id: 'width', kind: 'width', on: true, width: old.width });
+  if (old.dynamics)
+    devices.push({
+      id: 'dynamics',
+      kind: 'dynamics',
+      on: true,
+      dynamics: old.dynamics
+    });
+  return { devices };
 }
 
 /** Whether a note marks out a section rather than a moment. */

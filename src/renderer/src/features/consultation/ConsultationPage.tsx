@@ -41,8 +41,8 @@ const NEARLY_FULL = 0.9
  * Vercel Blob store and opens a link for it there, open for one to seven
  * days. The
  * producer it is sent to types a name, listens, leaves notes at a moment or
- * over a section, tries tools on it (EQ, compressor or limiter, sidechain,
- * width, saturation) and sends it. Their feedback comes back here on the
+ * over a section, lays a chain of devices on it (EQs, stereo width, a
+ * compressor or limiter) and sends it. Their feedback comes back here on the
  * check-ins, as the inbox's messages do, and is heard through the same
  * tools, A/B, on the console's transport.
  *

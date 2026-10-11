@@ -305,3 +305,148 @@ export function drawEqPoints(
     context.stroke();
   }
 }
+
+// ------------------------------------------------------------------ meters
+
+export interface ScopePalette {
+  grid: string;
+  left: string;
+  right: string;
+}
+
+/**
+ * Where to start drawing a trace so it holds still: the first rise
+ * through zero in the first half, where the two sides' sum crosses up.
+ */
+function trigger(left: ArrayLike<number>, right: ArrayLike<number>): number {
+  const half = Math.floor(left.length / 2);
+  for (let i = 1; i < half; i++) {
+    const before = left[i - 1] + right[i - 1];
+    const now = left[i] + right[i];
+    if (before < 0 && now >= 0) return i;
+  }
+  return 0;
+}
+
+/**
+ * An oscilloscope: the two sides' waves over a few hundredths of a second,
+ * left over right, held still on a rising zero crossing. `scale` brings a
+ * signal measured after a volume control back to its level.
+ */
+export function drawScope(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  left: ArrayLike<number>,
+  right: ArrayLike<number>,
+  palette: ScopePalette,
+  scale = 1
+) {
+  const middle = height / 2;
+  context.strokeStyle = palette.grid;
+  context.lineWidth = 1;
+  context.beginPath();
+  context.moveTo(0, Math.round(middle) + 0.5);
+  context.lineTo(width, Math.round(middle) + 0.5);
+  context.stroke();
+
+  const start = trigger(left, right);
+  const count = Math.floor(left.length / 2);
+  const reach = (height / 2) * 0.9;
+  for (const [samples, colour] of [
+    [right, palette.right],
+    [left, palette.left]
+  ] as const) {
+    context.strokeStyle = colour;
+    context.lineWidth = 1.25;
+    context.beginPath();
+    for (let i = 0; i < count; i++) {
+      const value = Math.max(-1, Math.min(1, samples[start + i] * scale));
+      const x = (i / (count - 1)) * width;
+      const y = middle - value * reach;
+      if (i === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
+    context.stroke();
+  }
+}
+
+export interface ImagerPalette {
+  grid: string;
+  dot: string;
+  /** The correlation bar's track and its reading. */
+  bar: string;
+  barValue: string;
+  /** Where the sides cancel: a reading below zero. */
+  barWarning: string;
+}
+
+/** The height the correlation bar takes at the imager's foot. */
+const CORRELATION_BAR = 6;
+
+/**
+ * A stereo imager: each pair of samples as a dot, the sides' sum (mid) up
+ * and their difference (side) across, so mono is a vertical line, wide is
+ * a broad cloud and out of phase lies flat. Under it, the correlation,
+ * from -1 at the left to +1 at the right.
+ */
+export function drawImager(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  left: ArrayLike<number>,
+  right: ArrayLike<number>,
+  correlation: number,
+  palette: ImagerPalette,
+  scale = 1
+) {
+  const field = height - CORRELATION_BAR - 6;
+  const cx = width / 2;
+  const cy = field / 2;
+  const radius = Math.min(width / 2, field / 2) * 0.92;
+
+  // The guide: a diamond, the L and R axes on its diagonals.
+  context.strokeStyle = palette.grid;
+  context.lineWidth = 1;
+  context.beginPath();
+  context.moveTo(cx, cy - radius);
+  context.lineTo(cx + radius, cy);
+  context.lineTo(cx, cy + radius);
+  context.lineTo(cx - radius, cy);
+  context.closePath();
+  context.moveTo(cx, cy - radius);
+  context.lineTo(cx, cy + radius);
+  context.stroke();
+
+  context.fillStyle = palette.dot;
+  const count = Math.min(left.length, right.length);
+  for (let i = 0; i < count; i += 2) {
+    const l = Math.max(-1, Math.min(1, left[i] * scale));
+    const r = Math.max(-1, Math.min(1, right[i] * scale));
+    const side = (l - r) * Math.SQRT1_2;
+    const mid = (l + r) * Math.SQRT1_2;
+    context.fillRect(
+      cx + side * radius - 0.75,
+      cy - mid * radius - 0.75,
+      1.5,
+      1.5
+    );
+  }
+
+  // The correlation bar: from the middle toward where it reads.
+  const top = height - CORRELATION_BAR;
+  context.fillStyle = palette.bar;
+  context.fillRect(0, top, width, CORRELATION_BAR);
+  if (Number.isFinite(correlation)) {
+    const at = ((correlation + 1) / 2) * width;
+    context.fillStyle = correlation < 0 ? palette.barWarning : palette.barValue;
+    context.fillRect(
+      Math.min(cx, at),
+      top,
+      Math.max(2, Math.abs(at - cx)),
+      CORRELATION_BAR
+    );
+  }
+  context.fillStyle = palette.grid;
+  context.fillRect(Math.round(cx), top - 2, 1, CORRELATION_BAR + 2);
+}

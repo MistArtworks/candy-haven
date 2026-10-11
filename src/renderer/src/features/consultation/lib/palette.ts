@@ -1,4 +1,10 @@
-import type { EqPalette, SpectrumPalette, WaveformPalette } from '@shared/consult/audio'
+import type {
+  EqPalette,
+  ImagerPalette,
+  ScopePalette,
+  SpectrumPalette,
+  WaveformPalette
+} from '@shared/consult/audio'
 
 /*
  * The console's colours for the drawings the website's page makes too
@@ -36,4 +42,20 @@ export const EQ_PALETTE: EqPalette = {
 export const SPECTRUM_PALETTE: SpectrumPalette = {
   fill: 'rgba(182, 158, 124, 0.08)',
   line: 'rgba(182, 158, 124, 0.25)'
+}
+
+/** The scope: the left side in gold, the right behind it in faint alabaster. */
+export const SCOPE_PALETTE: ScopePalette = {
+  grid: 'rgba(182, 158, 124, 0.14)',
+  left: '#d2a961',
+  right: 'rgba(221, 207, 178, 0.45)'
+}
+
+/** The imager: gold dots, and the correlation in crimson when the sides cancel. */
+export const IMAGER_PALETTE: ImagerPalette = {
+  grid: 'rgba(182, 158, 124, 0.18)',
+  dot: 'rgba(210, 169, 97, 0.55)',
+  bar: 'rgba(182, 158, 124, 0.12)',
+  barValue: '#d2a961',
+  barWarning: '#c4453a'
 }

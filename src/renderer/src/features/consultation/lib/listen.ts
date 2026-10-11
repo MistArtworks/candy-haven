@@ -1,6 +1,6 @@
 import type { Consultation, ConsultationFeedback } from '@shared/domain/consultation'
 import type { InsertSpec } from '@renderer/features/auditorium/lib/useAudioEngine'
-import { hasTools, withoutPlugins } from './track'
+import { hasTools, heardTools, type Flips } from './track'
 
 /*
  * How a producer's feedback is heard on the console's one transport: the
@@ -14,22 +14,22 @@ export const trackKey = (link: Pick<Consultation, 'id'>): string => `consultatio
 export const producerPath = (linkId: string, feedbackId: string): string =>
   `/consultation?link=${encodeURIComponent(linkId)}&producer=${encodeURIComponent(feedbackId)}`
 
-const NONE: ReadonlySet<string> = new Set()
+const NONE: Flips = new Map()
 
 /**
- * A producer's tools for the insert slot, less any switched off here, with
- * the way back to their page; null when they put none on.
+ * A producer's tools for the insert slot, with any switches flipped here,
+ * and the way back to their page; null when they put none on.
  */
 export function insertFor(
   link: Pick<Consultation, 'id'>,
   entry: ConsultationFeedback,
-  off: ReadonlySet<string> = NONE
+  flips: Flips = NONE
 ): InsertSpec | null {
   return hasTools(entry)
     ? {
         key: entry.id,
         label: entry.name,
-        tools: withoutPlugins(entry, off),
+        tools: heardTools(entry, flips),
         path: producerPath(link.id, entry.id)
       }
     : null

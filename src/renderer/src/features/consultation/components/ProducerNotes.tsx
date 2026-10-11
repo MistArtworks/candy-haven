@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { chainIsEmpty, formatSpan, type Note } from '@shared/consult/engine'
-import { stagesIn } from '../lib/track'
+import { formatSpan, type Note } from '@shared/consult/engine'
+import { shapingDevices } from '../lib/track'
 import styles from '../Consultation.module.scss'
 
 /**
@@ -27,7 +27,7 @@ export function ProducerNotes({
   return (
     <ol className={styles.notes}>
       {notes.map((note) => {
-        const tools = note.chain && !chainIsEmpty(note.chain) ? stagesIn(note.chain).length : 0
+        const tools = shapingDevices(note.chain).length
         return (
           <li key={note.id} className={styles.noteRow}>
             <button
