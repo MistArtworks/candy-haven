@@ -105,6 +105,12 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
     section: 'darkroom'
   },
   {
+    id: 'consultation',
+    label: 'CONSULTATION',
+    purpose: "Sharing a track for feedback, and hearing it through the producers' settings",
+    section: 'consultation'
+  },
+  {
     id: 'discography',
     label: 'DISCOGRAPHY',
     purpose: 'Everything released, and where it went',

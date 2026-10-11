@@ -847,7 +847,8 @@ than unpacking 800 MB.
 
 `projects` · `project_versions` · `archive_folders` · `archive_volumes` ·
 `archive_tags` · `releases` · `overlays` · `command_history` · `events` ·
-`migrations` · `publication_colophon`
+`migrations` · `publication_colophon` · `consultations` ·
+`consultation_feedback` (and the rest in `Collections`)
 
 **Schema version 2** (`applyMigrations`) drops `projects`, `archive_folders`,
 `releases`, `release_assets`, `transmission_tasks` and `unlinked_media` once, on
@@ -904,29 +905,30 @@ Registry: **`src/shared/domain/navigation.ts`** — the single source of truth f
 routes, labels, order, and shipped status. The rail, titlebar, page transitions
 and Nexus all read from it.
 
-| #   | Id            | Path           | Category    | Status      | Purpose                                            |
-| --- | ------------- | -------------- | ----------- | ----------- | -------------------------------------------------- |
-| 1   | `nexus`       | `/`            | COMMAND     | **shipped** | Operational overview and system state              |
-| 2   | `calendar`    | `/calendar`    | COMMAND     | **shipped** | The dated register                                 |
-| 3   | `interface`   | `/interface`   | COMMAND     | reserved    | Natural-language command console                   |
-| 4   | `archive`     | `/archive`     | STUDIO      | **shipped** | Project registry, filing tree, production pipeline |
-| 5   | `auditorium`  | `/auditorium`  | STUDIO      | **shipped** | Listening room and visualiser                      |
-| 6   | `darkroom`    | `/darkroom`    | STUDIO      | **shipped** | Grading photographs onto the console palette       |
-| 7   | `discography` | `/discography` | CATALOGUE   | **shipped** | Everything released, and where it went             |
-| 8   | `releases`    | `/releases`    | CATALOGUE   | **shipped** | The discography as the website shows it            |
-| 9   | `leads`       | `/leads`       | COMMUNITY   | **shipped** | Leads, and the opportunities that come of them     |
-| 10  | `artists`     | `/artists`     | COMMUNITY   | **shipped** | The roster                                         |
-| 11  | `contact`     | `/contact`     | COMMUNITY   | **shipped** | Messages sent from the website                     |
-| 12  | `services`    | `/services`    | COMMUNITY   | **shipped** | DJ enquiries from the website; producer to come    |
-| 13  | `observatory` | `/observatory` | PUBLICATION | **shipped** | The broadcast desk and every overlay served to OBS |
-| 14  | `lore`        | `/lore`        | PUBLICATION | **shipped** | The lore and its planets, published to the website |
-| 15  | `colophon`    | `/colophon`    | PUBLICATION | reserved    | The details the website carries (coming soon)      |
-| 16  | `telemetry`   | `/telemetry`   | OVERSIGHT   | **shipped** | Host vitals                                        |
-| 17  | `dispatch`    | `/dispatch`    | OVERSIGHT   | **shipped** | The shared board                                   |
-| 18  | `regulation`  | `/regulation`  | OVERSIGHT   | **shipped** | Operator settings                                  |
-| 19  | `catechism`   | `/catechism`   | OVERSIGHT   | **shipped** | The built-in manual                                |
+| #   | Id             | Path            | Category    | Status      | Purpose                                               |
+| --- | -------------- | --------------- | ----------- | ----------- | ----------------------------------------------------- |
+| 1   | `nexus`        | `/`             | COMMAND     | **shipped** | Operational overview and system state                 |
+| 2   | `calendar`     | `/calendar`     | COMMAND     | **shipped** | The dated register                                    |
+| 3   | `interface`    | `/interface`    | COMMAND     | reserved    | Natural-language command console                      |
+| 4   | `archive`      | `/archive`      | STUDIO      | **shipped** | Project registry, filing tree, production pipeline    |
+| 5   | `auditorium`   | `/auditorium`   | STUDIO      | **shipped** | Listening room and visualiser                         |
+| 6   | `darkroom`     | `/darkroom`     | STUDIO      | **shipped** | Grading photographs onto the console palette          |
+| 7   | `consultation` | `/consultation` | STUDIO      | **shipped** | A track shared for feedback, and its notes heard back |
+| 8   | `discography`  | `/discography`  | CATALOGUE   | **shipped** | Everything released, and where it went                |
+| 9   | `releases`     | `/releases`     | CATALOGUE   | **shipped** | The discography as the website shows it               |
+| 10  | `leads`        | `/leads`        | COMMUNITY   | **shipped** | Leads, and the opportunities that come of them        |
+| 11  | `artists`      | `/artists`      | COMMUNITY   | **shipped** | The roster                                            |
+| 12  | `contact`      | `/contact`      | COMMUNITY   | **shipped** | Messages sent from the website                        |
+| 13  | `services`     | `/services`     | COMMUNITY   | **shipped** | DJ enquiries from the website; producer to come       |
+| 14  | `observatory`  | `/observatory`  | PUBLICATION | **shipped** | The broadcast desk and every overlay served to OBS    |
+| 15  | `lore`         | `/lore`         | PUBLICATION | **shipped** | The lore and its planets, published to the website    |
+| 16  | `colophon`     | `/colophon`     | PUBLICATION | reserved    | The details the website carries (coming soon)         |
+| 17  | `telemetry`    | `/telemetry`    | OVERSIGHT   | **shipped** | Host vitals                                           |
+| 18  | `dispatch`     | `/dispatch`     | OVERSIGHT   | **shipped** | The shared board                                      |
+| 19  | `regulation`   | `/regulation`   | OVERSIGHT   | **shipped** | Operator settings                                     |
+| 20  | `catechism`    | `/catechism`    | OVERSIGHT   | **shipped** | The built-in manual                                   |
 
-**Nineteen departments, seventeen in service,** in six categories as the console
+**Twenty departments, eighteen in service,** in six categories as the console
 arranges them (since 1.27.0): COMMAND, STUDIO, CATALOGUE, COMMUNITY,
 PUBLICATION, OVERSIGHT. The table is that arrangement; the operator's own, from
 REGULATION → DIRECTORY, is `settings.navigation` turned into the rail by
@@ -938,6 +940,47 @@ its place in the operator's rail; `Ctrl`+`1`…`9`,`0` reach the first ten, and
 TELEMETRY, DISPATCH, REGULATION, CATECHISM and OBSERVATORY have named chords
 (`Ctrl`+`Shift`+`T`, `Ctrl`+`Shift`+`D`, `Ctrl`+`,`, `Ctrl`+`Shift`+`K`,
 `Ctrl`+`Shift`+`O`). See `ConsoleLayout.tsx`.
+
+### CONSULTATION — added 2026-10-10
+
+Song feedback from other producers. The full capture is
+**`docs/CONSULTATION.md`**. In summary:
+
+- **Shared from here, heard on the website.** **Share a track…** takes any
+  bounce on this machine (file picker or drop), uploads it to Firebase Storage
+  (`consultation/<uuid>.<ext>`) on DISPATCH's sign-in, and opens a link on the
+  website, `/consult/<token>`, for 1 to 7 days. The producer types a name, plays
+  it, leaves notes at a moment or over a section, puts tools on a section or the
+  whole track (EQ with added and removed points, compressor or limiter,
+  sidechain, width, saturation) and sends it. No account.
+- **One engine, written in the website.** The types, the zod check, the timing
+  and the Web Audio graph live in the website's `src/lib/consult/{engine,audio}`
+  and are copied to `src/shared/consult/` by `npm run sync:consult` (the
+  planets' arrangement). The console plays feedback through the same graph the
+  producer heard.
+- **One transport.** No second player (D14): the console's transport gained
+  `openFrom` and one insert slot, `setInsert`/`setBypass`, between the source
+  and the analyser. Opening another file takes the tools off. The bar shows
+  whose settings are on and is the A/B from any page.
+- **Deleted when the link closes.** The website's TTL indexes delete the page's
+  access and the feedback; the console deletes the track at the close (a timer
+  while it runs, else the next startup) and records `audioDeletedAt`; the
+  bucket's lifecycle rule (`storage.lifecycle.json`, eight days) is the
+  backstop. The record stays as EXPIRED until **Remove**. Feedback nobody
+  checked for before the close is gone, so the rail counts unread feedback and
+  the startup notice names a link closing within a day.
+- **Private.** Feedback is only handed over behind the sign-in; producers never
+  see each other's.
+- **The meter.** The tracks not yet deleted, by the website's records (both
+  copies), against Firebase's free 5 GB. A file over 200 MB, or one that would
+  pass 5 GB, is refused with the reason before anything is sent.
+- **Archive.** `consultations` and `consultation_feedback`, and the feedback
+  cursor in `sync_state`. Asked, not polled, as the inbox is.
+- **One-time setup** (Blaze, a bucket in US-CENTRAL1/EAST1/WEST1, rules, CORS,
+  lifecycle): `docs/CONSULTATION.md`, with `storage.rules`, `storage.cors.json`
+  and `storage.lifecycle.json` in the repository root.
+- **Placement.** STUDIO, after DARKROOM (7), which moved DISCOGRAPHY to
+  CATECHISM down one (8–20).
 
 ### THE QUICK STRIP — 1.23.0 and 1.24.0 (2026-10-03, 2026-10-04)
 
