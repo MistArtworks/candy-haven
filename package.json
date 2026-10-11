@@ -23,7 +23,8 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "release": "node scripts/release.mjs",
-    "sync:planets": "node scripts/sync-planets.mjs"
+    "sync:planets": "node scripts/sync-planets.mjs",
+    "sync:consult": "node scripts/sync-consult.mjs"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

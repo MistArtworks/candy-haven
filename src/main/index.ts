@@ -252,15 +252,17 @@ async function start(): Promise<void> {
   registerEventBridges({ router, services, boot, windows })
 
   /*
-   * A clicked notification from CONTACT or SERVICES: bring the console up and
-   * ask it to open the department. While the vestibule is the front door the
-   * request lands on the vestibule instead, and the department is one click
-   * away once the operator goes through it.
+   * A clicked notification from CONTACT, SERVICES or CONSULTATION: bring the
+   * console up and ask it to open the department. While the vestibule is the
+   * front door the request lands on the vestibule instead, and the department
+   * is one click away once the operator goes through it.
    */
-  services.inbox.setOpener((path) => {
+  const openFromNotice = (path: string): void => {
     reveal()
     router.broadcast('inbox:open', { path })
-  })
+  }
+  services.inbox.setOpener(openFromNotice)
+  services.consultation.setOpener(openFromNotice)
 
   /*
    * The vestibule opens ahead of the console, and instead of it.

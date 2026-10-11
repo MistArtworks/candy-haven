@@ -11,7 +11,9 @@ tsconfig.*.json
 # included. The formatting is maintained by hand.
 streamlabs/chorus-chat/widget.css
 
-# Copies of the website's files, kept byte for byte by npm run sync:planets.
-# They follow the website's formatting; see scripts/sync-planets.mjs.
+# Copies of the website's files, kept byte for byte by npm run sync:planets
+# and npm run sync:consult. They follow the website's formatting; see
+# scripts/sync-planets.mjs and scripts/sync-consult.mjs.
 src/shared/planets/
+src/shared/consult/
 src/renderer/src/lib/markdown/blocks.ts

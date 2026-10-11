@@ -21,6 +21,7 @@ import { ScenePage } from '@renderer/features/observatory/overlays/scene/ScenePa
 import { CalendarPage } from '@renderer/features/calendar/CalendarPage'
 import { AuditoriumPage } from '@renderer/features/auditorium/AuditoriumPage'
 import { DarkroomPage } from '@renderer/features/darkroom/DarkroomPage'
+import { ConsultationPage } from '@renderer/features/consultation/ConsultationPage'
 import { RegulationPage } from '@renderer/features/regulation/RegulationPage'
 import { TelemetryPage } from '@renderer/features/telemetry/TelemetryPage'
 import { DispatchPage } from '@renderer/features/dispatch/DispatchPage'
@@ -97,6 +98,7 @@ export function AppRouter(): ReactNode {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/auditorium" element={<AuditoriumPage />} />
         <Route path="/darkroom" element={<DarkroomPage />} />
+        <Route path="/consultation" element={<ConsultationPage />} />
 
         {/*
           OBSERVATORY is a catalogue with one route per overlay. Every entry in

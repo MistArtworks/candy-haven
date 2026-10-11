@@ -16,6 +16,7 @@ import { useNavigation } from '@renderer/hooks/useNavigation'
 import { sheetResizeTransition } from '@renderer/motion/transitions'
 import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { useInbox } from '@renderer/hooks/useInbox'
+import { useConsultation } from '@renderer/hooks/useConsultation'
 import { countWaiting, useDispatch } from '@renderer/hooks/useDispatch'
 import styles from './CommandRail.module.scss'
 
@@ -23,6 +24,7 @@ import styles from './CommandRail.module.scss'
 const WAITING_WORDS: Partial<Record<SectionId, string>> = {
   contact: 'waiting from the website',
   services: 'waiting from the website',
+  consultation: 'new feedback',
   dispatch: 'new on the board'
 }
 
@@ -120,9 +122,15 @@ export function CommandRail({
    * board itself is empty then.
    */
   const board = useDispatch()
+  /*
+   * CONSULTATION counts feedback nobody here has opened, on links still
+   * open: what goes for good if nobody reads it before its link closes.
+   */
+  const consultation = useConsultation()
   const waiting: Partial<Record<SectionId, number>> = {
     contact: inbox.waiting.messages,
     services: inbox.waiting.enquiries + inbox.waiting.bookings,
+    consultation: consultation.waiting,
     dispatch: countWaiting(board.items, board.link.identity)
   }
 

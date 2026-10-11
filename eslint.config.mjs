@@ -36,7 +36,9 @@ export default defineConfig(
        * here would make the next check report a difference that isn't one.
        */
       'src/shared/planets/**',
-      'src/renderer/src/lib/markdown/blocks.ts'
+      'src/renderer/src/lib/markdown/blocks.ts',
+      // The consultation engine, the same way, by `npm run sync:consult`.
+      'src/shared/consult/**'
     ]
   },
   tseslint.configs.recommended,

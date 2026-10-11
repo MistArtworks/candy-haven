@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useSystemStore } from '@renderer/app/store/system.store'
 
 /**
- * Opens CONTACT or SERVICES when one of their notifications is clicked.
+ * Opens CONTACT, SERVICES or CONSULTATION when one of their notifications is
+ * clicked.
  *
  * The main process brings the console forward and asks for the department;
  * this is what goes there. Mounted beside the other cues for their reason:

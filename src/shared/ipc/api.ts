@@ -108,6 +108,14 @@ import type {
   SiteMessage
 } from '../domain/inbox'
 import type {
+  Consultation,
+  ConsultationDraft,
+  ConsultationExpiry,
+  ConsultationFeedback,
+  ConsultationProgress,
+  ConsultationState
+} from '../domain/consultation'
+import type {
   ChapterDraft,
   DeleteChapterInput,
   LoreCreated,
@@ -607,6 +615,36 @@ export interface CandyHavenApi {
     onState(listener: (state: InboxState) => void): Unsubscribe
     /** A notification was clicked; go where it says. */
     onOpen(listener: (request: { path: string }) => void): Unsubscribe
+  }
+  /**
+   * CONSULTATION: tracks shared for other producers' feedback, as copied
+   * here. Behind the DISPATCH sign-in. See docs/CONSULTATION.md.
+   */
+  readonly consultation: {
+    state(): Promise<ConsultationState>
+    /** Checks in with the website now. */
+    sync(): Promise<ConsultationState>
+    /** Every shared track on this website, newest first. */
+    list(): Promise<Consultation[]>
+    /** One open link's feedback, in the order it was sent. */
+    feedback(id: string): Promise<ConsultationFeedback[]>
+    /** Marks a link's feedback read. */
+    read(id: string): Promise<void>
+    /** Uploads a track and opens its link. Needs the website and the bucket. */
+    share(draft: ConsultationDraft): Promise<Consultation>
+    /** Refuses a file that couldn't be shared, with the reason, reading only its size. */
+    check(path: string): Promise<{ size: number }>
+    cancelShare(): Promise<void>
+    /** Moves when an open link closes, up to a week from when it was shared. */
+    changeExpiry(expiry: ConsultationExpiry): Promise<Consultation>
+    /** Closes a link now: its track and feedback are deleted. */
+    end(id: string): Promise<Consultation>
+    /** Forgets a closed link, here and on the website. */
+    remove(id: string): Promise<void>
+    /** The track's sound: the file it was shared from, or the copy in the bucket. */
+    audio(id: string): Promise<AudioPayload>
+    onState(listener: (state: ConsultationState) => void): Unsubscribe
+    onProgress(listener: (progress: ConsultationProgress) => void): Unsubscribe
   }
   /**
    * SERVICES' OFFERINGS and HOURS: what "Book me as a music producer" offers,

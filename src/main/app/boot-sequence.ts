@@ -174,6 +174,7 @@ export class BootSequence extends TypedEmitter<BootEvents> {
       muster,
       dispatch,
       inbox,
+      consultation,
       lore,
       offerings,
       releases,
@@ -299,6 +300,9 @@ export class BootSequence extends TypedEmitter<BootEvents> {
         // The website inbox checks in on the board's sign-in, so it starts
         // after the board has restored one. It does not wait for the website.
         inbox.initialize()
+        // CONSULTATION too, and it deletes the tracks of links that closed
+        // while the console was shut, once the website says they have.
+        consultation.initialize()
         // LORE reads what's kept in the archive; it asks the website when it opens.
         lore.initialize()
         // SERVICES' list and hours, as kept here; it asks the website when a tab opens.

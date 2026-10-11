@@ -10,6 +10,7 @@ export const SECTION_IDS = [
   'archive',
   'auditorium',
   'darkroom',
+  'consultation',
   'discography',
   'releases',
   'leads',
@@ -193,13 +194,30 @@ export const SECTIONS: readonly SectionDefinition[] = [
     keywords: ['photos', 'images', 'pictures', 'grade']
   },
   {
+    /*
+     * A track shared for other producers' feedback, through a link on the
+     * website that stays open a week at most. They leave notes and try
+     * tools on it there; their feedback is heard back here, through the
+     * same tools. Behind the DISPATCH sign-in. See docs/CONSULTATION.md.
+     */
+    id: 'consultation',
+    path: '/consultation',
+    label: 'CONSULTATION',
+    purpose: "A track shared for other producers' feedback, and their notes heard back",
+    epigraph: 'Every ear consulted. Every verdict recorded, then burned.',
+    group: 'studio',
+    order: 6,
+    implemented: true,
+    keywords: ['feedback', 'share', 'link', 'mix', 'master', 'eq', 'producers', 'notes']
+  },
+  {
     id: 'discography',
     path: '/discography',
     label: 'DISCOGRAPHY',
     purpose: 'Everything released: singles, EPs, albums and remixes, and where they went',
     epigraph: 'What is released cannot be unreleased. The record stands.',
     group: 'catalogue',
-    order: 6,
+    order: 7,
     implemented: true,
     keywords: ['catalogue', 'singles', 'albums', 'eps', 'remixes', 'tracks']
   },
@@ -217,7 +235,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'The discography as the website shows it: what is shown, and the shelf',
     epigraph: 'Every record carries its own way out.',
     group: 'catalogue',
-    order: 7,
+    order: 8,
     implemented: true,
     keywords: ['website', 'shelf', 'publish']
   },
@@ -233,7 +251,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: "The people you're getting to know, and the work that comes of them",
     epigraph: 'Every alliance begins as a signal answered.',
     group: 'community',
-    order: 8,
+    order: 9,
     implemented: true,
     keywords: ['opportunities', 'crm', 'network', 'networking', 'follow-ups', 'contacts']
   },
@@ -244,7 +262,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'The roster: who the practice works with, and what they are on',
     epigraph: 'Many forms. One underlying frequency.',
     group: 'community',
-    order: 9,
+    order: 10,
     implemented: true,
     keywords: ['roster', 'people', 'collaborators', 'credits']
   },
@@ -262,7 +280,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Messages sent from the website, read and answered',
     epigraph: 'No voice that reaches the gate goes unrecorded.',
     group: 'community',
-    order: 10,
+    order: 11,
     implemented: true,
     keywords: ['messages', 'inbox', 'email', 'website']
   },
@@ -279,7 +297,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Bookings from the website, and the services and hours it offers',
     epigraph: 'The work is asked for before it is made.',
     group: 'community',
-    order: 11,
+    order: 12,
     implemented: true,
     keywords: [
       'bookings',
@@ -300,7 +318,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Stream overlays and live selection rites served to OBS',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'publication',
-    order: 12,
+    order: 13,
     implemented: true,
     keywords: ['stream', 'overlays', 'obs', 'broadcast', 'twitch']
   },
@@ -317,7 +335,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'The lore of Nayara: chapters and planets, written here, published to the website',
     epigraph: 'The world is fiction. The story is not.',
     group: 'publication',
-    order: 13,
+    order: 14,
     implemented: true,
     keywords: ['nayara', 'story', 'chapters', 'planets', 'website']
   },
@@ -339,7 +357,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'The details the website carries: where to write, call, message and follow',
     epigraph: 'Every record carries the seal of where it may be answered.',
     group: 'publication',
-    order: 14,
+    order: 15,
     implemented: false,
     keywords: ['website', 'details', 'profiles', 'socials']
   },
@@ -350,7 +368,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Host vitals: processor, memory, graphics and storage',
     epigraph: 'A place for cosmic observation and planetary surveillance.',
     group: 'oversight',
-    order: 15,
+    order: 16,
     implemented: true,
     keywords: ['cpu', 'memory', 'gpu', 'system', 'performance', 'vitals']
   },
@@ -361,7 +379,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Feedback and suggestions between operators, ruled on and recorded',
     epigraph: 'Nothing is lost that is entered into the record.',
     group: 'oversight',
-    order: 16,
+    order: 17,
     implemented: true,
     keywords: ['feedback', 'suggestions', 'board', 'requests', 'faults', 'bugs']
   },
@@ -372,7 +390,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'Operator settings, archive control and update channel',
     epigraph: 'Harmony is maintained.',
     group: 'oversight',
-    order: 17,
+    order: 18,
     implemented: true,
     keywords: ['settings', 'preferences', 'options', 'directory', 'pins']
   },
@@ -383,7 +401,7 @@ export const SECTIONS: readonly SectionDefinition[] = [
     purpose: 'How this console is operated, department by department',
     epigraph: 'We do not question the shape of the universe.',
     group: 'oversight',
-    order: 18,
+    order: 19,
     implemented: true,
     keywords: ['help', 'docs', 'documentation', 'guide', 'manual', 'handbook']
   }

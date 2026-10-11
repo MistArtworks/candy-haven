@@ -132,6 +132,15 @@ import {
   SiteMessageSchema
 } from '../domain/inbox'
 import {
+  ConsultationDraftSchema,
+  ConsultationExpirySchema,
+  ConsultationFeedbackSchema,
+  ConsultationProgressSchema,
+  ConsultationSchema,
+  ConsultationStateSchema,
+  ConsultationTargetSchema
+} from '../domain/consultation'
+import {
   ChapterDraftSchema,
   DeleteChapterInputSchema,
   LoreCreatedSchema,
@@ -945,6 +954,56 @@ export const IPC_INVOKE = {
   /** Cancels a session still to come, on the website. Any refund is Stripe's, by hand. */
   'inbox:booking-cancel': { input: BookingCancelSchema, output: BookingChangeResultSchema },
 
+  // ------------------------------------------------------------- consultation
+
+  /*
+   * CONSULTATION: tracks shared for other producers' feedback, through a
+   * link on the website that stays open a week at most.
+   *
+   * The list and the feedback are read from this machine's copy;
+   * `consultation:sync` is what asks the website, as `inbox:sync` does.
+   * Everything that changes a link happens on the website first and is
+   * refused offline. While nobody is signed in to DISPATCH the lists are
+   * empty and every write is refused. See docs/CONSULTATION.md.
+   */
+  'consultation:state': { input: z.void(), output: ConsultationStateSchema },
+  /** Checks in with the website now, and answers once it has. The page's button. */
+  'consultation:sync': { input: z.void(), output: ConsultationStateSchema },
+  'consultation:list': { input: z.void(), output: z.array(ConsultationSchema) },
+  /** One open link's feedback, in the order it was sent. None once it has closed. */
+  'consultation:feedback': {
+    input: ConsultationTargetSchema,
+    output: z.array(ConsultationFeedbackSchema)
+  },
+  /** Opening a link's feedback: everything on it becomes read. */
+  'consultation:read': { input: ConsultationTargetSchema, output: z.void() },
+  /**
+   * Uploads a track and opens its link, answering with the link. Progress
+   * arrives on `consultation:progress` meanwhile. A file too big, or one
+   * there is no room left for, is refused before anything is sent.
+   */
+  'consultation:share': { input: ConsultationDraftSchema, output: ConsultationSchema },
+  /**
+   * Whether a chosen file could be shared, refused with the reason if not:
+   * not audio, too big for a link, or no room left. Reads nothing but its size.
+   */
+  'consultation:check': {
+    input: z.object({ path: z.string() }),
+    output: z.object({ size: z.number() })
+  },
+  /** Stops the upload under way. */
+  'consultation:cancel-share': { input: z.void(), output: z.void() },
+  'consultation:expiry': { input: ConsultationExpirySchema, output: ConsultationSchema },
+  /** Closes a link now, deleting its track and feedback. The record stays, expired. */
+  'consultation:end': { input: ConsultationTargetSchema, output: ConsultationSchema },
+  /** Forgets a closed link, here and on the website. */
+  'consultation:remove': { input: ConsultationTargetSchema, output: z.void() },
+  /**
+   * A shared track's sound, to hear the feedback through: the file it was
+   * shared from when it is still here, or the copy in the bucket.
+   */
+  'consultation:audio': { input: ConsultationTargetSchema, output: AudioPayloadSchema },
+
   // ---------------------------------------------------------------- offerings
 
   /*
@@ -1259,6 +1318,9 @@ export const IPC_EVENT = {
   'overlay:info': OverlayServerInfoSchema,
   'calendar:state': CalendarStateSchema,
   'inbox:state': InboxStateSchema,
+  'consultation:state': ConsultationStateSchema,
+  /** How far the upload under way has got, for the share dialog. */
+  'consultation:progress': ConsultationProgressSchema,
   'lore:state': LoreStateSchema,
   'offerings:state': OfferingsStateSchema,
   'releases:state': ReleasesStateSchema,

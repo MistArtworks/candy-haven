@@ -490,6 +490,24 @@ export function registerIpcHandlers(deps: HandlerDependencies): void {
   router.handle('inbox:booking-move', (move) => services.inbox.moveBooking(move))
   router.handle('inbox:booking-cancel', (cancel) => services.inbox.cancelBooking(cancel))
 
+  // ------------------------------------------------------------- consultation
+
+  router.handle('consultation:state', () => services.consultation.current)
+  router.handle('consultation:sync', async () => {
+    await services.consultation.sync()
+    return services.consultation.current
+  })
+  router.handle('consultation:list', () => services.consultation.list())
+  router.handle('consultation:feedback', ({ id }) => services.consultation.feedback(id))
+  router.handle('consultation:read', ({ id }) => services.consultation.markRead(id))
+  router.handle('consultation:share', (draft) => services.consultation.share(draft))
+  router.handle('consultation:check', ({ path }) => services.consultation.check(path))
+  router.handle('consultation:cancel-share', () => services.consultation.cancelShare())
+  router.handle('consultation:expiry', (expiry) => services.consultation.changeExpiry(expiry))
+  router.handle('consultation:end', ({ id }) => services.consultation.end(id))
+  router.handle('consultation:remove', ({ id }) => services.consultation.remove(id))
+  router.handle('consultation:audio', ({ id }) => services.consultation.audio(id))
+
   // ---------------------------------------------------------------- offerings
 
   router.handle('offerings:state', () => services.offerings.current)
@@ -959,6 +977,10 @@ export function registerEventBridges(deps: {
   services.calendar.on('changed', (state) => router.broadcast('calendar:state', state))
   services.leads.on('changed', (state) => router.broadcast('leads:state', state))
   services.inbox.on('state', (state) => router.broadcast('inbox:state', state))
+  services.consultation.on('state', (state) => router.broadcast('consultation:state', state))
+  services.consultation.on('progress', (progress) =>
+    router.broadcast('consultation:progress', progress)
+  )
   services.lore.on('state', (state) => router.broadcast('lore:state', state))
   services.offerings.on('state', (state) => router.broadcast('offerings:state', state))
   services.releases.on('state', (state) => router.broadcast('releases:state', state))

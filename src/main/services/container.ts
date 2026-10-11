@@ -19,6 +19,7 @@ import { TimerService } from './overlay/timer.service'
 import { SpotifyService } from './overlay/spotify.service'
 import { DispatchService } from './dispatch/dispatch.service'
 import { InboxService } from './inbox/inbox.service'
+import { ConsultationService } from './consultation/consultation.service'
 import { LoreService } from './lore/lore.service'
 import { OfferingsService } from './offerings/offerings.service'
 import { ReleasesService } from './releases/releases.service'
@@ -108,6 +109,13 @@ export interface ServiceContainer {
    * so it takes the board's service. See docs/INBOX.md.
    */
   readonly inbox: InboxService
+  /**
+   * CONSULTATION: tracks shared for other producers' feedback, through a
+   * link on the website. Uploads to Firebase Storage on DISPATCH's sign-in,
+   * and copies the feedback here on every check-in, as the inbox copies
+   * messages. See docs/CONSULTATION.md.
+   */
+  readonly consultation: ConsultationService
   /**
    * LORE: the lore of Nayara, written here and published to the website.
    * Drafts and planets are kept in the archive; only publishing reaches the
@@ -281,6 +289,7 @@ export function createServiceContainer(): ServiceContainer {
     nowPlaying: new SpotifyService(archive, overlayServer),
     dispatch,
     inbox: new InboxService(archive, settings, dispatch),
+    consultation: new ConsultationService(archive, settings, dispatch),
     lore: new LoreService(archive, settings, dispatch),
     offerings: new OfferingsService(archive, settings, dispatch, stacks),
     releases,
@@ -310,8 +319,10 @@ export async function disposeServiceContainer(container: ServiceContainer): Prom
   container.rite.dispose()
   container.timers.dispose()
   container.nowPlaying.dispose()
-  // Before the board: the inbox and LORE borrow its sign-in and listen to it.
+  // Before the board: the inbox, CONSULTATION and LORE borrow its sign-in
+  // and listen to it.
   container.inbox.dispose()
+  container.consultation.dispose()
   container.lore.dispose()
   container.offerings.dispose()
   container.discography.dispose()

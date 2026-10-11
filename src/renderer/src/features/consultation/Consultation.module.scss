@@ -1,0 +1,586 @@
+@use 'abstracts' as *;
+
+// CONSULTATION: a track shared for other producers' feedback.
+//
+// The inbox's furniture, because it is the inbox's arrangement: a list that
+// things arrive in, and the one open beside it. The open one is the focal
+// panel here, since it holds the track. The accent goes where the inbox
+// spends it, on what is waiting, and on a link's live state: open, and
+// closing within the day.
+
+.page {
+  padding: space(10) space(10) space(12);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: space(5);
+  align-items: start;
+}
+
+.listPanel {
+  grid-column: span 2;
+}
+
+.detailPanel {
+  grid-column: span 4;
+}
+
+@include below('lg') {
+  .listPanel,
+  .detailPanel {
+    grid-column: span 6;
+  }
+}
+
+@include below('md') {
+  .page {
+    padding: space(8) space(6) space(10);
+  }
+}
+
+// ----------------------------------------------------------------- toolbar
+
+// The meter on the left, where SERVICES keeps its tabs; the page's two
+// actions on the right, Check for new last, where the eye finishes.
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space(4);
+  margin: 0 0 space(5);
+  flex-wrap: wrap;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+}
+
+.meter {
+  flex: 0 1 rem(360px);
+  min-width: rem(220px);
+}
+
+.notice {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 space(5);
+  padding: space(3) space(4);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+}
+
+.noticeLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-gold-300);
+  margin-right: space(2);
+}
+
+// ------------------------------------------------------------------ list
+
+.count {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  @include readout(9px);
+  color: var(--ch-text-faint);
+}
+
+.waiting {
+  @include label(8px, 0.14em);
+  color: var(--ch-accent-bright);
+  background: var(--ch-accent-dim);
+  padding: 1px space(2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  width: 100%;
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+    box-shadow: inset 2px 0 0 var(--ch-gold-400);
+  }
+
+  // Closed: the record that it was, drawn back.
+  &[data-settled] {
+    opacity: 0.62;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  min-width: 0;
+}
+
+.markNew {
+  @include label(7px, 0.18em);
+  color: var(--ch-accent-bright);
+  background: var(--ch-accent-dim);
+  padding: 1px space(2);
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  min-width: 0;
+}
+
+.cardWho {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  min-width: 0;
+  @include truncate;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.cardStamp {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+
+  // The last day: its feedback goes when it closes, so it is live.
+  &[data-soon] {
+    color: var(--ch-crimson-400);
+  }
+}
+
+.cardStatus {
+  @include label(8px, 0.14em);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+
+  &[data-tone='good'] {
+    color: var(--ch-gold-300);
+  }
+}
+
+.empty {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  margin: 0;
+  line-height: 1.65;
+}
+
+// ----------------------------------------------------------------- detail
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.detailHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  flex-wrap: wrap;
+  padding-bottom: space(3);
+  @include hairline(bottom, 0.08);
+}
+
+.stateMark {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+  padding: 1px space(2);
+  @include hairline(all, 0.14);
+
+  &[data-live] {
+    color: var(--ch-accent-bright);
+    background: var(--ch-accent-dim);
+    border-color: transparent;
+  }
+}
+
+.detailWhen {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  min-width: 0;
+}
+
+.url {
+  flex: 1;
+  min-width: 0;
+  @include readout(11px);
+  color: var(--ch-gold-200);
+  padding: space(2) space(3);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+  @include truncate;
+  user-select: all;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding-top: space(4);
+  @include hairline(top, 0.08);
+}
+
+.sectionLabel {
+  @include label(8px, 0.18em);
+  color: var(--ch-text-faint);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.confirmText {
+  @include readout(10px);
+  color: var(--ch-crimson-400);
+}
+
+.footnote {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  margin: 0;
+}
+
+// --------------------------------------------------------------- feedback
+
+.feedback {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.producers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.producer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: rem(140px);
+  max-width: rem(260px);
+  padding: space(2) space(3);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[aria-selected='true'] {
+    border-color: var(--ch-line-gold);
+    box-shadow: inset 0 -2px 0 var(--ch-gold-400);
+  }
+}
+
+.producerHead {
+  display: flex;
+  align-items: baseline;
+  gap: space(2);
+  min-width: 0;
+}
+
+.producerName {
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.producerMeta {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  @include truncate;
+}
+
+.waveform {
+  display: block;
+  width: 100%;
+  height: rem(132px);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(3);
+}
+
+.clock {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.segmented {
+  display: inline-flex;
+  @include hairline(all, 0.14);
+}
+
+.segment {
+  position: relative;
+  max-width: rem(220px);
+  padding: space(2) space(4);
+  @include label(9px, 0.16em);
+  color: var(--ch-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  @include truncate;
+  transition:
+    color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  & + & {
+    @include hairline(left, 0.14);
+  }
+
+  &:hover {
+    color: var(--ch-text-secondary);
+    background: rgba(182, 158, 124, 0.04);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-selected] {
+    color: var(--ch-text-primary);
+    background: rgba(182, 158, 124, 0.07);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: var(--ch-gold-400);
+    }
+  }
+}
+
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.noteItem {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+}
+
+.note {
+  display: grid;
+  grid-template-columns: rem(92px) minmax(0, 1fr);
+  column-gap: space(4);
+  row-gap: space(2);
+  width: 100%;
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.08);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[data-active] {
+    border-color: var(--ch-line-gold);
+    box-shadow: inset 2px 0 0 var(--ch-gold-300);
+  }
+}
+
+.noteWhen {
+  @include readout(10px);
+  color: var(--ch-gold-300);
+  grid-row: span 2;
+}
+
+.noteText {
+  font-family: var(--ch-font-body);
+  font-size: rem(12px);
+  line-height: 1.6;
+  color: var(--ch-text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  grid-column: 2;
+}
+
+.tool {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.eq {
+  display: block;
+  width: 100%;
+  height: rem(112px);
+  background: var(--ch-surface-sunken);
+  @include hairline(all, 0.08);
+}
+
+// ------------------------------------------------------------------ share
+
+.share {
+  display: grid;
+  gap: space(4);
+}
+
+.drop {
+  padding: space(4);
+  background: var(--ch-surface-sunken);
+  border: $hairline dashed var(--ch-line-strong);
+  transition:
+    border-color $duration-fast linear,
+    background-color $duration-fast linear;
+
+  &[data-dragging] {
+    border-color: var(--ch-gold-300);
+    background: rgba(210, 169, 97, 0.05);
+  }
+}
+
+.dropEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space(3);
+  padding: space(4) 0;
+  text-align: center;
+}
+
+.dropLine {
+  @include label(9px, 0.18em);
+  color: var(--ch-text-secondary);
+}
+
+.dropHint {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  line-height: 1.6;
+  max-width: rem(460px);
+}
+
+.chosen {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  min-width: 0;
+}
+
+.chosenName {
+  font-family: var(--ch-font-body);
+  font-size: rem(13px);
+  color: var(--ch-text-primary);
+  min-width: 0;
+  @include truncate;
+}
+
+.chosenMeta {
+  @include readout(10px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.dialogRow {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: space(3);
+}
+
+.sharedLine {
+  @include readout(11px);
+  color: var(--ch-text-secondary);
+  line-height: 1.65;
+  margin: 0;
+}

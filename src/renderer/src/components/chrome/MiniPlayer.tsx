@@ -44,7 +44,18 @@ import styles from './MiniPlayer.module.scss'
  * reports the one thing CSS cannot know: whether the bar is there at all.
  */
 export function MiniPlayer(): ReactNode {
-  const { source, playing, position, duration, volume, toggle, seek, setVolume } = usePlayback()
+  const {
+    source,
+    playing,
+    position,
+    duration,
+    volume,
+    insert,
+    toggle,
+    seek,
+    setVolume,
+    setBypass
+  } = usePlayback()
   const navigate = useNavigate()
 
   /*
@@ -119,41 +130,67 @@ export function MiniPlayer(): ReactNode {
             />
           </label>
 
+          {/* Whose tools the track is heard through, from CONSULTATION: the A/B
+              from anywhere in the console, since the bar is where the sound is. */}
+          {insert ? (
+            <button
+              type="button"
+              className={styles.insert}
+              data-bypassed={insert.bypassed || undefined}
+              aria-pressed={!insert.bypassed}
+              onClick={() => setBypass(!insert.bypassed)}
+              title={
+                insert.bypassed
+                  ? `Hear it through ${insert.label}'s settings again`
+                  : 'Hear the track as it is'
+              }
+            >
+              <span className={styles.insertWho}>{insert.label}</span>
+              <span className={styles.insertState}>
+                {insert.bypassed ? 'AS IT IS' : 'SETTINGS ON'}
+              </span>
+            </button>
+          ) : null}
+
           {/* The subject, at the end of the row and doubling as the way back to
               the department that owns it — the same move the reference makes. */}
           <button
             type="button"
             className={styles.subject}
-            onClick={() => navigate(getSection('auditorium').path)}
-            title="Open the auditorium"
+            onClick={() => navigate(getSection(source.home).path)}
+            title={`Open ${getSection(source.home).label}`}
           >
             <span className={styles.mark} aria-hidden="true">
               <Sigil size={18} weight={2.2} />
             </span>
             <span className={styles.subjectBody}>
               <span className={styles.subjectName}>{source.name}</span>
-              <span className={styles.subjectWhere}>AUDITORIUM</span>
+              <span className={styles.subjectWhere}>{getSection(source.home).label}</span>
             </span>
           </button>
 
-          <button
-            type="button"
-            className={styles.detach}
-            /*
-              Hands the transport over rather than starting a second one.
-              The position and the playing state travel with the file, and
-              this window stops — otherwise the same track sounds twice, a
-              few milliseconds apart, which is worse than either window
-              having it alone.
-            */
-            onClick={() => {
-              void window.candy.auditorium.popout(source.path, position, playing)
-              if (playing) toggle()
-            }}
-            title="Play in its own window"
-          >
-            POP OUT
-          </button>
+          {/* Only a file here, and only as it is: the popout reads by path, and
+              has no tools of anyone's to play it through. */}
+          {source.local && !insert ? (
+            <button
+              type="button"
+              className={styles.detach}
+              /*
+                Hands the transport over rather than starting a second one.
+                The position and the playing state travel with the file, and
+                this window stops — otherwise the same track sounds twice, a
+                few milliseconds apart, which is worse than either window
+                having it alone.
+              */
+              onClick={() => {
+                void window.candy.auditorium.popout(source.path, position, playing)
+                if (playing) toggle()
+              }}
+              title="Play in its own window"
+            >
+              POP OUT
+            </button>
+          ) : null}
         </motion.aside>
       ) : null}
     </AnimatePresence>

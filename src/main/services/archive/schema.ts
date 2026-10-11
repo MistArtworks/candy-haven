@@ -150,6 +150,19 @@ export const Collections = {
   ReleasesLinks: 'releases_links',
   /** RELEASES: what each website has, as last fetched. A copy for reading only. */
   ReleasesCache: 'releases_cache',
+  /**
+   * CONSULTATION: every track shared for feedback, as the website last
+   * listed it, with the file it was shared from beside it when that was
+   * here. Kept after its link closes, as the record that it was; Remove is
+   * what forgets one (docs/CONSULTATION.md).
+   */
+  Consultations: 'consultations',
+  /**
+   * CONSULTATION: the producers' feedback on links still open, copied on
+   * each check-in. Deleted here when its link closes, as the website
+   * deletes its own.
+   */
+  ConsultationFeedback: 'consultation_feedback',
   /** Stream overlay scenes and layouts (OBSERVATORY section). */
   Overlays: 'overlays',
   /** Natural-language commands and their resolved actions (INTERFACE section). */
@@ -224,6 +237,20 @@ const INDEX_PLAN: Record<string, IndexDescription[]> = {
   [Collections.SiteBookings]: [
     { key: { website: 1, createdAt: -1 }, name: 'site_booking_by_website' },
     { key: { website: 1, status: 1 }, name: 'site_booking_by_status' }
+  ],
+  [Collections.Consultations]: [
+    // The list is "this website's, newest first"; the timer and the sweep
+    // both ask which of them closes next.
+    { key: { website: 1, createdAt: -1 }, name: 'consultation_by_website' },
+    { key: { website: 1, expiresAt: 1 }, name: 'consultation_by_close' }
+  ],
+  [Collections.ConsultationFeedback]: [
+    // The feedback panel reads one link's in the order it was sent, and the
+    // waiting count is the same filter with `readAt` on it.
+    {
+      key: { website: 1, consultationId: 1, submittedAt: 1 },
+      name: 'consultation_feedback_by_link'
+    }
   ],
   [Collections.ProjectVersions]: [
     { key: { projectId: 1, capturedAt: -1 }, name: 'version_by_project' },

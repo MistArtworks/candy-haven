@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { audioMimeFor } from '@shared/domain/auditorium'
+import { audioMimeFor, type AudioPayload } from '@shared/domain/auditorium'
+import type { SectionId } from '@shared/domain/navigation'
+import { createConsultGraph, type ConsultGraph, type Tools } from '@shared/consult/audio'
 import { surveyPeaks } from './survey'
 
 export interface LoadedSource {
@@ -8,7 +10,42 @@ export interface LoadedSource {
   extension: string
   size: number
   modifiedAt: number
+  /**
+   * The department that opened it, which the transport bar names and leads
+   * back to: AUDITORIUM for a file admitted there or played from the
+   * ARCHIVE, CONSULTATION for a shared track heard with someone's feedback.
+   */
+  home: SectionId
+  /** What the opener knows it by, so it can tell it is still the one loaded. Null from a path. */
+  key: string | null
+  /** Whether `path` is a file on this machine, which the popout and Reveal can open. */
+  local: boolean
 }
+
+/** How `openFrom` files what it opens. */
+export interface OpenOptions {
+  home: SectionId
+  key: string
+}
+
+/** Someone's tools on the track: a producer's feedback, heard. */
+export interface InsertSpec {
+  /** What the opener knows them by (a piece of feedback's id), to tell later whose are on. */
+  key: string
+  /** Whose they are, for the transport bar: `Nasko`. */
+  label: string
+  tools: Tools
+}
+
+export interface InsertState {
+  key: string
+  label: string
+  /** Heard as it is for now, the tools kept: the A/B. */
+  bypassed: boolean
+}
+
+/** A Windows path (`C:\…`, `\\server\…`), as against a name in the bucket. */
+const isLocalPath = (path: string): boolean => /^(?:[a-zA-Z]:[\\/]|\\\\)/.test(path)
 
 export interface AudioEngine {
   /** Attach to the page's single `<audio>` element. */
@@ -33,7 +70,23 @@ export interface AudioEngine {
   position: number
   duration: number
   volume: number
+  /** Someone's tools the track is heard through, or null for the track as it is. */
+  insert: InsertState | null
   open: (path: string) => Promise<void>
+  /**
+   * Opens audio read some way other than from a path here: CONSULTATION's
+   * shared tracks, which may only be in the bucket. Resolves once the
+   * element has it, without waiting for the survey; rejects with the
+   * refusal, for the caller to report, rather than setting `error`.
+   */
+  openFrom: (read: () => Promise<AudioPayload>, options: OpenOptions) => Promise<void>
+  /**
+   * Puts someone's tools on the track, or takes them off. Opening another
+   * file takes them off, so nothing else is ever heard through them.
+   */
+  setInsert: (spec: InsertSpec | null) => void
+  /** Hears the track as it is, or through the tools again. */
+  setBypass: (on: boolean) => void
   toggle: () => void
   seek: (seconds: number) => void
   setVolume: (value: number) => void
@@ -72,8 +125,17 @@ export function useAudioEngine(): AudioEngine {
   const admissionRef = useRef(0)
   /** What is loaded, readable from a subscription without a stale closure. */
   const currentPathRef = useRef<string | null>(null)
+  /**
+   * The tools someone's feedback is heard through, between the source and
+   * the analyser while they are on. Built on first use and kept, as the
+   * source node is; only what is routed through it changes.
+   */
+  const insertRef = useRef<ConsultGraph | null>(null)
+  /** Stops the insert following the element's playhead. */
+  const followingRef = useRef<(() => void) | null>(null)
 
   const [source, setSource] = useState<LoadedSource | null>(null)
+  const [insert, setInsertState] = useState<InsertState | null>(null)
   const [loading, setLoading] = useState(false)
   const [surveying, setSurveying] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -118,8 +180,77 @@ export function useAudioEngine(): AudioEngine {
     return context
   }, [])
 
-  const open = useCallback(
-    async (path: string): Promise<void> => {
+  /** The source straight into the analyser, or through `graph` on the way. */
+  const route = useCallback((graph: ConsultGraph | null): void => {
+    const node = nodeRef.current
+    const analyser = analyserRef.current
+    if (!node || !analyser) return
+    node.disconnect()
+    if (graph) {
+      node.connect(graph.input)
+      graph.output.connect(analyser)
+    } else {
+      insertRef.current?.output.disconnect()
+      node.connect(analyser)
+    }
+  }, [])
+
+  /*
+   * Someone's tools on the track, for CONSULTATION's A/B.
+   *
+   * The same graph the website's page plays a producer's tools through
+   * (`src/shared/consult/audio`), so what is heard here is what they heard.
+   * It sits between the source and the analyser, so the visualiser shows
+   * the track as it is heard, tools and all; with nothing on, the source
+   * goes straight to the analyser as it always has.
+   */
+  const setInsert = useCallback(
+    (spec: InsertSpec | null): void => {
+      const graph = insertRef.current
+      if (!spec) {
+        if (graph) {
+          route(null)
+          graph.set(null)
+          graph.bypass(false)
+          followingRef.current?.()
+          followingRef.current = null
+        }
+        setInsertState(null)
+        return
+      }
+
+      const context = buildGraph()
+      const element = elementRef.current
+      if (!context || !element) return
+      const tools = graph ?? createConsultGraph(context)
+      insertRef.current = tools
+      tools.set(spec.tools)
+      tools.bypass(false)
+      followingRef.current ??= tools.follow(element)
+      route(tools)
+      setInsertState({ key: spec.key, label: spec.label, bypassed: false })
+    },
+    [buildGraph, route]
+  )
+
+  const setBypass = useCallback((on: boolean): void => {
+    const graph = insertRef.current
+    if (!graph) return
+    graph.bypass(on)
+    setInsertState((current) => (current ? { ...current, bypassed: on } : current))
+  }, [])
+
+  /**
+   * Puts a file on the element. Resolves with what was read, or null when
+   * it failed and `report` put the reason in `error`; rejects with it
+   * otherwise.
+   */
+  const load = useCallback(
+    async (
+      read: () => Promise<AudioPayload>,
+      filed: Pick<LoadedSource, 'home' | 'key'>,
+      report: boolean
+    ): Promise<{ payload: AudioPayload; admission: number } | null> => {
       const admission = admissionRef.current + 1
       admissionRef.current = admission
 
@@ -127,10 +258,13 @@ export function useAudioEngine(): AudioEngine {
       setError(null)
       peaksRef.current = null
 
-      let payload: Awaited<ReturnType<typeof window.candy.auditorium.read>>
+      let payload: AudioPayload
 
       try {
-        payload = await window.candy.auditorium.read(path)
+        payload = await read()
+
+        // Another file never inherits someone's tools.
+        setInsert(null)
 
         // Revoked before the new one is assigned: a session spent auditioning
         // a folder of masters would otherwise hold every one of them in memory.
@@ -148,41 +282,54 @@ export function useAudioEngine(): AudioEngine {
           element.load()
         }
 
+        const local = isLocalPath(payload.path)
         setSource({
           path: payload.path,
           name: payload.name,
           extension: payload.extension,
           size: payload.size,
-          modifiedAt: payload.modifiedAt
+          modifiedAt: payload.modifiedAt,
+          ...filed,
+          local
         })
         setPosition(0)
         setDuration(Number.NaN)
         currentPathRef.current = payload.path
 
         // Every window follows the room. The announcement echoes back to this
-        // one too, and is ignored here because the path already matches.
-        void window.candy.auditorium.announce(payload.path).catch(() => {
-          // A window that did not hear is a window showing an older file, not
-          // a broken one; nothing here should fail on it.
-        })
+        // one too, and is ignored here because the path already matches. Only
+        // a file here: the popout reads by path, and a track that is only in
+        // the bucket has none.
+        if (local) {
+          void window.candy.auditorium.announce(payload.path).catch(() => {
+            // A window that did not hear is a window showing an older file, not
+            // a broken one; nothing here should fail on it.
+          })
+        }
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : String(cause))
         setLoading(false)
-        return
+        if (!report) throw cause
+        setError(cause instanceof Error ? cause.message : String(cause))
+        return null
       }
 
       setLoading(false)
+      return { payload, admission }
+    },
+    [setInsert]
+  )
 
-      /*
-       * Survey the file for the overview.
-       *
-       * Second, and separately, because the transport must not wait on it: the
-       * operator can start playing the moment the element has its source,
-       * while the overview arrives when it arrives. A failure here is not
-       * reported as an error either — the two live renders are unaffected, and
-       * a decode that fails on an exotic container should cost the WAVEFORM
-       * preset, not the room.
-       */
+  /*
+   * Survey the file for the overview.
+   *
+   * Second, and separately, because the transport must not wait on it: the
+   * operator can start playing the moment the element has its source, while
+   * the overview arrives when it arrives. A failure here is not reported as an
+   * error either — the two live renders are unaffected, and a decode that
+   * fails on an exotic container should cost the WAVEFORM preset, not the room.
+   */
+  const survey = useCallback(
+    async (payload: AudioPayload, admission: number): Promise<void> => {
       setSurveying(true)
       try {
         const context = buildGraph()
@@ -207,6 +354,26 @@ export function useAudioEngine(): AudioEngine {
       }
     },
     [buildGraph]
+  )
+
+  const open = useCallback(
+    async (path: string): Promise<void> => {
+      const loaded = await load(
+        () => window.candy.auditorium.read(path),
+        { home: 'auditorium', key: null },
+        true
+      )
+      if (loaded) await survey(loaded.payload, loaded.admission)
+    },
+    [load, survey]
+  )
+
+  const openFrom = useCallback(
+    async (read: () => Promise<AudioPayload>, options: OpenOptions): Promise<void> => {
+      const loaded = await load(read, options, false)
+      if (loaded) void survey(loaded.payload, loaded.admission)
+    },
+    [load, survey]
   )
 
   const toggle = useCallback((): void => {
@@ -323,6 +490,10 @@ export function useAudioEngine(): AudioEngine {
       objectUrlRef.current = null
       currentPathRef.current = null
       peaksRef.current = null
+      followingRef.current?.()
+      followingRef.current = null
+      insertRef.current?.dispose()
+      insertRef.current = null
       void contextRef.current?.close()
       contextRef.current = null
       analyserRef.current = null
@@ -342,7 +513,11 @@ export function useAudioEngine(): AudioEngine {
     position,
     duration,
     volume,
+    insert,
     open,
+    openFrom,
+    setInsert,
+    setBypass,
     toggle,
     seek,
     setVolume,

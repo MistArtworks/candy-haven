@@ -355,6 +355,22 @@ const api: CandyHavenApi = {
     onState: (listener) => subscribe('inbox:state', listener),
     onOpen: (listener) => subscribe('inbox:open', listener)
   },
+  consultation: {
+    state: () => invoke('consultation:state'),
+    sync: () => invoke('consultation:sync'),
+    list: () => invoke('consultation:list'),
+    feedback: (id) => invoke('consultation:feedback', { id }),
+    read: (id) => invoke('consultation:read', { id }),
+    share: (draft) => invoke('consultation:share', draft),
+    check: (path) => invoke('consultation:check', { path }),
+    cancelShare: () => invoke('consultation:cancel-share'),
+    changeExpiry: (expiry) => invoke('consultation:expiry', expiry),
+    end: (id) => invoke('consultation:end', { id }),
+    remove: (id) => invoke('consultation:remove', { id }),
+    audio: (id) => invoke('consultation:audio', { id }),
+    onState: (listener) => subscribe('consultation:state', listener),
+    onProgress: (listener) => subscribe('consultation:progress', listener)
+  },
   offerings: {
     state: () => invoke('offerings:state'),
     sync: () => invoke('offerings:sync'),
