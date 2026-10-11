@@ -20,11 +20,13 @@ the website's `src/lib/consult/`, `/api/haven/consultations` or
 2. **Share** asks the website for a pass (`POST /api/haven/consultations/upload`
    with the type and size). The website checks there's room, and answers with
    a name in its store, `consultation/<uuid>.<ext>`, and a token that lets
-   exactly that file, of that type and size, in for an hour. Main uploads the
-   track straight to the store with Vercel's own SDK, showing the progress,
-   then opens the link: `POST /api/haven/consultations` with the title, the
+   exactly that file, of that type, in for an hour. Main uploads the track
+   straight to the store with Vercel's own SDK, showing the progress, then
+   opens the link: `POST /api/haven/consultations` with the title, the
    message, the length, the BPM, the days (1 to 7), the track's address and
-   the waveform. The website answers with the record and the page's address,
+   the waveform. The website measures the track in the store first, and
+   deletes it instead of opening a link if it is over 200 MB or doesn't fit
+   after all. It answers with the record and the page's address,
    `https://candy-heist.vercel.app/consult/<token>`. If the link can't be
    opened, main asks the website to delete the upload (`/discard`).
 3. Candy sends the link to a producer. The producer types a name (no
@@ -103,15 +105,23 @@ never cleared away as, a live track.
 
 **This console holds no key to the store.** It only ever holds a pass: a
 client token from Vercel's `generateClientTokenFromReadWriteToken`, made by
-the website after the sign-in check, which lets one named file, of one type
-and size, in within the hour. Nothing it holds can delete from the store. The
-website holds the store's read-write token, `BLOB_READ_WRITE_TOKEN`, which
-Vercel adds when the store is connected to the project.
+the website after the sign-in check, which lets one named file, of one type,
+in within the hour. Nothing it holds can delete from the store. The website
+holds the store's read-write token, `BLOB_READ_WRITE_TOKEN`, which Vercel adds
+when the store is connected to the project.
+
+The pass names the file's size as well, but Vercel doesn't hold an upload sent
+in pieces to it: the first test against the real store kept a file bigger
+than its pass allowed. So the size the website keeps is the store's own, read
+with `head` before the link opens, and a track over 200 MB or past the room
+left is deleted there. The room check before the pass is the early refusal;
+this one is the count that holds.
 
 The producer's page plays the track through Web Audio, which a browser only
 allows across origins when the response carries `Access-Control-Allow-Origin`.
-Vercel's public Blob addresses send `*` (seen on their preflight answers in
-Vercel's community); check it once, on the first real upload:
+Vercel's public Blob addresses send `*`, on the whole file and on the pieces
+(206) a player seeks with; checked against the real store on 11 October 2026.
+To check it again:
 
 ```
 curl -sI -H "Origin: https://candy-heist.vercel.app" <the track's address> | grep -i access-control
@@ -283,6 +293,8 @@ posted publicly is not what this is for. The figures are Vercel's, from
 | **NO STORE** across the page                          | The website has no Blob store yet: setup step 1                              |
 | `That track is … and a link plays 200 MB at most.`    | Bounce it smaller                                                            |
 | `There isn't room for this track…`                    | End a link no longer needed (its track is deleted at once), or share smaller |
+| Either of those after the upload                      | The file changed while it uploaded; the website deleted it. Share it again   |
+| `The track isn't in the store…`                       | The upload never landed: share it again                                      |
 | `Vercel has paused the tracks…`                       | A month's free allowance ran out; it comes back 30 days after, unbilled      |
 | `The upload took longer than its hour.`               | Share it again: each share gets a fresh pass                                 |
 | `… does not know this request yet.`                   | The website isn't deployed with CONSULTATION yet: setup step 4               |

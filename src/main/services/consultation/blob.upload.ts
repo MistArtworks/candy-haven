@@ -21,8 +21,10 @@ import {
  * piece that fails, and reporting how far it has got. The file is handed
  * over as a file-backed Blob, so it is read a piece at a time, never whole.
  *
- * The pass is good for one name, one type and one size, for an hour. It is
- * the only thing this console ever holds that can write to the store, and
+ * The pass is good for one name and one type, for an hour. It names the
+ * size too, but Vercel doesn't hold a file sent in pieces to it, so the
+ * website measures the track before it opens the link. The pass is the
+ * only thing this console ever holds that can write to the store, and
  * nothing it holds can delete from it: the website does every deletion.
  */
 
@@ -99,6 +101,9 @@ export async function uploadTrack(
   }
 }
 
+/** How the SDK's own error messages begin. */
+const SDK_PREFIX = 'Vercel Blob: '
+
 function failure(error: unknown, signal: AbortSignal): UploadError {
   if (signal.aborted || error instanceof BlobRequestAbortedError) {
     return new UploadError('cancelled', 'The upload was cancelled.')
@@ -130,8 +135,7 @@ function failure(error: unknown, signal: AbortSignal): UploadError {
   if (error instanceof TypeError) {
     return new UploadError('unreachable', 'Could not reach Vercel Blob.')
   }
-  return new UploadError(
-    'failed',
-    error instanceof Error ? `Vercel Blob: ${error.message}` : 'The upload failed.'
-  )
+  if (!(error instanceof Error)) return new UploadError('failed', 'The upload failed.')
+  const message = error.message.startsWith(SDK_PREFIX) ? error.message : SDK_PREFIX + error.message
+  return new UploadError('failed', message)
 }
