@@ -58,7 +58,7 @@ the link**, it is too late to stop.
 
 | Part                 | What it is                                                                |
 | -------------------- | ------------------------------------------------------------------------- |
-| **STORAGE**          | How much of the free 5 GB the shared tracks take, and how much is free    |
+| **STORAGE**          | How much of the free 1 GB the shared tracks take, and how much is free    |
 | **Share a track…**   | Shares one. Reads **Connect to share** while the website can't be reached |
 | **Check for new**    | Asks the website for new feedback                                         |
 | **01 SHARED**        | Every track shared, newest first, open and expired                        |
@@ -118,10 +118,10 @@ the console can't reach it the button reads **Connect to remove**.
 
 ## When it closes
 
-When a link closes, its page says the link has closed. The track and all its
-feedback are deleted: by the console the moment the link closes, if it is
-open, or the next time it starts. If neither computer opens the console again,
-the track is deleted by Firebase itself, eight days after it was shared.
+When a link closes, its page says the link has closed, and the website deletes
+the track and all its feedback: the moment the link closes if the console is
+open on either computer, and otherwise in its own daily clean-up, within a day.
+Nothing depends on the console being opened again.
 
 **Feedback nobody checked for before the link closed is gone for good.** So:
 
@@ -132,21 +132,28 @@ the track is deleted by Firebase itself, eight days after it was shared.
 
 ## The storage meter
 
-Firebase keeps 5 GB of tracks for free. The meter counts every track not
-deleted yet, shared from either computer. Sharing refuses a track that would go
-past 5 GB, and says how much is left. **End now** on a link you are done with
-deletes its track at once and gives the room back.
+The website keeps shared tracks at Vercel, which holds 1 GB of them for free:
+about fifteen normal WAVs at once, or five at the 200 MB limit. The meter
+counts every track not deleted yet, shared from either computer. Sharing
+refuses a track that would go past 1 GB, and says how much is left. **End now**
+on a link you are done with deletes its track at once and gives the room back.
 
-Listening counts too, separately: about 100 GB of plays a month are free, which
-is a 60 MB WAV played around 1,600 times.
+Listening counts too, separately: 10 GB of plays a month are free, which is a
+60 MB WAV played about 160 times, or a 10 MB MP3 about a thousand. A link sent
+to a few producers is far inside it.
+
+> **It never costs anything.** If a month's free allowance ever runs out,
+> Vercel pauses the tracks for 30 days instead of charging: nothing can be
+> shared or played until then, and the share dialog says so.
 
 ## When something goes wrong
 
-| It reads                                      | Means, and what to do                                                |
-| --------------------------------------------- | -------------------------------------------------------------------- |
-| **NO BUCKET** across the page                 | Firebase Storage isn't set up yet. mist has the steps                |
-| `Firebase Storage refused this account`       | Storage's rules aren't published yet. mist has the steps             |
-| `That track is … a link plays 200 MB at most` | Bounce it at 16-bit, or as a 320 kbps MP3                            |
-| `There isn't room for this track`             | End a link you are done with, or share a smaller bounce              |
-| `… does not know this request yet`            | The website hasn't been updated with CONSULTATION yet                |
-| The producer says the page plays nothing      | Storage isn't set to let the website play it yet. mist has the steps |
+| It reads                                      | Means, and what to do                                            |
+| --------------------------------------------- | ---------------------------------------------------------------- |
+| **NO STORE** across the page                  | The website's storage isn't set up yet. mist has the steps       |
+| `That track is … a link plays 200 MB at most` | Bounce it at 16-bit, or as a 320 kbps MP3                        |
+| `There isn't room for this track`             | End a link you are done with, or share a smaller bounce          |
+| `Vercel has paused the tracks`                | This month's free allowance ran out; it comes back after 30 days |
+| `The upload took longer than its hour`        | Share it again                                                   |
+| `… does not know this request yet`            | The website hasn't been updated with CONSULTATION yet            |
+| The producer says the page plays nothing      | Tell mist: the storage may not be letting the website play it    |

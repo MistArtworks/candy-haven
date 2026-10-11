@@ -1,10 +1,12 @@
 # CONSULTATION: a track shared for other producers' feedback
 
 How a track gets from this console to another producer and back, and how it
-is deleted. Added 2026-10-10. Read this before touching
-`services/consultation/`, `src/shared/consult/`, the website's
-`src/lib/consult/` or `/api/haven/consultations`, or the transport's insert
-slot in `features/auditorium/lib/useAudioEngine.ts`.
+is deleted. Added 2026-10-10; moved from Firebase Storage to the website's
+Vercel Blob store on 2026-10-11, since Firebase Storage needs the Blaze plan.
+Read this before touching `services/consultation/`, `src/shared/consult/`,
+the website's `src/lib/consult/`, `/api/haven/consultations` or
+`/api/cron/consultations`, or the transport's insert slot in
+`features/auditorium/lib/useAudioEngine.ts`.
 
 ## The flow
 
@@ -15,13 +17,16 @@ slot in `features/auditorium/lib/useAudioEngine.ts`.
    reads and decodes it with AUDITORIUM's survey for its length and its
    waveform, compacted to 2,400 columns (about 10 KB of base64). If the file
    sits in an ARCHIVE project's folder, the project's tempo fills in the BPM.
-2. **Share** uploads the track to Firebase Storage, as
-   `consultation/<uuid>.<ext>`, on the DISPATCH sign-in, and opens its link on
-   the website: `POST /api/haven/consultations` with the title, the message,
-   the length, the BPM, the days (1 to 7), the track's address and the
-   waveform. The website answers with the record and the page's address,
+2. **Share** asks the website for a pass (`POST /api/haven/consultations/upload`
+   with the type and size). The website checks there's room, and answers with
+   a name in its store, `consultation/<uuid>.<ext>`, and a token that lets
+   exactly that file, of that type and size, in for an hour. Main uploads the
+   track straight to the store with Vercel's own SDK, showing the progress,
+   then opens the link: `POST /api/haven/consultations` with the title, the
+   message, the length, the BPM, the days (1 to 7), the track's address and
+   the waveform. The website answers with the record and the page's address,
    `https://candy-heist.vercel.app/consult/<token>`. If the link can't be
-   opened, main deletes the upload again.
+   opened, main asks the website to delete the upload (`/discard`).
 3. Candy sends the link to a producer. The producer types a name (no
    account), plays the track with its waveform and a live spectrum, leaves
    notes at a moment or over a section, puts tools on a section or on the
@@ -33,18 +38,19 @@ slot in `features/auditorium/lib/useAudioEngine.ts`.
    words and as the EQ's curve, and plays the track through their tools on the
    console's one transport: **As it is** and **Their settings** are the A/B.
 6. When the link closes (its days run out, or **End now**), its page stops
-   answering, and the track and all its feedback are deleted. The record stays,
-   as the track's name marked EXPIRED, until **Remove** forgets it.
+   answering, and the website deletes the track and all its feedback. The
+   record stays, as the track's name marked EXPIRED, until **Remove** forgets
+   it.
 
 ```
-console ──(Firebase ID token)──▶ Firebase Storage: consultation/<uuid>.<ext>
-   │                                    ▲  the page plays it by its download
-   │                                    │  address (token in the URL, CORS)
-   └─(Bearer token)─▶ /api/haven/consultations ─▶ Atlas
-                                    consultations          the record (no TTL)
-                                    consultation_access    token, address, waveform (TTL)
-                                    consultation_feedback  notes and tools (TTL)
-producer ─▶ /consult/<token> ─(Server Action)─┘
+console ─(Bearer token)─▶ /api/haven/consultations/upload ─▶ the pass
+console ─(the pass)─────▶ Vercel Blob, public store: consultation/<uuid>.<ext>
+console ─(Bearer token)─▶ /api/haven/consultations ─▶ Atlas
+                                  consultations          the record (no TTL)
+                                  consultation_access    token, address, waveform (TTL)
+                                  consultation_feedback  notes and tools (TTL)
+producer ─▶ /consult/<token> ─(Server Action)─┘ ; plays the track from Blob
+website ─▶ deletes tracks: end, remove, sweep, and the daily cron
 ```
 
 ## One engine, both sides
@@ -79,17 +85,44 @@ the analyser. `setBypass(on)` is the A/B. Opening any other file takes the
 tools off, so AUDITORIUM never inherits someone's EQ.
 
 The track comes from `consultation:audio`: the file it was shared from, when it
-is still where it was and the same size, and otherwise the copy in the bucket,
-fetched by main with the sign-in. A track that is only in the bucket has no
-path here, so the bar hides POP OUT and AUDITORIUM hides Reveal for it. While
-someone's tools are on, the bar shows whose, and pressing it is the A/B from
-any page.
+is still where it was and the same size, and otherwise the copy in the store,
+fetched by main from its public address. A track that is only in the store has
+no path here, so the bar hides POP OUT and AUDITORIUM hides Reveal for it.
+While someone's tools are on, the bar shows whose, and pressing it is the A/B
+from any page.
+
+## The store
+
+The tracks are kept in the website's Vercel Blob store, a **public** one, so
+the producer's page plays a track straight from Vercel's network. A track's
+address carries a random id, so nobody finds one without its link, the same
+model the producer's page itself has. The live site keeps its tracks under
+`consultation/`, every other copy of the website (this machine's development
+server, a preview) under `consultation-dev/`, so a test never touches, and is
+never cleared away as, a live track.
+
+**This console holds no key to the store.** It only ever holds a pass: a
+client token from Vercel's `generateClientTokenFromReadWriteToken`, made by
+the website after the sign-in check, which lets one named file, of one type
+and size, in within the hour. Nothing it holds can delete from the store. The
+website holds the store's read-write token, `BLOB_READ_WRITE_TOKEN`, which
+Vercel adds when the store is connected to the project.
+
+The producer's page plays the track through Web Audio, which a browser only
+allows across origins when the response carries `Access-Control-Allow-Origin`.
+Vercel's public Blob addresses send `*` (seen on their preflight answers in
+Vercel's community); check it once, on the first real upload:
+
+```
+curl -sI -H "Origin: https://candy-heist.vercel.app" <the track's address> | grep -i access-control
+```
 
 ## The website's side
 
 - `consultations` keeps the record: title, message, length, BPM, the track's
-  path, size and type, who shared it and when, `expiresAt`, `endedAt` and
-  `audioDeletedAt`. No TTL: it is the tombstone.
+  name, address, size and type, who shared it and when, `expiresAt`,
+  `endedAt` and `audioDeletedAt`. No TTL: it is the tombstone, and what the
+  website deletes a track by.
 - `consultation_access` holds the token (32 random bytes, base64url), the
   track's address and the waveform. TTL on `expireAt`, the link's close.
 - `consultation_feedback` holds each submission: the name, the notes, the
@@ -108,29 +141,28 @@ any page.
   public read of feedback anywhere: only `/api/haven/consultations/feedback`,
   behind the sign-in, hands it over. Producers never see each other's.
 
-| Call                                     | Does                                                             |
-| ---------------------------------------- | ---------------------------------------------------------------- |
-| `GET /api/haven/consultations`           | Every record, newest first, open ones with link and waveform     |
-| `POST /api/haven/consultations`          | Opens a link for an uploaded track                               |
-| `PATCH /api/haven/consultations/<id>`    | `{ expiresAt }` moves the close; `{ audioDeletedAt }` records it |
-| `POST /api/haven/consultations/<id>/end` | Closes it now, deleting its access and feedback                  |
-| `DELETE /api/haven/consultations/<id>`   | Forgets it, record and all                                       |
-| `GET /api/haven/consultations/feedback`  | Feedback on open links since `?since=`, 200 a page               |
+| Call                                        | Does                                                                    |
+| ------------------------------------------- | ----------------------------------------------------------------------- |
+| `GET /api/haven/consultations`              | Every record, newest first, open ones with link and waveform; `storage` |
+| `POST /api/haven/consultations/upload`      | The pass for one upload, or 409 `no_store` / `no_room` with a sentence  |
+| `POST /api/haven/consultations`             | Opens a link for an uploaded track                                      |
+| `POST /api/haven/consultations/discard`     | Deletes an upload no link plays                                         |
+| `PATCH /api/haven/consultations/<id>`       | `{ expiresAt }` moves the close                                         |
+| `POST /api/haven/consultations/<id>/end`    | Closes it now, deleting its access, feedback and track                  |
+| `DELETE /api/haven/consultations/<id>`      | Forgets it, record and track and all                                    |
+| `POST /api/haven/consultations/sweep`       | Deletes closed links' tracks now; answers with the list                 |
+| `GET /api/haven/consultations/feedback`     | Feedback on open links since `?since=`, 200 a page                      |
+| `GET /api/cron/consultations` (Vercel Cron) | The daily sweep, abandoned uploads included; needs `CRON_SECRET`        |
 
 ## This console's side
 
 `services/consultation/`:
 
-- `storage.client.ts`: Firebase Storage over REST, as Firebase's web SDK
-  talks to it (`packages/storage/src/implementation/requests.ts` is the
-  specification): `Authorization: Firebase <idToken>`, and the resumable
-  upload (`X-Goog-Upload-Protocol: resumable`, then `upload` and
-  `upload, finalize` pieces). Pieces start at 1 MiB and are sized to take about
-  two seconds each, up to 8 MiB, every one but the last a multiple of 256 KiB.
-  A piece whose answer is lost is followed by a `query`, and the upload carries
-  on from where the bucket says it got to; four failures in a row give up. The
-  track is stored with `Cache-Control: private, max-age=86400`, so a producer
-  listening twice in a day doesn't download it twice.
+- `blob.upload.ts`: the upload, with Vercel's SDK (`put` with the pass,
+  `multipart: true`): in pieces, several at once, retrying a piece that fails,
+  reporting progress, cancellable. The file goes as a file-backed Blob
+  (`fs.openAsBlob`), so it is never read whole. Vercel's errors become plain
+  sentences: a paused store, an expired pass, a refused one, the network.
 - `consultation.client.ts`: the website's API, through `callWebsite`.
 - `consultation.repository.ts`: the copy, in `consultations` and
   `consultation_feedback`, and the feedback cursor in `sync_state` under
@@ -142,17 +174,17 @@ any page.
 **Asked, not polled**, as the inbox is: a check-in at startup, on signing in,
 on a new website address, and on **Check for new**. The one thing that runs by
 itself is a link closing while the console is open: a timer set for the next
-close runs a check-in a few seconds after it, so the track is deleted when the
-link closes.
+close runs a check-in a few seconds after it, which has the website delete the
+track then.
 
 A check-in lays the website's list over the copy (dropping what the website no
-longer lists), deletes the copy's feedback for links that have closed, pulls
-the feedback sent since the cursor, then deletes the tracks of closed links
-from the bucket and patches `audioDeletedAt`, so the other copy doesn't try
-again. A track is only deleted, and a link's feedback only dropped from the
-copy, straight after the website has said the link is closed: either copy can
-move a close, so this copy's dates may be out of date. Reads hide a closed
-link's feedback by this copy's dates in the meantime.
+longer lists), deletes the copy's feedback for links that have closed, and
+pulls the feedback sent since the cursor. If the list shows a closed link whose
+track is still in the store, it asks the website to sweep, and lays the answer
+over the copy. Either copy can move a close, so this copy's dates may be out of
+date: a link's feedback is only dropped from the copy straight after the
+website has said the link is closed, and reads hide it by this copy's dates in
+the meantime.
 
 Mutations that read the website's list and write the copy run one at a time,
 so a check-in that listed the links just before a share can't lay that older
@@ -165,17 +197,19 @@ A clicked notice reuses `inbox:open`.
 
 ## When things are deleted
 
-| What                        | Deleted by                                                         | When                                                |
-| --------------------------- | ------------------------------------------------------------------ | --------------------------------------------------- |
-| The page's way in           | The website's TTL index; the store refuses it at once by its dates | At the close                                        |
-| The feedback, on the site   | The website's TTL index                                            | At the close, within about a minute                 |
-| The feedback, in this copy  | The first check-in after the close that reaches the website        | Hidden from the moment of close                     |
-| The track, in the bucket    | Whichever copy of the console checks in first after the close      | At the close if a copy is open, else next start     |
-| The track, whatever happens | The bucket's lifecycle rule (`storage.lifecycle.json`)             | Eight days after upload; Google gives no exact time |
-| The record                  | **Remove**, in CONSULTATION                                        | Never by itself                                     |
+| What                              | Deleted by                                                         | When                                         |
+| --------------------------------- | ------------------------------------------------------------------ | -------------------------------------------- |
+| The page's way in                 | The website's TTL index; the store refuses it at once by its dates | At the close                                 |
+| The feedback, on the site         | The website's TTL index                                            | At the close, within about a minute          |
+| The feedback, in this copy        | The first check-in after the close that reaches the website        | Hidden from the moment of close              |
+| The track                         | The website, asked by whichever copy of the console is open        | At the close, if a copy is open              |
+| The track, whatever happens       | The website's daily sweep (Vercel Cron)                            | Within a day of the close                    |
+| An upload whose link never opened | `/discard` at once, else the daily sweep                           | The first daily sweep it is six hours old at |
+| The record                        | **Remove**, in CONSULTATION                                        | Never by itself                              |
 
-**End now** closes the link at once: the website deletes its access and
-feedback in the same call, and the copy that ended it deletes the track.
+**End now** closes the link at once: the website deletes its access, its
+feedback and its track in the same call. A deleted track's address stops
+answering within a minute, once Vercel's network lets go of it.
 
 Feedback nobody checked for before a link closed is gone for good. The rail
 counts unread feedback, and the startup notice says when a link with unread
@@ -185,71 +219,52 @@ feedback closes within a day.
 
 The meter is the sum of the sizes of the tracks not yet deleted, by the
 website's records, so it counts what either copy of the console shared. It is
-measured against Firebase's free 5 GB, in the binary gigabytes the console
-shows everywhere. A file that would take it past that is refused when it is
-chosen, by this copy's count, and again when it is shared, by a fresh list.
+measured against the 1 GB of Blob storage Vercel's free plan includes, in the
+binary gigabytes the console shows everywhere. A file that would take it past
+that is refused when it is chosen, by this copy's count, and again by the
+website before it gives the pass, by its own.
 
-What it doesn't count: a development copy's uploads go to the same bucket but
-are recorded on the development website, so only the development meter shows
-them. The lifecycle rule clears them like any other.
+Vercel counts storage as a month's average, and this holds to the gigabyte at
+every moment, so no month can go over it. What the meter doesn't count: a
+development copy's uploads, which go to the same store under
+`consultation-dev/` and are recorded on the development website, so only the
+development meter shows them.
 
 ## One-time setup
 
-Done once, in the Firebase and Google Cloud consoles. The repository holds the
-three files: `storage.rules`, `storage.cors.json` and `storage.lifecycle.json`,
-beside `database.rules.json`.
+Done once, in the website's Vercel project. No card, and nothing in Firebase.
 
-1. **Blaze.** In the Firebase console, move the project to the Blaze plan
-   (Usage and billing). Cloud Storage for Firebase needs it since
-   3 February 2026; usage within the free tier still costs nothing.
-2. **The bucket.** This project's config names
-   `candy-haven.firebasestorage.app`, a new-style default bucket. Open Storage
-   and press **Get started**, and choose **US-CENTRAL1, US-EAST1 or US-WEST1**:
-   the free tier applies only there. (An older project's `<id>.appspot.com`
-   bucket keeps its own free level on Blaze.)
-3. **Rules.** Storage → Rules: paste `storage.rules` and publish. Only the two
-   accounts can write or delete; only audio; only under `consultation/`; 200 MB
-   at most.
-4. **CORS**, so the website's page may play the track through its tools (Web
-   Audio reads the samples, which a browser only allows across origins with
-   CORS). In Google Cloud Shell, or with the gcloud CLI signed in to the
-   project, from this repository:
+1. **The store.** In the project, open **Storage**, choose **Create Storage →
+   Blob**, set the access to **Public**, and connect it to Production, Preview
+   and Development. Vercel adds `BLOB_READ_WRITE_TOKEN` to the project's
+   environment by itself.
+2. **The daily sweep's secret.** In the project's environment variables, add
+   `CRON_SECRET`, any long random string. Vercel Cron sends it to
+   `/api/cron/consultations`, set in the website's `vercel.json` for 04:00 UTC
+   every day (the free plan allows once a day, give or take an hour).
+3. **Development.** Run `vercel env pull` in the website, or copy
+   `BLOB_READ_WRITE_TOKEN` into its `.env.local`, so the development server
+   can give passes and delete tracks too.
+4. **The website.** Deploy it with `/consult`, `/api/haven/consultations` and
+   the cron route. Until it is deployed, the installed console reports that
+   the website does not know the request yet.
 
-   ```
-   gcloud storage buckets update gs://candy-haven.firebasestorage.app --cors-file=storage.cors.json
-   ```
+This assumes the Vercel project is on the free Hobby plan. On Pro, Blob would
+be billed against Pro's monthly credit instead.
 
-   It allows the live site and `http://localhost:3000`. When the website moves
-   to a bought domain, add it to `origin` and run the command again.
+## The free plan, and what it means
 
-5. **Lifecycle**, the guarantee that a track goes even if no copy of the
-   console is opened again:
+Vercel's Hobby plan includes, each month: 1 GB of Blob storage, 10 GB of
+downloads, 10,000 simple operations (a download that isn't in Vercel's cache)
+and 2,000 advanced ones (an upload is a few, one per piece). **It never
+charges.** Past any of them, Vercel pauses the store for 30 days instead:
+tracks can't be shared or played until then, and the share dialog says so.
 
-   ```
-   gcloud storage buckets update gs://candy-haven.firebasestorage.app --lifecycle-file=storage.lifecycle.json
-   ```
-
-   It deletes anything under `consultation/` eight days after it was uploaded.
-   `gcloud storage buckets describe gs://candy-haven.firebasestorage.app` shows
-   both settings back.
-
-6. **The config.** If REGULATION → BOARD's config has no `storageBucket`, paste
-   it again; CONSULTATION says so when it is missing.
-7. **The website.** Deploy the website with `/consult` and
-   `/api/haven/consultations`. Until it is deployed, the installed console
-   reports that the website does not know the request yet. Nothing new is
-   needed in Vercel's settings.
-
-## The free tier, and what it means
-
-On a new-style bucket in one of those three regions, Google's free tier is
-5 GB-months of storage, 5,000 Class A and 50,000 Class B operations a month,
-and 100 GB of downloads a month (from North America to anywhere but China and
-Australia). A download is a producer playing the track: ten producers on a
-60 MB WAV is 600 MB, well inside it. Google counts operations by request, and
-an upload is a few requests (one per piece), so even a couple of hundred big
-shares a month stays inside it. The figures are Google's, from
-`cloud.google.com/free/docs/free-cloud-features`, as of October 2026.
+The 10 GB of downloads is the one to watch: a producer playing a track is a
+download, so a 60 MB WAV can be played about 160 times a month, and a 10 MB
+MP3 about a thousand. A link sent to a few producers is far inside it; a link
+posted publicly is not what this is for. The figures are Vercel's, from
+`vercel.com/docs/vercel-blob/usage-and-pricing`, as of October 2026.
 
 ## Limits
 
@@ -263,14 +278,12 @@ shares a month stays inside it. The figures are Google's, from
 
 ## Failures, as the page states them
 
-| It says                                                 | Means, and what to do                                                        |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `The Firebase config names no Storage bucket.`          | Set Storage up (above), then paste the config again in REGULATION → BOARD    |
-| `Firebase Storage has no bucket called …`               | Storage isn't set up yet: step 2                                             |
-| `Firebase Storage refused this account…`                | The rules aren't published, or a UID in them is wrong: step 3                |
-| `Firebase Storage needs the project on the Blaze plan.` | Step 1                                                                       |
-| `That track is … and a link plays 200 MB at most.`      | Bounce it smaller                                                            |
-| `There isn't room for this track…`                      | End a link no longer needed (its track is deleted at once), or share smaller |
-| `… does not know this request yet.`                     | The website isn't deployed with CONSULTATION yet: step 7                     |
-| The page plays nothing, or the tools do nothing         | CORS isn't set on the bucket: step 4                                         |
-| `Its track couldn't be deleted from storage yet.`       | Remove waits until the track is gone, so the meter can't lose count of it    |
+| It says                                               | Means, and what to do                                                        |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **NO STORE** across the page                          | The website has no Blob store yet: setup step 1                              |
+| `That track is … and a link plays 200 MB at most.`    | Bounce it smaller                                                            |
+| `There isn't room for this track…`                    | End a link no longer needed (its track is deleted at once), or share smaller |
+| `Vercel has paused the tracks…`                       | A month's free allowance ran out; it comes back 30 days after, unbilled      |
+| `The upload took longer than its hour.`               | Share it again: each share gets a fresh pass                                 |
+| `… does not know this request yet.`                   | The website isn't deployed with CONSULTATION yet: setup step 4               |
+| The producer's page plays nothing, or the tools don't | The store isn't sending CORS: check with the `curl` above                    |

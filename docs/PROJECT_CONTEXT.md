@@ -947,12 +947,18 @@ Song feedback from other producers. The full capture is
 **`docs/CONSULTATION.md`**. In summary:
 
 - **Shared from here, heard on the website.** **Share a track…** takes any
-  bounce on this machine (file picker or drop), uploads it to Firebase Storage
-  (`consultation/<uuid>.<ext>`) on DISPATCH's sign-in, and opens a link on the
-  website, `/consult/<token>`, for 1 to 7 days. The producer types a name, plays
-  it, leaves notes at a moment or over a section, puts tools on a section or the
+  bounce on this machine (file picker or drop), uploads it to the website's
+  Vercel Blob store (`consultation/<uuid>.<ext>`) with a one-file pass the
+  website gives on DISPATCH's sign-in, and opens a link on the website,
+  `/consult/<token>`, for 1 to 7 days. The producer types a name, plays it,
+  leaves notes at a moment or over a section, puts tools on a section or the
   whole track (EQ with added and removed points, compressor or limiter,
   sidechain, width, saturation) and sends it. No account.
+- **Vercel Blob, not Firebase Storage** (2026-10-11): Firebase Storage needs
+  the Blaze plan since 2026-02-03, and the operator won't move to Blaze. Blob
+  on Vercel's free Hobby plan never charges; past its allowance (1 GB stored,
+  10 GB downloaded a month) it pauses the store for 30 days instead. The
+  console holds no key to the store, only a pass for one upload.
 - **One engine, written in the website.** The types, the zod check, the timing
   and the Web Audio graph live in the website's `src/lib/consult/{engine,audio}`
   and are copied to `src/shared/consult/` by `npm run sync:consult` (the
@@ -962,23 +968,25 @@ Song feedback from other producers. The full capture is
   `openFrom` and one insert slot, `setInsert`/`setBypass`, between the source
   and the analyser. Opening another file takes the tools off. The bar shows
   whose settings are on and is the A/B from any page.
-- **Deleted when the link closes.** The website's TTL indexes delete the page's
-  access and the feedback; the console deletes the track at the close (a timer
-  while it runs, else the next startup) and records `audioDeletedAt`; the
-  bucket's lifecycle rule (`storage.lifecycle.json`, eight days) is the
-  backstop. The record stays as EXPIRED until **Remove**. Feedback nobody
-  checked for before the close is gone, so the rail counts unread feedback and
-  the startup notice names a link closing within a day.
+- **Deleted when the link closes, by the website.** Its TTL indexes delete the
+  page's access and the feedback; it deletes the track at **End now** and
+  **Remove**, when a console's check-in finds a closed link with its track
+  still there (a timer runs one at each close while a console is open), and in
+  a daily sweep (Vercel Cron, `vercel.json`, `CRON_SECRET`) that also clears
+  uploads whose link never opened. The record stays as EXPIRED until
+  **Remove**. Feedback nobody checked for before the close is gone, so the
+  rail counts unread feedback and the startup notice names a link closing
+  within a day.
 - **Private.** Feedback is only handed over behind the sign-in; producers never
   see each other's.
 - **The meter.** The tracks not yet deleted, by the website's records (both
-  copies), against Firebase's free 5 GB. A file over 200 MB, or one that would
-  pass 5 GB, is refused with the reason before anything is sent.
+  copies), against the free 1 GB. A file over 200 MB, or one that would pass
+  1 GB, is refused with the reason before anything is sent, and the website
+  checks the room again before it gives the pass.
 - **Archive.** `consultations` and `consultation_feedback`, and the feedback
   cursor in `sync_state`. Asked, not polled, as the inbox is.
-- **One-time setup** (Blaze, a bucket in US-CENTRAL1/EAST1/WEST1, rules, CORS,
-  lifecycle): `docs/CONSULTATION.md`, with `storage.rules`, `storage.cors.json`
-  and `storage.lifecycle.json` in the repository root.
+- **One-time setup** (a public Blob store connected to the website's Vercel
+  project, and `CRON_SECRET`): `docs/CONSULTATION.md`.
 - **Placement.** STUDIO, after DARKROOM (7), which moved DISCOGRAPHY to
   CATECHISM down one (8–20).
 
