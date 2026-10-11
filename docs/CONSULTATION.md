@@ -36,9 +36,12 @@ the website's `src/lib/consult/`, `/api/haven/consultations` or
    saturation), hears it A/B, and sends it. A Server Action files it.
 4. The console checks in with the website, as the inbox does, and keeps a copy
    of every link and of the feedback on the open ones in the archive.
-5. CONSULTATION shows each producer's notes on the waveform, their tools in
-   words and as the EQ's curve, and plays the track through their tools on the
+5. CONSULTATION lists each link's producers. Each opens its own page, laid
+   out like the website's: the waveform with their notes under it on the
+   left; their tools on the right, one card each, held beside it and
+   scrolling on their own. The track plays through their tools on the
    console's one transport: **As it is** and **Their settings** are the A/B.
+   Each tool folds to a line, and switches off to hear the track without it.
 6. When the link closes (its days run out, or **End now**), its page stops
    answering, and the website deletes the track and all its feedback. The
    record stays, as the track's name marked EXPIRED, until **Remove** forgets
@@ -82,9 +85,16 @@ mastering-grade processor; the CATECHISM chapter says so.
 DISCOGRAPHY's rule (D14) is that there is one player. So CONSULTATION does
 not have one: it opens the track on the console's transport with
 `openFrom(read, { home: 'consultation', key })` and puts a producer's tools in
-its one insert slot, `setInsert({ key, label, tools })`, between the source and
-the analyser. `setBypass(on)` is the A/B. Opening any other file takes the
-tools off, so AUDITORIUM never inherits someone's EQ.
+its one insert slot, `setInsert({ key, label, tools, path })`, between the
+source and the analyser. `setBypass(on)` is the A/B. Opening any other file
+takes the tools off, so AUDITORIUM never inherits someone's EQ.
+
+A producer's page is `/consultation?link=<id>&producer=<id>`, which is also the
+insert's `path`: the transport bar's way back goes to it. Switching a tool
+off there calls `retune(tools)` with their tools less the ones off
+(`withoutPlugins` in `lib/track.ts`). Unlike `setInsert`, it leaves the A/B
+where it is. What they sent is not changed, and opening another producer has
+all of theirs on.
 
 The track comes from `consultation:audio`: the file it was shared from, when it
 is still where it was and the same size, and otherwise the copy in the store,

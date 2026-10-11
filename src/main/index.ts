@@ -428,6 +428,9 @@ async function start(): Promise<void> {
       return
     }
 
+    // The shutdown below closes the last window itself; it is already quitting.
+    if (shuttingDown) return
+
     app.quit()
   })
 
@@ -435,9 +438,17 @@ async function start(): Promise<void> {
    * Shutdown must complete before the process exits, otherwise the embedded
    * daemon is orphaned. `before-quit` is intercepted once, the async teardown
    * runs, and quit is then re-issued.
+   *
+   * Any quit asked for while it runs is held too, not just the first: the
+   * teardown closes the last window, and a quit let through then exits the
+   * process mid-teardown, cutting the archive's daemon off before it has
+   * shut down. `app.exit` at the end does not come through here.
    */
   app.on('before-quit', (event) => {
-    if (shuttingDown) return
+    if (shuttingDown) {
+      event.preventDefault()
+      return
+    }
     shuttingDown = true
     event.preventDefault()
 

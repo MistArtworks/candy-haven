@@ -21,6 +21,7 @@ export interface FeedbackWaveformProps {
   position: number
   /** Pressed at this many seconds in. */
   onPress: (seconds: number) => void
+  className?: string
 }
 
 /**
@@ -41,7 +42,8 @@ export function FeedbackWaveform({
   loaded,
   playing,
   position,
-  onPress
+  onPress,
+  className
 }: FeedbackWaveformProps): ReactNode {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const data = useMemo(() => decodeWaveform(waveform) ?? new Uint8Array(0), [waveform])
@@ -97,7 +99,7 @@ export function FeedbackWaveform({
   return (
     <canvas
       ref={canvasRef}
-      className={styles.waveform}
+      className={[styles.waveform, className ?? ''].filter(Boolean).join(' ')}
       role="img"
       aria-label="The track, with their notes on it. Press it to play from there."
       onPointerDown={(event) => {

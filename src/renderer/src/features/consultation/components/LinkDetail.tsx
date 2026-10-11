@@ -1,5 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { Consultation, ConsultationState } from '@shared/domain/consultation'
+import type {
+  Consultation,
+  ConsultationFeedback,
+  ConsultationState
+} from '@shared/domain/consultation'
 import {
   DAY_MS,
   MAX_LINK_DAYS,
@@ -7,19 +11,21 @@ import {
   isLinkOpen
 } from '@shared/domain/consultation.constants'
 import { formatClock } from '@shared/consult/engine'
+import { usePlayback } from '@renderer/app/providers/playback'
 import { Button } from '@renderer/components/primitives/Button'
 import { DialogChip, DialogChips } from '@renderer/components/primitives/Dialog'
 import { DetailRows } from '@renderer/features/inbox/components/Filed'
-import { formatStamp } from '@renderer/features/dispatch/lib/present'
+import { formatRelative, formatStamp } from '@renderer/features/dispatch/lib/present'
 import {
   consultationReachable,
   useConsultationFeedback,
   type ConsultationActions
 } from '@renderer/hooks/useConsultation'
 import { useCopy } from '@renderer/hooks/useCopy'
-import { formatBytes } from '@renderer/lib/format'
+import { formatBytes, plural } from '@renderer/lib/format'
 import { tooltipTrigger } from '@renderer/lib/tooltip'
-import { FeedbackView } from './FeedbackView'
+import { insertFor, trackKey } from '../lib/listen'
+import { hasTools } from '../lib/track'
 import styles from '../Consultation.module.scss'
 
 /** Whole days a link can be open for, counted from when it was shared. */
@@ -31,25 +37,38 @@ const DAYS = Array.from({ length: MAX_LINK_DAYS }, (_, index) => index + 1)
  * was, its track and feedback deleted, and can be removed.
  *
  * Opening it reads its feedback, as opening a message reads it; what was
- * new when it was opened reads NEW until it is put away.
+ * new when it was opened reads NEW until it is put away. Each producer who
+ * sent some is a row, and opens their own page.
  */
 export function LinkDetail({
   link,
   state,
   now,
-  actions
+  actions,
+  onOpenProducer
 }: {
   link: Consultation
   state: ConsultationState
   now: number
   actions: ConsultationActions
+  /** A producer's page, with when this link was opened here, for its NEW marks. */
+  onOpenProducer: (feedbackId: string, openedAt: number) => void
 }): ReactNode {
   const live = isLinkOpen(link, now)
   const feedback = useConsultationFeedback(state, live ? link.id : null)
   const copier = useCopy()
   const reachable = consultationReachable(state)
+  const { source, insert, setInsert } = usePlayback()
   // When it was opened here: feedback read since still reads NEW.
   const [openedAt] = useState(() => Date.now())
+
+  const open = (entry: ConsultationFeedback): void => {
+    // Listening to this track already: hear the one opened.
+    if (source?.key === trackKey(link) && insert?.key !== entry.id) {
+      setInsert(insertFor(link, entry))
+    }
+    onOpenProducer(entry.id, openedAt)
+  }
 
   const { read } = actions
   useEffect(() => {
@@ -123,7 +142,33 @@ export function LinkDetail({
           <div className={styles.block}>
             <span className={styles.sectionLabel}>Feedback</span>
             {entries.length ? (
-              <FeedbackView link={link} feedback={entries} openedAt={openedAt} />
+              <ul className={styles.producerList}>
+                {entries.map((entry) => (
+                  <li key={entry.id}>
+                    <button
+                      type="button"
+                      className={styles.producerRow}
+                      onClick={() => open(entry)}
+                    >
+                      {entry.readAt === null || entry.readAt >= openedAt ? (
+                        <span className={styles.markNew}>NEW</span>
+                      ) : null}
+                      <span className={styles.producerName}>{entry.name}</span>
+                      <span className={styles.producerMeta}>
+                        {plural(entry.notes.length, 'note')}
+                        {hasTools(entry) ? ' · tools' : ''}
+                      </span>
+                      <span className={styles.spacer} />
+                      <span className={styles.producerWhen}>
+                        {formatRelative(entry.submittedAt)}
+                      </span>
+                      <span className={styles.producerGo} aria-hidden="true">
+                        →
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             ) : (
               <p className={styles.empty}>
                 {feedback.isLoading

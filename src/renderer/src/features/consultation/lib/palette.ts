@@ -1,4 +1,4 @@
-import type { EqPalette, WaveformPalette } from '@shared/consult/audio'
+import type { EqPalette, SpectrumPalette, WaveformPalette } from '@shared/consult/audio'
 
 /*
  * The console's colours for the drawings the website's page makes too
@@ -30,4 +30,10 @@ export const EQ_PALETTE: EqPalette = {
   area: 'rgba(210, 169, 97, 0.1)',
   point: '#b98b47',
   pointActive: '#e3c286'
+}
+
+/** The track sounding behind the EQ, faint, so the curve reads over it. */
+export const SPECTRUM_PALETTE: SpectrumPalette = {
+  fill: 'rgba(182, 158, 124, 0.08)',
+  line: 'rgba(182, 158, 124, 0.25)'
 }

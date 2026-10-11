@@ -153,11 +153,12 @@ export function MiniPlayer(): ReactNode {
           ) : null}
 
           {/* The subject, at the end of the row and doubling as the way back to
-              the department that owns it — the same move the reference makes. */}
+              the department that owns it — the same move the reference makes.
+              With someone's tools on, back to the page they are shown on. */}
           <button
             type="button"
             className={styles.subject}
-            onClick={() => navigate(getSection(source.home).path)}
+            onClick={() => navigate(insert?.path ?? getSection(source.home).path)}
             title={`Open ${getSection(source.home).label}`}
           >
             <span className={styles.mark} aria-hidden="true">

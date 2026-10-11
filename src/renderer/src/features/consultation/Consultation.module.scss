@@ -441,9 +441,10 @@
   list-style: none;
 }
 
-.noteItem {
+// A note, and beside it the way to a section's tools when it has some.
+.noteRow {
   display: flex;
-  flex-direction: column;
+  align-items: stretch;
   gap: space(2);
 }
 
@@ -451,8 +452,8 @@
   display: grid;
   grid-template-columns: rem(92px) minmax(0, 1fr);
   column-gap: space(4);
-  row-gap: space(2);
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: space(3) space(4);
   background: var(--ch-surface-raised);
   @include hairline(all, 0.08);
@@ -477,7 +478,6 @@
 .noteWhen {
   @include readout(10px);
   color: var(--ch-gold-300);
-  grid-row: span 2;
 }
 
 .noteText {
@@ -487,18 +487,33 @@
   color: var(--ch-text-primary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+
+  // A section with tools and no words.
+  &[data-quiet] {
+    color: var(--ch-text-faint);
+  }
 }
 
-.tools {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  grid-column: 2;
-}
+.noteTools {
+  flex-shrink: 0;
+  padding: 0 space(3);
+  @include label(8px, 0.14em);
+  color: var(--ch-gold-300);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
 
-.tool {
-  @include readout(10px);
-  color: var(--ch-text-secondary);
+  &:hover {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
 }
 
 .eq {
@@ -507,6 +522,314 @@
   height: rem(112px);
   background: var(--ch-surface-sunken);
   @include hairline(all, 0.08);
+}
+
+// A link's producers, a row each: pressing one opens their page.
+.producerList {
+  display: flex;
+  flex-direction: column;
+  gap: space(2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.producerRow {
+  display: flex;
+  align-items: baseline;
+  gap: space(3);
+  width: 100%;
+  min-width: 0;
+  padding: space(3) space(4);
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color $duration-fast linear,
+    background $duration-fast linear;
+
+  &:hover {
+    border-color: var(--ch-line-strong);
+    background: var(--ch-surface-overlay);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+}
+
+.producerWhen {
+  @include readout(9px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+}
+
+.producerGo {
+  @include readout(11px);
+  color: var(--ch-text-faint);
+  flex-shrink: 0;
+  transition:
+    color $duration-fast linear,
+    transform $duration-fast $ease-out-expo;
+
+  .producerRow:hover & {
+    color: var(--ch-gold-300);
+    transform: translateX(2px);
+  }
+}
+
+// ---------------------------------------------------------- producer page
+
+// One producer's feedback, laid out as the website's page laid it out for
+// them: the track and their notes on the left, the focal panel; their tools
+// on the right, held beside it while the notes go by, and scrolling on
+// their own. One column on a narrow window, the tools no longer held.
+.producerPage {
+  display: flex;
+  flex-direction: column;
+  gap: space(4);
+}
+
+.producerBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space(4);
+}
+
+.producerGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: space(5);
+  align-items: start;
+}
+
+.listenPanel {
+  min-width: 0;
+}
+
+// Sticky against the page wrapper's own scroll, as OBSERVATORY's board is.
+.toolsPanel {
+  position: sticky;
+  top: space(2);
+  max-height: calc(100vh - #{space(24)});
+  overflow-y: auto;
+}
+
+@include below('md') {
+  .producerGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .toolsPanel {
+    position: static;
+    max-height: none;
+  }
+}
+
+.waveformTall {
+  height: rem(176px);
+}
+
+// Tools switched off, and the way to have them all back.
+.offLine {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: space(3);
+  margin: 0;
+  @include readout(10px);
+  color: var(--ch-gold-300);
+}
+
+.inlineAction {
+  padding: 0;
+  background: none;
+  border: 0;
+  @include label(8px, 0.16em);
+  color: var(--ch-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-primary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.foldAll {
+  display: inline-flex;
+  gap: space(3);
+}
+
+.toolsBody {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+}
+
+// Where the tools are: the whole track, or one section.
+.scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space(2);
+}
+
+.scope {
+  padding: space(1) space(3);
+  @include label(8px, 0.14em);
+  color: var(--ch-text-muted);
+  background: none;
+  @include hairline(all, 0.14);
+  cursor: pointer;
+  transition:
+    color $duration-fast linear,
+    border-color $duration-fast linear;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+    border-color: var(--ch-line-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring(0);
+  }
+
+  &[aria-pressed='true'] {
+    color: var(--ch-gold-200);
+    border-color: var(--ch-line-gold);
+  }
+}
+
+// One tool: its name and switch, and what they set, folding to one line.
+.plugin {
+  background: var(--ch-surface-raised);
+  @include hairline(all, 0.1);
+}
+
+.pluginHead {
+  display: flex;
+  align-items: center;
+  gap: space(3);
+  padding: space(2) space(3);
+}
+
+.pluginFold {
+  display: flex;
+  align-items: center;
+  gap: space(2);
+  flex: 1;
+  min-width: 0;
+  padding: space(1) 0;
+  background: none;
+  border: 0;
+  color: var(--ch-text-muted);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ch-text-secondary);
+  }
+
+  &:focus-visible {
+    @include focus-ring(2px);
+  }
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform $duration-fast $ease-out-expo;
+
+  .pluginFold[aria-expanded='true'] & {
+    transform: rotate(90deg);
+  }
+}
+
+.pluginName {
+  @include label(9px, 0.18em);
+  color: var(--ch-gold-300);
+  flex-shrink: 0;
+
+  .plugin[data-off] & {
+    color: var(--ch-text-faint);
+  }
+}
+
+.pluginSummary {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+  min-width: 0;
+  @include truncate;
+
+  .plugin[data-off] & {
+    color: var(--ch-text-faint);
+  }
+}
+
+.pluginBody {
+  overflow: hidden;
+}
+
+.pluginInner {
+  display: flex;
+  flex-direction: column;
+  gap: space(3);
+  padding: 0 space(3) space(3);
+  transition: opacity $duration-fast linear;
+
+  // Switched off: still readable, drawn back, since it is not being heard.
+  .plugin[data-off] & {
+    opacity: 0.45;
+  }
+}
+
+.eqLarge {
+  height: rem(168px);
+}
+
+.bands {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.band {
+  @include readout(10px);
+  color: var(--ch-text-secondary);
+}
+
+.values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space(2) space(4);
+  margin: 0;
+}
+
+.value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.valueLabel {
+  @include label(8px, 0.16em);
+  color: var(--ch-text-faint);
+}
+
+.valueText {
+  margin: 0;
+  @include readout(11px);
+  color: var(--ch-text-primary);
 }
 
 // ------------------------------------------------------------------ share

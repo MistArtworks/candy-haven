@@ -72,24 +72,34 @@ read by then is gone.
 ## How to read and hear the feedback
 
 1. Press **Check for new**, so anything sent since the last check is in.
-2. Pick the track in **SHARED**. Its feedback opens beside it, and stops
-   counting as new.
-3. Pick a producer along the top. Their moments are pins on the waveform and
-   their sections are bands, and their notes are listed in order underneath,
-   each with the tools on it in words, and its EQ drawn as a curve.
+2. Pick the track in **SHARED**. Its producers are listed beside it, and their
+   feedback stops counting as new.
+3. Pick a producer. Their page opens:
+   - **On the left:** the waveform, with their moments as pins and their
+     sections as bands, and their notes in order underneath.
+   - **On the right:** their tools, a card each, in words, with the EQ drawn
+     as a curve over the track's sound. Choose **Whole track** or a section
+     above the cards. A note's **Tools →** does the same.
+   - **Across the top:** the other producers, to move between them.
 4. Press **Play**, or press the waveform, or a note, to play from there. The
    track plays through their settings: each section's tools switch in where
    the section starts and out where it ends, and the tools on the whole track
    are on all the way through.
 5. Press **As it is** to hear the track without their settings, and **their
    name's settings** to hear it with them again. That is the A/B.
+6. A card's arrow folds it to one line, and **Collapse all** and **Expand all**
+   do every card at once.
+7. A card's switch turns that tool off: you hear their settings without it,
+   to tell what it does. What they sent isn't changed. **Turn all on** brings
+   every tool back, and opening another producer has all of theirs on.
 
 ![consultation-03-feedback.png](consultation-03-feedback.png)
 
 It plays on the console's transport, at the foot of the window, so it keeps
 playing while you go to another page. While their settings are on, the bar
 shows their name; press it to switch between their settings and the track as
-it is from anywhere. Opening any other file takes their settings off.
+it is from anywhere, and press the track's name to come back to their page.
+Opening any other file takes their settings off.
 
 The track comes from the file it was shared from, if it is still where it was,
 and otherwise from the copy kept for the link. A link shared from the other

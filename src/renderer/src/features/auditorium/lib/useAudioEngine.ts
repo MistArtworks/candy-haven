@@ -35,6 +35,11 @@ export interface InsertSpec {
   /** Whose they are, for the transport bar: `Nasko`. */
   label: string
   tools: Tools
+  /**
+   * Where they are shown, for the transport bar's way back while they are
+   * on: CONSULTATION's page for that producer, rather than the department.
+   */
+  path?: string
 }
 
 export interface InsertState {
@@ -42,6 +47,7 @@ export interface InsertState {
   label: string
   /** Heard as it is for now, the tools kept: the A/B. */
   bypassed: boolean
+  path?: string
 }
 
 /** A Windows path (`C:\…`, `\\server\…`), as against a name in the bucket. */
@@ -85,6 +91,11 @@ export interface AudioEngine {
    * file takes them off, so nothing else is ever heard through them.
    */
   setInsert: (spec: InsertSpec | null) => void
+  /**
+   * Changes what the tools on now are, leaving the A/B where it is: the
+   * same producer's with some switched off, to hear what each one does.
+   */
+  retune: (tools: Tools) => void
   /** Hears the track as it is, or through the tools again. */
   setBypass: (on: boolean) => void
   toggle: () => void
@@ -228,10 +239,15 @@ export function useAudioEngine(): AudioEngine {
       tools.bypass(false)
       followingRef.current ??= tools.follow(element)
       route(tools)
-      setInsertState({ key: spec.key, label: spec.label, bypassed: false })
+      setInsertState({ key: spec.key, label: spec.label, bypassed: false, path: spec.path })
     },
     [buildGraph, route]
   )
+
+  // The graph keeps its A/B across a change of tools: only `bypass` moves it.
+  const retune = useCallback((tools: Tools): void => {
+    insertRef.current?.set(tools)
+  }, [])
 
   const setBypass = useCallback((on: boolean): void => {
     const graph = insertRef.current
@@ -517,6 +533,7 @@ export function useAudioEngine(): AudioEngine {
     open,
     openFrom,
     setInsert,
+    retune,
     setBypass,
     toggle,
     seek,

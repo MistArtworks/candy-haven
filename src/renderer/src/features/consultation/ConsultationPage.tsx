@@ -1,6 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
-import type { Consultation, ConsultationStorage } from '@shared/domain/consultation'
+import type {
+  Consultation,
+  ConsultationState,
+  ConsultationStorage
+} from '@shared/domain/consultation'
 import { CLOSING_SOON_MS, formatLeft, isLinkOpen } from '@shared/domain/consultation.constants'
 import { getSection } from '@shared/domain/navigation'
 import { PageHeader } from '@renderer/components/primitives/PageHeader'
@@ -13,6 +18,7 @@ import {
   consultationReachable,
   useConsultation,
   useConsultationActions,
+  useConsultationFeedback,
   useConsultations
 } from '@renderer/hooks/useConsultation'
 import { useNow } from '@renderer/hooks/useLeads'
@@ -21,6 +27,7 @@ import { CheckForNew, WebsiteGate, WebsiteStatus } from '@renderer/components/we
 import { formatBytes, plural } from '@renderer/lib/format'
 import { tooltipTrigger } from '@renderer/lib/tooltip'
 import { LinkDetail } from './components/LinkDetail'
+import { ProducerPage } from './components/ProducerPage'
 import { ShareDialog } from './components/ShareDialog'
 import styles from './Consultation.module.scss'
 
@@ -43,6 +50,10 @@ const NEARLY_FULL = 0.9
  * the track and its feedback; the link stays in the list as EXPIRED until
  * it is removed. The meter is the free storage the tracks not yet deleted
  * take. See docs/CONSULTATION.md.
+ *
+ * The link open is in the address (`?link=`), as DISCOGRAPHY's open
+ * release is, and so is a producer's page on it (`&producer=`), which takes
+ * the place of the list: the transport bar's way back comes to it.
  */
 export function ConsultationPage(): ReactNode {
   const section = getSection('consultation')
@@ -53,8 +64,14 @@ export function ConsultationPage(): ReactNode {
   const reachable = consultationReachable(state)
   const now = useNow(30_000, state.revision)
 
-  const [pickedId, setPickedId] = useState<string | null>(null)
+  const [params, setParams] = useSearchParams()
+  const pickedId = params.get('link')
+  const producerId = params.get('producer')
   const [sharing, setSharing] = useState(false)
+  // When the link was opened here, for its producers' NEW marks; this
+  // page's own opening when it was not opened first (the way back in).
+  const [pageOpenedAt] = useState(() => Date.now())
+  const [opened, setOpened] = useState<{ link: string; at: number } | null>(null)
 
   const all = useMemo(() => consultations.data ?? [], [consultations.data])
   // The newest still open, until one is picked: that is where feedback is.
@@ -64,6 +81,12 @@ export function ConsultationPage(): ReactNode {
     all[0] ??
     null
   const live = all.filter((link) => isLinkOpen(link, now)).length
+  // A producer's page, only while their link is open: a closed one's feedback is gone.
+  const producing = producerId !== null && selected !== null && isLinkOpen(selected, now)
+
+  const openLink = (id: string): void => setParams({ link: id }, { replace: true })
+  const openProducer = (linkId: string, feedbackId: string): void =>
+    setParams({ link: linkId, producer: feedbackId }, { replace: true })
 
   // Unknown until the first check-in answers; the website refuses the pass then if it must.
   const noStore = state.storage.configured === false
@@ -86,7 +109,18 @@ export function ConsultationPage(): ReactNode {
         has.
       </WebsiteGate>
 
-      {open ? (
+      {open && producing && selected && producerId ? (
+        <ProducerView
+          link={selected}
+          state={state}
+          producerId={producerId}
+          openedAt={opened?.link === selected.id ? opened.at : pageOpenedAt}
+          onBack={() => openLink(selected.id)}
+          onPick={(feedbackId) => openProducer(selected.id, feedbackId)}
+        />
+      ) : null}
+
+      {open && !producing ? (
         <div className={styles.toolbar}>
           <StorageMeter storage={state.storage} />
           <div className={styles.toolbarActions}>
@@ -127,7 +161,7 @@ export function ConsultationPage(): ReactNode {
         </div>
       ) : null}
 
-      {open && noStore ? (
+      {open && noStore && !producing ? (
         <p className={styles.notice}>
           <span className={styles.noticeLabel}>NO STORE</span>
           The website has no Blob store yet, so there is nowhere to keep a shared track. It is set
@@ -136,7 +170,7 @@ export function ConsultationPage(): ReactNode {
         </p>
       ) : null}
 
-      {open ? (
+      {open && !producing ? (
         <motion.div
           className={styles.grid}
           variants={gridVariants}
@@ -170,7 +204,7 @@ export function ConsultationPage(): ReactNode {
                       link={link}
                       now={now}
                       selected={link.id === selected?.id}
-                      onOpen={() => setPickedId(link.id)}
+                      onOpen={() => openLink(link.id)}
                     />
                   </li>
                 ))}
@@ -191,6 +225,10 @@ export function ConsultationPage(): ReactNode {
                 state={state}
                 now={now}
                 actions={actions}
+                onOpenProducer={(feedbackId, at) => {
+                  setOpened({ link: selected.id, at })
+                  openProducer(selected.id, feedbackId)
+                }}
               />
             ) : (
               <p className={styles.empty}>
@@ -207,7 +245,7 @@ export function ConsultationPage(): ReactNode {
           website={state.link.website}
           onClose={(shared) => {
             setSharing(false)
-            if (shared) setPickedId(shared.id)
+            if (shared) openLink(shared.id)
           }}
         />
       ) : null}
@@ -286,5 +324,43 @@ function LinkCard({
         </span>
       </span>
     </button>
+  )
+}
+
+/** A producer's page on an open link, once its feedback is read. */
+function ProducerView({
+  link,
+  state,
+  producerId,
+  openedAt,
+  onBack,
+  onPick
+}: {
+  link: Consultation
+  state: ConsultationState
+  producerId: string
+  openedAt: number
+  onBack: () => void
+  onPick: (feedbackId: string) => void
+}): ReactNode {
+  const feedback = useConsultationFeedback(state, link.id)
+  if (!feedback.data) {
+    return (
+      <Panel label={link.title} index="01" focal>
+        <p className={styles.empty}>
+          {feedback.isError ? 'Its feedback could not be read just now.' : 'Reading…'}
+        </p>
+      </Panel>
+    )
+  }
+  return (
+    <ProducerPage
+      link={link}
+      feedback={feedback.data}
+      producerId={producerId}
+      openedAt={openedAt}
+      onBack={onBack}
+      onPick={onPick}
+    />
   )
 }
